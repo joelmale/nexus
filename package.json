@@ -1,0 +1,53 @@
+{
+  "name": "nexus-vtt",
+  "version": "0.1.0",
+  "description": "A lightweight virtual tabletop for modern web browsers",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:3000": "PORT=3000 vite",
+    "dev:8080": "PORT=8080 vite",
+    "dev:4000": "PORT=4000 vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "server:dev": "tsx watch server/index.ts",
+    "server:dev:5001": "PORT=5001 tsx watch server/index.ts",
+    "server:dev:5002": "PORT=5002 tsx watch server/index.ts",
+    "server:dev:8080": "PORT=8080 tsx watch server/index.ts",
+    "server:build": "tsc --project tsconfig.server.json",
+    "server:start": "node dist/server/index.js",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "type-check": "tsc --noEmit",
+    "organize-assets": "chmod +x organize-assets.sh && ./organize-assets.sh",
+    "update-assets": "node scripts/update-asset-references.js",
+    "check-ports": "chmod +x check-ports.sh && ./check-ports.sh",
+    "setup": "chmod +x start-dev.sh && ./start-dev.sh",
+    "start:full": "concurrently \"npm run server:dev\" \"npm run dev\" --names \"backend,frontend\" --prefix-colors \"blue,green\""
+  },
+  "dependencies": {
+    "immer": "^10.0.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "uuid": "^9.0.1",
+    "ws": "^8.14.2",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@eslint/config-array": "^0.17.1",
+    "@eslint/js": "^9.9.0",
+    "@types/node": "^20.10.4",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@types/uuid": "^9.0.7",
+    "@types/ws": "^8.5.10",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.9.0",
+    "globals": "^15.9.0",
+    "tsx": "^4.6.2",
+    "typescript": "^5.2.2",
+    "typescript-eslint": "^8.0.1",
+    "vite": "^5.0.8"
+  }
+}
