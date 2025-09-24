@@ -7,10 +7,15 @@
  * including port management and the ability to run all services together.
  */
 
-const { spawn, exec } = require('child_process');
-const net = require('net');
-const fs = require('fs');
-const path = require('path');
+import { spawn, exec } from 'child_process';
+import net from 'net';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Default ports
 const DEFAULT_PORTS = {
@@ -465,7 +470,7 @@ class NexusSetup {
 }
 
 // CLI execution
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const setup = new NexusSetup();
   setup.run().catch(error => {
     console.error('❌ Setup failed:', error);
@@ -473,4 +478,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { NexusSetup };
+export { NexusSetup };

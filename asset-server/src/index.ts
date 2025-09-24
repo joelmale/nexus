@@ -6,6 +6,15 @@ import path from 'path';
 import fs from 'fs';
 import type { AssetManifest, AssetMetadata } from '../shared/types';
 
+// Asset categories for directory structure
+const ASSET_CATEGORIES = {
+  'Maps': 'Maps',
+  'Tokens': 'Tokens', 
+  'Art': 'Art',
+  'Handouts': 'Handouts',
+  'Reference': 'Reference'
+};
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 const ASSETS_PATH = process.env.ASSETS_PATH || path.join(__dirname, '../assets');
@@ -136,13 +145,25 @@ app.get('/category/:category', (req, res) => {
   });
 });
 
-// Serve static assets with caching
+// Serve static assets with caching (new structure)
+Object.values(ASSET_CATEGORIES).forEach(categoryName => {
+  app.use(`/${categoryName}/assets`, (req, res, next) => {
+    setCacheHeaders(res);
+    next();
+  }, express.static(path.join(ASSETS_PATH, categoryName, 'assets')));
+  
+  app.use(`/${categoryName}/thumbnails`, (req, res, next) => {
+    setCacheHeaders(res);
+    next();
+  }, express.static(path.join(ASSETS_PATH, categoryName, 'thumbnails')));
+});
+
+// Legacy support for old structure
 app.use('/assets', (req, res, next) => {
   setCacheHeaders(res);
   next();
 }, express.static(path.join(ASSETS_PATH, 'assets')));
 
-// Serve thumbnails with caching
 app.use('/thumbnails', (req, res, next) => {
   setCacheHeaders(res);
   next();

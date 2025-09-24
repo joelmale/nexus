@@ -2,8 +2,8 @@
 import type { AssetMetadata, AssetManifest, AssetSearchResult, AssetCategoryResult } from '../../shared/types';
 import type { Scene } from '@/types/game';
 
-// Asset server configuration
-const ASSET_SERVER_URL = process.env.VITE_ASSET_SERVER_URL || 'http://localhost:8080';
+// Asset server configuration - using Vite environment variables
+const ASSET_SERVER_URL = import.meta.env.VITE_ASSET_SERVER_URL || 'http://localhost:8080';
 const LOCAL_CACHE_PREFIX = 'nexus-asset-cache-';
 
 /**

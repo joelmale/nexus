@@ -50,37 +50,28 @@ cd nexus-vtt
 
 # Install dependencies
 npm install
+cd asset-server && npm install && cd ..
+npm install sharp  # For asset processing
 
-# Start development (automatic setup)
+# Start everything with one command
+npm run start:all
+```
+
+The setup will start:
+- ✅ **Frontend** on http://localhost:5173
+- ✅ **WebSocket Server** on ws://localhost:5000/ws  
+- ✅ **Asset Server** on http://localhost:8080
+
+### Alternative Setup Methods
+
+```bash
+# Interactive setup menu (recommended for first time)
 npm run setup
-```
 
-The setup script will:
-- ✅ Check for available ports
-- ✅ Provide exact commands for your system
-- ✅ Optionally start both servers automatically
-
-### Manual Development Setup
-
-```bash
-# Terminal 1: Frontend (React app)
-npm run dev
-# Runs on http://localhost:5173
-
-# Terminal 2: Backend (WebSocket server)  
-npm run server:dev
-# Runs on ws://localhost:5000/ws
-```
-
-### Alternative Ports (if defaults are busy)
-```bash
-# Frontend on port 3000, Backend on port 5001
-PORT=3000 WS_PORT=5001 npm run dev
-PORT=5001 npm run server:dev
-
-# Or use predefined scripts
-npm run dev:3000
-npm run server:dev:5001
+# Start individual services
+npm run dev          # Frontend only
+npm run server:dev   # WebSocket only
+cd asset-server && npm run dev  # Assets only
 ```
 
 ## 🎯 Usage
@@ -99,8 +90,11 @@ npm run server:dev:5001
 
 ### Current Features (MVCR Complete)
 - ✅ **Session Management** - Create/join games with room codes
-- ✅ **Multi-tab Interface** - Lobby, Dice, Scenes (placeholder), Tokens (placeholder)
+- ✅ **Multi-tab Interface** - Lobby, Dice, Scenes, Settings
 - ✅ **Real-time Dice Roller** - Full expression parsing with shared results
+- ✅ **Scene Editor** - Background images, grid system, basic scene management
+- ✅ **Asset Management** - Professional asset server with image processing
+- ✅ **Color Schemes** - Customizable glassmorphism themes
 - ✅ **Player Management** - See who's connected in real-time
 
 ## 🗂️ Project Structure
@@ -126,24 +120,37 @@ nexus-vtt/
 
 ### Adding Your Graphics
 ```bash
-# Organize your logos and icons
-npm run organize-assets
+# Process your asset collection
+node scripts/process-assets.js /path/to/your/assets ./asset-server/assets
 
-# Place your files in:
-public/assets/logos/nexus-logo.svg     # Your main logo
-public/assets/icons/nexus-icon.svg     # Your app icon  
-public/assets/icons/nexus-icon-*.png   # PWA icons (192px, 512px)
+# Example: Process maps from external drive
+node scripts/process-assets.js /Volumes/PS2000w/DnD_Assets/maps ./asset-server/assets
 
-# Update references automatically
-npm run update-assets
+# Start asset server
+cd asset-server && npm run dev
 ```
 
-### Logo Integration
-The app automatically detects custom logos and integrates them with glassmorphism effects:
-- **Header branding** with glow effects
-- **Lobby showcase** with floating animations  
-- **PWA icons** for mobile installation
-- **Favicon** and social media images
+### Supported Asset Types
+- **Maps**: Dungeons, cities, wilderness, interiors, battlemaps
+- **Tokens**: Characters, monsters, objects, NPCs
+- **Art**: Character portraits, scene art, concept art
+- **Handouts**: Documents, letters, notices, player maps
+- **Reference**: Rules, charts, tables, guides
+
+### Asset Processing Features
+- **WebP Conversion**: Reduces file sizes by ~40% while maintaining quality
+- **Thumbnail Generation**: 300x300 previews for fast browsing
+- **Smart Categorization**: Automatic organization by content type
+- **Metadata Extraction**: Searchable tags and descriptions
+- **Standardized Structure**: Organized folder hierarchy
+
+### Asset Browser Integration
+The Scene Editor includes a professional asset browser:
+- 🔍 **Search and filter** by name, category, or tags
+- 📁 **Category organization** with subcategories
+- 🖼️ **Thumbnail grid** for quick visual selection
+- ⚡ **Lazy loading** with smart caching
+- 📱 **Mobile responsive** design
 
 ## 🛠️ Development
 
@@ -152,23 +159,24 @@ The app automatically detects custom logos and integrates them with glassmorphis
 ```bash
 # Development
 npm run dev              # Start frontend (port 5173)
-npm run server:dev       # Start backend (port 5000)
-npm run setup           # Interactive setup with port detection
-npm run start:full      # Start both servers concurrently
+npm run server:dev       # Start WebSocket server (port 5000)
+cd asset-server && npm run dev  # Start asset server (port 8080)
+npm run start:all        # Start all three servers at once
+npm run setup           # Interactive setup menu
 
-# Port Management  
-npm run check-ports     # Check which ports are available
-npm run dev:3000        # Frontend on specific port
-npm run server:dev:5001 # Backend on specific port
-
-# Asset Management
-npm run organize-assets # Set up asset directory structure
-npm run update-assets   # Update icon/logo references
+# Asset Processing
+node scripts/process-assets.js <input> <output>  # Process assets
+npm install sharp       # Install image processing library
 
 # Build & Quality
 npm run build           # Production build
 npm run lint            # TypeScript and ESLint checks
 npm run type-check      # TypeScript validation only
+
+# Port Management (if defaults are busy)
+npm run dev:3000        # Frontend on specific port
+npm run server:dev:5001 # WebSocket on specific port
+PORT=8081 npm run dev   # Asset server on different port (in asset-server/)
 ```
 
 ### Architecture Deep Dive
@@ -176,6 +184,7 @@ npm run type-check      # TypeScript validation only
 #### Frontend (React + TypeScript)
 - **Zustand + Immer**: Immutable state management with reactive updates
 - **WebSocket Service**: Robust connection handling with auto-reconnect
+- **Asset Manager**: Smart caching and lazy loading for images
 - **Component Architecture**: Modular design with glassmorphism styling
 - **Type Safety**: Full TypeScript coverage with strict mode
 
@@ -185,6 +194,13 @@ npm run type-check      # TypeScript validation only
 - **No Game Logic**: All logic runs in host browser
 - **Port Intelligence**: Auto-detects conflicts, suggests alternatives
 
+#### Asset Server (Express.js + Sharp)
+- **Image Processing**: Converts all images to optimized WebP format
+- **Smart Caching**: HTTP caching headers and client-side IndexedDB
+- **RESTful API**: Search, categorization, and metadata endpoints
+- **Standardized Structure**: Organized asset hierarchy
+- **CORS Support**: Cross-origin requests for development
+
 #### State Synchronization
 ```typescript
 // Host browser: Source of truth
@@ -192,6 +208,9 @@ Host makes change → Generate event → Send to server → Broadcast to players
 
 // Player browsers: Apply updates  
 Receive event → Update local state → Re-render UI
+
+// Asset Server: Serve optimized content
+Request asset → Check cache → Serve WebP/thumbnail → Update manifest
 
 // Server: Message router only
 Receive message → Route to room members → No processing

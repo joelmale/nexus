@@ -4,15 +4,16 @@ export interface AssetMetadata {
   id: string;
   name: string;
   category: string;
+  subcategory?: string;
   tags: string[];
-  thumbnail: string; // Relative path: thumbnails/abc123_thumb.webp
-  fullImage: string; // Relative path: assets/abc123.webp
+  thumbnail: string; // Relative path: Maps/thumbnails/abc123_thumb.webp
+  fullImage: string; // Relative path: Maps/assets/abc123.webp
   dimensions: {
     width: number;
     height: number;
   };
   fileSize: number; // Original file size in bytes
-  format: 'jpg' | 'png' | 'webp';
+  format: 'jpg' | 'png' | 'webp' | 'gif';
 }
 
 export interface AssetManifest {
@@ -20,6 +21,7 @@ export interface AssetManifest {
   generatedAt: string;
   totalAssets: number;
   categories: string[];
+  subcategories?: Record<string, string[]>;
   assets: AssetMetadata[];
 }
 

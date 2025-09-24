@@ -25,7 +25,10 @@
     "setup": "node scripts/dev-setup.js",
     "setup:legacy": "chmod +x start-dev.sh && ./start-dev.sh",
     "dev:all": "node scripts/dev-setup.js",
-    "start:full": "concurrently \"npm run server:dev\" \"npm run dev\" --names \"backend,frontend\" --prefix-colors \"blue,green\""
+    "start:full": "concurrently \"npm run server:dev\" \"npm run dev\" --names \"backend,frontend\" --prefix-colors \"blue,green\"",
+    "start:all": "node scripts/start-all-smart.js",
+    "start:all:simple": "node scripts/start-all.js",
+    "dev:quick": "node scripts/start-all.js"
   },
   "dependencies": {
     "immer": "^10.0.3",
