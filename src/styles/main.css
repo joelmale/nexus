@@ -1,3 +1,8 @@
+@import './assets.css';
+@import './scenes.css';
+@import './settings.css';
+@import './asset-browser.css';
+
 /* CSS Reset and base styles */
 * {
   margin: 0;

@@ -22,13 +22,16 @@
     "organize-assets": "chmod +x organize-assets.sh && ./organize-assets.sh",
     "update-assets": "node scripts/update-asset-references.js",
     "check-ports": "chmod +x check-ports.sh && ./check-ports.sh",
-    "setup": "chmod +x start-dev.sh && ./start-dev.sh",
+    "setup": "node scripts/dev-setup.js",
+    "setup:legacy": "chmod +x start-dev.sh && ./start-dev.sh",
+    "dev:all": "node scripts/dev-setup.js",
     "start:full": "concurrently \"npm run server:dev\" \"npm run dev\" --names \"backend,frontend\" --prefix-colors \"blue,green\""
   },
   "dependencies": {
     "immer": "^10.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "sharp": "^0.34.4",
     "uuid": "^9.0.1",
     "ws": "^8.14.2",
     "zustand": "^4.4.7"

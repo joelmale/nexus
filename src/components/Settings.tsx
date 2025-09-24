@@ -1,0 +1,570 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { useGameStore, useSettings, useColorScheme } from '@/stores/gameStore';
+import { 
+  defaultColorSchemes, 
+  generateRandomColorScheme, 
+  applyColorScheme,
+  getColorSchemePreview 
+} from '@/utils/colorSchemes';
+import { RefreshIcon, ColorIcon, SaveIcon } from './Icons';
+import type { ColorScheme, UserSettings } from '@/types/game';
+
+interface SettingsSectionProps {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}
+
+const SettingsSection: React.FC<SettingsSectionProps> = ({ title, description, children }) => (
+  <div className="settings-section">
+    <div className="settings-section-header">
+      <h3>{title}</h3>
+      {description && <p className="settings-description">{description}</p>}
+    </div>
+    <div className="settings-section-content">
+      {children}
+    </div>
+  </div>
+);
+
+interface SettingItemProps {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}
+
+const SettingItem: React.FC<SettingItemProps> = ({ label, description, children }) => (
+  <div className="setting-item">
+    <div className="setting-label">
+      <span className="setting-name">{label}</span>
+      {description && <span className="setting-desc">{description}</span>}
+    </div>
+    <div className="setting-control">
+      {children}
+    </div>
+  </div>
+);
+
+interface ColorSchemePickerProps {
+  currentScheme: ColorScheme;
+  onSchemeChange: (scheme: ColorScheme) => void;
+}
+
+const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, onSchemeChange }) => {
+  const [customSchemes, setCustomSchemes] = useState<ColorScheme[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  const handleGenerateRandom = () => {
+    const randomScheme = generateRandomColorScheme();
+    setCustomSchemes(prev => [randomScheme, ...prev.slice(0, 4)]); // Keep only 5 custom schemes
+    onSchemeChange(randomScheme);
+    setIsDropdownOpen(false);
+  };
+
+  const handleSchemeSelect = (scheme: ColorScheme) => {
+    onSchemeChange(scheme);
+    applyColorScheme(scheme);
+    setIsDropdownOpen(false);
+  };
+
+  const allSchemes = [...defaultColorSchemes, ...customSchemes];
+
+  // Helper function to ensure color is in hex format
+  const getHexColor = (color: string): string => {
+    return color.toUpperCase();
+  };
+
+  const currentColors = getColorSchemePreview(currentScheme);
+
+  return (
+    <div className="color-scheme-picker-modern">
+      {/* Current Color Palette Display */}
+      <div className="current-palette">
+        <div className="palette-swatches">
+          {currentColors.map((color, index) => {
+            const hexColor = getHexColor(color);
+            return (
+              <div key={index} className="color-swatch-modern">
+                <div 
+                  className="swatch-color"
+                  style={{ backgroundColor: color }}
+                ></div>
+                <span className="color-code">{hexColor}</span>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div className="palette-name">
+          {currentScheme.name}
+        </div>
+      </div>
+
+      {/* Scheme Selector Dropdown */}
+      <div className="scheme-selector">
+        <div className="dropdown-container" ref={dropdownRef}>
+          <button 
+            className="dropdown-trigger"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            type="button"
+          >
+            Choose Palette
+            <span className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`}>▼</span>
+          </button>
+          
+          {isDropdownOpen && (
+            <div className="dropdown-menu">
+              <div className="dropdown-section">
+                <span className="section-title">Preset Palettes</span>
+                {defaultColorSchemes.map((scheme) => (
+                  <button
+                    key={scheme.id}
+                    className={`dropdown-item ${scheme.id === currentScheme.id ? 'active' : ''}`}
+                    onClick={() => handleSchemeSelect(scheme)}
+                  >
+                    <div className="mini-palette">
+                      {getColorSchemePreview(scheme).map((color, index) => (
+                        <div
+                          key={index}
+                          className="mini-swatch"
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                    <span className="scheme-label">{scheme.name}</span>
+                  </button>
+                ))}
+              </div>
+              
+              {customSchemes.length > 0 && (
+                <div className="dropdown-section">
+                  <span className="section-title">Custom Palettes</span>
+                  {customSchemes.map((scheme) => (
+                    <button
+                      key={scheme.id}
+                      className={`dropdown-item ${scheme.id === currentScheme.id ? 'active' : ''}`}
+                      onClick={() => handleSchemeSelect(scheme)}
+                    >
+                      <div className="mini-palette">
+                        {getColorSchemePreview(scheme).map((color, index) => (
+                          <div
+                            key={index}
+                            className="mini-swatch"
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                      <span className="scheme-label">{scheme.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              <div className="dropdown-section">
+                <button
+                  className="dropdown-item generate-random"
+                  onClick={handleGenerateRandom}
+                >
+                  <RefreshIcon size={16} />
+                  <span className="scheme-label">Generate Random Palette</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const Settings: React.FC = () => {
+  const { updateSettings, setColorScheme, resetSettings } = useGameStore();
+  const settings = useSettings();
+  const currentColorScheme = useColorScheme();
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const handleSettingChange = (key: keyof UserSettings, value: any) => {
+    updateSettings({ [key]: value });
+    setHasUnsavedChanges(true);
+  };
+
+  const handleColorSchemeChange = (scheme: ColorScheme) => {
+    setColorScheme(scheme);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleSave = () => {
+    // In a real app, you might save to localStorage or send to server
+    localStorage.setItem('nexus-settings', JSON.stringify(settings));
+    setHasUnsavedChanges(false);
+  };
+
+  const handleReset = () => {
+    if (confirm('Reset all settings to defaults? This cannot be undone.')) {
+      resetSettings();
+      applyColorScheme(defaultColorSchemes[0]);
+      setHasUnsavedChanges(false);
+    }
+  };
+
+  return (
+    <div className="settings-container">
+      <div className="settings-header">
+        <h2>Settings</h2>
+        <div className="settings-actions">
+          {hasUnsavedChanges && (
+            <button className="btn btn-primary btn-small" onClick={handleSave}>
+              <SaveIcon size={16} />
+              Save Changes
+            </button>
+          )}
+          <button className="btn btn-secondary btn-small" onClick={handleReset}>
+            Reset to Defaults
+          </button>
+        </div>
+      </div>
+
+      <div className="settings-content">
+        {/* Display Settings */}
+        <SettingsSection 
+          title="Display" 
+          description="Customize the appearance and theme of the application"
+        >
+          <SettingItem 
+            label="Color Scheme"
+            description="Choose a color palette that suits your style"
+          >
+            <ColorSchemePicker 
+              currentScheme={currentColorScheme}
+              onSchemeChange={handleColorSchemeChange}
+            />
+          </SettingItem>
+
+          <SettingItem 
+            label="Theme Mode"
+            description="Set the overall appearance theme"
+          >
+            <select 
+              value={settings.theme}
+              onChange={(e) => handleSettingChange('theme', e.target.value)}
+              className="setting-select"
+            >
+              <option value="auto">Auto (System)</option>
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </SettingItem>
+
+          <SettingItem 
+            label="Font Size"
+            description="Adjust text size for better readability"
+          >
+            <select 
+              value={settings.fontSize}
+              onChange={(e) => handleSettingChange('fontSize', e.target.value)}
+              className="setting-select"
+            >
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </SettingItem>
+
+          <SettingItem 
+            label="Reduced Motion"
+            description="Minimize animations for better performance or accessibility"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.reducedMotion}
+                onChange={(e) => handleSettingChange('reducedMotion', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+        </SettingsSection>
+
+        {/* Audio Settings */}
+        <SettingsSection 
+          title="Audio" 
+          description="Configure sound effects and notifications"
+        >
+          <SettingItem 
+            label="Enable Sounds"
+            description="Master control for all audio effects"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.enableSounds}
+                onChange={(e) => handleSettingChange('enableSounds', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+
+          <SettingItem 
+            label="Dice Roll Sounds"
+            description="Play sound effects when dice are rolled"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.diceRollSounds}
+                onChange={(e) => handleSettingChange('diceRollSounds', e.target.checked)}
+                disabled={!settings.enableSounds}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+
+          <SettingItem 
+            label="Master Volume"
+            description="Overall volume level for all sounds"
+          >
+            <div className="volume-control">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={settings.masterVolume}
+                onChange={(e) => handleSettingChange('masterVolume', parseInt(e.target.value))}
+                className="volume-slider"
+                disabled={!settings.enableSounds}
+              />
+              <span className="volume-value">{settings.masterVolume}%</span>
+            </div>
+          </SettingItem>
+        </SettingsSection>
+
+        {/* Gameplay Settings */}
+        <SettingsSection 
+          title="Gameplay" 
+          description="Configure game mechanics and behavior"
+        >
+          <SettingItem 
+            label="Auto-roll Initiative"
+            description="Automatically roll initiative for combat (placeholder)"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.autoRollInitiative}
+                onChange={(e) => handleSettingChange('autoRollInitiative', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+
+          <SettingItem 
+            label="Show Other Players' Rolls"
+            description="Display dice roll results from other players"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.showOtherPlayersRolls}
+                onChange={(e) => handleSettingChange('showOtherPlayersRolls', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+
+          <SettingItem 
+            label="Snap to Grid by Default"
+            description="Enable grid snapping when creating new scenes"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.snapToGridByDefault}
+                onChange={(e) => handleSettingChange('snapToGridByDefault', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+
+          <SettingItem 
+            label="Default Grid Size"
+            description="Default grid cell size for new scenes (pixels)"
+          >
+            <input
+              type="number"
+              min="10"
+              max="200"
+              step="5"
+              value={settings.defaultGridSize}
+              onChange={(e) => handleSettingChange('defaultGridSize', parseInt(e.target.value))}
+              className="setting-input"
+            />
+          </SettingItem>
+        </SettingsSection>
+
+        {/* Privacy Settings */}
+        <SettingsSection 
+          title="Privacy & Sharing" 
+          description="Control what information is shared with other players"
+        >
+          <SettingItem 
+            label="Allow Spectators"
+            description="Let non-players observe the game (placeholder)"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.allowSpectators}
+                onChange={(e) => handleSettingChange('allowSpectators', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+
+          <SettingItem 
+            label="Share Character Sheets"
+            description="Allow other players to view your character information (placeholder)"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.shareCharacterSheets}
+                onChange={(e) => handleSettingChange('shareCharacterSheets', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+
+          <SettingItem 
+            label="Log Game Sessions"
+            description="Keep a local record of game events and chat (placeholder)"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.logGameSessions}
+                onChange={(e) => handleSettingChange('logGameSessions', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+        </SettingsSection>
+
+        {/* Performance Settings */}
+        <SettingsSection 
+          title="Performance" 
+          description="Optimize the application for your device"
+        >
+          <SettingItem 
+            label="Max Tokens Per Scene"
+            description="Limit tokens to improve performance (placeholder)"
+          >
+            <input
+              type="number"
+              min="10"
+              max="500"
+              step="10"
+              value={settings.maxTokensPerScene}
+              onChange={(e) => handleSettingChange('maxTokensPerScene', parseInt(e.target.value))}
+              className="setting-input"
+            />
+          </SettingItem>
+
+          <SettingItem 
+            label="Image Quality"
+            description="Balance between visual quality and performance"
+          >
+            <select 
+              value={settings.imageQuality}
+              onChange={(e) => handleSettingChange('imageQuality', e.target.value)}
+              className="setting-select"
+            >
+              <option value="low">Low (Faster)</option>
+              <option value="medium">Medium</option>
+              <option value="high">High (Best Quality)</option>
+            </select>
+          </SettingItem>
+
+          <SettingItem 
+            label="Enable Animations"
+            description="Show smooth transitions and effects"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.enableAnimations}
+                onChange={(e) => handleSettingChange('enableAnimations', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+        </SettingsSection>
+
+        {/* Accessibility Settings */}
+        <SettingsSection 
+          title="Accessibility" 
+          description="Make the application more accessible for all users"
+        >
+          <SettingItem 
+            label="High Contrast Mode"
+            description="Increase contrast for better visibility (placeholder)"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.highContrast}
+                onChange={(e) => handleSettingChange('highContrast', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+
+          <SettingItem 
+            label="Screen Reader Mode"
+            description="Optimize for screen reader compatibility (placeholder)"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.screenReaderMode}
+                onChange={(e) => handleSettingChange('screenReaderMode', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+
+          <SettingItem 
+            label="Keyboard Navigation"
+            description="Enable enhanced keyboard shortcuts and navigation"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.keyboardNavigation}
+                onChange={(e) => handleSettingChange('keyboardNavigation', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+        </SettingsSection>
+      </div>
+    </div>
+  );
+};
