@@ -35,6 +35,7 @@ interface GameStore extends GameState {
   // Settings Actions
   updateSettings: (settings: Partial<UserSettings>) => void;
   setColorScheme: (colorScheme: ColorScheme) => void;
+  setEnableGlassmorphism: (enabled: boolean) => void;
   resetSettings: () => void;
   
   // Token Actions
@@ -75,6 +76,7 @@ const initialState: GameState = {
     // Display Settings
     colorScheme: defaultColorSchemes[0], // Nexus Default
     theme: 'auto',
+    enableGlassmorphism: true,
     reducedMotion: false,
     fontSize: 'medium',
     
@@ -571,6 +573,12 @@ export const useGameStore = create<GameStore>()(
       });
       // Apply the color scheme to CSS custom properties
       applyColorScheme(colorScheme);
+    },
+
+    setEnableGlassmorphism: (enabled) => {
+      set((state) => {
+        state.settings.enableGlassmorphism = enabled;
+      });
     },
 
     // Token Management Actions

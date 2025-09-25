@@ -217,7 +217,7 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
  * state management, saving, and resetting of user preferences.
  */
 export const Settings: React.FC = () => {
-  const { updateSettings, setColorScheme, resetSettings } = useGameStore();
+  const { updateSettings, setColorScheme, setEnableGlassmorphism, resetSettings } = useGameStore();
   const settings = useSettings();
   const currentColorScheme = useColorScheme();
   // Local state to track if there are unsaved changes, prompting the user to save.
@@ -282,6 +282,23 @@ export const Settings: React.FC = () => {
               currentScheme={currentColorScheme}
               onSchemeChange={handleColorSchemeChange}
             />
+          </SettingItem>
+
+          <SettingItem 
+            label="Enable Glassmorphism"
+            description="Use translucent glass effect (may impact performance)"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.enableGlassmorphism}
+                onChange={(e) => {
+                  setEnableGlassmorphism(e.target.checked);
+                  setHasUnsavedChanges(true);
+                }}
+              />
+              <span className="toggle-slider"></span>
+            </label>
           </SettingItem>
 
           <SettingItem 

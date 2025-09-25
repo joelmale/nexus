@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useGameStore, useIsHost, useCamera } from '@/stores/gameStore';
 import { webSocketService } from '@/utils/websocket';
 
@@ -14,10 +14,12 @@ export const GameToolbar: React.FC = () => {
   const camera = useCamera();
   
   // Dragging state
-  const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState<Position | null>(null); // null means use default position
-  const [dragOffset, setDragOffset] = useState<Position>({ x: 0, y: 0 });
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef<Position>({ x: 0, y: 0 });
+  const initialPosRef = useRef<Position>({ x: 0, y: 0 });
   
   const handleZoomIn = () => {
     const newZoom = Math.min(5.0, camera.zoom * 1.2);
@@ -33,58 +35,132 @@ export const GameToolbar: React.FC = () => {
     updateCamera({ x: 0, y: 0, zoom: 1.0 });
   };
   
-  // Drag handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!toolbarRef.current) return;
+  // Improved drag handlers
+  useEffect(() => {
+    const dragHandle = dragHandleRef.current;
+    const toolbar = toolbarRef.current;
+    if (!dragHandle || !toolbar) return;
     
-    const rect = toolbarRef.current.getBoundingClientRect();
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
-    setIsDragging(true);
-    e.preventDefault();
-  }, []);
-  
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
-    
-    const newPosition = {
-      x: e.clientX - dragOffset.x,
-      y: e.clientY - dragOffset.y
-    };
-    
-    // Constrain to viewport
-    const viewport = {
-      width: window.innerWidth,
-      height: window.innerHeight
-    };
-    
-    const toolbarWidth = 400; // Approximate toolbar width
-    const toolbarHeight = 60; // Approximate toolbar height
-    
-    newPosition.x = Math.max(10, Math.min(viewport.width - toolbarWidth - 10, newPosition.x));
-    newPosition.y = Math.max(10, Math.min(viewport.height - toolbarHeight - 10, newPosition.y));
-    
-    setPosition(newPosition);
-  }, [isDragging, dragOffset]);
-  
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-  
-  // Add global mouse event listeners
-  React.useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+    const handleMouseDown = (e: MouseEvent) => {
+      // Prevent text selection and default drag behavior
+      e.preventDefault();
+      e.stopPropagation();
       
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+      isDraggingRef.current = true;
+      
+      // Get initial toolbar position
+      const rect = toolbar.getBoundingClientRect();
+      dragStartRef.current = {
+        x: e.clientX,
+        y: e.clientY
       };
-    }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+      initialPosRef.current = {
+        x: rect.left,
+        y: rect.top
+      };
+      
+      // Add dragging class for visual feedback
+      toolbar.classList.add('dragging');
+      document.body.style.cursor = 'grabbing';
+      document.body.style.userSelect = 'none';
+      
+      // Add a visual indication that the toolbar is being dragged
+      toolbar.style.zIndex = '1000';
+    };
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      
+      // Calculate new position based on mouse movement
+      const deltaX = e.clientX - dragStartRef.current.x;
+      const deltaY = e.clientY - dragStartRef.current.y;
+      
+      const newX = initialPosRef.current.x + deltaX;
+      const newY = initialPosRef.current.y + deltaY;
+      
+      // Get toolbar dimensions
+      const rect = toolbar.getBoundingClientRect();
+      
+      // Constrain to viewport with padding
+      const padding = 10;
+      const maxX = window.innerWidth - rect.width - padding;
+      const maxY = window.innerHeight - rect.height - padding;
+      
+      const constrainedPosition = {
+        x: Math.max(padding, Math.min(maxX, newX)),
+        y: Math.max(padding, Math.min(maxY, newY))
+      };
+      
+      setPosition(constrainedPosition);
+    };
+    
+    const handleMouseUp = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      
+      isDraggingRef.current = false;
+      toolbar.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      
+      // Reset z-index after dragging
+      toolbar.style.zIndex = '';
+    };
+    
+    // Double click to reset position
+    const handleDoubleClick = (e: MouseEvent) => {
+      e.preventDefault();
+      setPosition(null);
+      toolbar.classList.add('resetting');
+      setTimeout(() => toolbar.classList.remove('resetting'), 300);
+    };
+    
+    // Add event listeners to the drag handle
+    dragHandle.addEventListener('mousedown', handleMouseDown);
+    dragHandle.addEventListener('dblclick', handleDoubleClick);
+    
+    // Add global event listeners for move and up
+    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMove(e);
+    const handleGlobalMouseUp = (e: MouseEvent) => handleMouseUp(e);
+    
+    document.addEventListener('mousemove', handleGlobalMouseMove);
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    
+    // Touch event support for mobile/tablet
+    const handleTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      handleMouseDown(new MouseEvent('mousedown', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      }));
+    };
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      handleMouseMove(new MouseEvent('mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      }));
+    };
+    
+    const handleTouchEnd = (e: TouchEvent) => {
+      handleMouseUp(new MouseEvent('mouseup'));
+    };
+    
+    dragHandle.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    
+    // Cleanup
+    return () => {
+      dragHandle.removeEventListener('mousedown', handleMouseDown);
+      dragHandle.removeEventListener('dblclick', handleDoubleClick);
+      dragHandle.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
   
   const tools = [
     { id: 'select', icon: '👆', label: 'Select' },
@@ -116,22 +192,19 @@ export const GameToolbar: React.FC = () => {
   return (
     <div 
       ref={toolbarRef}
-      className={`game-toolbar ${
-        isDragging ? 'dragging' : ''
-      } ${
-        position ? 'positioned' : ''
-      }`} 
+      className={`game-toolbar ${position ? 'positioned' : ''}`} 
       role="toolbar"
       style={position ? {
         left: `${position.x}px`,
-        top: `${position.y}px`
+        top: `${position.y}px`,
+        position: 'fixed'
       } : {}}
     >
       {/* Drag Handle */}
       <div 
+        ref={dragHandleRef}
         className="toolbar-drag-handle"
-        onMouseDown={handleMouseDown}
-        title="Drag to move toolbar"
+        title="Drag to move toolbar / Double-click to reset position"
       >
         <span className="drag-dots">⋮⋮</span>
       </div>

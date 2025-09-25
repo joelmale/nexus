@@ -2,6 +2,8 @@
 @import './scenes.css';
 @import './settings.css';
 @import './asset-browser.css';
+@import './layout.css';
+@import './theme-solid.css';
 
 /* CSS Reset and base styles */
 * {
