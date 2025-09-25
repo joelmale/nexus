@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useGameStore, useIsConnected, useActiveScene, useScenes, useIsHost, useSettings } from '@/stores/gameStore';
+import { useGameStore, useIsConnected, useActiveScene, useScenes, useIsHost, useSettings, useColorScheme } from '@/stores/gameStore';
 import { SceneCanvas } from './Scene/SceneCanvas';
 import { SceneTabs } from './Scene/SceneTabs';
 import { GameToolbar } from './GameToolbar';
 import { PlayerBar } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
 import { Lobby } from './Lobby';
+import { applyColorScheme } from '@/utils/colorSchemes';
 
 /**
  * The main structural component for the application.
@@ -23,10 +24,16 @@ export const GameLayout: React.FC = () => {
   const scenes = useScenes();
   const isHost = useIsHost();
   const settings = useSettings();
+  const colorScheme = useColorScheme();
   const [panelExpanded, setPanelExpanded] = useState(true);
   const [activePanel, setActivePanel] = useState<'tokens' | 'scene' | 'props' | 'initiative' | 'dice' | 'chat' | 'sounds' | 'lobby' | 'settings'>('lobby');
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [panelPosition, setPanelPosition] = useState<{ x: number; y: number } | null>(null);
+  
+  // Apply color scheme on mount and when it changes
+  useEffect(() => {
+    applyColorScheme(colorScheme);
+  }, [colorScheme]);
   
   // Apply theme class to body element based on glassmorphism setting
   useEffect(() => {

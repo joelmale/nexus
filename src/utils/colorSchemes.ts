@@ -124,65 +124,70 @@ export const generateRandomColorScheme = (): ColorScheme => {
 export const applyColorScheme = (colorScheme: ColorScheme): void => {
   const root = document.documentElement;
   
-  // Convert HSL colors to RGB for CSS custom properties
-  const hslToRgb = (hsl: string): string => {
-    const match = hsl.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
-    if (!match) return hsl;
-    
-    const h = parseInt(match[1]) / 360;
-    const s = parseInt(match[2]) / 100;
-    const l = parseInt(match[3]) / 100;
-    
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs((h * 6) % 2 - 1));
-    const m = l - c / 2;
-    
-    let r = 0, g = 0, b = 0;
-    
-    if (0 <= h && h < 1/6) {
-      r = c; g = x; b = 0;
-    } else if (1/6 <= h && h < 2/6) {
-      r = x; g = c; b = 0;
-    } else if (2/6 <= h && h < 3/6) {
-      r = 0; g = c; b = x;
-    } else if (3/6 <= h && h < 4/6) {
-      r = 0; g = x; b = c;
-    } else if (4/6 <= h && h < 5/6) {
-      r = x; g = 0; b = c;
-    } else if (5/6 <= h && h < 1) {
-      r = c; g = 0; b = x;
-    }
-    
-    r = Math.round((r + m) * 255);
-    g = Math.round((g + m) * 255);
-    b = Math.round((b + m) * 255);
-    
-    return `${r}, ${g}, ${b}`;
+  // Helper function to convert hex to RGB values
+  const hexToRgb = (hex: string): string => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return '255, 255, 255';
+    return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`;
   };
   
-  // Apply the color scheme
+  // Helper function to adjust color brightness
+  const adjustBrightness = (hex: string, percent: number): string => {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+    const G = Math.min(255, Math.max(0, (num >> 8 & 0x00FF) + amt));
+    const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+    return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1).toUpperCase();
+  };
+  
+  // Apply the main color scheme
   root.style.setProperty('--color-primary', colorScheme.primary);
   root.style.setProperty('--color-secondary', colorScheme.secondary);
   root.style.setProperty('--color-accent', colorScheme.accent);
+  root.style.setProperty('--color-surface', colorScheme.surface);
+  root.style.setProperty('--color-text', colorScheme.text);
   
   // Create RGB versions for opacity usage
-  root.style.setProperty('--color-primary-rgb', hslToRgb(colorScheme.primary));
-  root.style.setProperty('--color-secondary-rgb', hslToRgb(colorScheme.secondary));
-  root.style.setProperty('--color-accent-rgb', hslToRgb(colorScheme.accent));
+  root.style.setProperty('--color-primary-rgb', hexToRgb(colorScheme.primary));
+  root.style.setProperty('--color-secondary-rgb', hexToRgb(colorScheme.secondary));
+  root.style.setProperty('--color-accent-rgb', hexToRgb(colorScheme.accent));
+  root.style.setProperty('--color-surface-rgb', hexToRgb(colorScheme.surface));
+  root.style.setProperty('--color-text-rgb', hexToRgb(colorScheme.text));
   
-  // Update glass surface colors to match the new scheme
-  const surfaceRgb = hslToRgb(colorScheme.surface);
+  // Create derived colors for solid theme
+  // These use the color scheme colors with adjusted brightness
+  root.style.setProperty('--solid-bg-primary', colorScheme.surface);
+  root.style.setProperty('--solid-bg-secondary', adjustBrightness(colorScheme.surface, 10));
+  root.style.setProperty('--solid-bg-tertiary', adjustBrightness(colorScheme.surface, 20));
+  root.style.setProperty('--solid-bg-hover', adjustBrightness(colorScheme.surface, 15));
+  root.style.setProperty('--solid-bg-active', adjustBrightness(colorScheme.surface, 25));
+  root.style.setProperty('--solid-border', adjustBrightness(colorScheme.surface, 30));
+  root.style.setProperty('--solid-border-light', adjustBrightness(colorScheme.surface, 40));
+  root.style.setProperty('--solid-text', colorScheme.text);
+  root.style.setProperty('--solid-text-muted', adjustBrightness(colorScheme.text, -20));
+  root.style.setProperty('--solid-text-light', adjustBrightness(colorScheme.text, -40));
+  
+  // Update glass surface colors for glassmorphism theme
+  const surfaceRgb = hexToRgb(colorScheme.surface);
+  const textRgb = hexToRgb(colorScheme.text);
   root.style.setProperty('--glass-surface', `rgba(${surfaceRgb}, 0.1)`);
   root.style.setProperty('--glass-surface-hover', `rgba(${surfaceRgb}, 0.15)`);
   root.style.setProperty('--glass-surface-strong', `rgba(${surfaceRgb}, 0.2)`);
+  root.style.setProperty('--glass-border', `rgba(${textRgb}, 0.2)`);
+  root.style.setProperty('--glass-text', colorScheme.text);
+  root.style.setProperty('--glass-text-muted', adjustBrightness(colorScheme.text, -15));
+  root.style.setProperty('--glass-text-light', adjustBrightness(colorScheme.text, -30));
   
-  // Update gradients
+  // Update gradients with scheme colors
   root.style.setProperty('--gradient-primary', 
     `linear-gradient(135deg, ${colorScheme.primary} 0%, ${colorScheme.secondary} 100%)`);
   root.style.setProperty('--gradient-secondary', 
     `linear-gradient(135deg, ${colorScheme.secondary} 0%, ${colorScheme.accent} 100%)`);
   root.style.setProperty('--gradient-tertiary', 
     `linear-gradient(135deg, ${colorScheme.accent} 0%, ${colorScheme.primary} 100%)`);
+  root.style.setProperty('--gradient-dark', 
+    `linear-gradient(135deg, ${colorScheme.surface} 0%, ${adjustBrightness(colorScheme.surface, -10)} 100%)`);
 };
 
 /**

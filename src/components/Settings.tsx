@@ -222,6 +222,11 @@ export const Settings: React.FC = () => {
   const currentColorScheme = useColorScheme();
   // Local state to track if there are unsaved changes, prompting the user to save.
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Apply the current color scheme on mount and when it changes
+  useEffect(() => {
+    applyColorScheme(currentColorScheme);
+  }, [currentColorScheme]);
 
   // Generic handler for updating any setting in the global store.
   const handleSettingChange = (key: keyof UserSettings, value: any) => {

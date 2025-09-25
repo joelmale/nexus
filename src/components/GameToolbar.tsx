@@ -9,6 +9,7 @@ interface Position {
 
 export const GameToolbar: React.FC = () => {
   const [activeTool, setActiveTool] = useState('select');
+  const [isCompact, setIsCompact] = useState(false);
   const isHost = useIsHost();
   const { updateCamera } = useGameStore();
   const camera = useCamera();
@@ -162,7 +163,8 @@ export const GameToolbar: React.FC = () => {
     };
   }, []);
   
-  const tools = [
+  // Organize tools into two rows for more compact layout
+  const toolsRow1 = [
     { id: 'select', icon: '👆', label: 'Select' },
     { id: 'measure', icon: '📏', label: 'Measure' },
     { id: 'note', icon: '📝', label: 'Note' },
@@ -172,12 +174,10 @@ export const GameToolbar: React.FC = () => {
     { id: 'rectangle', icon: '⬜', label: 'Rectangle' },
     { id: 'cone', icon: '🔺', label: 'Cone' },
     { id: 'polygon', icon: '⬟', label: 'Polygon' },
-    { id: 'line', icon: '📏', label: 'Line' },
+    { id: 'line', icon: '➖', label: 'Line' },
   ];
-
-  // Add DM-only tools
-  const dmTools = [
-    '---', // Separator
+  
+  const toolsRow2 = isHost ? [
     { id: 'mask-create', icon: '🌟', label: 'Create Mask' },
     { id: 'mask-toggle', icon: '✨', label: 'Toggle Mask' },
     { id: 'mask-remove', icon: '🧽', label: 'Remove Mask' },
@@ -185,14 +185,31 @@ export const GameToolbar: React.FC = () => {
     { id: 'mask-hide', icon: '🙈', label: 'Hide All' },
     '---', // Separator
     { id: 'grid', icon: '⊞', label: 'Grid' },
+  ] : [];
+  
+  const cameraControls = [
+    { id: 'zoom-out', icon: '➖', label: 'Zoom Out', action: handleZoomOut, disabled: camera.zoom <= 0.1 },
+    { id: 'zoom-reset', label: `${Math.round(camera.zoom * 100)}%`, action: handleZoomReset, className: 'zoom-display' },
+    { id: 'zoom-in', icon: '➕', label: 'Zoom In', action: handleZoomIn, disabled: camera.zoom >= 5.0 },
   ];
-
-  const allTools = isHost ? [...tools, ...dmTools] : tools;
+  
+  // Keyboard shortcut for compact mode (Ctrl/Cmd + Shift + T)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+        e.preventDefault();
+        setIsCompact(prev => !prev);
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
   
   return (
     <div 
       ref={toolbarRef}
-      className={`game-toolbar ${position ? 'positioned' : ''}`} 
+      className={`game-toolbar ${position ? 'positioned' : ''} ${isCompact ? 'compact' : ''}`} 
       role="toolbar"
       style={position ? {
         left: `${position.x}px`,
@@ -200,70 +217,97 @@ export const GameToolbar: React.FC = () => {
         position: 'fixed'
       } : {}}
     >
-      {/* Drag Handle */}
-      <div 
-        ref={dragHandleRef}
-        className="toolbar-drag-handle"
-        title="Drag to move toolbar / Double-click to reset position"
-      >
-        <span className="drag-dots">⋮⋮</span>
+      {/* Drag Handle and Compact Toggle */}
+      <div className="toolbar-controls">
+        <div 
+          ref={dragHandleRef}
+          className="toolbar-drag-handle"
+          title="Drag to move | Double-click: reset position"
+        >
+          <span className="drag-dots">⋮⋮</span>
+        </div>
+        <button
+          type="button"
+          className="compact-toggle"
+          onClick={() => setIsCompact(!isCompact)}
+          title={`${isCompact ? 'Expand' : 'Compact'} toolbar (Ctrl+Shift+T)`}
+          aria-label={isCompact ? 'Expand toolbar' : 'Compact toolbar'}
+        >
+          <span className="compact-icon">{isCompact ? '⊞' : '⊟'}</span>
+        </button>
       </div>
       
-      <div className="toolbar-actions">
-        {/* Drawing Tools */}
-        {allTools.map((tool, index) => {
-          if (tool === '---') {
-            return <div key={index} className="toolbar-separator" />;
-          }
+      <div className="toolbar-content">
+        {/* First Row - Main Tools and Camera */}
+        <div className="toolbar-row">
+          <div className="toolbar-group">
+            {toolsRow1.map((tool, index) => {
+              if (tool === '---') {
+                return <div key={index} className="toolbar-separator" />;
+              }
+              
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
+                  onClick={() => setActiveTool(tool.id)}
+                  aria-pressed={activeTool === tool.id}
+                  title={tool.label}
+                >
+                  <span className="tool-icon">{tool.icon}</span>
+                </button>
+              );
+            })}
+          </div>
           
-          return (
-            <button
-              key={tool.id}
-              type="button"
-              className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
-              onClick={() => setActiveTool(tool.id)}
-              aria-pressed={activeTool === tool.id}
-              title={tool.label}
-            >
-              <span className="tool-icon">{tool.icon}</span>
-            </button>
-          );
-        })}
+          {/* Camera Controls */}
+          <div className="toolbar-separator" />
+          <div className="toolbar-group camera-group">
+            {cameraControls.map((control) => (
+              <button
+                key={control.id}
+                type="button"
+                className={`toolbar-btn ${control.className || ''}`}
+                onClick={control.action}
+                title={control.label}
+                disabled={control.disabled}
+              >
+                {control.icon ? (
+                  <span className="tool-icon">{control.icon}</span>
+                ) : (
+                  <span className="zoom-text">{control.label}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
         
-        {/* Camera Controls Separator */}
-        <div className="toolbar-separator" />
-        
-        {/* Zoom Out */}
-        <button
-          type="button"
-          className="toolbar-btn"
-          onClick={handleZoomOut}
-          title="Zoom Out"
-          disabled={camera.zoom <= 0.1}
-        >
-          <span className="tool-icon">🔍-</span>
-        </button>
-        
-        {/* Zoom Level Display */}
-        <button
-          type="button"
-          className="toolbar-btn zoom-display"
-          onClick={handleZoomReset}
-          title="Reset Zoom (100%)"
-        >
-          <span className="zoom-text">{Math.round(camera.zoom * 100)}%</span>
-        </button>
-        
-        {/* Zoom In */}
-        <button
-          type="button"
-          className="toolbar-btn"
-          onClick={handleZoomIn}
-          title="Zoom In"
-          disabled={camera.zoom >= 5.0}
-        >
-          <span className="tool-icon">🔍+</span>
-        </button>
+        {/* Second Row - DM Tools (if host) */}
+        {isHost && toolsRow2.length > 0 && (
+          <div className="toolbar-row toolbar-row-secondary">
+            <div className="toolbar-group">
+              {toolsRow2.map((tool, index) => {
+                if (tool === '---') {
+                  return <div key={index} className="toolbar-separator" />;
+                }
+                
+                return (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
+                    onClick={() => setActiveTool(tool.id)}
+                    aria-pressed={activeTool === tool.id}
+                    title={tool.label}
+                  >
+                    <span className="tool-icon">{tool.icon}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
