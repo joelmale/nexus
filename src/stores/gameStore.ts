@@ -1,8 +1,11 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { GameState, User, Session, DiceRoll, TabType, GameEvent, Scene, Camera, SceneState, UserSettings, ColorScheme } from '@/types/game';
+import type { Drawing } from '@/types/drawing';
+import type { PlacedToken } from '@/types/token';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultColorSchemes, applyColorScheme } from '@/utils/colorSchemes';
+import { drawingPersistenceService } from '@/services/drawingPersistence';
 
 interface GameStore extends GameState {
   // Actions
@@ -21,10 +24,30 @@ interface GameStore extends GameState {
   updateCamera: (camera: Partial<Camera>) => void;
   setFollowDM: (follow: boolean) => void;
   
+  // Drawing Actions
+  createDrawing: (sceneId: string, drawing: Drawing) => void;
+  updateDrawing: (sceneId: string, drawingId: string, updates: Partial<Drawing>) => void;
+  deleteDrawing: (sceneId: string, drawingId: string) => void;
+  clearDrawings: (sceneId: string, layer?: string) => void;
+  getSceneDrawings: (sceneId: string) => Drawing[];
+  getVisibleDrawings: (sceneId: string, isHost: boolean) => Drawing[];
+  
   // Settings Actions
   updateSettings: (settings: Partial<UserSettings>) => void;
   setColorScheme: (colorScheme: ColorScheme) => void;
   resetSettings: () => void;
+  
+  // Token Actions
+  placeToken: (sceneId: string, token: PlacedToken) => void;
+  moveToken: (sceneId: string, tokenId: string, position: { x: number; y: number }, rotation?: number) => void;
+  updateToken: (sceneId: string, tokenId: string, updates: Partial<PlacedToken>) => void;
+  deleteToken: (sceneId: string, tokenId: string) => void;
+  getSceneTokens: (sceneId: string) => PlacedToken[];
+  getVisibleTokens: (sceneId: string, isHost: boolean) => PlacedToken[];
+  
+  // Persistence Actions
+  initializeFromStorage: () => Promise<void>;
+  loadSceneDrawings: (sceneId: string) => Promise<void>;
 }
 
 const initialState: GameState = {
@@ -125,6 +148,70 @@ export const useGameStore = create<GameStore>()(
           case 'dice/roll':
             // This will be handled by the dice service
             break;
+
+          // Token Events
+          case 'token/place':
+            if (event.data.sceneId && event.data.token) {
+              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
+              if (sceneIndex >= 0) {
+                if (!state.sceneState.scenes[sceneIndex].placedTokens) {
+                  state.sceneState.scenes[sceneIndex].placedTokens = [];
+                }
+                state.sceneState.scenes[sceneIndex].placedTokens.push(event.data.token);
+                state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+              }
+            }
+            break;
+
+          case 'user/join':
+            if (event.data.sceneId && event.data.tokenId) {
+              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
+              if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
+                const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
+                  t => t.id === event.data.tokenId
+                );
+                if (tokenIndex >= 0) {
+                  state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].x = event.data.position.x;
+                  state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].y = event.data.position.y;
+                  if (event.data.rotation !== undefined) {
+                    state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].rotation = event.data.rotation;
+                  }
+                  state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].updatedAt = Date.now();
+                  state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+                }
+              }
+            }
+            break;
+
+          case 'token/update':
+            if (event.data.sceneId && event.data.tokenId && event.data.updates) {
+              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
+              if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
+                const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
+                  t => t.id === event.data.tokenId
+                );
+                if (tokenIndex >= 0) {
+                  state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex] = {
+                    ...state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex],
+                    ...event.data.updates,
+                    updatedAt: Date.now(),
+                  };
+                  state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+                }
+              }
+            }
+            break;
+
+          case 'token/delete':
+            if (event.data.sceneId && event.data.tokenId) {
+              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
+              if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
+                state.sceneState.scenes[sceneIndex].placedTokens = state.sceneState.scenes[sceneIndex].placedTokens.filter(
+                  t => t.id !== event.data.tokenId
+                );
+                state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+              }
+            }
           
           case 'user/join':
             if (state.session && event.data.user) {
@@ -157,6 +244,30 @@ export const useGameStore = create<GameStore>()(
             };
             state.user.type = 'host';
             state.user.connected = true;
+            // Set default tab to scenes for hosts
+            state.activeTab = 'scenes';
+            // Create default blank scene if no scenes exist
+            if (state.sceneState.scenes.length === 0) {
+              const defaultScene: Scene = {
+                id: uuidv4(),
+                name: 'Scene 1',
+                description: 'Enter description here',
+                backgroundImage: undefined,
+                gridSettings: {
+                  enabled: true,
+                  size: 50,
+                  color: '#ffffff',
+                  opacity: 0.3,
+                  snapToGrid: true,
+                },
+                drawings: [], // Initialize empty drawings array
+                placedTokens: [], // Initialize empty placed tokens array
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+              };
+              state.sceneState.scenes.push(defaultScene);
+              state.sceneState.activeSceneId = defaultScene.id;
+            }
             console.log('Session created:', state.session); // Debug log
             break;
 
@@ -228,6 +339,66 @@ export const useGameStore = create<GameStore>()(
             }
             break;
 
+          // Drawing Events
+          case 'drawing/create':
+            if (event.data.sceneId && event.data.drawing) {
+              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
+              if (sceneIndex >= 0) {
+                state.sceneState.scenes[sceneIndex].drawings.push(event.data.drawing);
+                state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+              }
+            }
+            break;
+
+          case 'drawing/update':
+            if (event.data.sceneId && event.data.drawingId && event.data.updates) {
+              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
+              if (sceneIndex >= 0) {
+                const drawingIndex = state.sceneState.scenes[sceneIndex].drawings.findIndex(
+                  d => d.id === event.data.drawingId
+                );
+                if (drawingIndex >= 0) {
+                  state.sceneState.scenes[sceneIndex].drawings[drawingIndex] = {
+                    ...state.sceneState.scenes[sceneIndex].drawings[drawingIndex],
+                    ...event.data.updates,
+                    updatedAt: Date.now(),
+                  };
+                  state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+                }
+              }
+            }
+            break;
+
+          case 'drawing/delete':
+            if (event.data.sceneId && event.data.drawingId) {
+              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
+              if (sceneIndex >= 0) {
+                state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(
+                  d => d.id !== event.data.drawingId
+                );
+                state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+              }
+            }
+            break;
+
+          case 'drawing/clear':
+            if (event.data.sceneId) {
+              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
+              if (sceneIndex >= 0) {
+                if (event.data.layer) {
+                  // Clear specific layer
+                  state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(
+                    d => d.layer !== event.data.layer
+                  );
+                } else {
+                  // Clear all drawings
+                  state.sceneState.scenes[sceneIndex].drawings = [];
+                }
+                state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+              }
+            }
+            break;
+
           default:
             console.warn('Unknown event type:', event.type, event.data);
         }
@@ -249,6 +420,7 @@ export const useGameStore = create<GameStore>()(
       const scene: Scene = {
         ...sceneData,
         id: uuidv4(),
+        drawings: [], // Initialize with empty drawings array
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -259,6 +431,11 @@ export const useGameStore = create<GameStore>()(
         if (state.sceneState.activeSceneId === null) {
           state.sceneState.activeSceneId = scene.id;
         }
+      });
+      
+      // Auto-save the new scene to persistence
+      drawingPersistenceService.saveScene(scene).catch(error => {
+        console.error('Failed to persist new scene:', error);
       });
       
       return scene;
@@ -273,6 +450,12 @@ export const useGameStore = create<GameStore>()(
             ...updates,
             updatedAt: Date.now(),
           };
+          
+          // Auto-save the updated scene to persistence
+          const scene = state.sceneState.scenes[sceneIndex];
+          drawingPersistenceService.saveScene(scene).catch(error => {
+            console.error('Failed to persist updated scene:', error);
+          });
         }
       });
     },
@@ -316,6 +499,112 @@ export const useGameStore = create<GameStore>()(
       });
     },
 
+    // Drawing Management Actions
+    createDrawing: (sceneId, drawing) => {
+      set((state) => {
+        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        if (sceneIndex >= 0) {
+          state.sceneState.scenes[sceneIndex].drawings.push(drawing);
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+          
+          // Auto-save to persistence
+          const scene = state.sceneState.scenes[sceneIndex];
+          drawingPersistenceService.saveScene(scene).catch(error => {
+            console.error('Failed to persist scene after drawing creation:', error);
+          });
+        }
+      });
+    },
+
+    updateDrawing: (sceneId, drawingId, updates) => {
+      set((state) => {
+        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        if (sceneIndex >= 0) {
+          const drawingIndex = state.sceneState.scenes[sceneIndex].drawings.findIndex(
+            d => d.id === drawingId
+          );
+          if (drawingIndex >= 0) {
+            state.sceneState.scenes[sceneIndex].drawings[drawingIndex] = {
+              ...state.sceneState.scenes[sceneIndex].drawings[drawingIndex],
+              ...updates,
+              updatedAt: Date.now(),
+            };
+            state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+            
+            // Auto-save to persistence
+            const scene = state.sceneState.scenes[sceneIndex];
+            drawingPersistenceService.saveScene(scene).catch(error => {
+              console.error('Failed to persist scene after drawing update:', error);
+            });
+          }
+        }
+      });
+    },
+
+    deleteDrawing: (sceneId, drawingId) => {
+      set((state) => {
+        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        if (sceneIndex >= 0) {
+          state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(
+            d => d.id !== drawingId
+          );
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+          
+          // Auto-save to persistence
+          const scene = state.sceneState.scenes[sceneIndex];
+          drawingPersistenceService.saveScene(scene).catch(error => {
+            console.error('Failed to persist scene after drawing deletion:', error);
+          });
+        }
+      });
+    },
+
+    clearDrawings: (sceneId, layer) => {
+      set((state) => {
+        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        if (sceneIndex >= 0) {
+          if (layer) {
+            state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(
+              d => d.layer !== layer
+            );
+          } else {
+            state.sceneState.scenes[sceneIndex].drawings = [];
+          }
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+          
+          // Auto-save to persistence
+          const scene = state.sceneState.scenes[sceneIndex];
+          drawingPersistenceService.saveScene(scene).catch(error => {
+            console.error('Failed to persist scene after clearing drawings:', error);
+          });
+        }
+      });
+    },
+
+    getSceneDrawings: (sceneId) => {
+      const state = get();
+      const scene = state.sceneState.scenes.find(s => s.id === sceneId);
+      return scene?.drawings || [];
+    },
+
+    getVisibleDrawings: (sceneId, isHost) => {
+      const state = get();
+      const scene = state.sceneState.scenes.find(s => s.id === sceneId);
+      if (!scene) return [];
+      
+      return scene.drawings.filter(drawing => {
+        // DM can see all drawings
+        if (isHost) return true;
+        
+        // Players can only see drawings visible to them
+        if (drawing.layer === 'dm-only') return false;
+        if (drawing.style.dmNotesOnly) return false;
+        if (drawing.style.visibleToPlayers === false) return false;
+        
+        return true;
+      });
+    },
+
     // Settings Management Actions
     updateSettings: (settingsUpdate) => {
       set((state) => {
@@ -335,6 +624,44 @@ export const useGameStore = create<GameStore>()(
       set((state) => {
         state.settings = initialState.settings;
       });
+    },
+    
+    // Persistence Management Actions
+    initializeFromStorage: async () => {
+      try {
+        const savedScenes = await drawingPersistenceService.loadAllScenes();
+        
+        if (savedScenes.length > 0) {
+          set((state) => {
+            state.sceneState.scenes = savedScenes;
+            // Set the first scene as active if no active scene is set
+            if (!state.sceneState.activeSceneId && savedScenes.length > 0) {
+              state.sceneState.activeSceneId = savedScenes[0].id;
+            }
+          });
+          console.log(`Initialized ${savedScenes.length} scenes from storage`);
+        }
+      } catch (error) {
+        console.error('Failed to initialize from storage:', error);
+      }
+    },
+    
+    loadSceneDrawings: async (sceneId) => {
+      try {
+        const drawings = await drawingPersistenceService.loadDrawings(sceneId);
+        
+        set((state) => {
+          const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+          if (sceneIndex >= 0) {
+            state.sceneState.scenes[sceneIndex].drawings = drawings;
+            state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+          }
+        });
+        
+        console.log(`Loaded ${drawings.length} drawings for scene ${sceneId}`);
+      } catch (error) {
+        console.error('Failed to load scene drawings:', error);
+      }
     },
   }))
 );
@@ -361,3 +688,21 @@ export const useFollowDM = () => useGameStore(state => state.sceneState.followDM
 export const useSettings = () => useGameStore(state => state.settings);
 export const useColorScheme = () => useGameStore(state => state.settings.colorScheme);
 export const useTheme = () => useGameStore(state => state.settings.theme);
+
+// Drawing selectors
+export const useSceneDrawings = (sceneId: string) => useGameStore(state => {
+  const scene = state.sceneState.scenes.find(s => s.id === sceneId);
+  return scene?.drawings || [];
+});
+
+export const useVisibleDrawings = (sceneId: string) => useGameStore(state => {
+  const isHost = state.user.type === 'host';
+  return state.getVisibleDrawings(sceneId, isHost);
+});
+
+export const useDrawingActions = () => useGameStore(state => ({
+  createDrawing: state.createDrawing,
+  updateDrawing: state.updateDrawing,
+  deleteDrawing: state.deleteDrawing,
+  clearDrawings: state.clearDrawings,
+}));

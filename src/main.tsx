@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { Layout } from './components/Layout';
 import './styles/main.css';
 import './styles/assets.css';
+import './styles/lobby-glassmorphism.css';
+import './styles/toolbar-compact.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

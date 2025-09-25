@@ -1,4 +1,7 @@
 // Core game state types
+import type { Drawing } from './drawing';
+import type { PlacedToken } from './token';
+
 export interface User {
   id: string;
   name: string;
@@ -102,6 +105,8 @@ export interface Scene {
     opacity: number;
     snapToGrid: boolean;
   };
+  drawings: Drawing[]; // Add drawings array to scene
+  placedTokens: PlacedToken[]; // Add placed tokens array to scene
   createdAt: number;
   updatedAt: number;
 }
@@ -202,5 +207,111 @@ export interface CameraMoveEvent extends GameEvent {
   data: {
     camera: Camera;
     sceneId: string;
+  };
+}
+
+// Drawing Events
+export interface DrawingCreateEvent extends GameEvent {
+  type: 'drawing/create';
+  data: {
+    sceneId: string;
+    drawing: Drawing;
+  };
+}
+
+export interface DrawingUpdateEvent extends GameEvent {
+  type: 'drawing/update';
+  data: {
+    sceneId: string;
+    drawingId: string;
+    updates: Partial<Drawing>;
+  };
+}
+
+export interface DrawingDeleteEvent extends GameEvent {
+  type: 'drawing/delete';
+  data: {
+    sceneId: string;
+    drawingId: string;
+  };
+}
+
+export interface DrawingClearEvent extends GameEvent {
+  type: 'drawing/clear';
+  data: {
+    sceneId: string;
+    layer?: string; // Optional: clear specific layer
+  };
+}
+
+// Token Events
+export interface TokenPlaceEvent extends GameEvent {
+  type: 'token/place';
+  data: {
+    sceneId: string;
+    token: PlacedToken;
+  };
+}
+
+export interface TokenMoveEvent extends GameEvent {
+  type: 'token/move';
+  data: {
+    sceneId: string;
+    tokenId: string;
+    position: { x: number; y: number };
+    rotation?: number;
+  };
+}
+
+export interface TokenUpdateEvent extends GameEvent {
+  type: 'token/update';
+  data: {
+    sceneId: string;
+    tokenId: string;
+    updates: Partial<PlacedToken>;
+  };
+}
+
+export interface TokenDeleteEvent extends GameEvent {
+  type: 'token/delete';
+  data: {
+    sceneId: string;
+    tokenId: string;
+  };
+}
+
+// Token Events
+export interface TokenPlaceEvent extends GameEvent {
+  type: 'token/place';
+  data: {
+    sceneId: string;
+    token: PlacedToken;
+  };
+}
+
+export interface TokenMoveEvent extends GameEvent {
+  type: 'token/move';
+  data: {
+    sceneId: string;
+    tokenId: string;
+    position: { x: number; y: number };
+    rotation?: number;
+  };
+}
+
+export interface TokenUpdateEvent extends GameEvent {
+  type: 'token/update';
+  data: {
+    sceneId: string;
+    tokenId: string;
+    updates: Partial<PlacedToken>;
+  };
+}
+
+export interface TokenDeleteEvent extends GameEvent {
+  type: 'token/delete';
+  data: {
+    sceneId: string;
+    tokenId: string;
   };
 }

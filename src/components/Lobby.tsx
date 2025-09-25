@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGameStore, useSession, useIsHost } from '@/stores/gameStore';
 import { webSocketService } from '@/utils/websocket';
 import { NexusLogo, useAssetExists } from './Assets';
+import DnDTeamBackground from '@/assets/DnDTeamPosing.png';
 
 export const Lobby: React.FC = () => {
   const { setUser } = useGameStore();
@@ -25,7 +26,6 @@ export const Lobby: React.FC = () => {
     try {
       setUser({ name: playerName.trim(), type: 'host' });
       await webSocketService.connect();
-      // The server will send a session/created event
     } catch (err) {
       setError('Failed to create game session');
       console.error(err);
@@ -50,7 +50,6 @@ export const Lobby: React.FC = () => {
     try {
       setUser({ name: playerName.trim(), type: 'player' });
       await webSocketService.connect(roomCode.trim().toUpperCase());
-      // The server will send a session/joined event
     } catch (err) {
       setError('Failed to join game session');
       console.error(err);
@@ -66,91 +65,214 @@ export const Lobby: React.FC = () => {
 
   if (session) {
     return (
-      <div className="lobby connected">
-        <h2>Game Session</h2>
-        <div className="session-info">
-          <p><strong>Room Code:</strong> {session.roomCode}</p>
-          <p><strong>Role:</strong> {isHost ? 'Host (DM)' : 'Player'}</p>
+      <div className="lobby lobby-connected">
+        <div className="lobby-background">
+          <img src={DnDTeamBackground} alt="D&D Party" />
+          <div className="background-overlay"></div>
         </div>
+        
+        <div className="lobby-content">
+          <div className="glass-panel session-panel">
+            <div className="panel-header">
+              <h2>Game Session</h2>
+              <div className="connection-status connected">
+                <span className="status-dot"></span>
+                Connected
+              </div>
+            </div>
+            
+            <div className="session-info">
+              <div className="info-item">
+                <label>Room Code</label>
+                <div className="room-code">{session.roomCode}</div>
+              </div>
+              <div className="info-item">
+                <label>Your Role</label>
+                <div className="role-badge">
+                  {isHost ? (
+                    <>
+                      <span className="role-icon">👑</span>
+                      Dungeon Master
+                    </>
+                  ) : (
+                    <>
+                      <span className="role-icon">⚔️</span>
+                      Player
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
 
-        <div className="players-list">
-          <h3>Players ({session.players.length})</h3>
-          <ul>
-            {session.players.map(player => (
-              <li key={player.id} className={player.type === 'host' ? 'host' : 'player'}>
-                {player.name} {player.type === 'host' ? '(DM)' : ''}
-                <span className={`status ${player.connected ? 'connected' : 'disconnected'}`}>
-                  {player.connected ? '🟢' : '🔴'}
-                </span>
-              </li>
-            ))}
-          </ul>
+            <div className="players-section">
+              <h3>Party Members ({session.players.length})</h3>
+              <div className="players-grid">
+                {session.players.map(player => (
+                  <div 
+                    key={player.id} 
+                    className={`player-card ${player.type === 'host' ? 'dm-card' : 'player-card'}`}
+                  >
+                    <div className="player-avatar">
+                      {player.type === 'host' ? '👑' : '⚔️'}
+                    </div>
+                    <div className="player-info">
+                      <div className="player-name">{player.name}</div>
+                      <div className="player-role">
+                        {player.type === 'host' ? 'DM' : 'Player'}
+                      </div>
+                    </div>
+                    <div className={`connection-indicator ${player.connected ? 'online' : 'offline'}`}>
+                      <span className="indicator-dot"></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={handleDisconnect} className="disconnect-btn glass-button danger">
+              <span>🚪</span>
+              Leave Session
+            </button>
+          </div>
         </div>
-
-        <button onClick={handleDisconnect} className="disconnect-btn">
-          Disconnect
-        </button>
       </div>
     );
   }
 
   return (
-    <div className="lobby">
+    <div className="lobby lobby-welcome">
+      <div className="lobby-background">
+        <img src={DnDTeamBackground} alt="D&D Adventure Party" />
+        <div className="background-overlay"></div>
+        <div className="background-particles">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div 
+              key={i} 
+              className="particle"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 4}s`,
+                animationDuration: `${4 + Math.random() * 4}s`
+              }}
+            ></div>
+          ))}
+        </div>
+      </div>
+
       <div className="lobby-content">
-        <div className="lobby-brand">
-          {hasCustomLogo ? (
-            <NexusLogo size="xl" className="lobby-logo" />
-          ) : (
-            <h1>Nexus VTT</h1>
-          )}
-        </div>
-        <p>A lightweight virtual tabletop for modern web browsers</p>
-
-        {error && <div className="error">{error}</div>}
-
-        <div className="name-input">
-          <label htmlFor="playerName">Your Name:</label>
-          <input
-            id="playerName"
-            type="text"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            placeholder="Enter your name"
-            disabled={loading}
-          />
-        </div>
-
-        <div className="lobby-actions">
-          <div className="action-group">
-            <h3>Host a Game</h3>
-            <p>Start a new session as the Dungeon Master</p>
-            <button 
-              onClick={handleHostGame}
-              disabled={loading || !playerName.trim()}
-              className="primary"
-            >
-              {loading ? 'Creating...' : 'Host Game'}
-            </button>
+        <div className="welcome-panel glass-panel">
+          <div className="brand-section">
+            {hasCustomLogo ? (
+              <NexusLogo size="xl" className="lobby-logo" />
+            ) : (
+              <div className="brand-logo">
+                <div className="logo-icon">🎲</div>
+                <h1 className="brand-title">Nexus VTT</h1>
+              </div>
+            )}
+            <p className="brand-tagline">
+              Your gateway to epic adventures
+            </p>
           </div>
 
-          <div className="action-group">
-            <h3>Join a Game</h3>
-            <p>Connect to an existing session</p>
-            <input
-              type="text"
-              value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-              placeholder="Room Code (e.g., ABC1)"
-              disabled={loading}
-              maxLength={4}
-            />
-            <button 
-              onClick={handleJoinGame}
-              disabled={loading || !playerName.trim() || !roomCode.trim()}
-              className="secondary"
-            >
-              {loading ? 'Joining...' : 'Join Game'}
-            </button>
+          {error && (
+            <div className="error-message glass-panel error">
+              <span className="error-icon">⚠️</span>
+              {error}
+            </div>
+          )}
+
+          <div className="form-section">
+            <div className="input-group">
+              <label htmlFor="playerName">Enter Your Name</label>
+              <div className="glass-input-wrapper">
+                <span className="input-icon">👤</span>
+                <input
+                  id="playerName"
+                  type="text"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  placeholder="Your adventurer name"
+                  disabled={loading}
+                  className="glass-input"
+                />
+              </div>
+            </div>
+
+            <div className="actions-section">
+              <div className="action-card glass-panel">
+                <div className="action-header">
+                  <div className="action-icon">👑</div>
+                  <div>
+                    <h3>Host Adventure</h3>
+                    <p>Lead your party as the Dungeon Master</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleHostGame}
+                  disabled={loading || !playerName.trim()}
+                  className="glass-button primary"
+                >
+                  {loading ? (
+                    <>
+                      <span className="loading-spinner"></span>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <span>🚀</span>
+                      Start New Campaign
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="divider">
+                <span>OR</span>
+              </div>
+
+              <div className="action-card glass-panel">
+                <div className="action-header">
+                  <div className="action-icon">⚔️</div>
+                  <div>
+                    <h3>Join Adventure</h3>
+                    <p>Connect to an existing campaign</p>
+                  </div>
+                </div>
+                <div className="input-group">
+                  <div className="glass-input-wrapper">
+                    <span className="input-icon">🗝️</span>
+                    <input
+                      type="text"
+                      value={roomCode}
+                      onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                      placeholder="Enter room code"
+                      disabled={loading}
+                      maxLength={6}
+                      className="glass-input room-code-input"
+                    />
+                  </div>
+                </div>
+                <button 
+                  onClick={handleJoinGame}
+                  disabled={loading || !playerName.trim() || !roomCode.trim()}
+                  className="glass-button secondary"
+                >
+                  {loading ? (
+                    <>
+                      <span className="loading-spinner"></span>
+                      Joining...
+                    </>
+                  ) : (
+                    <>
+                      <span>🌟</span>
+                      Join Campaign
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

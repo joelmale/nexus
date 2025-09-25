@@ -1,15 +1,20 @@
 import type { WebSocketMessage, GameEvent } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
 
-declare const __WEBSOCKET_URL__: string;
-
-class WebSocketService {
+class WebSocketService extends EventTarget {
   private ws: WebSocket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private messageQueue: string[] = [];
   private connectionPromise: Promise<void> | null = null;
+
+  // Get WebSocket URL dynamically from environment
+  private getWebSocketUrl(roomCode?: string): string {
+    const wsPort = import.meta.env.VITE_WS_PORT || '5000';
+    const wsUrl = `ws://localhost:${wsPort}/ws`;
+    return roomCode ? `${wsUrl}?join=${roomCode}` : wsUrl;
+  }
 
   connect(roomCode?: string): Promise<void> {
     // Prevent multiple simultaneous connection attempts
@@ -19,9 +24,7 @@ class WebSocketService {
 
     this.connectionPromise = new Promise((resolve, reject) => {
       try {
-        const url = roomCode 
-          ? `${__WEBSOCKET_URL__}?join=${roomCode}`
-          : __WEBSOCKET_URL__;
+        const url = this.getWebSocketUrl(roomCode);
         
         console.log('Attempting to connect to:', url);
         this.ws = new WebSocket(url);
@@ -94,13 +97,27 @@ class WebSocketService {
     console.log('📨 Received WebSocket message:', message.type, message.data);
     const gameStore = useGameStore.getState();
 
+    // Emit custom event for components to listen to
+    this.dispatchEvent(new CustomEvent('message', { detail: message }));
+
     switch (message.type) {
       case 'event':
         console.log('🎯 Processing event:', message.data.name, message.data);
-        gameStore.applyEvent({
+        const gameEvent: GameEvent = {
           type: message.data.name,
           data: message.data,
-        });
+        };
+        gameStore.applyEvent(gameEvent);
+        
+        // Also emit a specific event for the drawing synchronization
+        if (message.data.name === 'drawing/create') {
+          this.dispatchEvent(new CustomEvent('drawingSync', { 
+            detail: { 
+              type: 'drawing/create', 
+              data: message.data 
+            } 
+          }));
+        }
         break;
 
       case 'dice-roll':
@@ -149,6 +166,7 @@ class WebSocketService {
   }
 
   sendEvent(event: GameEvent) {
+    console.log('📤 Sending event:', event.type, event.data);
     this.sendMessage({
       type: 'event',
       data: { name: event.type, ...event.data },
@@ -166,14 +184,27 @@ class WebSocketService {
     });
   }
 
+  // Specialized method for drawing synchronization
+  sendDrawingEvent(type: 'create' | 'update' | 'delete', sceneId: string, data: any) {
+    const drawingEvent: GameEvent = {
+      type: `drawing/${type}`,
+      data: {
+        sceneId,
+        ...data,
+      },
+    };
+    this.sendEvent(drawingEvent);
+  }
+
   private sendMessage(message: Omit<WebSocketMessage, 'src'> & { src: string }) {
     const messageStr = JSON.stringify(message);
     
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(messageStr);
+      console.log('✅ Message sent successfully');
     } else {
       // Queue message for when connection is restored
-      console.log('WebSocket not ready, queueing message');
+      console.log('⏳ WebSocket not ready, queueing message');
       this.messageQueue.push(messageStr);
       
       // Limit queue size to prevent memory issues

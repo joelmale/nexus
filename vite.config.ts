@@ -22,14 +22,6 @@ export default defineConfig(({ command, mode }) => {
       port: parseInt(process.env.PORT || '5173'),
       host: true,
       open: true
-    },
-    define: {
-      // Define WebSocket URL
-      __WEBSOCKET_URL__: JSON.stringify(
-        isDev 
-          ? `ws://localhost:${process.env.WS_PORT || '5000'}/ws`
-          : 'wss://your-domain.com/ws'
-      )
     }
   }
 })

@@ -1,0 +1,258 @@
+/* Compact Scene Canvas Toolbar Styles */
+.scene-canvas-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  padding: 3px;
+  box-shadow: var(--shadow-glass);
+  z-index: 100;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  min-width: 140px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.toolbar-section {
+  margin-bottom: 6px;
+}
+
+.toolbar-section:last-child {
+  margin-bottom: 0;
+}
+
+.toolbar-section-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--glass-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 3px;
+  padding-left: 2px;
+}
+
+.toolbar-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--glass-text);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+  position: relative;
+}
+
+.toolbar-btn:hover:not(.disabled) {
+  background: var(--glass-surface-hover);
+  border-color: var(--glass-border);
+  transform: translateY(-1px);
+}
+
+.toolbar-btn.active {
+  background: var(--color-primary);
+  border-color: var(--glass-border);
+  color: white;
+  box-shadow: 
+    0 0 8px rgba(99, 102, 241, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+.toolbar-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tool-icon {
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.tool-label {
+  font-weight: 500;
+  font-size: 10px;
+}
+
+/* Style Panel - More Compact */
+.style-panel {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 8px);
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  padding: 8px;
+  box-shadow: var(--shadow-glass);
+  min-width: 200px;
+  z-index: 101;
+}
+
+.style-section {
+  margin-bottom: 8px;
+}
+
+.style-section h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--glass-text);
+  margin: 0 0 6px 0;
+}
+
+.style-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.style-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--glass-text-muted);
+  font-weight: 500;
+}
+
+/* DM Panel - More Compact */
+.dm-panel {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 8px);
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  padding: 8px;
+  box-shadow: var(--shadow-glass);
+  min-width: 180px;
+  z-index: 101;
+}
+
+.dm-section {
+  margin-bottom: 8px;
+}
+
+.dm-section h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--glass-text);
+  margin: 0 0 6px 0;
+}
+
+.dm-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dm-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--glass-text-muted);
+  cursor: pointer;
+}
+
+/* Quick action buttons - more compact */
+.dm-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.btn.btn-small {
+  padding: 3px 6px;
+  font-size: 10px;
+  border-radius: 4px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-surface);
+  color: var(--glass-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn.btn-small:hover {
+  background: var(--glass-surface-hover);
+  transform: translateY(-1px);
+}
+
+.btn.btn-danger {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fef2f2;
+}
+
+/* Mobile optimization - even more compact */
+@media (max-width: 768px) {
+  .scene-canvas-toolbar {
+    position: fixed;
+    top: auto;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+    padding: 4px;
+    min-width: auto;
+    max-width: calc(100vw - 20px);
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+  
+  .toolbar-section {
+    margin-bottom: 0;
+    margin-right: 6px;
+  }
+  
+  .toolbar-buttons {
+    flex-direction: row;
+    gap: 2px;
+  }
+  
+  .toolbar-btn {
+    padding: 4px 6px;
+    min-width: 32px;
+    justify-content: center;
+  }
+  
+  .tool-label,
+  .toolbar-section-label {
+    display: none;
+  }
+  
+  .tool-icon {
+    font-size: 12px;
+    width: 14px;
+  }
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

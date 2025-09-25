@@ -1,0 +1,301 @@
+import React from 'react';
+import { useActiveScene } from '@/stores/gameStore';
+import type { Camera } from '@/types/game';
+
+interface SelectionOverlayProps {
+  selectedDrawings: string[];
+  sceneId: string;
+  camera: Camera;
+  onClearSelection?: () => void;
+}
+
+export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
+  selectedDrawings,
+  sceneId,
+  camera,
+  onClearSelection
+}) => {
+  const activeScene = useActiveScene();
+
+  if (!activeScene || activeScene.id !== sceneId || selectedDrawings.length === 0) {
+    return null;
+  }
+
+  const selectedDrawingObjects = activeScene.drawings.filter(drawing => 
+    selectedDrawings.includes(drawing.id)
+  );
+
+  const renderSelectionIndicator = (drawing: any) => {
+    const strokeWidth = 2 / camera.zoom;
+    const selectionProps = {
+      fill: 'none',
+      stroke: '#007bff',
+      strokeWidth: strokeWidth * 2,
+      strokeDasharray: `${8 / camera.zoom},${4 / camera.zoom}`,
+      className: 'selection-indicator',
+      opacity: 0.8,
+    };
+
+    switch (drawing.type) {
+      case 'line':
+        return (
+          <line
+            key={`selection-${drawing.id}`}
+            x1={drawing.start.x}
+            y1={drawing.start.y}
+            x2={drawing.end.x}
+            y2={drawing.end.y}
+            {...selectionProps}
+          />
+        );
+
+      case 'rectangle':
+        const padding = 5 / camera.zoom;
+        return (
+          <rect
+            key={`selection-${drawing.id}`}
+            x={drawing.x - padding}
+            y={drawing.y - padding}
+            width={drawing.width + padding * 2}
+            height={drawing.height + padding * 2}
+            {...selectionProps}
+          />
+        );
+
+      case 'circle':
+        const radiusPadding = 5 / camera.zoom;
+        return (
+          <circle
+            key={`selection-${drawing.id}`}
+            cx={drawing.center.x}
+            cy={drawing.center.y}
+            r={drawing.radius + radiusPadding}
+            {...selectionProps}
+          />
+        );
+
+      case 'polygon':
+        if (drawing.points.length < 3) return null;
+        const pathData = `M ${drawing.points.map((p: any) => `${p.x} ${p.y}`).join(' L ')} Z`;
+        return (
+          <path
+            key={`selection-${drawing.id}`}
+            d={pathData}
+            {...selectionProps}
+          />
+        );
+
+      case 'pencil':
+        if (drawing.points.length < 2) return null;
+        const pencilPath = `M ${drawing.points.map((p: any) => `${p.x} ${p.y}`).join(' L ')}`;
+        return (
+          <path
+            key={`selection-${drawing.id}`}
+            d={pencilPath}
+            {...selectionProps}
+          />
+        );
+
+      case 'aoe-sphere':
+        return (
+          <circle
+            key={`selection-${drawing.id}`}
+            cx={drawing.center.x}
+            cy={drawing.center.y}
+            r={drawing.radius + 5 / camera.zoom}
+            {...selectionProps}
+          />
+        );
+
+      case 'aoe-cube':
+        const cubePadding = 5 / camera.zoom;
+        return (
+          <rect
+            key={`selection-${drawing.id}`}
+            x={drawing.origin.x - drawing.size / 2 - cubePadding}
+            y={drawing.origin.y - drawing.size / 2 - cubePadding}
+            width={drawing.size + cubePadding * 2}
+            height={drawing.size + cubePadding * 2}
+            {...selectionProps}
+          />
+        );
+
+      case 'cone':
+        // Simplified cone selection - just show origin point
+        return (
+          <circle
+            key={`selection-${drawing.id}`}
+            cx={drawing.origin.x}
+            cy={drawing.origin.y}
+            r={10 / camera.zoom}
+            {...selectionProps}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <g className="selection-overlay">
+      {selectedDrawingObjects.map(renderSelectionIndicator)}
+      
+      {/* Selection control handles */}
+      {selectedDrawings.length === 1 && selectedDrawingObjects[0] && (
+        <g className="selection-handles">
+          {renderSelectionHandles(selectedDrawingObjects[0], camera)}
+        </g>
+      )}
+      
+      {/* Multi-selection bounding box */}
+      {selectedDrawings.length > 1 && (
+        <g className="multi-selection-bounds">
+          {renderMultiSelectionBounds(selectedDrawingObjects, camera)}
+        </g>
+      )}
+    </g>
+  );
+};
+
+// Helper function to render selection handles for single selection
+const renderSelectionHandles = (drawing: any, camera: Camera) => {
+  const handleSize = 6 / camera.zoom;
+  const handleProps = {
+    width: handleSize,
+    height: handleSize,
+    fill: '#007bff',
+    stroke: '#ffffff',
+    strokeWidth: 1 / camera.zoom,
+    className: 'selection-handle',
+  };
+
+  const handles: JSX.Element[] = [];
+
+  switch (drawing.type) {
+    case 'rectangle':
+      // Corner handles for rectangles
+      const corners = [
+        { x: drawing.x, y: drawing.y },
+        { x: drawing.x + drawing.width, y: drawing.y },
+        { x: drawing.x, y: drawing.y + drawing.height },
+        { x: drawing.x + drawing.width, y: drawing.y + drawing.height },
+      ];
+      corners.forEach((corner, index) => {
+        handles.push(
+          <rect
+            key={`handle-${index}`}
+            x={corner.x - handleSize / 2}
+            y={corner.y - handleSize / 2}
+            {...handleProps}
+          />
+        );
+      });
+      break;
+
+    case 'circle':
+      // Radius handles for circles
+      const radiusPoints = [
+        { x: drawing.center.x + drawing.radius, y: drawing.center.y },
+        { x: drawing.center.x - drawing.radius, y: drawing.center.y },
+        { x: drawing.center.x, y: drawing.center.y + drawing.radius },
+        { x: drawing.center.x, y: drawing.center.y - drawing.radius },
+      ];
+      radiusPoints.forEach((point, index) => {
+        handles.push(
+          <rect
+            key={`handle-${index}`}
+            x={point.x - handleSize / 2}
+            y={point.y - handleSize / 2}
+            {...handleProps}
+          />
+        );
+      });
+      break;
+
+    case 'line':
+      // End point handles for lines
+      [drawing.start, drawing.end].forEach((point, index) => {
+        handles.push(
+          <rect
+            key={`handle-${index}`}
+            x={point.x - handleSize / 2}
+            y={point.y - handleSize / 2}
+            {...handleProps}
+          />
+        );
+      });
+      break;
+
+    default:
+      break;
+  }
+
+  return handles;
+};
+
+// Helper function to render bounding box for multi-selection
+const renderMultiSelectionBounds = (drawings: any[], camera: Camera) => {
+  if (drawings.length === 0) return null;
+
+  // Calculate bounding box for all selected drawings
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+  drawings.forEach(drawing => {
+    switch (drawing.type) {
+      case 'line':
+        minX = Math.min(minX, drawing.start.x, drawing.end.x);
+        maxX = Math.max(maxX, drawing.start.x, drawing.end.x);
+        minY = Math.min(minY, drawing.start.y, drawing.end.y);
+        maxY = Math.max(maxY, drawing.start.y, drawing.end.y);
+        break;
+      case 'rectangle':
+        minX = Math.min(minX, drawing.x);
+        maxX = Math.max(maxX, drawing.x + drawing.width);
+        minY = Math.min(minY, drawing.y);
+        maxY = Math.max(maxY, drawing.y + drawing.height);
+        break;
+      case 'circle':
+        minX = Math.min(minX, drawing.center.x - drawing.radius);
+        maxX = Math.max(maxX, drawing.center.x + drawing.radius);
+        minY = Math.min(minY, drawing.center.y - drawing.radius);
+        maxY = Math.max(maxY, drawing.center.y + drawing.radius);
+        break;
+      case 'polygon':
+        drawing.points.forEach((point: any) => {
+          minX = Math.min(minX, point.x);
+          maxX = Math.max(maxX, point.x);
+          minY = Math.min(minY, point.y);
+          maxY = Math.max(maxY, point.y);
+        });
+        break;
+      case 'pencil':
+        drawing.points.forEach((point: any) => {
+          minX = Math.min(minX, point.x);
+          maxX = Math.max(maxX, point.x);
+          minY = Math.min(minY, point.y);
+          maxY = Math.max(maxY, point.y);
+        });
+        break;
+      default:
+        break;
+    }
+  });
+
+  const padding = 10 / camera.zoom;
+  
+  return (
+    <rect
+      x={minX - padding}
+      y={minY - padding}
+      width={maxX - minX + padding * 2}
+      height={maxY - minY + padding * 2}
+      fill="none"
+      stroke="#007bff"
+      strokeWidth={2 / camera.zoom}
+      strokeDasharray={`${8 / camera.zoom},${4 / camera.zoom}`}
+      className="multi-selection-bounds"
+      opacity={0.6}
+    />
+  );
+};

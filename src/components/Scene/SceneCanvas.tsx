@@ -1,9 +1,15 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { useGameStore, useCamera, useFollowDM, useIsHost } from '@/stores/gameStore';
+import { useGameStore, useCamera, useFollowDM, useIsHost, useActiveScene } from '@/stores/gameStore';
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
 import { CameraControls } from './CameraControls';
+import { SceneCanvasToolbar } from './SceneCanvasToolbar';
+import { DrawingTools } from './DrawingTools';
+import { DrawingRenderer } from './DrawingRenderer';
+import { SelectionOverlay } from './SelectionOverlay';
+import { webSocketService } from '@/utils/websocket';
 import type { Scene, Camera } from '@/types/game';
+import type { DrawingTool, DrawingStyle, MeasurementTool } from '@/types/drawing';
 
 interface SceneCanvasProps {
   scene: Scene;
@@ -14,10 +20,27 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   const camera = useCamera();
   const followDM = useFollowDM();
   const isHost = useIsHost();
+  const activeScene = useActiveScene();
   const svgRef = useRef<SVGSVGElement>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 600 });
+
+  // Drawing state with selection support
+  const [activeTool, setActiveTool] = useState<DrawingTool | MeasurementTool | 'select' | 'pan'>('select');
+  const [drawingStyle, setDrawingStyle] = useState<DrawingStyle>({
+    fillColor: '#ff0000',
+    fillOpacity: 0.3,
+    strokeColor: '#000000',
+    strokeWidth: 2,
+    strokeDashArray: undefined,
+    visibleToPlayers: true,
+    dmNotesOnly: false,
+    aoeRadius: 20,
+    coneLength: 15,
+    dndSpellLevel: 1,
+  });
+  const [selectedDrawings, setSelectedDrawings] = useState<string[]>([]);
 
   // Update viewport size when container resizes
   useEffect(() => {
@@ -33,8 +56,40 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     return () => window.removeEventListener('resize', updateViewportSize);
   }, []);
 
+  // WebSocket event handling for incoming drawings and camera sync
+  useEffect(() => {
+    const handleWebSocketMessage = (event: any) => {
+      const message = event.detail;
+      
+      // Handle drawing synchronization events
+      if (message.type === 'event' && message.data.name?.startsWith('drawing/')) {
+        if (message.data.sceneId === scene.id) {
+          console.log('Received drawing sync event:', message.data.name, message.data);
+          // The event has already been processed by the game store
+          // This is just for additional UI updates if needed
+        }
+      }
+      
+      // Handle camera synchronization for players following DM
+      if (message.type === 'event' && message.data.name === 'camera/update') {
+        if (message.data.sceneId === scene.id && !isHost && followDM) {
+          console.log('Following DM camera update:', message.data.camera);
+          // Camera update is handled by the game store
+        }
+      }
+    };
+
+    // Listen for WebSocket events
+    webSocketService.addEventListener('message', handleWebSocketMessage);
+    
+    return () => {
+      webSocketService.removeEventListener('message', handleWebSocketMessage);
+    };
+  }, [scene.id, isHost, followDM]);
+
   // Camera controls
   const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (activeTool !== 'pan' && activeTool !== 'select') return; // Only zoom when in pan/select mode
     if (!isHost && followDM) return; // Players can't zoom when following DM
     
     e.preventDefault();
@@ -42,17 +97,30 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     const newZoom = Math.max(0.1, Math.min(5.0, camera.zoom * zoomFactor));
     
     updateCamera({ zoom: newZoom });
-    // TODO: Send camera update event to other players when implementing websocket integration
-  }, [camera.zoom, updateCamera, isHost, followDM]);
+    
+    // Send camera update to other players if host
+    if (isHost) {
+      webSocketService.sendEvent({
+        type: 'camera/update',
+        data: {
+          sceneId: scene.id,
+          camera: { ...camera, zoom: newZoom },
+        },
+      });
+    }
+  }, [camera.zoom, updateCamera, isHost, followDM, activeTool, scene.id]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0) { // Left mouse button
-      if (!isHost && followDM) return; // Players can't pan when following DM
-      
-      setIsPanning(true);
-      setLastMousePos({ x: e.clientX, y: e.clientY });
+      if (activeTool === 'pan' || (activeTool === 'select' && e.altKey)) {
+        if (!isHost && followDM) return; // Players can't pan when following DM
+        
+        setIsPanning(true);
+        setLastMousePos({ x: e.clientX, y: e.clientY });
+        e.stopPropagation();
+      }
     }
-  }, [isHost, followDM]);
+  }, [isHost, followDM, activeTool]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isPanning) {
@@ -69,9 +137,23 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       });
       
       setLastMousePos({ x: e.clientX, y: e.clientY });
-      // TODO: Send camera update event to other players when implementing websocket integration
+      
+      // Send camera update to other players if host
+      if (isHost) {
+        webSocketService.sendEvent({
+          type: 'camera/update',
+          data: {
+            sceneId: scene.id,
+            camera: {
+              x: camera.x - scaledDeltaX,
+              y: camera.y - scaledDeltaY,
+              zoom: camera.zoom,
+            },
+          },
+        });
+      }
     }
-  }, [isPanning, lastMousePos, camera, updateCamera]);
+  }, [isPanning, lastMousePos, camera, updateCamera, isHost, scene.id]);
 
   const handleMouseUp = useCallback(() => {
     setIsPanning(false);
@@ -79,6 +161,15 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   const handleMouseLeave = useCallback(() => {
     setIsPanning(false);
+  }, []);
+
+  const handleStyleChange = useCallback((newStyle: Partial<DrawingStyle>) => {
+    setDrawingStyle(prev => ({ ...prev, ...newStyle }));
+  }, []);
+
+  const handleSelectionChange = useCallback((newSelection: string[]) => {
+    setSelectedDrawings(newSelection);
+    console.log(`Selection changed: ${newSelection.length} drawing(s) selected`);
   }, []);
 
   // Calculate transform for the scene content
@@ -97,83 +188,126 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     };
   }, [scene.gridSettings]);
 
+  // Determine cursor based on active tool and state
+  const getCursor = () => {
+    if (isPanning) return 'grabbing';
+    if (activeTool === 'pan') return 'grab';
+    if (activeTool === 'select') return 'default';
+    return 'crosshair';
+  };
+
   return (
     <div className="scene-canvas-container">
-      <div className="scene-canvas-toolbar">
-        <CameraControls 
-          camera={camera}
-          onCameraUpdate={updateCamera}
-          canControl={isHost || !followDM}
-        />
-        
-        {!isHost && (
-          <div className="follow-dm-indicator">
-            {followDM ? '👁 Following DM' : '🔓 Free Camera'}
-          </div>
-        )}
-      </div>
+      {/* Toolbar */}
+      <SceneCanvasToolbar
+        activeTool={activeTool}
+        onToolChange={setActiveTool}
+        drawingStyle={drawingStyle}
+        onStyleChange={handleStyleChange}
+      />
 
-      <svg
-        ref={svgRef}
-        className="scene-canvas"
-        width="100%"
-        height="100%"
-        onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
-      >
-        <defs>
-          {/* Define patterns and gradients here */}
-          <pattern
-            id={`grid-${scene.id}`}
-            width={scene.gridSettings.size}
-            height={scene.gridSettings.size}
-            patternUnits="userSpaceOnUse"
-          >
-            <path
-              d={`M ${scene.gridSettings.size} 0 L 0 0 0 ${scene.gridSettings.size}`}
-              fill="none"
-              stroke={scene.gridSettings.color}
-              strokeWidth="1"
-              opacity={scene.gridSettings.opacity}
-            />
-          </pattern>
-        </defs>
+      <div className="scene-canvas-main">
+        <div className="scene-canvas-sidebar">
+          <CameraControls 
+            camera={camera}
+            onCameraUpdate={updateCamera}
+            canControl={isHost || !followDM}
+          />
+          
+          {!isHost && (
+            <div className="follow-dm-indicator">
+              {followDM ? '👁 Following DM' : '🔓 Free Camera'}
+            </div>
+          )}
+        </div>
 
-        <g className="scene-content" transform={transform}>
-          {/* Background layer */}
-          {scene.backgroundImage && (
-            <SceneBackground 
-              backgroundImage={scene.backgroundImage}
+        <svg
+          ref={svgRef}
+          className="scene-canvas"
+          width="100%"
+          height="100%"
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          style={{ cursor: getCursor() }}
+        >
+          <defs>
+            {/* Define patterns and gradients here */}
+            <pattern
+              id={`grid-${scene.id}`}
+              width={scene.gridSettings.size}
+              height={scene.gridSettings.size}
+              patternUnits="userSpaceOnUse"
+            >
+              <path
+                d={`M ${scene.gridSettings.size} 0 L 0 0 0 ${scene.gridSettings.size}`}
+                fill="none"
+                stroke={scene.gridSettings.color}
+                strokeWidth="1"
+                opacity={scene.gridSettings.opacity}
+              />
+            </pattern>
+          </defs>
+
+          <g className="scene-content" transform={transform}>
+            {/* Background layer */}
+            {scene.backgroundImage && (
+              <SceneBackground 
+                backgroundImage={scene.backgroundImage}
+                sceneId={scene.id}
+              />
+            )}
+
+            {/* Grid layer */}
+            {scene.gridSettings.enabled && (
+              <SceneGrid 
+                scene={scene}
+                viewportSize={viewportSize}
+                camera={camera}
+              />
+            )}
+
+            {/* Drawings layer */}
+            <DrawingRenderer
               sceneId={scene.id}
-            />
-          )}
-
-          {/* Grid layer */}
-          {scene.gridSettings.enabled && (
-            <SceneGrid 
-              scene={scene}
-              viewportSize={viewportSize}
               camera={camera}
+              isHost={isHost}
             />
-          )}
 
-          {/* Content layers will be added here (tokens, drawings, etc.) */}
-        </g>
+            {/* Drawing tools layer (interactive) */}
+            <DrawingTools
+              activeTool={activeTool}
+              drawingStyle={drawingStyle}
+              camera={camera}
+              gridSize={scene.gridSettings.size}
+              svgRef={svgRef}
+              onSelectionChange={handleSelectionChange}
+            />
 
-        {/* UI overlay elements (not affected by camera transform) */}
-        <g className="ui-overlay">
-          {/* Coordinate display for debugging */}
-          {process.env.NODE_ENV === 'development' && (
-            <text x="10" y="20" fill="white" fontSize="12">
-              Camera: ({Math.round(camera.x)}, {Math.round(camera.y)}) Zoom: {camera.zoom.toFixed(2)}
-            </text>
-          )}
-        </g>
-      </svg>
+            {/* Selection overlay */}
+            <SelectionOverlay
+              selectedDrawings={selectedDrawings}
+              sceneId={scene.id}
+              camera={camera}
+              onClearSelection={() => setSelectedDrawings([])}
+            />
+
+            {/* Content layers will be added here (tokens, etc.) */}
+          </g>
+
+          {/* UI overlay elements (not affected by camera transform) */}
+          <g className="ui-overlay">
+            {/* Coordinate display for debugging */}
+            {process.env.NODE_ENV === 'development' && (
+              <text x="10" y="20" fill="white" fontSize="12">
+                Camera: ({Math.round(camera.x)}, {Math.round(camera.y)}) Zoom: {camera.zoom.toFixed(2)}
+              </text>
+            )}
+          </g>
+        </svg>
+      </div>
     </div>
   );
 };

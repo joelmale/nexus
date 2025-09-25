@@ -11,27 +11,17 @@ class NexusServer {
   constructor(port: number) {
     this.port = port;
     
-    try {
-      this.wss = new WebSocketServer({ 
-        port,
-        perMessageDeflate: false 
-      });
+    this.wss = new WebSocketServer({ 
+      port,
+      perMessageDeflate: false 
+    });
 
-      this.wss.on('connection', (ws, req) => {
-        this.handleConnection(ws, req);
-      });
+    this.wss.on('connection', (ws, req) => {
+      this.handleConnection(ws, req);
+    });
 
-      console.log(`🚀 Nexus WebSocket server running on port ${port}`);
-      console.log(`🌐 Connect to: ws://localhost:${port}/ws`);
-    } catch (error: any) {
-      if (error.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${port} is already in use!`);
-        console.log(`💡 Try a different port with: PORT=${port + 1} npm run server:dev`);
-        console.log(`🔍 To see what's using port ${port}: lsof -i :${port}`);
-        process.exit(1);
-      }
-      throw error;
-    }
+    console.log(`🚀 Nexus WebSocket server running on port ${port}`);
+    console.log(`🌐 Connect to: ws://localhost:${port}/ws`);
   }
 
   private handleConnection(ws: WebSocket, req: any) {
@@ -311,74 +301,41 @@ class NexusServer {
   }
 }
 
-// Port selection with fallbacks
-function findAvailablePort(startPort: number): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const testServer = new WebSocketServer({ port: startPort });
+// Start the server with strict port requirement
+const REQUIRED_PORT = process.env.PORT ? parseInt(process.env.PORT) : 5000;
+
+console.log(`🚀 Starting WebSocket server on port ${REQUIRED_PORT}...`);
+
+const server = new NexusServer(REQUIRED_PORT);
     
-    testServer.on('listening', () => {
-      const port = (testServer.address() as any)?.port || startPort;
-      testServer.close(() => resolve(port));
-    });
-    
-    testServer.on('error', (error: any) => {
-      if (error.code === 'EADDRINUSE') {
-        // Try next port
-        findAvailablePort(startPort + 1).then(resolve).catch(reject);
-      } else {
-        reject(error);
-      }
-    });
-  });
-}
+// Graceful shutdown handling
+process.on('SIGINT', () => {
+  console.log('\n🛑 Received SIGINT, shutting down gracefully...');
+  server.shutdown();
+  process.exit(0);
+});
 
-// Start the server with port selection
-const PREFERRED_PORT = process.env.PORT ? parseInt(process.env.PORT) : 5000;
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Received SIGTERM, shutting down gracefully...');
+  server.shutdown();
+  process.exit(0);
+});
 
-console.log(`🔍 Checking if port ${PREFERRED_PORT} is available...`);
+// Error handling
+process.on('uncaughtException', (error) => {
+  console.error('💥 Uncaught Exception:', error);
+  server.shutdown();
+  process.exit(1);
+});
 
-findAvailablePort(PREFERRED_PORT)
-  .then((port) => {
-    if (port !== PREFERRED_PORT) {
-      console.log(`⚠️  Port ${PREFERRED_PORT} is in use, using port ${port} instead`);
-      console.log(`🔧 Update your frontend to connect to: ws://localhost:${port}/ws`);
-    }
-    
-    const server = new NexusServer(port);
-    
-    // Graceful shutdown handling
-    process.on('SIGINT', () => {
-      console.log('\n🛑 Received SIGINT, shutting down gracefully...');
-      server.shutdown();
-      process.exit(0);
-    });
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+  server.shutdown();
+  process.exit(1);
+});
 
-    process.on('SIGTERM', () => {
-      console.log('\n🛑 Received SIGTERM, shutting down gracefully...');
-      server.shutdown();
-      process.exit(0);
-    });
-
-    // Error handling
-    process.on('uncaughtException', (error) => {
-      console.error('💥 Uncaught Exception:', error);
-      server.shutdown();
-      process.exit(1);
-    });
-
-    process.on('unhandledRejection', (reason, promise) => {
-      console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
-      server.shutdown();
-      process.exit(1);
-    });
-
-    // Optional: Log server statistics every 5 minutes
-    setInterval(() => {
-      const stats = server.getStats();
-      console.log(`📊 Server Stats: ${stats.activeRooms} rooms, ${stats.totalConnections} connections on port ${stats.serverPort}`);
-    }, 5 * 60 * 1000);
-  })
-  .catch((error) => {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
-  });
+// Optional: Log server statistics every 5 minutes
+setInterval(() => {
+  const stats = server.getStats();
+  console.log(`📊 Server Stats: ${stats.activeRooms} rooms, ${stats.totalConnections} connections on port ${stats.serverPort}`);
+}, 5 * 60 * 1000);

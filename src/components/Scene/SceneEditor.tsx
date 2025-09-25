@@ -159,7 +159,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Enter scene name..."
+                placeholder="Scene 1"
                 maxLength={100}
               />
             </div>
@@ -171,7 +171,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Describe this scene..."
+                placeholder="Enter description here"
                 rows={3}
                 maxLength={500}
               />
