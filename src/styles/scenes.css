@@ -14,11 +14,12 @@
   font-weight: 500;
 }
 
+/* Consolidated upload hint style */
 .upload-hint {
   text-align: center;
   font-size: 0.85rem;
   color: var(--glass-text-muted);
-  margin: 0;
+  margin-top: 0.5rem;
 }
 
 /* Asset Browser Modal */
@@ -82,20 +83,21 @@
   .asset-browser-overlay {
     padding: 1rem;
   }
-  
+
   .asset-browser-modal {
     max-height: 90vh;
   }
-  
+
   .upload-options {
     flex-direction: column;
     gap: 0.75rem;
   }
-  
+
   .or-divider {
     margin: 0 0.5rem;
   }
-}/* Scene Management Styles */
+}
+/* Scene Management Styles */
 
 /* Scene Manager Layout */
 .scene-manager {
@@ -194,7 +196,12 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
   transition: left 0.5s;
 }
 
@@ -302,6 +309,25 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--glass-border);
+}
+
+.scene-canvas-main {
+  display: flex;
+  flex-direction: row;
+  /* This is the most important part: it tells this div to grow and fill empty space. */
+  flex-grow: 1;
+  /* This is a safeguard to prevent sizing issues within a flex container. */
+  min-height: 0;
+}
+
+.scene-canvas-sidebar {
+  /* Give the sidebar a specific width. */
+  width: 250px;
+  /* Prevent the sidebar from shrinking if the window gets too small. */
+  flex-shrink: 0;
+  padding: 1rem;
+  overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.15);
 }
 
 .scene-canvas {
@@ -493,25 +519,25 @@
   background: var(--glass-surface-hover);
 }
 
-.form-field input[type="color"] {
+.form-field input[type='color'] {
   height: 40px;
   padding: 0.25rem;
 }
 
-.form-field input[type="range"] {
+.form-field input[type='range'] {
   background: transparent;
   -webkit-appearance: none;
   appearance: none;
 }
 
-.form-field input[type="range"]::-webkit-slider-track {
+.form-field input[type='range']::-webkit-slider-track {
   background: var(--glass-surface);
   height: 6px;
   border-radius: 3px;
   border: 1px solid var(--glass-border);
 }
 
-.form-field input[type="range"]::-webkit-slider-thumb {
+.form-field input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   height: 20px;
@@ -529,7 +555,7 @@
   gap: 0.75rem;
 }
 
-.checkbox-field input[type="checkbox"] {
+.checkbox-field input[type='checkbox'] {
   width: auto;
   margin: 0;
   transform: scale(1.2);
@@ -591,13 +617,6 @@
   background: var(--glass-surface-hover);
 }
 
-.upload-hint {
-  font-size: 0.8rem;
-  color: var(--glass-text-light);
-  margin-top: 0.5rem;
-  margin-bottom: 0;
-}
-
 .scene-editor-footer {
   display: flex;
   gap: 1rem;
@@ -646,14 +665,21 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-primary:hover:not(:disabled),
+.btn-primary:focus-visible {
   transform: translateY(-2px);
   box-shadow: 0 6px 25px rgba(99, 102, 241, 0.4);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .btn-secondary {
@@ -661,9 +687,12 @@
   border: 1px solid var(--glass-border);
 }
 
-.btn-secondary:hover:not(:disabled) {
+.btn-secondary:hover:not(:disabled),
+.btn-secondary:focus-visible {
   background: var(--glass-surface-strong);
   transform: translateY(-1px);
+  outline: 2px solid var(--glass-border);
+  outline-offset: 2px;
 }
 
 .btn-danger {
@@ -672,9 +701,12 @@
   box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
 }
 
-.btn-danger:hover:not(:disabled) {
+.btn-danger:hover:not(:disabled),
+.btn-danger:focus-visible {
   transform: translateY(-2px);
   box-shadow: 0 6px 25px rgba(239, 68, 68, 0.4);
+  outline: 2px solid var(--color-error);
+  outline-offset: 2px;
 }
 
 /* Responsive Design */
@@ -683,19 +715,19 @@
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .scene-sidebar {
     width: 100%;
     height: 200px;
   }
-  
+
   .scene-list {
     flex-direction: row;
     overflow-x: auto;
     overflow-y: hidden;
     padding-bottom: 0.5rem;
   }
-  
+
   .scene-item {
     min-width: 200px;
     flex-shrink: 0;
@@ -707,25 +739,25 @@
     margin: 1rem;
     max-height: calc(100vh - 2rem);
   }
-  
+
   .scene-editor-content {
     padding: 1.5rem;
   }
-  
+
   .background-preview {
     flex-direction: column;
   }
-  
+
   .background-thumbnail {
     width: 100%;
     height: 120px;
   }
-  
+
   .camera-controls {
     flex-wrap: wrap;
     gap: 0.5rem;
   }
-  
+
   .position-display {
     order: -1;
     width: 100%;
