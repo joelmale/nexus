@@ -207,6 +207,31 @@ body::before {
   overflow: auto;
   padding: 2rem;
   position: relative;
+  /* Ensure flexbox container for full height utilization */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Override for panel content to ensure readability */
+.layout-panel .panel-body,
+.settings-container {
+  --glass-text: #1a1d2c; /* Dark text for panels */
+  --glass-text-muted: #4a4e5e;
+  --glass-text-light: #6a6e7e;
+  --glass-surface: rgba(255, 255, 255, 0.4);
+  --glass-surface-hover: rgba(255, 255, 255, 0.5);
+  --glass-surface-strong: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(0, 0, 0, 0.1);  
+
+  /* Force all text elements within to inherit the new dark color */
+  color: var(--glass-text);
+}
+
+/* Ensure all tab content fills available height */
+.layout-main > * {
+  flex: 1;
+  min-height: 0;
 }
 
 /* Lobby */
@@ -523,9 +548,9 @@ button.disconnect-btn:hover {
 .dice-roller {
   max-width: 1000px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .dice-input, .dice-history {
@@ -684,6 +709,29 @@ button.disconnect-btn:hover {
   box-shadow: var(--shadow-glass);
 }
 
+.dice-roll.private {
+  background: rgba(99, 102, 241, 0.1);
+  border-left: 4px solid var(--color-primary);
+  padding-left: calc(1.5rem - 4px);
+}
+
+.dice-roll.new-roll {
+  animation: newRollFlash 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes newRollFlash {
+  0% {
+    background: var(--glass-surface-strong);
+    transform: scale(1.02);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+  }
+  100% {
+    background: var(--glass-surface);
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+
 .dice-roll:last-child {
   margin-bottom: 0;
 }
@@ -708,6 +756,15 @@ button.disconnect-btn:hover {
   font-size: 0.85rem;
   color: var(--glass-text-light);
   font-family: 'JetBrains Mono', monospace;
+}
+.roll-time .private-tag {
+  background: var(--color-primary);
+  color: white;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-right: 0.5rem;
 }
 
 .roll-result {
@@ -841,8 +898,8 @@ button.disconnect-btn:hover {
   }
 
   .dice-roller {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    /* Already single-column from the base style change */
+    gap: 1rem;
   }
 
   .dice-buttons {

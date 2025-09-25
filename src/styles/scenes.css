@@ -104,6 +104,9 @@
   height: 100%;
   display: flex;
   gap: 1.5rem;
+  /* Ensure full height is used */
+  min-height: 0;
+  flex: 1;
 }
 
 .scene-manager-empty {
@@ -282,6 +285,9 @@
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-glass);
   overflow: hidden;
+  /* Ensure full height is available */
+  min-height: 0;
+  height: 100%;
 }
 
 .no-scene-active {
@@ -295,45 +301,17 @@
 }
 
 .scene-canvas-container {
+  width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.scene-canvas-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  background: var(--glass-dark);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid var(--glass-border);
-}
-
-.scene-canvas-main {
-  display: flex;
-  flex-direction: row;
-  /* This is the most important part: it tells this div to grow and fill empty space. */
-  flex-grow: 1;
-  /* This is a safeguard to prevent sizing issues within a flex container. */
-  min-height: 0;
-}
-
-.scene-canvas-sidebar {
-  /* Give the sidebar a specific width. */
-  width: 250px;
-  /* Prevent the sidebar from shrinking if the window gets too small. */
-  flex-shrink: 0;
-  padding: 1rem;
-  overflow-y: auto;
-  background-color: rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
 }
 
 .scene-canvas {
-  flex: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
   background: #1a1a1a;
-  overflow: hidden;
 }
 
 /* Camera Controls */

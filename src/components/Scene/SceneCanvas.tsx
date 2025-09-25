@@ -2,8 +2,6 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useGameStore, useCamera, useFollowDM, useIsHost, useActiveScene } from '@/stores/gameStore';
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
-import { CameraControls } from './CameraControls';
-import { SceneCanvasToolbar } from './SceneCanvasToolbar';
 import { DrawingTools } from './DrawingTools';
 import { DrawingRenderer } from './DrawingRenderer';
 import { SelectionOverlay } from './SelectionOverlay';
@@ -108,7 +106,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         },
       });
     }
-  }, [camera.zoom, updateCamera, isHost, followDM, activeTool, scene.id]);
+  }, [camera, updateCamera, isHost, followDM, activeTool, scene.id]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0) { // Left mouse button
@@ -186,7 +184,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       x: Math.round(x / gridSize) * gridSize,
       y: Math.round(y / gridSize) * gridSize,
     };
-  }, [scene.gridSettings]);
+  }, [scene.gridSettings.snapToGrid, scene.gridSettings.enabled, scene.gridSettings.size]);
 
   // Determine cursor based on active tool and state
   const getCursor = () => {
@@ -198,41 +196,18 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   return (
     <div className="scene-canvas-container">
-      {/* Toolbar */}
-      <SceneCanvasToolbar
-        activeTool={activeTool}
-        onToolChange={setActiveTool}
-        drawingStyle={drawingStyle}
-        onStyleChange={handleStyleChange}
-      />
-
-      <div className="scene-canvas-main">
-        <div className="scene-canvas-sidebar">
-          <CameraControls 
-            camera={camera}
-            onCameraUpdate={updateCamera}
-            canControl={isHost || !followDM}
-          />
-          
-          {!isHost && (
-            <div className="follow-dm-indicator">
-              {followDM ? '👁 Following DM' : '🔓 Free Camera'}
-            </div>
-          )}
-        </div>
-
-        <svg
-          ref={svgRef}
-          className="scene-canvas"
-          width="100%"
-          height="100%"
-          onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
-          style={{ cursor: getCursor() }}
-        >
+      <svg
+        ref={svgRef}
+        className="scene-canvas"
+        width="100%"
+        height="100%"
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        style={{ cursor: getCursor() }}
+      >
           <defs>
             {/* Define patterns and gradients here */}
             <pattern
@@ -307,7 +282,6 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
             )}
           </g>
         </svg>
-      </div>
     </div>
   );
 };

@@ -10,17 +10,23 @@ export const SceneBackground: React.FC<SceneBackgroundProps> = ({
   backgroundImage, 
   sceneId 
 }) => {
-  const { url, width, height, offsetX, offsetY, scale } = backgroundImage;
+  const { url, width, height, offsetX = 0, offsetY = 0, scale = 1 } = backgroundImage;
+
+  // Set reasonable defaults for background sizing
+  const bgWidth = width || 1920;
+  const bgHeight = height || 1080;
+  const bgOffsetX = offsetX || -(bgWidth * scale) / 2;
+  const bgOffsetY = offsetY || -(bgHeight * scale) / 2;
 
   return (
     <g className="scene-background">
       <image
         href={url}
-        x={offsetX}
-        y={offsetY}
-        width={width * scale}
-        height={height * scale}
-        preserveAspectRatio="none"
+        x={bgOffsetX}
+        y={bgOffsetY}
+        width={bgWidth * scale}
+        height={bgHeight * scale}
+        preserveAspectRatio="xMidYMid slice"
         opacity={0.9}
       />
     </g>

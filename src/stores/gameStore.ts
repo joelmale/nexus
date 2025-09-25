@@ -108,6 +108,212 @@ const initialState: GameState = {
   },
 };
 
+type EventHandler = (state: GameState, data: any) => void;
+
+const eventHandlers: Record<string, EventHandler> = {
+  'dice/roll': (state, data) => {
+    if (data.roll) {
+      state.diceRolls.unshift(data.roll);
+    }
+  },
+  'token/place': (state, data) => {
+    if (data.sceneId && data.token) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+      if (sceneIndex >= 0) {
+        if (!state.sceneState.scenes[sceneIndex].placedTokens) {
+          state.sceneState.scenes[sceneIndex].placedTokens = [];
+        }
+        state.sceneState.scenes[sceneIndex].placedTokens.push(data.token);
+        state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+      }
+    }
+  },
+  'token/move': (state, data) => {
+    if (data.sceneId && data.tokenId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+      if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
+        const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
+          t => t.id === data.tokenId
+        );
+        if (tokenIndex >= 0) {
+          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].x = data.position.x;
+          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].y = data.position.y;
+          if (data.rotation !== undefined) {
+            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].rotation = data.rotation;
+          }
+          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].updatedAt = Date.now();
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        }
+      }
+    }
+  },
+  'token/update': (state, data) => {
+    if (data.sceneId && data.tokenId && data.updates) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+      if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
+        const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
+          t => t.id === data.tokenId
+        );
+        if (tokenIndex >= 0) {
+          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex] = {
+            ...state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex],
+            ...data.updates,
+            updatedAt: Date.now(),
+          };
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        }
+      }
+    }
+  },
+  'token/delete': (state, data) => {
+    if (data.sceneId && data.tokenId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+      if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
+        state.sceneState.scenes[sceneIndex].placedTokens = state.sceneState.scenes[sceneIndex].placedTokens.filter(
+          t => t.id !== data.tokenId
+        );
+        state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+      }
+    }
+  },
+  'user/join': (state, data) => {
+    if (state.session && data.user) {
+      const existingIndex = state.session.players.findIndex(p => p.id === data.user.id);
+      if (existingIndex >= 0) {
+        state.session.players[existingIndex] = data.user;
+      } else {
+        state.session.players.push(data.user);
+      }
+    }
+  },
+  'user/leave': (state, data) => {
+    if (state.session && data.userId) {
+      state.session.players = state.session.players.filter(p => p.id !== data.userId);
+    }
+  },
+  'session/created': (state, data) => {
+    console.log('Creating session with data:', data);
+    state.session = {
+      roomCode: data.roomCode || data.room,
+      hostId: state.user.id,
+      players: [{ ...state.user, connected: true }],
+      status: 'connected',
+    };
+    state.user.type = 'host';
+    state.user.connected = true;
+    state.activeTab = 'scenes';
+    if (state.sceneState.scenes.length === 0) {
+      const defaultScene: Scene = {
+        id: uuidv4(),
+        name: 'Scene 1',
+        description: 'Enter description here',
+        backgroundImage: undefined,
+        gridSettings: { enabled: true, size: 50, color: '#ffffff', opacity: 0.3, snapToGrid: true },
+        drawings: [],
+        placedTokens: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      state.sceneState.scenes.push(defaultScene);
+      state.sceneState.activeSceneId = defaultScene.id;
+    }
+    console.log('Session created:', state.session);
+  },
+  'session/joined': (state, data) => {
+    console.log('Joining session with data:', data);
+    state.session = {
+      roomCode: data.roomCode || data.room,
+      hostId: data.hostId,
+      players: data.players || [{ ...state.user, connected: true }],
+      status: 'connected',
+    };
+    state.user.type = 'player';
+    state.user.connected = true;
+    console.log('Session joined:', state.session);
+  },
+  'scene/create': (state, data) => {
+    if (data.scene) {
+      state.sceneState.scenes.push(data.scene);
+      if (state.sceneState.activeSceneId === null) {
+        state.sceneState.activeSceneId = data.scene.id;
+      }
+    }
+  },
+  'scene/update': (state, data) => {
+    if (data.sceneId && data.updates) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+      if (sceneIndex >= 0) {
+        state.sceneState.scenes[sceneIndex] = { ...state.sceneState.scenes[sceneIndex], ...data.updates, updatedAt: Date.now() };
+      }
+    }
+  },
+  'scene/delete': (state, data) => {
+    if (data.sceneId) {
+      state.sceneState.scenes = state.sceneState.scenes.filter(s => s.id !== data.sceneId);
+      if (state.sceneState.activeSceneId === data.sceneId) {
+        state.sceneState.activeSceneId = state.sceneState.scenes.length > 0 ? state.sceneState.scenes[0].id : null;
+      }
+    }
+  },
+  'scene/change': (state, data) => {
+    if (data.sceneId) {
+      const sceneExists = state.sceneState.scenes.some(s => s.id === data.sceneId);
+      if (sceneExists) {
+        state.sceneState.activeSceneId = data.sceneId;
+        state.sceneState.camera = { x: 0, y: 0, zoom: 1.0 };
+      }
+    }
+  },
+  'camera/move': (state, data) => {
+    if (data.camera) {
+      Object.assign(state.sceneState.camera, data.camera);
+    }
+  },
+  'drawing/create': (state, data) => {
+    if (data.sceneId && data.drawing) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+      if (sceneIndex >= 0) {
+        state.sceneState.scenes[sceneIndex].drawings.push(data.drawing);
+        state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+      }
+    }
+  },
+  'drawing/update': (state, data) => {
+    if (data.sceneId && data.drawingId && data.updates) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+      if (sceneIndex >= 0) {
+        const drawingIndex = state.sceneState.scenes[sceneIndex].drawings.findIndex(d => d.id === data.drawingId);
+        if (drawingIndex >= 0) {
+          state.sceneState.scenes[sceneIndex].drawings[drawingIndex] = { ...state.sceneState.scenes[sceneIndex].drawings[drawingIndex], ...data.updates, updatedAt: Date.now() };
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        }
+      }
+    }
+  },
+  'drawing/delete': (state, data) => {
+    if (data.sceneId && data.drawingId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+      if (sceneIndex >= 0) {
+        state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(d => d.id !== data.drawingId);
+        state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+      }
+    }
+  },
+  'drawing/clear': (state, data) => {
+    if (data.sceneId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+      if (sceneIndex >= 0) {
+        if (data.layer) {
+          state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(d => d.layer !== data.layer);
+        } else {
+          state.sceneState.scenes[sceneIndex].drawings = [];
+        }
+        state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+      }
+    }
+  },
+};
+
 export const useGameStore = create<GameStore>()(
   immer((set, get) => ({
     ...initialState,
@@ -143,266 +349,14 @@ export const useGameStore = create<GameStore>()(
     applyEvent: (event) => {
       console.log('Applying event:', event.type, event.data); // Debug log
       
-      set((state) => {
-        switch (event.type) {
-          case 'dice/roll':
-            // This will be handled by the dice service
-            break;
-
-          // Token Events
-          case 'token/place':
-            if (event.data.sceneId && event.data.token) {
-              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
-              if (sceneIndex >= 0) {
-                if (!state.sceneState.scenes[sceneIndex].placedTokens) {
-                  state.sceneState.scenes[sceneIndex].placedTokens = [];
-                }
-                state.sceneState.scenes[sceneIndex].placedTokens.push(event.data.token);
-                state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-              }
-            }
-            break;
-
-          case 'user/join':
-            if (event.data.sceneId && event.data.tokenId) {
-              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
-              if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
-                const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
-                  t => t.id === event.data.tokenId
-                );
-                if (tokenIndex >= 0) {
-                  state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].x = event.data.position.x;
-                  state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].y = event.data.position.y;
-                  if (event.data.rotation !== undefined) {
-                    state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].rotation = event.data.rotation;
-                  }
-                  state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].updatedAt = Date.now();
-                  state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-                }
-              }
-            }
-            break;
-
-          case 'token/update':
-            if (event.data.sceneId && event.data.tokenId && event.data.updates) {
-              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
-              if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
-                const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
-                  t => t.id === event.data.tokenId
-                );
-                if (tokenIndex >= 0) {
-                  state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex] = {
-                    ...state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex],
-                    ...event.data.updates,
-                    updatedAt: Date.now(),
-                  };
-                  state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-                }
-              }
-            }
-            break;
-
-          case 'token/delete':
-            if (event.data.sceneId && event.data.tokenId) {
-              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
-              if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
-                state.sceneState.scenes[sceneIndex].placedTokens = state.sceneState.scenes[sceneIndex].placedTokens.filter(
-                  t => t.id !== event.data.tokenId
-                );
-                state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-              }
-            }
-          
-          case 'user/join':
-            if (state.session && event.data.user) {
-              const existingIndex = state.session.players.findIndex(
-                p => p.id === event.data.user.id
-              );
-              if (existingIndex >= 0) {
-                state.session.players[existingIndex] = event.data.user;
-              } else {
-                state.session.players.push(event.data.user);
-              }
-            }
-            break;
-
-          case 'user/leave':
-            if (state.session && event.data.userId) {
-              state.session.players = state.session.players.filter(
-                p => p.id !== event.data.userId
-              );
-            }
-            break;
-
-          case 'session/created':
-            console.log('Creating session with data:', event.data); // Debug log
-            state.session = {
-              roomCode: event.data.roomCode || event.data.room, // Handle both formats
-              hostId: state.user.id,
-              players: [{ ...state.user, connected: true }], // Include current user
-              status: 'connected',
-            };
-            state.user.type = 'host';
-            state.user.connected = true;
-            // Set default tab to scenes for hosts
-            state.activeTab = 'scenes';
-            // Create default blank scene if no scenes exist
-            if (state.sceneState.scenes.length === 0) {
-              const defaultScene: Scene = {
-                id: uuidv4(),
-                name: 'Scene 1',
-                description: 'Enter description here',
-                backgroundImage: undefined,
-                gridSettings: {
-                  enabled: true,
-                  size: 50,
-                  color: '#ffffff',
-                  opacity: 0.3,
-                  snapToGrid: true,
-                },
-                drawings: [], // Initialize empty drawings array
-                placedTokens: [], // Initialize empty placed tokens array
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-              };
-              state.sceneState.scenes.push(defaultScene);
-              state.sceneState.activeSceneId = defaultScene.id;
-            }
-            console.log('Session created:', state.session); // Debug log
-            break;
-
-          case 'session/joined':
-            console.log('Joining session with data:', event.data); // Debug log
-            state.session = {
-              roomCode: event.data.roomCode || event.data.room, // Handle both formats
-              hostId: event.data.hostId,
-              players: event.data.players || [{ ...state.user, connected: true }],
-              status: 'connected',
-            };
-            state.user.type = 'player';
-            state.user.connected = true;
-            console.log('Session joined:', state.session); // Debug log
-            break;
-
-          // Scene Events
-          case 'scene/create':
-            if (event.data.scene) {
-              state.sceneState.scenes.push(event.data.scene);
-              if (state.sceneState.activeSceneId === null) {
-                state.sceneState.activeSceneId = event.data.scene.id;
-              }
-            }
-            break;
-
-          case 'scene/update':
-            if (event.data.sceneId && event.data.updates) {
-              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
-              if (sceneIndex >= 0) {
-                state.sceneState.scenes[sceneIndex] = {
-                  ...state.sceneState.scenes[sceneIndex],
-                  ...event.data.updates,
-                  updatedAt: Date.now(),
-                };
-              }
-            }
-            break;
-
-          case 'scene/delete':
-            if (event.data.sceneId) {
-              state.sceneState.scenes = state.sceneState.scenes.filter(s => s.id !== event.data.sceneId);
-              if (state.sceneState.activeSceneId === event.data.sceneId) {
-                state.sceneState.activeSceneId = state.sceneState.scenes.length > 0 
-                  ? state.sceneState.scenes[0].id 
-                  : null;
-              }
-            }
-            break;
-
-          case 'scene/change':
-            if (event.data.sceneId) {
-              const sceneExists = state.sceneState.scenes.some(s => s.id === event.data.sceneId);
-              if (sceneExists) {
-                state.sceneState.activeSceneId = event.data.sceneId;
-                // Reset camera when switching scenes
-                state.sceneState.camera = {
-                  x: 0,
-                  y: 0,
-                  zoom: 1.0,
-                };
-              }
-            }
-            break;
-
-          case 'camera/move':
-            if (event.data.camera) {
-              Object.assign(state.sceneState.camera, event.data.camera);
-            }
-            break;
-
-          // Drawing Events
-          case 'drawing/create':
-            if (event.data.sceneId && event.data.drawing) {
-              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
-              if (sceneIndex >= 0) {
-                state.sceneState.scenes[sceneIndex].drawings.push(event.data.drawing);
-                state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-              }
-            }
-            break;
-
-          case 'drawing/update':
-            if (event.data.sceneId && event.data.drawingId && event.data.updates) {
-              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
-              if (sceneIndex >= 0) {
-                const drawingIndex = state.sceneState.scenes[sceneIndex].drawings.findIndex(
-                  d => d.id === event.data.drawingId
-                );
-                if (drawingIndex >= 0) {
-                  state.sceneState.scenes[sceneIndex].drawings[drawingIndex] = {
-                    ...state.sceneState.scenes[sceneIndex].drawings[drawingIndex],
-                    ...event.data.updates,
-                    updatedAt: Date.now(),
-                  };
-                  state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-                }
-              }
-            }
-            break;
-
-          case 'drawing/delete':
-            if (event.data.sceneId && event.data.drawingId) {
-              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
-              if (sceneIndex >= 0) {
-                state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(
-                  d => d.id !== event.data.drawingId
-                );
-                state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-              }
-            }
-            break;
-
-          case 'drawing/clear':
-            if (event.data.sceneId) {
-              const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === event.data.sceneId);
-              if (sceneIndex >= 0) {
-                if (event.data.layer) {
-                  // Clear specific layer
-                  state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(
-                    d => d.layer !== event.data.layer
-                  );
-                } else {
-                  // Clear all drawings
-                  state.sceneState.scenes[sceneIndex].drawings = [];
-                }
-                state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-              }
-            }
-            break;
-
-          default:
-            console.warn('Unknown event type:', event.type, event.data);
-        }
-      });
+      const handler = eventHandlers[event.type];
+      if (handler) {
+        set(state => {
+          handler(state, event.data);
+        });
+      } else {
+        console.warn('Unknown event type:', event.type, event.data);
+      }
     },
 
     reset: () => {
@@ -421,6 +375,7 @@ export const useGameStore = create<GameStore>()(
         ...sceneData,
         id: uuidv4(),
         drawings: [], // Initialize with empty drawings array
+        placedTokens: [], // Initialize with empty placed tokens array
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -524,11 +479,9 @@ export const useGameStore = create<GameStore>()(
             d => d.id === drawingId
           );
           if (drawingIndex >= 0) {
-            state.sceneState.scenes[sceneIndex].drawings[drawingIndex] = {
-              ...state.sceneState.scenes[sceneIndex].drawings[drawingIndex],
-              ...updates,
-              updatedAt: Date.now(),
-            };
+            const drawingToUpdate = state.sceneState.scenes[sceneIndex].drawings[drawingIndex];
+            Object.assign(drawingToUpdate, updates);
+            drawingToUpdate.updatedAt = Date.now();
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
             
             // Auto-save to persistence
@@ -618,6 +571,91 @@ export const useGameStore = create<GameStore>()(
       });
       // Apply the color scheme to CSS custom properties
       applyColorScheme(colorScheme);
+    },
+
+    // Token Management Actions
+    placeToken: (sceneId, token) => {
+      set((state) => {
+        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        if (sceneIndex >= 0) {
+          if (!state.sceneState.scenes[sceneIndex].placedTokens) {
+            state.sceneState.scenes[sceneIndex].placedTokens = [];
+          }
+          state.sceneState.scenes[sceneIndex].placedTokens.push(token);
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        }
+      });
+    },
+
+    moveToken: (sceneId, tokenId, position, rotation) => {
+      set((state) => {
+        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
+          const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
+            t => t.id === tokenId
+          );
+          if (tokenIndex >= 0) {
+            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].x = position.x;
+            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].y = position.y;
+            if (rotation !== undefined) {
+              state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].rotation = rotation;
+            }
+            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].updatedAt = Date.now();
+            state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+          }
+        }
+      });
+    },
+
+    updateToken: (sceneId, tokenId, updates) => {
+      set((state) => {
+        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
+          const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
+            t => t.id === tokenId
+          );
+          if (tokenIndex >= 0) {
+            const tokenToUpdate = state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex];
+            Object.assign(tokenToUpdate, updates);
+            tokenToUpdate.updatedAt = Date.now();
+            state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+          }
+        }
+      });
+    },
+
+    deleteToken: (sceneId, tokenId) => {
+      set((state) => {
+        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
+          state.sceneState.scenes[sceneIndex].placedTokens = state.sceneState.scenes[sceneIndex].placedTokens.filter(
+            t => t.id !== tokenId
+          );
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        }
+      });
+    },
+
+    getSceneTokens: (sceneId) => {
+      const state = get();
+      const scene = state.sceneState.scenes.find(s => s.id === sceneId);
+      return scene?.placedTokens || [];
+    },
+
+    getVisibleTokens: (sceneId, isHost) => {
+      const state = get();
+      const scene = state.sceneState.scenes.find(s => s.id === sceneId);
+      if (!scene) return [];
+      
+      return scene.placedTokens.filter(token => {
+        // DM can see all tokens
+        if (isHost) return true;
+        
+        // Players can only see visible tokens
+        if (!token.visibleToPlayers) return false;
+        
+        return true;
+      });
     },
 
     resetSettings: () => {

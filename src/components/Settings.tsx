@@ -9,12 +9,21 @@ import {
 import { RefreshIcon, ColorIcon, SaveIcon } from './Icons';
 import type { ColorScheme, UserSettings } from '@/types/game';
 
+/**
+ * @file Settings.tsx
+ * @description This component renders the main settings panel for the application.
+ * It allows users to customize display, audio, gameplay, and other preferences.
+ */
+
 interface SettingsSectionProps {
   title: string;
   description?: string;
   children: React.ReactNode;
 }
 
+/**
+ * A reusable component to group related settings under a common heading.
+ */
 const SettingsSection: React.FC<SettingsSectionProps> = ({ title, description, children }) => (
   <div className="settings-section">
     <div className="settings-section-header">
@@ -33,6 +42,9 @@ interface SettingItemProps {
   children: React.ReactNode;
 }
 
+/**
+ * A reusable component for a single setting row, providing consistent layout for a label and its control.
+ */
 const SettingItem: React.FC<SettingItemProps> = ({ label, description, children }) => (
   <div className="setting-item">
     <div className="setting-label">
@@ -50,12 +62,15 @@ interface ColorSchemePickerProps {
   onSchemeChange: (scheme: ColorScheme) => void;
 }
 
+/**
+ * A sophisticated UI component for selecting, previewing, and generating color schemes.
+ */
 const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, onSchemeChange }) => {
   const [customSchemes, setCustomSchemes] = useState<ColorScheme[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Click outside to close dropdown
+  // Effect to close the dropdown when the user clicks outside of it.
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -72,13 +87,15 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
     };
   }, [isDropdownOpen]);
 
+  // Generates a new random color scheme and adds it to the list of custom schemes.
   const handleGenerateRandom = () => {
     const randomScheme = generateRandomColorScheme();
-    setCustomSchemes(prev => [randomScheme, ...prev.slice(0, 4)]); // Keep only 5 custom schemes
+    setCustomSchemes(prev => [randomScheme, ...prev.slice(0, 4)]); // Keep a history of the last 5 custom schemes
     onSchemeChange(randomScheme);
     setIsDropdownOpen(false);
   };
 
+  // Handles the selection of a new scheme from the dropdown.
   const handleSchemeSelect = (scheme: ColorScheme) => {
     onSchemeChange(scheme);
     applyColorScheme(scheme);
@@ -87,7 +104,7 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
 
   const allSchemes = [...defaultColorSchemes, ...customSchemes];
 
-  // Helper function to ensure color is in hex format
+  // Helper function to format the color string for display.
   const getHexColor = (color: string): string => {
     return color.toUpperCase();
   };
@@ -195,28 +212,37 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
   );
 };
 
+/**
+ * The main settings component. It aggregates all setting sections and handles
+ * state management, saving, and resetting of user preferences.
+ */
 export const Settings: React.FC = () => {
   const { updateSettings, setColorScheme, resetSettings } = useGameStore();
   const settings = useSettings();
   const currentColorScheme = useColorScheme();
+  // Local state to track if there are unsaved changes, prompting the user to save.
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // Generic handler for updating any setting in the global store.
   const handleSettingChange = (key: keyof UserSettings, value: any) => {
     updateSettings({ [key]: value });
     setHasUnsavedChanges(true);
   };
 
+  // Specific handler for color scheme changes.
   const handleColorSchemeChange = (scheme: ColorScheme) => {
     setColorScheme(scheme);
     setHasUnsavedChanges(true);
   };
 
+  // Persists the current settings to localStorage.
   const handleSave = () => {
-    // In a real app, you might save to localStorage or send to server
+    // TODO: Integrate with a more robust persistence layer (e.g., user account on a server).
     localStorage.setItem('nexus-settings', JSON.stringify(settings));
     setHasUnsavedChanges(false);
   };
 
+  // Resets all settings to their default values defined in the store.
   const handleReset = () => {
     if (confirm('Reset all settings to defaults? This cannot be undone.')) {
       resetSettings();
@@ -363,7 +389,7 @@ export const Settings: React.FC = () => {
         >
           <SettingItem 
             label="Auto-roll Initiative"
-            description="Automatically roll initiative for combat (placeholder)"
+            description="Automatically roll initiative for combat"
           >
             <label className="setting-toggle">
               <input
@@ -426,7 +452,7 @@ export const Settings: React.FC = () => {
         >
           <SettingItem 
             label="Allow Spectators"
-            description="Let non-players observe the game (placeholder)"
+            description="Let non-players observe the game"
           >
             <label className="setting-toggle">
               <input
@@ -440,7 +466,7 @@ export const Settings: React.FC = () => {
 
           <SettingItem 
             label="Share Character Sheets"
-            description="Allow other players to view your character information (placeholder)"
+            description="Allow other players to view your character information"
           >
             <label className="setting-toggle">
               <input
@@ -454,7 +480,7 @@ export const Settings: React.FC = () => {
 
           <SettingItem 
             label="Log Game Sessions"
-            description="Keep a local record of game events and chat (placeholder)"
+            description="Keep a local record of game events and chat"
           >
             <label className="setting-toggle">
               <input
@@ -474,7 +500,7 @@ export const Settings: React.FC = () => {
         >
           <SettingItem 
             label="Max Tokens Per Scene"
-            description="Limit tokens to improve performance (placeholder)"
+            description="Limit tokens to improve performance"
           >
             <input
               type="number"
@@ -524,7 +550,7 @@ export const Settings: React.FC = () => {
         >
           <SettingItem 
             label="High Contrast Mode"
-            description="Increase contrast for better visibility (placeholder)"
+            description="Increase contrast for better visibility"
           >
             <label className="setting-toggle">
               <input
@@ -538,7 +564,7 @@ export const Settings: React.FC = () => {
 
           <SettingItem 
             label="Screen Reader Mode"
-            description="Optimize for screen reader compatibility (placeholder)"
+            description="Optimize for screen reader compatibility"
           >
             <label className="setting-toggle">
               <input

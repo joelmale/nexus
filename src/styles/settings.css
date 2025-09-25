@@ -257,9 +257,11 @@ input:disabled + .toggle-slider {
 }
 
 .palette-swatches {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem;
+  max-width: 240px; /* Adjust to fit 3 swatches comfortably */
 }
 
 .color-swatch-modern {
@@ -500,8 +502,8 @@ input:disabled + .toggle-slider {
   }
   
   .palette-swatches {
-    gap: 0.5rem;
-    justify-content: center;
+    max-width: none;
+    width: 100%;
   }
   
   .color-swatch-modern {
@@ -533,8 +535,8 @@ input:disabled + .toggle-slider {
 
 @media (max-width: 480px) {
   .palette-swatches {
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
   }
   
   .color-swatch-modern {

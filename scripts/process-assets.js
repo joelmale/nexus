@@ -2,23 +2,23 @@
 
 /**
  * Universal Asset Processing Script
- * 
+ *
  * This script processes various asset types and creates:
  * 1. Optimized WebP images for web usage
  * 2. Thumbnails for quick browsing
  * 3. Standardized folder structure
  * 4. A manifest.json with all asset metadata
- * 
+ *
  * Usage:
  * node scripts/process-assets.js /path/to/your/assets /path/to/output
  */
 
-import fs from 'fs';
-import path from 'path';
-import sharp from 'sharp'; // npm install sharp
-import crypto from 'crypto';
+import fs from "fs";
+import path from "path";
+import sharp from "sharp"; // npm install sharp
+import crypto from "crypto";
 
-const SUPPORTED_FORMATS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+const SUPPORTED_FORMATS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
 const THUMBNAIL_SIZE = 300;
 const MAX_FULL_SIZE = 2048; // Max width/height for full images
 const WEBP_QUALITY = 85;
@@ -26,29 +26,425 @@ const THUMBNAIL_QUALITY = 80;
 
 // Standardized asset categories and subcategories
 const ASSET_CATEGORIES = {
-  'maps': {
-    name: 'Maps',
-    subcategories: ['dungeons', 'cities', 'wilderness', 'interiors', 'battlemaps'],
-    keywords: ['dungeon', 'cave', 'castle', 'tower', 'city', 'village', 'forest', 'mountain', 'desert', 'swamp', 'interior', 'battle', 'map']
+  maps: {
+    name: "Maps",
+    subcategories: [
+      "dungeons",
+      "cities",
+      "wilderness",
+      "interiors",
+      "battlemaps",
+    ],
+    keywords: [
+      "dungeon",
+      "cave",
+      "castle",
+      "tower",
+      "city",
+      "village",
+      "forest",
+      "mountain",
+      "desert",
+      "swamp",
+      "interior",
+      "battle",
+      "map",
+    ],
   },
-  'tokens': {
-    name: 'Tokens',
-    subcategories: ['characters', 'monsters', 'objects', 'npcs'],
-    keywords: ['token', 'character', 'monster', 'npc', 'creature', 'object', 'item', 'player']
+  tokens: {
+    name: "Tokens",
+    subcategories: ["characters", "monsters", "objects", "npcs"],
+    keywords: [
+      "token",
+      "character",
+      "monster",
+      "npc",
+      "creature",
+      "object",
+      "item",
+      "player",
+    ],
   },
-  'art': {
-    name: 'Art',
-    subcategories: ['character', 'scene', 'concept', 'portraits'],
-    keywords: ['art', 'character', 'portrait', 'scene', 'concept', 'illustration', 'artwork']
+  art: {
+    name: "Art",
+    subcategories: ["character", "scene", "concept", "portraits"],
+    keywords: [
+      "art",
+      "character",
+      "portrait",
+      "scene",
+      "concept",
+      "illustration",
+      "artwork",
+    ],
   },
-  'handouts': {
-    name: 'Handouts',
-    subcategories: ['documents', 'letters', 'notices', 'maps'],
-    keywords: ['handout', 'document', 'letter', 'notice', 'scroll', 'paper', 'note']
+  handouts: {
+    name: "Handouts",
+    subcategories: ["documents", "letters", "notices", "maps"],
+    keywords: [
+      "handout",
+      "document",
+      "letter",
+      "notice",
+      "scroll",
+      "paper",
+      "note",
+    ],
   },
-  'reference': {
-    name: 'Reference',
-    subcategories: ['rules', 'charts', 'tables', 'guides'],
-    keywords: ['reference', 'rule', 'chart', 'table', 'guide', 'help', 'manual']
+  reference: {
+    name: "Reference",
+    subcategories: ["rules", "charts", "tables", "guides"],
+    keywords: [
+      "reference",
+      "rule",
+      "chart",
+      "table",
+      "guide",
+      "help",
+      "manual",
+    ],
+  },
+};
+class AssetProcessor {
+  constructor(inputDir, outputDir) {
+    this.inputDir = inputDir;
+    this.outputDir = outputDir;
+    this.manifestPath = path.join(outputDir, "manifest.json");
+
+    // Create standardized directory structure
+    Object.keys(ASSET_CATEGORIES).forEach((categoryKey) => {
+      const categoryName = ASSET_CATEGORIES[categoryKey].name;
+      const categoryDir = path.join(outputDir, categoryName);
+      const assetsDir = path.join(categoryDir, "assets");
+      const thumbnailsDir = path.join(categoryDir, "thumbnails");
+
+      [categoryDir, assetsDir, thumbnailsDir].forEach((dir) => {
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+      });
+    });
   }
-};\n\nclass AssetProcessor {\n  constructor(inputDir, outputDir) {\n    this.inputDir = inputDir;\n    this.outputDir = outputDir;\n    this.manifestPath = path.join(outputDir, 'manifest.json');\n    \n    // Create standardized directory structure\n    Object.keys(ASSET_CATEGORIES).forEach(categoryKey => {\n      const categoryName = ASSET_CATEGORIES[categoryKey].name;\n      const categoryDir = path.join(outputDir, categoryName);\n      const assetsDir = path.join(categoryDir, 'assets');\n      const thumbnailsDir = path.join(categoryDir, 'thumbnails');\n      \n      [categoryDir, assetsDir, thumbnailsDir].forEach(dir => {\n        if (!fs.existsSync(dir)) {\n          fs.mkdirSync(dir, { recursive: true });\n        }\n      });\n    });\n  }\n\n  async processAssets() {\n    console.log('🎨 Processing assets...');\n    console.log(`📁 Input: ${this.inputDir}`);\n    console.log(`📁 Output: ${this.outputDir}`);\n    \n    const assets = [];\n    const files = this.getImageFiles(this.inputDir);\n    \n    console.log(`📊 Found ${files.length} image files`);\n    \n    for (let i = 0; i < files.length; i++) {\n      const file = files[i];\n      console.log(`📸 Processing ${i + 1}/${files.length}: ${path.basename(file)}`);\n      \n      try {\n        const asset = await this.processAsset(file);\n        if (asset) {\n          assets.push(asset);\n        }\n      } catch (error) {\n        console.error(`❌ Error processing ${file}:`, error.message);\n      }\n    }\n    \n    // Generate manifest\n    const manifest = {\n      version: '1.0.0',\n      generatedAt: new Date().toISOString(),\n      totalAssets: assets.length,\n      categories: [...new Set(assets.map(a => a.category))].sort(),\n      subcategories: this.generateSubcategoryList(assets),\n      assets: assets.sort((a, b) => a.name.localeCompare(b.name))\n    };\n    \n    fs.writeFileSync(this.manifestPath, JSON.stringify(manifest, null, 2));\n    \n    console.log('✅ Asset processing complete!');\n    console.log(`📊 Processed: ${assets.length} assets`);\n    console.log(`📂 Categories: ${manifest.categories.join(', ')}`);\n    console.log(`📄 Manifest: ${this.manifestPath}`);\n    \n    return manifest;\n  }\n\n  getImageFiles(dir) {\n    const files = [];\n    \n    const scanDir = (currentDir) => {\n      const items = fs.readdirSync(currentDir);\n      \n      for (const item of items) {\n        const fullPath = path.join(currentDir, item);\n        const stat = fs.statSync(fullPath);\n        \n        if (stat.isDirectory()) {\n          scanDir(fullPath);\n        } else if (stat.isFile()) {\n          const ext = path.extname(fullPath).toLowerCase();\n          if (SUPPORTED_FORMATS.includes(ext)) {\n            files.push(fullPath);\n          }\n        }\n      }\n    };\n    \n    scanDir(dir);\n    return files;\n  }\n\n  async processAsset(filePath) {\n    const fileName = path.basename(filePath, path.extname(filePath));\n    const ext = path.extname(filePath).toLowerCase();\n    const stats = fs.statSync(filePath);\n    \n    // Generate unique ID based on file path and modification time\n    const id = crypto.createHash('md5')\n      .update(filePath + stats.mtime.getTime())\n      .digest('hex');\n    \n    // Determine category from folder structure and filename\n    const relativePath = path.relative(this.inputDir, filePath);\n    const pathParts = relativePath.split(path.sep);\n    const category = this.determineCategory(pathParts, fileName);\n    const subcategory = this.determineSubcategory(pathParts, fileName, category);\n    \n    try {\n      // Get image metadata\n      const image = sharp(filePath);\n      const metadata = await image.metadata();\n      \n      if (!metadata.width || !metadata.height) {\n        console.warn(`⚠️  Skipping ${fileName}: Invalid image metadata`);\n        return null;\n      }\n      \n      // Generate optimized full image\n      const categoryName = ASSET_CATEGORIES[category]?.name || 'Maps';\n      const fullImageName = `${id}.webp`;\n      const fullImagePath = path.join(this.outputDir, categoryName, 'assets', fullImageName);\n      \n      await this.createOptimizedImage(filePath, fullImagePath, MAX_FULL_SIZE);\n      \n      // Generate thumbnail\n      const thumbnailName = `${id}_thumb.webp`;\n      const thumbnailPath = path.join(this.outputDir, categoryName, 'thumbnails', thumbnailName);\n      \n      await this.createThumbnail(filePath, thumbnailPath);\n      \n      // Generate tags from filename and category\n      const tags = this.generateTags(fileName, category, subcategory);\n      \n      const asset = {\n        id,\n        name: fileName.replace(/[-_]/g, ' ').replace(/\\b\\w/g, l => l.toUpperCase()),\n        category: categoryName,\n        subcategory,\n        tags,\n        thumbnail: `${categoryName}/thumbnails/${thumbnailName}`,\n        fullImage: `${categoryName}/assets/${fullImageName}`,\n        dimensions: {\n          width: metadata.width,\n          height: metadata.height\n        },\n        fileSize: stats.size,\n        format: ext.replace('.', '')\n      };\n      \n      return asset;\n      \n    } catch (error) {\n      console.error(`Error processing ${fileName}:`, error);\n      return null;\n    }\n  }\n\n  determineCategory(pathParts, fileName) {\n    const firstFolder = pathParts[0]?.toLowerCase() || '';\n    const lowerFileName = fileName.toLowerCase();\n    \n    // Check if first folder matches a known category\n    for (const [categoryKey, categoryData] of Object.entries(ASSET_CATEGORIES)) {\n      if (firstFolder.includes(categoryKey) || firstFolder === categoryData.name.toLowerCase()) {\n        return categoryKey;\n      }\n    }\n    \n    // Check filename for category keywords\n    for (const [categoryKey, categoryData] of Object.entries(ASSET_CATEGORIES)) {\n      if (categoryData.keywords.some(keyword => lowerFileName.includes(keyword))) {\n        return categoryKey;\n      }\n    }\n    \n    // Default to maps for backwards compatibility\n    return 'maps';\n  }\n\n  determineSubcategory(pathParts, fileName, category) {\n    const categoryData = ASSET_CATEGORIES[category];\n    if (!categoryData) return 'general';\n    \n    const lowerFileName = fileName.toLowerCase();\n    const lowerPathParts = pathParts.map(part => part.toLowerCase());\n    \n    // Check if any path part matches a subcategory\n    for (const subcategory of categoryData.subcategories) {\n      if (lowerPathParts.some(part => part.includes(subcategory))) {\n        return subcategory;\n      }\n    }\n    \n    // Check filename for subcategory hints\n    for (const subcategory of categoryData.subcategories) {\n      if (lowerFileName.includes(subcategory)) {\n        return subcategory;\n      }\n    }\n    \n    return 'general';\n  }\n\n  async createOptimizedImage(inputPath, outputPath, maxSize) {\n    const image = sharp(inputPath);\n    const metadata = await image.metadata();\n    \n    let resizeOptions = {};\n    \n    if (metadata.width > maxSize || metadata.height > maxSize) {\n      resizeOptions = {\n        width: maxSize,\n        height: maxSize,\n        fit: 'inside',\n        withoutEnlargement: true\n      };\n    }\n    \n    await image\n      .resize(resizeOptions)\n      .webp({ quality: WEBP_QUALITY })\n      .toFile(outputPath);\n  }\n\n  async createThumbnail(inputPath, outputPath) {\n    await sharp(inputPath)\n      .resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, {\n        fit: 'cover',\n        position: 'center'\n      })\n      .webp({ quality: THUMBNAIL_QUALITY })\n      .toFile(outputPath);\n  }\n\n  generateTags(fileName, category, subcategory) {\n    const tags = [category];\n    \n    if (subcategory && subcategory !== 'general') {\n      tags.push(subcategory);\n    }\n    \n    // Add category-specific keywords found in filename\n    const categoryData = ASSET_CATEGORIES[category];\n    if (categoryData) {\n      const lowerFileName = fileName.toLowerCase();\n      categoryData.keywords.forEach(keyword => {\n        if (lowerFileName.includes(keyword) && !tags.includes(keyword)) {\n          tags.push(keyword);\n        }\n      });\n    }\n    \n    return [...new Set(tags)];\n  }\n\n  generateSubcategoryList(assets) {\n    const subcategories = {};\n    \n    assets.forEach(asset => {\n      if (!subcategories[asset.category]) {\n        subcategories[asset.category] = new Set();\n      }\n      subcategories[asset.category].add(asset.subcategory);\n    });\n    \n    // Convert Sets to Arrays\n    Object.keys(subcategories).forEach(category => {\n      subcategories[category] = Array.from(subcategories[category]).sort();\n    });\n    \n    return subcategories;\n  }\n}\n\n// CLI execution\nif (process.argv[1] === new URL(import.meta.url).pathname) {\n  const [,, inputDir, outputDir] = process.argv;\n  \n  if (!inputDir || !outputDir) {\n    console.log('Usage: node process-assets.js <input-directory> <output-directory>');\n    console.log('');\n    console.log('Examples:');\n    console.log('  node process-assets.js /Volumes/PS2000w/DnD_Assets/maps ./asset-server/assets');\n    console.log('  node process-assets.js /path/to/tokens ./asset-server/assets');\n    console.log('  node process-assets.js /path/to/all-assets ./asset-server/assets');\n    console.log('');\n    console.log('Supported categories: Maps, Tokens, Art, Handouts, Reference');\n    console.log('Supported formats: JPG, PNG, WebP, GIF');\n    process.exit(1);\n  }\n  \n  if (!fs.existsSync(inputDir)) {\n    console.error('❌ Input directory does not exist:', inputDir);\n    process.exit(1);\n  }\n  \n  const processor = new AssetProcessor(inputDir, outputDir);\n  processor.processAssets()\n    .then(() => {\n      console.log('🎉 All done! Your assets are ready to use.');\n    })\n    .catch(error => {\n      console.error('❌ Processing failed:', error);\n      process.exit(1);\n    });\n}\n\nexport { AssetProcessor };\n
+
+  async processAssets() {
+    console.log("🎨 Processing assets...");
+    console.log(`📁 Input: ${this.inputDir}`);
+    console.log(`📁 Output: ${this.outputDir}`);
+
+    const assets = [];
+    const files = this.getImageFiles(this.inputDir);
+
+    console.log(`📊 Found ${files.length} image files`);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      console.log(
+        `📸 Processing ${i + 1}/${files.length}: ${path.basename(file)}`
+      );
+
+      try {
+        const asset = await this.processAsset(file);
+        if (asset) {
+          assets.push(asset);
+        }
+      } catch (error) {
+        console.error(`❌ Error processing ${file}:`, error.message);
+      }
+    }
+
+    // Generate manifest
+    const manifest = {
+      version: "1.0.0",
+      generatedAt: new Date().toISOString(),
+      totalAssets: assets.length,
+      categories: [...new Set(assets.map((a) => a.category))].sort(),
+      subcategories: this.generateSubcategoryList(assets),
+      assets: assets.sort((a, b) => a.name.localeCompare(b.name)),
+    };
+
+    fs.writeFileSync(this.manifestPath, JSON.stringify(manifest, null, 2));
+
+    console.log("✅ Asset processing complete!");
+    console.log(`📊 Processed: ${assets.length} assets`);
+    console.log(`📂 Categories: ${manifest.categories.join(", ")}`);
+    console.log(`📄 Manifest: ${this.manifestPath}`);
+
+    return manifest;
+  }
+
+  getImageFiles(dir) {
+    const files = [];
+
+    const scanDir = (currentDir) => {
+      const items = fs.readdirSync(currentDir);
+
+      for (const item of items) {
+        const fullPath = path.join(currentDir, item);
+        const stat = fs.statSync(fullPath);
+
+        if (stat.isDirectory()) {
+          scanDir(fullPath);
+        } else if (stat.isFile()) {
+          const ext = path.extname(fullPath).toLowerCase();
+          if (SUPPORTED_FORMATS.includes(ext)) {
+            files.push(fullPath);
+          }
+        }
+      }
+    };
+
+    scanDir(dir);
+    return files;
+  }
+
+  async processAsset(filePath) {
+    const fileName = path.basename(filePath, path.extname(filePath));
+    const ext = path.extname(filePath).toLowerCase();
+    const stats = fs.statSync(filePath);
+
+    // Generate unique ID based on file path and modification time
+    const id = crypto
+      .createHash("md5")
+      .update(filePath + stats.mtime.getTime())
+      .digest("hex");
+
+    // Determine category from folder structure and filename
+    const relativePath = path.relative(this.inputDir, filePath);
+    const pathParts = relativePath.split(path.sep);
+    const category = this.determineCategory(pathParts, fileName);
+    const subcategory = this.determineSubcategory(
+      pathParts,
+      fileName,
+      category
+    );
+
+    try {
+      // Get image metadata
+      const image = sharp(filePath);
+      const metadata = await image.metadata();
+
+      if (!metadata.width || !metadata.height) {
+        console.warn(`⚠️  Skipping ${fileName}: Invalid image metadata`);
+        return null;
+      }
+
+      // Generate optimized full image
+      const categoryName = ASSET_CATEGORIES[category]?.name || "Maps";
+      const fullImageName = `${id}.webp`;
+      const fullImagePath = path.join(
+        this.outputDir,
+        categoryName,
+        "assets",
+        fullImageName
+      );
+
+      await this.createOptimizedImage(filePath, fullImagePath, MAX_FULL_SIZE);
+
+      // Generate thumbnail
+      const thumbnailName = `${id}_thumb.webp`;
+      const thumbnailPath = path.join(
+        this.outputDir,
+        categoryName,
+        "thumbnails",
+        thumbnailName
+      );
+
+      await this.createThumbnail(filePath, thumbnailPath);
+
+      // Generate tags from filename and category
+      const tags = this.generateTags(fileName, category, subcategory);
+
+      const asset = {
+        id,
+        name: fileName
+          .replace(/[-_]/g, " ")
+          .replace(/\b\w/g, (l) => l.toUpperCase()),
+        category: categoryName,
+        subcategory,
+        tags,
+        thumbnail: `${categoryName}/thumbnails/${thumbnailName}`,
+        fullImage: `${categoryName}/assets/${fullImageName}`,
+        dimensions: {
+          width: metadata.width,
+          height: metadata.height,
+        },
+        fileSize: stats.size,
+        format: ext.replace(".", ""),
+      };
+
+      return asset;
+    } catch (error) {
+      console.error(`Error processing ${fileName}:`, error);
+      return null;
+    }
+  }
+
+  determineCategory(pathParts, fileName) {
+    const firstFolder = pathParts[0]?.toLowerCase() || "";
+    const lowerFileName = fileName.toLowerCase();
+
+    // Check if first folder matches a known category
+    for (const [categoryKey, categoryData] of Object.entries(
+      ASSET_CATEGORIES
+    )) {
+      if (
+        firstFolder.includes(categoryKey) ||
+        firstFolder === categoryData.name.toLowerCase()
+      ) {
+        return categoryKey;
+      }
+    }
+
+    // Check filename for category keywords
+    for (const [categoryKey, categoryData] of Object.entries(
+      ASSET_CATEGORIES
+    )) {
+      if (
+        categoryData.keywords.some((keyword) => lowerFileName.includes(keyword))
+      ) {
+        return categoryKey;
+      }
+    }
+
+    // Default to maps for backwards compatibility
+    return "maps";
+  }
+
+  determineSubcategory(pathParts, fileName, category) {
+    const categoryData = ASSET_CATEGORIES[category];
+    if (!categoryData) return "general";
+
+    const lowerFileName = fileName.toLowerCase();
+    const lowerPathParts = pathParts.map((part) => part.toLowerCase());
+
+    // Check if any path part matches a subcategory
+    for (const subcategory of categoryData.subcategories) {
+      if (lowerPathParts.some((part) => part.includes(subcategory))) {
+        return subcategory;
+      }
+    }
+
+    // Check filename for subcategory hints
+    for (const subcategory of categoryData.subcategories) {
+      if (lowerFileName.includes(subcategory)) {
+        return subcategory;
+      }
+    }
+
+    return "general";
+  }
+
+  async createOptimizedImage(inputPath, outputPath, maxSize) {
+    const image = sharp(inputPath);
+    const metadata = await image.metadata();
+
+    let resizeOptions = {};
+
+    if (metadata.width > maxSize || metadata.height > maxSize) {
+      resizeOptions = {
+        width: maxSize,
+        height: maxSize,
+        fit: "inside",
+        withoutEnlargement: true,
+      };
+    }
+
+    await image
+      .resize(resizeOptions)
+      .webp({ quality: WEBP_QUALITY })
+      .toFile(outputPath);
+  }
+
+  async createThumbnail(inputPath, outputPath) {
+    await sharp(inputPath)
+      .resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, {
+        fit: "cover",
+        position: "center",
+      })
+      .webp({ quality: THUMBNAIL_QUALITY })
+      .toFile(outputPath);
+  }
+
+  generateTags(fileName, category, subcategory) {
+    const tags = [category];
+
+    if (subcategory && subcategory !== "general") {
+      tags.push(subcategory);
+    }
+
+    // Add category-specific keywords found in filename
+    const categoryData = ASSET_CATEGORIES[category];
+    if (categoryData) {
+      const lowerFileName = fileName.toLowerCase();
+      categoryData.keywords.forEach((keyword) => {
+        if (lowerFileName.includes(keyword) && !tags.includes(keyword)) {
+          tags.push(keyword);
+        }
+      });
+    }
+
+    return [...new Set(tags)];
+  }
+
+  generateSubcategoryList(assets) {
+    const subcategories = {};
+
+    assets.forEach((asset) => {
+      if (!subcategories[asset.category]) {
+        subcategories[asset.category] = new Set();
+      }
+      subcategories[asset.category].add(asset.subcategory);
+    });
+
+    // Convert Sets to Arrays
+    Object.keys(subcategories).forEach((category) => {
+      subcategories[category] = Array.from(subcategories[category]).sort();
+    });
+
+    return subcategories;
+  }
+}
+
+// CLI execution
+if (process.argv[1] === new URL(import.meta.url).pathname) {
+  const [, , inputDir, outputDir] = process.argv;
+
+  if (!inputDir || !outputDir) {
+    console.log(
+      "Usage: node process-assets.js <input-directory> <output-directory>"
+    );
+    console.log("");
+    console.log("Examples:");
+    console.log(
+      "  node process-assets.js /Volumes/PS2000w/DnD_Assets/maps ./asset-server/assets"
+    );
+    console.log(
+      "  node process-assets.js /path/to/tokens ./asset-server/assets"
+    );
+    console.log(
+      "  node process-assets.js /path/to/all-assets ./asset-server/assets"
+    );
+    console.log("");
+    console.log("Supported categories: Maps, Tokens, Art, Handouts, Reference");
+    console.log("Supported formats: JPG, PNG, WebP, GIF");
+    process.exit(1);
+  }
+
+  if (!fs.existsSync(inputDir)) {
+    console.error("❌ Input directory does not exist:", inputDir);
+    process.exit(1);
+  }
+
+  const processor = new AssetProcessor(inputDir, outputDir);
+  processor
+    .processAssets()
+    .then(() => {
+      console.log("🎉 All done! Your assets are ready to use.");
+    })
+    .catch((error) => {
+      console.error("❌ Processing failed:", error);
+      process.exit(1);
+    });
+}
+
+export { AssetProcessor };

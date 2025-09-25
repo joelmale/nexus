@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { assetManager, type AssetMetadata } from '@/utils/assetManager';
 
 interface AssetBrowserProps {
@@ -19,20 +19,14 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
   const [hasMore, setHasMore] = useState(false);
   const [cacheSize, setCacheSize] = useState(0);
 
-  // Load initial data
-  useEffect(() => {
-    loadAssets();
-    loadCategories();
-    loadCacheSize();
-  }, [category, searchQuery]);
-
-  const loadAssets = async () => {
+  const loadAssets = useCallback(async () => {
     setLoading(true);
     try {
       if (searchQuery) {
         const results = await assetManager.searchAssets(searchQuery);
         setAssets(results);
         setHasMore(false);
+        setPage(0); // Reset page on new search
       } else {
         const result = await assetManager.getAssetsByCategory(category, 0, 20);
         setAssets(result.assets);
@@ -44,25 +38,32 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [category, searchQuery]);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       const categories = await assetManager.getCategories();
       setCategories(['all', ...categories]);
     } catch (error) {
       console.error('Failed to load categories:', error);
     }
-  };
+  }, []);
 
-  const loadCacheSize = async () => {
+  const loadCacheSize = useCallback(async () => {
     try {
       const size = await assetManager.getCacheSize();
       setCacheSize(size);
     } catch (error) {
       console.error('Failed to get cache size:', error);
     }
-  };
+  }, []);
+
+  // Load initial data
+  useEffect(() => {
+    loadAssets();
+    loadCategories();
+    loadCacheSize();
+  }, [loadAssets, loadCategories, loadCacheSize]);
 
   const loadMore = async () => {
     if (!hasMore || searchQuery) return;
