@@ -1,0 +1,133 @@
+version: '3.8'
+
+# Production Docker Compose configuration
+# Deploy with: docker stack deploy -c docker-compose.yml nexus
+
+services:
+  # Reverse proxy
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-public-certificates:/certificates
+    networks:
+      - nexus-network
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN:-localhost}`)"
+        - "traefik.http.routers.api.service=api@internal"
+
+  # Frontend (React app)
+  frontend:
+    image: nexus-vtt/frontend:${VERSION:-latest}
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    networks:
+      - nexus-network
+    environment:
+      - VITE_WS_URL=${WS_URL:-ws://localhost/ws}
+      - NODE_ENV=production
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.frontend.rule=Host(`${DOMAIN:-localhost}`)"
+        - "traefik.http.services.frontend.loadbalancer.server.port=80"
+        - "traefik.http.routers.frontend.entrypoints=web,websecure"
+
+  # Backend (WebSocket server)
+  backend:
+    image: nexus-vtt/backend:${VERSION:-latest}
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    networks:
+      - nexus-network
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost}
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.backend.rule=Host(`${DOMAIN:-localhost}`) && PathPrefix(`/ws`, `/api`)"
+        - "traefik.http.services.backend.loadbalancer.server.port=5000"
+        - "traefik.http.services.backend.loadbalancer.sticky=true"
+        - "traefik.http.services.backend.loadbalancer.sticky.cookie.name=server"
+
+  # Redis for pub/sub and session storage
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - nexus-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # Asset server (for game assets)
+  asset-server:
+    image: nginx:alpine
+    volumes:
+      - ./assets:/usr/share/nginx/html:ro
+      - ./docker/nginx-assets.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - nexus-network
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.assets.rule=Host(`assets.${DOMAIN:-localhost}`)"
+        - "traefik.http.services.assets.loadbalancer.server.port=80"
+
+networks:
+  nexus-network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  redis-data:
+  traefik-public-certificates:

@@ -75,7 +75,7 @@ const initialState: GameState = {
   settings: {
     // Display Settings
     colorScheme: defaultColorSchemes[0], // Nexus Default
-    theme: 'auto',
+    theme: 'dark',
     enableGlassmorphism: true,
     reducedMotion: false,
     fontSize: 'medium',

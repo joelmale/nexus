@@ -8,6 +8,15 @@ nexus/
 │   │   ├── GameLayout.tsx   # Main layout with header + resizable sidebar
 │   │   ├── ContextPanel.tsx # Right sidebar with panel content
 │   │   ├── GameToolbar.tsx  # Floating draggable toolbar
+│   │   ├── AssetBrowser.tsx # Asset browser for maps and tokens
+│   │   ├── Assets.tsx       # Logo and icon components
+│   │   ├── DiceRoller.tsx   # Dice rolling panel
+│   │   ├── Icons.tsx        # SVG icons
+│   │   ├── Layout.tsx       # Main layout wrapper
+│   │   ├── Lobby.tsx        # Lobby and session management
+│   │   ├── Placeholder.tsx  # Placeholder for unimplemented features
+│   │   ├── PlayerBar.tsx    # Floating player bar
+│   │   ├── Settings.tsx     # Settings panel
 │   │   ├── Scene/          # Scene management components
 │   │   │   ├── SceneCanvas.tsx
 │   │   │   └── SceneTabs.tsx
@@ -29,20 +38,25 @@ nexus/
 ## Key Files to Read for Context
 1. `src/components/GameLayout.tsx` - Main layout structure
 2. `src/components/ContextPanel.tsx` - Panel system
-3. `src/stores/gameStore.ts` - Application state
-4. `src/styles/main.css` - Design system variables
-5. `src/styles/game-layout.css` - Layout styling
+3. `src/components/Lobby.tsx` - Session management
+4. `src/stores/gameStore.ts` - Application state
+5. `src/styles/main.css` - Design system variables
 6. `package.json` - Dependencies and scripts
 
 ## Component Hierarchy
 ```
-GameLayout (main container)
-├── Header
-│   ├── SceneTabs (left side)
-│   └── HorizontalPanelTabs (right side)
-├── SceneCanvas (main area)
-│   ├── PlayerBar (floating bottom-left)
-│   └── GameToolbar (floating bottom-center, draggable)
-└── ContextPanel (resizable right sidebar)
-    └── Panel content based on active tab
+Layout
+└── GameLayout (main container, if connected)
+    ├── Header
+    │   ├── SceneTabs (left)
+    │   └── HorizontalPanelTabs (right)
+    ├── SceneCanvas
+    │   ├── PlayerBar
+    │   └── GameToolbar
+    └── ContextPanel (resizable/draggable sidebar)
+        ├── DiceRoller
+        ├── Settings
+        ├── LobbyPanel
+        └── Placeholder (for other panels)
+Lobby (if not connected)
 ```

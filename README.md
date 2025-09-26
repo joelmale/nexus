@@ -48,10 +48,8 @@
 git clone https://github.com/your-username/nexus-vtt.git
 cd nexus-vtt
 
-# Install dependencies
+# Install all dependencies
 npm install
-cd asset-server && npm install && cd ..
-npm install sharp  # For asset processing
 
 # Start everything with one command
 npm run start:all
@@ -93,16 +91,17 @@ cd asset-server && npm run dev  # Assets only
 - ✅ **Multi-tab Interface** - Lobby, Dice, Scenes, Settings
 - ✅ **Real-time Dice Roller** - Full expression parsing with shared results
 - ✅ **Scene Editor** - Background images, grid system, basic scene management
-- ✅ **Asset Management** - Professional asset server with image processing
-- ✅ **Color Schemes** - Customizable glassmorphism themes
+- ✅ **Asset Browser** - A professional asset browser with search, filtering, and caching.
+- ✅ **Settings Panel** - A comprehensive settings panel for user customization.
 - ✅ **Player Management** - See who's connected in real-time
+- ✅ **Color Schemes** - Customizable glassmorphism themes
 
 ## 🗂️ Project Structure
 
 ```
 nexus-vtt/
 ├── src/                    # React frontend application
-│   ├── components/         # React components (Lobby, DiceRoller, Layout)
+│   ├── components/         # React components (Lobby, DiceRoller, Layout, Settings, AssetBrowser)
 │   ├── stores/            # Zustand state management
 │   ├── types/             # TypeScript type definitions
 │   ├── utils/             # WebSocket service, dice utilities
@@ -219,8 +218,8 @@ Receive message → Route to room members → No processing
 ## 🚧 Roadmap
 
 ### Phase 1: Scene Management (In Progress)
-- [ ] **Interactive battle maps** with background images
-- [ ] **Grid system** with customizable spacing and snapping  
+- [x] **Interactive battle maps** with background images
+- [x] **Grid system** with customizable spacing and snapping  
 - [ ] **Pan and zoom** controls for navigation
 - [ ] **Scene switching** for multiple encounters
 

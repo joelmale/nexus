@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { DiceRoller } from './DiceRoller';
 import { Settings } from './Settings';
 import { Placeholder } from './Placeholder';
@@ -8,6 +8,7 @@ interface ContextPanelProps {
   onPanelChange: (panel: 'tokens' | 'scene' | 'props' | 'initiative' | 'dice' | 'lobby' | 'settings' | 'chat' | 'sounds') => void;
   expanded: boolean;
   onToggleExpanded: () => void;
+  onContentWidthChange: (width: number) => void;
 }
 
 /**
@@ -21,7 +22,23 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   onPanelChange,
   expanded,
   onToggleExpanded,
+  onContentWidthChange,
 }) => {
+  const panelBodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (expanded && panelBodyRef.current) {
+      // Use a timeout to allow content to render before measuring
+      const timer = setTimeout(() => {
+        if (panelBodyRef.current) {
+          const contentWidth = panelBodyRef.current.scrollWidth;
+          onContentWidthChange(contentWidth + 40); // Add padding
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [activePanel, expanded, onContentWidthChange]);
+
   const panels = [
     { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
     { id: 'scene' as const, icon: '🖼', label: 'Scene' },
@@ -34,14 +51,12 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     { id: 'settings' as const, icon: '⚙️', label: 'Settings' },
   ];
 
-  const panelStyle = activePanel === 'settings' && expanded ? { width: '500px' } : {};
-
   return (
-    <div className="context-panel" data-expanded={expanded} style={panelStyle}>
+    <div className="context-panel" data-expanded={expanded}>
       {/* Panel Content */}
       {expanded && (
         <div className="panel-content" role="tabpanel">
-          <div className="panel-body">
+          <div className="panel-body" ref={panelBodyRef}>
             {activePanel === 'tokens' && <Placeholder title="Tokens" />}
             {activePanel === 'scene' && <Placeholder title="Scene Settings" />}
             {activePanel === 'props' && <Placeholder title="Props" />}

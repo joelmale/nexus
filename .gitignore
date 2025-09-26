@@ -195,6 +195,9 @@ design-files/
 .dockerignore.local
 docker-compose.override.yml
 docker-compose.local.yml
+docker/volumes/
+*.env
+!.env.example
 
 # Security
 .env.secret

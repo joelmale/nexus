@@ -53,6 +53,7 @@ export interface UserSettings {
   // Display Settings
   colorScheme: ColorScheme;
   theme: 'auto' | 'dark' | 'light';
+  enableGlassmorphism: boolean;
   reducedMotion: boolean;
   fontSize: 'small' | 'medium' | 'large';
   

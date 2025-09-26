@@ -28,7 +28,6 @@ export const GameLayout: React.FC = () => {
   const [panelExpanded, setPanelExpanded] = useState(true);
   const [activePanel, setActivePanel] = useState<'tokens' | 'scene' | 'props' | 'initiative' | 'dice' | 'chat' | 'sounds' | 'lobby' | 'settings'>('lobby');
   const [sidebarWidth, setSidebarWidth] = useState(300);
-  const [panelPosition, setPanelPosition] = useState<{ x: number; y: number } | null>(null);
   
   // Apply color scheme on mount and when it changes
   useEffect(() => {
@@ -52,113 +51,6 @@ export const GameLayout: React.FC = () => {
   // Resize functionality
   const isResizing = useRef(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  
-  // Drag functionality for panel
-  const isDraggingPanel = useRef(false);
-  const panelDragStart = useRef({ x: 0, y: 0 });
-  const panelInitialPos = useRef({ x: 0, y: 0 });
-  
-  // Panel drag functionality with touch support
-  useEffect(() => {
-    const dragHandle = sidebarRef.current?.querySelector('.panel-drag-handle') as HTMLElement;
-    const panel = sidebarRef.current;
-    if (!dragHandle || !panel) return;
-    
-    let isDragging = false;
-    let dragStart = { x: 0, y: 0 };
-    let initialPos = { x: 0, y: 0 };
-    
-    const handleStart = (clientX: number, clientY: number) => {
-      isDragging = true;
-      const rect = panel.getBoundingClientRect();
-      
-      dragStart = { x: clientX, y: clientY };
-      initialPos = { x: rect.left, y: rect.top };
-      
-      document.body.style.cursor = 'move';
-      document.body.style.userSelect = 'none';
-      panel.classList.add('dragging');
-    };
-    
-    const handleMove = (clientX: number, clientY: number) => {
-      if (!isDragging) return;
-      
-      const deltaX = clientX - dragStart.x;
-      const deltaY = clientY - dragStart.y;
-      
-      const newX = initialPos.x + deltaX;
-      const newY = initialPos.y + deltaY;
-      
-      const rect = panel.getBoundingClientRect();
-      const padding = 10;
-      const maxX = window.innerWidth - rect.width - padding;
-      const maxY = window.innerHeight - rect.height - padding;
-      
-      setPanelPosition({
-        x: Math.max(padding, Math.min(maxX, newX)),
-        y: Math.max(padding, Math.min(maxY, newY))
-      });
-    };
-    
-    const handleEnd = () => {
-      if (!isDragging) return;
-      isDragging = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      panel.classList.remove('dragging');
-    };
-    
-    // Mouse events
-    const handleMouseDown = (e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      handleStart(e.clientX, e.clientY);
-    };
-    
-    const handleMouseMove = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
-    const handleMouseUp = () => handleEnd();
-    
-    // Touch events
-    const handleTouchStart = (e: TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const touch = e.touches[0];
-      handleStart(touch.clientX, touch.clientY);
-    };
-    
-    const handleTouchMove = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      handleMove(touch.clientX, touch.clientY);
-    };
-    
-    const handleTouchEnd = () => handleEnd();
-    
-    // Double click to reset position
-    const handleDoubleClick = () => {
-      setPanelPosition(null);
-      panel.classList.add('resetting');
-      setTimeout(() => panel.classList.remove('resetting'), 300);
-    };
-    
-    dragHandle.addEventListener('mousedown', handleMouseDown);
-    dragHandle.addEventListener('touchstart', handleTouchStart, { passive: false });
-    dragHandle.addEventListener('dblclick', handleDoubleClick);
-    
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd);
-    
-    return () => {
-      dragHandle.removeEventListener('mousedown', handleMouseDown);
-      dragHandle.removeEventListener('touchstart', handleTouchStart);
-      dragHandle.removeEventListener('dblclick', handleDoubleClick);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, []);
   
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -191,6 +83,12 @@ export const GameLayout: React.FC = () => {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }, [panelExpanded]);
+
+  const handleContentWidthChange = useCallback((width: number) => {
+    if (width > 0) {
+      setSidebarWidth(width);
+    }
+  }, []);
 
   const panels = [
     { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
@@ -301,28 +199,12 @@ export const GameLayout: React.FC = () => {
       {/* Resizable Context Panel */}
       <div 
         ref={sidebarRef}
-        className={`layout-panel ${panelPosition ? 'positioned' : ''}`}
+        className={`layout-panel`}
         data-expanded={panelExpanded}
         style={{
           width: panelExpanded ? sidebarWidth : 60,
-          ...(panelPosition ? {
-            position: 'fixed',
-            left: `${panelPosition.x}px`,
-            top: `${panelPosition.y}px`,
-            right: 'auto'
-          } : {})
         }}
       >
-      {/* Panel Drag Handle */}
-      {panelExpanded && (
-        <div 
-          className="panel-drag-handle"
-          title="Drag to move panel / Double-click to reset position"
-        >
-          <span className="drag-dots">⋮⋮</span>
-        </div>
-      )}
-        
         {/* Resize Handle */}
         <div 
           className="sidebar-resize-handle"
@@ -334,6 +216,7 @@ export const GameLayout: React.FC = () => {
           onPanelChange={setActivePanel}
           expanded={panelExpanded}
           onToggleExpanded={() => setPanelExpanded(!panelExpanded)}
+          onContentWidthChange={handleContentWidthChange}
         />
       </div>
     </div>

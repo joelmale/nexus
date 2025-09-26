@@ -6,6 +6,7 @@
 - Adding new CSS custom properties to `main.css`
 - Responsive design adjustments in media queries
 - Glassmorphism effect updates (backdrop-filter, glass surfaces)
+- The right-side context panel automatically resizes to fit its content. This is handled in `ContextPanel.tsx` (measuring) and `GameLayout.tsx` (setting the `--sidebar-width` variable).
 
 ## Component Development
 - Creating new React components with TypeScript interfaces
@@ -32,14 +33,19 @@
 - Adding new Zustand stores for different features
 - Managing real-time state synchronization with WebSocket
 - Creating custom hooks for state access
-- Implementing state persistence for user preferences
+- Implementing state persistence for user preferences in `src/components/Settings.tsx`
 
 ## Asset Management
 - Adding new game assets to `asset-server/`
-- Configuring asset loading and caching
+- Configuring asset loading and caching in `src/components/AssetBrowser.tsx`
 - Token and scene asset integration
 - Optimizing asset delivery for performance
-- Managing asset metadata and organization
+- Managing asset metadata and organization in `src/utils/assetManager.ts`
+
+## Settings
+- Adding new settings to `src/components/Settings.tsx`
+- Creating new color schemes in `src/utils/colorSchemes.ts`
+- Applying settings to components based on `useSettings` hook.
 
 ## Canvas & Scene Development
 - Canvas rendering optimization
@@ -49,22 +55,24 @@
 - Zoom and pan controls
 
 ## Real-time Features
-- WebSocket event handling
+- WebSocket event handling in `src/utils/websocket.ts`
 - State synchronization between players
 - Conflict resolution for concurrent updates
-- Player connection management
+- Player connection management in `src/components/Lobby.tsx`
 - Game session persistence
 
 ## Common File Locations
 - **Add new styles**: `src/styles/` 
 - **Modify main layout**: `src/components/GameLayout.tsx`
-- **Add panel content**: `src/components/ContextPanel.tsx` (includes Lobby, Dice, Chat, Sounds panels)
+- **Add panel content**: `src/components/ContextPanel.tsx` (includes Lobby, Dice, Chat, Sounds, Settings panels)
 - **Update floating toolbar**: `src/components/GameToolbar.tsx`
 - **Manage game state**: `src/stores/gameStore.ts`
+- **Manage assets**: `src/components/AssetBrowser.tsx` and `src/utils/assetManager.ts`
+- **Manage settings**: `src/components/Settings.tsx`
 - **Add new scenes**: `src/components/Scene/`
 - **Token functionality**: `src/components/Tokens/`
 - **Type definitions**: `src/types/`
-- **WebSocket services**: `src/services/`
+- **WebSocket services**: `src/utils/websocket.ts`
 
 ## Development Workflow
 1. **Start dev server**: `npm run dev`

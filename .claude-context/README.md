@@ -17,6 +17,7 @@ When starting a new conversation with Claude, reference these files:
 - **RECENT_CHANGES.md** - Latest updates and current development priorities
 - **TECH_STACK.md** - Technologies used and architectural patterns  
 - **COMMON_TASKS.md** - Frequent development tasks and file locations
+- **IMPLEMENTATION_PLAN.md** - Complete roadmap with DevOps, testing, and feature implementation phases
 
 ## Maintenance
 

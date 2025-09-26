@@ -15,12 +15,13 @@ export const GameToolbar: React.FC = () => {
   const camera = useCamera();
   
   // Dragging state
-  const [position, setPosition] = useState<Position | null>(null); // null means use default position
+  const [isPositioned, setIsPositioned] = useState(false);
+  const [translation, setTranslation] = useState<Position>({ x: 0, y: 0 });
   const toolbarRef = useRef<HTMLDivElement>(null);
   const dragHandleRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef<Position>({ x: 0, y: 0 });
-  const initialPosRef = useRef<Position>({ x: 0, y: 0 });
+  const initialTranslationRef = useRef<Position>({ x: 0, y: 0 });
   
   const handleZoomIn = () => {
     const newZoom = Math.min(5.0, camera.zoom * 1.2);
@@ -49,24 +50,14 @@ export const GameToolbar: React.FC = () => {
       
       isDraggingRef.current = true;
       
-      // Get initial toolbar position
-      const rect = toolbar.getBoundingClientRect();
-      dragStartRef.current = {
-        x: e.clientX,
-        y: e.clientY
-      };
-      initialPosRef.current = {
-        x: rect.left,
-        y: rect.top
-      };
+      // Get initial mouse position and translation
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
+      initialTranslationRef.current = translation;
       
       // Add dragging class for visual feedback
       toolbar.classList.add('dragging');
       document.body.style.cursor = 'grabbing';
       document.body.style.userSelect = 'none';
-      
-      // Add a visual indication that the toolbar is being dragged
-      toolbar.style.zIndex = '1000';
     };
     
     const handleMouseMove = (e: MouseEvent) => {
@@ -76,23 +67,13 @@ export const GameToolbar: React.FC = () => {
       const deltaX = e.clientX - dragStartRef.current.x;
       const deltaY = e.clientY - dragStartRef.current.y;
       
-      const newX = initialPosRef.current.x + deltaX;
-      const newY = initialPosRef.current.y + deltaY;
+      const newX = initialTranslationRef.current.x + deltaX;
+      const newY = initialTranslationRef.current.y + deltaY;
       
-      // Get toolbar dimensions
-      const rect = toolbar.getBoundingClientRect();
-      
-      // Constrain to viewport with padding
-      const padding = 10;
-      const maxX = window.innerWidth - rect.width - padding;
-      const maxY = window.innerHeight - rect.height - padding;
-      
-      const constrainedPosition = {
-        x: Math.max(padding, Math.min(maxX, newX)),
-        y: Math.max(padding, Math.min(maxY, newY))
-      };
-      
-      setPosition(constrainedPosition);
+      setTranslation({ x: newX, y: newY });
+      if (deltaX !== 0 || deltaY !== 0) {
+        setIsPositioned(true);
+      }
     };
     
     const handleMouseUp = (e: MouseEvent) => {
@@ -102,15 +83,13 @@ export const GameToolbar: React.FC = () => {
       toolbar.classList.remove('dragging');
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      
-      // Reset z-index after dragging
-      toolbar.style.zIndex = '';
     };
     
     // Double click to reset position
     const handleDoubleClick = (e: MouseEvent) => {
       e.preventDefault();
-      setPosition(null);
+      setTranslation({ x: 0, y: 0 });
+      setIsPositioned(false);
       toolbar.classList.add('resetting');
       setTimeout(() => toolbar.classList.remove('resetting'), 300);
     };
@@ -209,13 +188,12 @@ export const GameToolbar: React.FC = () => {
   return (
     <div 
       ref={toolbarRef}
-      className={`game-toolbar ${position ? 'positioned' : ''} ${isCompact ? 'compact' : ''}`} 
+      className={`game-toolbar ${isPositioned ? 'positioned' : ''} ${isCompact ? 'compact' : ''}`} 
       role="toolbar"
-      style={position ? {
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        position: 'fixed'
-      } : {}}
+      style={{
+        '--tw-translate-x': `${translation.x}px`,
+        '--tw-translate-y': `${translation.y}px`,
+      } as React.CSSProperties}
     >
       {/* Drag Handle and Compact Toggle */}
       <div className="toolbar-controls">

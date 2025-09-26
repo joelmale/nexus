@@ -245,11 +245,12 @@
 
 /* Floating Game Toolbar (Over Canvas) */
 .layout-toolbar {
-  position: fixed;
-  bottom: 20px;
+  position: absolute;
+  bottom: 120px;
   left: 50%;
   z-index: 1000;
   pointer-events: none;
+  transform: translateX(-50%);
 }
 
 .game-toolbar {
@@ -265,20 +266,26 @@
   min-height: 50px;
   position: relative;
   cursor: default;
-  /* Default centering when not dragged */
-  transform: translateX(-50%);
+  transition: transform 0.2s ease-out;
+}
+
+.game-toolbar.positioned {
+  position: fixed;
+  bottom: auto;
+  left: auto;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y));
+  z-index: 1001;
 }
 
 .game-toolbar.dragging {
   cursor: grabbing;
-  z-index: 1001;
+  transition: none;
 }
 
-/* When toolbar is moved, it gets positioned absolutely */
-.game-toolbar.positioned {
-  position: fixed;
-  transform: none;
+.game-toolbar.resetting {
+  transition: transform 0.3s ease-in-out;
 }
+
 
 /* Drag Handle */
 .toolbar-drag-handle {
@@ -459,10 +466,13 @@
   border-left: 3px solid var(--glass-border);
   transition: width 0.2s ease;
   width: var(--sidebar-width);
-  height: 100vh;
   position: relative;
   min-width: 60px;
+  padding-top: 0; /* Explicitly remove padding */
+  margin-top: 0; /* Explicitly remove margin */
 }
+
+
 
 .layout-panel[data-expanded="false"] {
   min-width: 60px;
@@ -472,12 +482,12 @@
 .sidebar-resize-handle {
   position: absolute;
   top: 0;
-  left: -3px;
-  width: 6px;
+  left: -9px;
+  width: 18px;
   height: 100%;
   background: transparent;
   cursor: ew-resize;
-  z-index: 10;
+  z-index: 1003;
   transition: background-color 0.2s ease;
 }
 
@@ -491,9 +501,9 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 2px;
+  width: 12px;
   height: 30px;
-  background: var(--glass-border);
+  background: #555;
   border-radius: 1px;
   transition: all 0.2s ease;
 }
@@ -1255,6 +1265,7 @@
 .volume-slider {
   width: 100%;
   margin-top: 0.5rem;
+  appearance: none;
   -webkit-appearance: none;
   height: 6px;
   border-radius: 3px;
@@ -1476,7 +1487,7 @@
     position: fixed;
     top: 0;
     right: 0;
-    height: 100vh;
+    height: 100%;
     z-index: 200;
     transform: translateX(100%);
     transition: transform 0.3s ease;
@@ -1617,4 +1628,49 @@
   .sidebar-resize-handle {
     background-color: var(--glass-border);
   }
+}
+
+/* Solid Theme Overrides for Toolbar */
+.theme-solid .game-toolbar {
+  background-color: #2a2a2e;
+  border: 1px solid #4a4a4e;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.theme-solid .toolbar-btn {
+  background-color: #3a3a3e;
+  border: 1px solid #4a4a4e;
+  box-shadow: inset 0px 1px 1px #5a5a5e, 0px 1px 2px #1a1a1e;
+  transition: all 0.1s ease-in-out;
+}
+
+.theme-solid .toolbar-btn:hover {
+  background-color: #4a4a4e;
+  transform: translateY(-1px);
+  box-shadow: inset 0px 1px 1px #6a6a6e, 0px 2px 4px #1a1a1e;
+}
+
+.theme-solid .toolbar-btn.active,
+.theme-solid .toolbar-btn:active {
+  background-color: #2a2a2e;
+  box-shadow: inset 0px 2px 2px #1a1a1e;
+  transform: translateY(1px);
+  transition: all 0.05s ease-in-out;
+}
+
+.theme-solid .toolbar-separator {
+  background: #4a4a4e;
+}
+
+.theme-solid .toolbar-drag-handle {
+  border-right-color: #4a4a4e;
+}
+
+.theme-solid .toolbar-drag-handle:hover {
+  background-color: #3a3a3e;
+}
+
+.layout-panel.panel-positioned {
+    position: fixed;
+    z-index: 1002;
 }
