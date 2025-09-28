@@ -1,0 +1,230 @@
+/* =============================================================================
+   CRITICAL CSS - Above-the-fold styles only
+   ============================================================================= */
+
+/* Import design tokens first */
+@import './design-tokens.css';
+
+/* =============================================================================
+   CSS RESET (Critical)
+   ============================================================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* =============================================================================
+   BASE STYLES (Critical)
+   ============================================================================= */
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  line-height: var(--leading-normal);
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Animated background particles */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
+  animation: float 20s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-20px) rotate(1deg); }
+  66% { transform: translateY(10px) rotate(-1deg); }
+}
+
+#root {
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* =============================================================================
+   CRITICAL LAYOUT STRUCTURE - Only essential above-the-fold styles
+   ============================================================================= */
+
+/* Layout structure is now in layout-consolidated.css */
+
+/* =============================================================================
+   GLASS COMPONENTS (Critical)
+   ============================================================================= */
+
+.glass-panel {
+  background: var(--surface-primary);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-glass);
+}
+
+.glass-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--surface-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  backdrop-filter: var(--glass-blur-subtle);
+  text-decoration: none;
+}
+
+.glass-button:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-secondary);
+  transform: translateY(-1px);
+}
+
+.glass-button.primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.glass-button.primary:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+/* =============================================================================
+   PLAYER BAR (Critical)
+   ============================================================================= */
+
+.player-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.player-avatar {
+  width: var(--spacing-8);
+  height: var(--spacing-8);
+  border-radius: var(--radius-full);
+  background: var(--surface-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-lg);
+  border: 2px solid var(--border-primary);
+}
+
+.player-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.player-role {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* =============================================================================
+   LOADING STATES (Critical)
+   ============================================================================= */
+
+.loading-spinner {
+  display: inline-block;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: var(--radius-full);
+  animation: spin var(--duration-1000) linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN (Critical)
+   ============================================================================= */
+
+/* Mobile responsive rules moved to layout-consolidated.css */
+
+/* =============================================================================
+   THEME SPECIFIC OVERRIDES (Critical)
+   ============================================================================= */
+
+.solid-theme body {
+  background: var(--bg-primary);
+}
+
+.solid-theme body::before {
+  display: none;
+}
+
+.solid-theme .glass-panel,
+.solid-theme .glass-button {
+  backdrop-filter: none;
+  box-shadow: var(--shadow-default);
+}
+
+/* =============================================================================
+   ACCESSIBILITY (Critical)
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  body::before {
+    animation: none;
+  }
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

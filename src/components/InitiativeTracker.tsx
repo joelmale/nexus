@@ -369,38 +369,42 @@ export const InitiativeTracker: React.FC = () => {
       </div>
 
       <div className="add-entry">
-        <input
-          type="text"
-          value={newEntryName}
-          onChange={(e) => setNewEntryName(e.target.value)}
-          placeholder="Character name"
-          className="name-input"
-          onKeyDown={(e) => e.key === 'Enter' && handleAddEntry()}
-        />
+        <div className="add-entry-row">
+          <input
+            type="text"
+            value={newEntryName}
+            onChange={(e) => setNewEntryName(e.target.value)}
+            placeholder="Character name"
+            className="name-input"
+            onKeyDown={(e) => e.key === 'Enter' && handleAddEntry()}
+          />
+        </div>
 
-        <select
-          value={newEntryType}
-          onChange={(e) => setNewEntryType(e.target.value as 'player' | 'npc' | 'monster')}
-          className="type-select"
-        >
-          <option value="player">Player</option>
-          <option value="npc">NPC</option>
-          <option value="monster">Monster</option>
-        </select>
+        <div className="add-entry-row">
+          <select
+            value={newEntryType}
+            onChange={(e) => setNewEntryType(e.target.value as 'player' | 'npc' | 'monster')}
+            className="type-select"
+          >
+            <option value="player">Player</option>
+            <option value="npc">NPC</option>
+            <option value="monster">Monster</option>
+          </select>
 
-        <input
-          type="number"
-          value={newEntryInitiative}
-          onChange={(e) => setNewEntryInitiative(parseInt(e.target.value, 10) || 0)}
-          className="initiative-input"
-          placeholder="Init"
-          min="0"
-          max="30"
-        />
+          <input
+            type="number"
+            value={newEntryInitiative}
+            onChange={(e) => setNewEntryInitiative(parseInt(e.target.value, 10) || 0)}
+            className="initiative-input"
+            placeholder="Init"
+            min="0"
+            max="30"
+          />
 
-        <button onClick={handleAddEntry} className="add-btn">
-          ➕ Add
-        </button>
+          <button onClick={handleAddEntry} className="add-btn">
+            ➕ Add
+          </button>
+        </div>
       </div>
 
       <div className="initiative-list">

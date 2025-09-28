@@ -58,8 +58,8 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       tokens: 320,
       scene: 400,
       props: 350,
-      initiative: 380,
-      dice: 300,
+      initiative: 450,  // Increased for complex combat interface
+      dice: 380,        // Increased for dice controls and history
       sounds: 320,
       chat: 350,
       players: 320,
@@ -84,7 +84,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       {/* Panel Content */}
       {expanded && (
         <div className="panel-content" role="tabpanel" ref={panelContentRef}>
-          <div className="panel-body" data-testid="panel-body">
+          <div className="panel-body" data-testid="panel-body" style={{ overflowY: 'auto' }}>
             {activePanel === 'tokens' && <Placeholder title="Tokens" />}
             {activePanel === 'scene' && <ScenePanel scene={currentScene} />}
             {activePanel === 'props' && <Placeholder title="Props" />}

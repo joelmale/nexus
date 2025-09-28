@@ -572,48 +572,4 @@
   cursor: not-allowed;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .player-panel {
-    padding: 0.5rem;
-  }
-
-  .panel-header {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: stretch;
-  }
-
-  .section-header {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: stretch;
-  }
-
-  .character-item {
-    flex-direction: column;
-    gap: 0.5rem;
-    text-align: center;
-  }
-
-  .player-header {
-    flex-direction: column;
-    gap: 0.5rem;
-    text-align: center;
-  }
-
-  .combat-summary {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .race-grid,
-  .class-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .wizard-footer {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-}
+/* Desktop/Tablet Optimized Design - Mobile support removed per requirements */

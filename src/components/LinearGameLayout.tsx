@@ -202,7 +202,7 @@ export const LinearGameLayout: React.FC = () => {
 
   return (
     <div
-      className="linear-game-layout game-layout"
+      className="game-layout"
       data-panel-expanded={panelExpanded}
       style={{
         '--sidebar-width': `${panelExpanded ? sidebarWidth : 60}px`
@@ -266,7 +266,7 @@ export const LinearGameLayout: React.FC = () => {
         <div className="scene-tab-bar">
           <SceneTabs
             scenes={scenes}
-            activeSceneId={activeScene?.id || null}
+            activeSceneId={activeScene?.id || ''}
           />
         </div>
 
@@ -295,9 +295,6 @@ export const LinearGameLayout: React.FC = () => {
         ref={sidebarRef}
         className={`layout-panel`}
         data-expanded={panelExpanded}
-        style={{
-          width: panelExpanded ? sidebarWidth : 60,
-        }}
       >
         {/* Resize Handle */}
         <div

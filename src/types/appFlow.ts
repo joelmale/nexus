@@ -15,6 +15,8 @@ export interface AppState {
   };
   roomCode?: string;
   isConnectedToRoom: boolean;
+  gameConfig?: GameConfig;
+  selectedCharacter?: PlayerCharacter;
 }
 
 export interface PlayerCharacter {
@@ -55,7 +57,6 @@ export interface AppFlowActions {
   joinRoomWithCode: (roomCode: string, character?: PlayerCharacter) => Promise<void>;
   createCharacter: (character: Omit<PlayerCharacter, 'id' | 'createdAt' | 'playerId'>) => PlayerCharacter;
   selectCharacter: (characterId: string) => void;
-  deleteCharacter: (characterId: string) => void;
 
   // DM flow
   createGameRoom: (config: GameConfig) => Promise<string>; // Returns room code
@@ -70,4 +71,9 @@ export interface AppFlowActions {
   // Room management
   leaveRoom: () => void;
   resetToWelcome: () => void;
+
+  // Development helpers
+  dev_quickDM: (name?: string) => void;
+  dev_quickPlayer: (name?: string, roomCode?: string) => void;
+  dev_skipToGame: (userType?: 'dm' | 'player') => void;
 }

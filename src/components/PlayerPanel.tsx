@@ -3,6 +3,7 @@ import { useSession, useIsHost } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import { CharacterSheet } from './CharacterSheet';
+import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
 import type { Player } from '@/types/game';
 
 interface PlayerCardProps {
@@ -78,142 +79,6 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, isHost, onKick, onToggl
   );
 };
 
-interface CharacterCreationWizardProps {
-  onComplete: () => void;
-  onCancel: () => void;
-}
-
-const CharacterCreationWizard: React.FC<CharacterCreationWizardProps> = ({ onComplete, onCancel }) => {
-  const { creationState, updateCreationState, nextCreationStep, previousCreationStep, completeCharacterCreation } = useCharacterCreation();
-
-  if (!creationState) return null;
-
-  const handleComplete = () => {
-    const characterId = completeCharacterCreation();
-    if (characterId) {
-      onComplete();
-    }
-  };
-
-  const handleBasicInfoChange = (field: string, value: any) => {
-    updateCreationState({
-      character: {
-        ...creationState.character,
-        [field]: value,
-      },
-    });
-  };
-
-  return (
-    <div className="character-creation-wizard">
-      <div className="wizard-header">
-        <h3>Create New Character</h3>
-        <div className="wizard-progress">
-          Step {creationState.step} of {creationState.totalSteps}
-        </div>
-        <button onClick={onCancel} className="wizard-close">❌</button>
-      </div>
-
-      <div className="wizard-content">
-        {creationState.step === 1 && (
-          <div className="wizard-step">
-            <h4>Basic Information</h4>
-            <div className="form-group">
-              <label>Character Name</label>
-              <input
-                type="text"
-                value={creationState.character?.name || ''}
-                onChange={(e) => handleBasicInfoChange('name', e.target.value)}
-                placeholder="Enter character name"
-                className="wizard-input"
-              />
-            </div>
-          </div>
-        )}
-
-        {creationState.step === 2 && (
-          <div className="wizard-step">
-            <h4>Race</h4>
-            <div className="race-selection">
-              <p>Choose your character's race:</p>
-              <div className="race-grid">
-                {['Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 'Gnome', 'Half-Elf', 'Half-Orc', 'Tiefling'].map(race => (
-                  <button
-                    key={race}
-                    onClick={() => handleBasicInfoChange('race', { name: race })}
-                    className={`race-option ${creationState.character?.race?.name === race ? 'selected' : ''}`}
-                  >
-                    {race}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {creationState.step === 3 && (
-          <div className="wizard-step">
-            <h4>Class</h4>
-            <div className="class-selection">
-              <p>Choose your character's class:</p>
-              <div className="class-grid">
-                {['Fighter', 'Wizard', 'Rogue', 'Cleric', 'Ranger', 'Paladin', 'Barbarian', 'Bard', 'Druid', 'Monk', 'Sorcerer', 'Warlock'].map(className => (
-                  <button
-                    key={className}
-                    onClick={() => handleBasicInfoChange('classes', [{ name: className, level: creationState.character?.level || 1 }])}
-                    className={`class-option ${creationState.character?.classes?.[0]?.name === className ? 'selected' : ''}`}
-                  >
-                    {className}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {creationState.step === 4 && (
-          <div className="wizard-step">
-            <h4>Final Details</h4>
-            <div className="character-summary">
-              <h5>Character Summary</h5>
-              <p><strong>Name:</strong> {creationState.character?.name}</p>
-              <p><strong>Race:</strong> {creationState.character?.race?.name}</p>
-              <p><strong>Class:</strong> {creationState.character?.classes?.[0]?.name}</p>
-              <p><strong>Level:</strong> {creationState.character?.level}</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="wizard-footer">
-        <button
-          onClick={previousCreationStep}
-          disabled={creationState.step === 1}
-          className="wizard-btn secondary"
-        >
-          Previous
-        </button>
-
-        {creationState.step < creationState.totalSteps ? (
-          <button
-            onClick={nextCreationStep}
-            className="wizard-btn primary"
-          >
-            Next
-          </button>
-        ) : (
-          <button
-            onClick={handleComplete}
-            className="wizard-btn primary"
-            disabled={!creationState.character?.name || !creationState.character?.race?.name || !creationState.character?.classes?.[0]?.name}
-          >
-            Create Character
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
 
 export const PlayerPanel: React.FC = () => {
   const session = useSession();
@@ -222,6 +87,7 @@ export const PlayerPanel: React.FC = () => {
   const { creationState, startCharacterCreation, cancelCharacterCreation } = useCharacterCreation();
   const { addEntry, rollInitiativeForAll, startCombat } = useInitiativeStore();
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
+  const { startCharacterCreation: launchWizard, LauncherComponent } = useCharacterCreationLauncher();
 
   const players = session?.players ?? [];
   
@@ -260,7 +126,18 @@ export const PlayerPanel: React.FC = () => {
 
   const handleCreateCharacter = () => {
     if (effectiveUserId) {
-      startCharacterCreation(effectiveUserId, 'manual');
+      launchWizard(
+        effectiveUserId,
+        'modal',
+        (characterId) => {
+          console.log('Character created:', characterId);
+          // Optionally view the new character immediately
+          setActiveCharacter(characterId);
+        },
+        () => {
+          console.log('Character creation cancelled');
+        }
+      );
     }
   };
 
@@ -331,17 +208,6 @@ export const PlayerPanel: React.FC = () => {
     );
   }
 
-  // Show character creation wizard
-  if (creationState) {
-    return (
-      <div className="player-panel">
-        <CharacterCreationWizard
-          onComplete={handleCharacterCreationComplete}
-          onCancel={cancelCharacterCreation}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="player-panel">
@@ -439,6 +305,9 @@ export const PlayerPanel: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Character Creation Launcher */}
+      {LauncherComponent}
     </div>
   );
 };

@@ -37,7 +37,9 @@ const initialState: AppState = {
     type: null,
     id: getBrowserId()
   },
-  isConnectedToRoom: false
+  isConnectedToRoom: false,
+  gameConfig: undefined,
+  selectedCharacter: undefined
 };
 
 export const useAppFlowStore = create<AppFlowStore>()(
@@ -311,11 +313,16 @@ export const useAppFlowStore = create<AppFlowStore>()(
           level: 5,
           background: 'Folk Hero',
           stats: {
-            str: 16, dex: 14, con: 13, int: 10, wis: 15, cha: 12
+            strength: 16,
+            dexterity: 14,
+            constitution: 13,
+            intelligence: 10,
+            wisdom: 15,
+            charisma: 12
           },
-          createdAt: new Date().toISOString(),
-          lastUsed: new Date().toISOString(),
-          browserId: getBrowserId()
+          createdAt: Date.now(),
+          lastUsed: Date.now(),
+          playerId: getBrowserId()
         };
 
         // Save character and set as selected

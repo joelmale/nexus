@@ -1,13 +1,23 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { webSocketService } from '../../../src/utils/websocket';
 
 // Mock WebSocket
-const mockWebSocket = {
+const mockWebSocket: {
+  addEventListener: Mock;
+  removeEventListener: Mock;
+  send: Mock;
+  close: Mock;
+  readyState: number;
+  onopen: ((event: any) => void) | null;
+  onmessage: ((event: any) => void) | null;
+  onclose: ((event: any) => void) | null;
+  onerror: ((event: any) => void) | null;
+} = {
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
   send: vi.fn(),
   close: vi.fn(),
-  readyState: WebSocket.CONNECTING,
+  readyState: 0, // CONNECTING
   onopen: null,
   onmessage: null,
   onclose: null,
@@ -18,8 +28,15 @@ const mockWebSocket = {
 describe('WebSocketManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.WebSocket = vi.fn().mockImplementation(() => mockWebSocket);
-    mockWebSocket.readyState = WebSocket.CONNECTING;
+    const mockConstructor = vi.fn().mockImplementation(() => mockWebSocket);
+    Object.assign(mockConstructor, {
+      CONNECTING: 0,
+      OPEN: 1,
+      CLOSING: 2,
+      CLOSED: 3,
+    });
+    global.WebSocket = mockConstructor as any;
+    mockWebSocket.readyState = 0; // CONNECTING
     mockWebSocket.onopen = null;
     mockWebSocket.onmessage = null;
     mockWebSocket.onclose = null;
@@ -36,7 +53,7 @@ describe('WebSocketManager', () => {
     expect(global.WebSocket).toHaveBeenCalled();
 
     // Simulate successful connection
-    mockWebSocket.readyState = WebSocket.OPEN;
+    mockWebSocket.readyState = 1; // OPEN
     if (mockWebSocket.onopen) {
       mockWebSocket.onopen({} as Event);
     }
@@ -52,7 +69,7 @@ describe('WebSocketManager', () => {
     webSocketService.connect('TEST123');
 
     // Simulate WebSocket events
-    mockWebSocket.readyState = WebSocket.OPEN;
+    mockWebSocket.readyState = 1; // OPEN
     if (mockWebSocket.onopen) {
       mockWebSocket.onopen({} as Event);
     }
@@ -68,7 +85,7 @@ describe('WebSocketManager', () => {
     webSocketService.connect('TEST123');
 
     // Simulate connection
-    mockWebSocket.readyState = WebSocket.OPEN;
+    mockWebSocket.readyState = 1; // OPEN
     if (mockWebSocket.onopen) {
       mockWebSocket.onopen({} as Event);
     }
@@ -97,7 +114,7 @@ describe('WebSocketManager', () => {
       mockWebSocket.onmessage({ data: 'invalid json' } as MessageEvent);
     }
 
-    expect(consoleSpy).toHaveBeenCalledWith('Failed to parse WebSocket message:', expect.any(Error));
+    expect(consoleSpy).toHaveBeenCalledWith('🔌 [CLIENT] Failed to parse WebSocket message:', expect.any(SyntaxError), 'invalid json');
     consoleSpy.mockRestore();
   });
 

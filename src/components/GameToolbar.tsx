@@ -21,6 +21,7 @@ export const GameToolbar: React.FC = () => {
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef<Position>({ x: 0, y: 0 });
   const initialTranslationRef = useRef<Position>({ x: 0, y: 0 });
+  const dragOffsetRef = useRef<Position>({ x: 0, y: 0 });
   
   const handleZoomIn = () => {
     const newZoom = Math.min(5.0, camera.zoom * 1.2);
@@ -46,40 +47,55 @@ export const GameToolbar: React.FC = () => {
       // Prevent text selection and default drag behavior
       e.preventDefault();
       e.stopPropagation();
-      
+
       isDraggingRef.current = true;
-      
-      // Get initial mouse position and translation
-      dragStartRef.current = { x: e.clientX, y: e.clientY };
-      initialTranslationRef.current = translation;
-      
+
+      // Get toolbar's current position including any existing transform
+      const toolbarRect = toolbar.getBoundingClientRect();
+
+      // Calculate relative position of mouse within the toolbar
+      // This is the offset from the toolbar's top-left corner to where the mouse clicked
+      dragOffsetRef.current = {
+        x: e.clientX - toolbarRect.left,
+        y: e.clientY - toolbarRect.top
+      };
+
       // Add dragging class for visual feedback
       toolbar.classList.add('dragging');
       document.body.style.cursor = 'grabbing';
       document.body.style.userSelect = 'none';
     };
     
-    const handleMouseMove = (e: { clientX: number; clientY: number; }) => {
+    const handleMouseMove = (e: MouseEvent) => {
       if (!isDraggingRef.current) return;
-      
-      // Calculate new position based on mouse movement
-      const deltaX = e.clientX - dragStartRef.current.x;
-      const deltaY = e.clientY - dragStartRef.current.y;
-      
-      const newX = initialTranslationRef.current.x + deltaX;
-      const newY = initialTranslationRef.current.y + deltaY;
-      
-      setTranslation({ x: newX, y: newY });
-      if (deltaX !== 0 || deltaY !== 0) {
-        setIsPositioned(true);
-      }
+
+      // Calculate where the toolbar should be positioned so the mouse stays
+      // at the same relative position within the toolbar as when dragging started
+      const newX = e.clientX - dragOffsetRef.current.x;
+      const newY = e.clientY - dragOffsetRef.current.y;
+
+      requestAnimationFrame(() => {
+        if (toolbarRef.current) {
+          toolbarRef.current.style.setProperty('--tw-translate-x', `${newX}px`);
+          toolbarRef.current.style.setProperty('--tw-translate-y', `${newY}px`);
+        }
+      });
     };
     
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
       if (!isDraggingRef.current) return;
-      
       isDraggingRef.current = false;
-      toolbar.classList.remove('dragging');
+
+      // Calculate final position using the same logic as mouse move
+      const newX = e.clientX - dragOffsetRef.current.x;
+      const newY = e.clientY - dragOffsetRef.current.y;
+
+      setTranslation({ x: newX, y: newY });
+      setIsPositioned(true);
+
+      if (toolbar) {
+        toolbar.classList.remove('dragging');
+      }
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
@@ -99,7 +115,7 @@ export const GameToolbar: React.FC = () => {
     
     // Add global event listeners for move and up
     const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMove(e);
-    const handleGlobalMouseUp = () => handleMouseUp();
+    const handleGlobalMouseUp = (e: MouseEvent) => handleMouseUp(e);
     
     document.addEventListener('mousemove', handleGlobalMouseMove);
     document.addEventListener('mouseup', handleGlobalMouseUp);
@@ -121,8 +137,11 @@ export const GameToolbar: React.FC = () => {
       }));
     };
     
-    const handleTouchEnd = () => {
-      handleMouseUp();
+    const handleTouchEnd = (e: TouchEvent) => {
+      handleMouseUp(new MouseEvent('mouseup', {
+        clientX: e.changedTouches[0].clientX,
+        clientY: e.changedTouches[0].clientY
+      }));
     };
     
     dragHandle.addEventListener('touchstart', handleTouchStart, { passive: false });

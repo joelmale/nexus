@@ -8,6 +8,7 @@ vi.mock('@/services/drawingPersistence', () => ({
     saveScene: vi.fn(() => Promise.resolve()),
     loadAllScenes: vi.fn(() => Promise.resolve([])),
     loadDrawings: vi.fn(() => Promise.resolve([])),
+    deleteScene: vi.fn(() => Promise.resolve()),
   },
 }));
 
@@ -109,7 +110,7 @@ describe('gameStore', () => {
     it('should handle user/join event', () => {
       const session = { roomCode: 'ABCD', hostId: '1', players: [], status: 'connected' as const };
       useGameStore.getState().setSession(session);
-      const newUser = { id: '2', name: 'New User', type: 'player' as const, color: 'red', connected: true };
+      const newUser = { id: '2', name: 'New User', type: 'player' as const, color: 'red', connected: true, canEditScenes: false };
       useGameStore.getState().applyEvent({ type: 'user/join', data: { user: newUser } });
       const state = useGameStore.getState();
       expect(state.session?.players).toHaveLength(1);

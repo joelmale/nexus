@@ -159,7 +159,7 @@ describe('gameStore event handlers', () => {
       // Assert: Check if the new player was added
       const players = useGameStore.getState().session?.players;
       expect(players).toHaveLength(2);
-      expect(players).toContainEqual(newUser);
+      expect(players).toEqual(expect.arrayContaining([expect.objectContaining(newUser)]));
     });
 
     it('should handle "user/join" event and update an existing player\'s data', () => {

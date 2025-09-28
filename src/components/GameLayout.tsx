@@ -8,7 +8,7 @@ import { PlayerBar } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
 import { Lobby } from './Lobby';
 import { WelcomePage } from './WelcomePage';
-import { CharacterCreation } from './CharacterCreation';
+import { CharacterCreationWizard } from './CharacterCreationWizard';
 import { OfflinePreparation } from './OfflinePreparation';
 import { applyColorScheme } from '@/utils/colorSchemes';
 
@@ -158,7 +158,20 @@ export const GameLayout: React.FC = () => {
 
   // Handle character creation for players who just selected their role
   if (user.type === 'player' && mode === 'offline' && phase === 'preparation') {
-    return <CharacterCreation />;
+    return (
+      <CharacterCreationWizard
+        playerId={user.id || 'offline-player'}
+        isModal={false}
+        onComplete={(characterId) => {
+          console.log('Character created in GameLayout:', characterId);
+          // TODO: Handle character creation completion for offline mode
+        }}
+        onCancel={() => {
+          console.log('Character creation cancelled in GameLayout');
+          // TODO: Handle character creation cancellation for offline mode
+        }}
+      />
+    );
   }
 
   // Handle DM preparation mode
@@ -194,12 +207,9 @@ export const GameLayout: React.FC = () => {
   }
 
   return (
-    <div 
-      className="game-layout" 
+    <div
+      className="game-layout"
       data-panel-expanded={panelExpanded}
-      style={{
-        '--sidebar-width': `${panelExpanded ? sidebarWidth : 60}px`
-      } as React.CSSProperties}
     >
       {/* Panel Tabs Header - No Scene Tabs */}
       <div className="layout-header">
@@ -264,13 +274,10 @@ export const GameLayout: React.FC = () => {
       </div>
 
       {/* Resizable Context Panel */}
-      <div 
+      <div
         ref={sidebarRef}
         className={`layout-panel`}
         data-expanded={panelExpanded}
-        style={{
-          width: panelExpanded ? sidebarWidth : 60,
-        }}
       >
         {/* Resize Handle */}
         <div 

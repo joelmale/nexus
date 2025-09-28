@@ -417,34 +417,69 @@ export const useCharacterStore = create<CharacterStore>()(
     }),
 
     completeCharacterCreation: () => {
-      const state = get();
-      if (state.creationState && state.creationState.character) {
-        const character = state.creationState.character as Character;
-        character.id = character.id || crypto.randomUUID();
-        character.createdAt = Date.now();
-        character.updatedAt = Date.now();
+      // Get the current state
+      const { creationState, characters } = get();
 
-        // Initialize skills if not set
-        if (!character.skills || character.skills.length === 0) {
-          character.skills = STANDARD_SKILLS.map(skill => ({
-            ...skill,
-            proficient: false,
-            expertise: false,
-            modifier: character.abilities![skill.ability].modifier,
-          }));
-        }
+      if (creationState && creationState.character) {
+        // This is the original, "frozen" character object from the state
+        const baseCharacter = creationState.character as Character;
 
-        set((state) => {
-          state.characters.push(character);
-          state.creationState = null;
-          state.activeCharacterId = character.id;
+        // Prepare the final skills array. If the base character has no skills,
+        // create the default list. Otherwise, use the existing one.
+        const finalSkills =
+          (!baseCharacter.skills || baseCharacter.skills.length === 0)
+            ? STANDARD_SKILLS.map(skill => ({
+                ...skill,
+                proficient: false,
+                expertise: false,
+                modifier: baseCharacter.abilities![skill.ability].modifier,
+              }))
+            : baseCharacter.skills;
+
+        // Assemble a completely NEW character object with all the final properties
+        const completedCharacter = {
+          ...baseCharacter, // Copy all original properties
+          id: baseCharacter.id || crypto.randomUUID(), // Add or overwrite properties
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          skills: finalSkills, // Add the prepared skills array
+        };
+
+        // Update the state using the new, non-frozen object
+        set({
+          // Create a new array instead of mutating the old one with .push()
+          characters: [...characters, completedCharacter],
+          creationState: null,
+          activeCharacterId: completedCharacter.id,
         });
 
-        // Recalculate stats
-        get().recalculateStats(character.id);
+        // Recalculate stats using the new character's ID
+        get().recalculateStats(completedCharacter.id);
 
-        return character.id;
+        // Save to IndexedDB
+        try {
+          const { getLinearFlowStorage } = require('@/services/linearFlowStorage');
+          const storage = getLinearFlowStorage();
+
+          // Convert character to the format expected by the storage system
+          const characterForStorage = {
+            ...completedCharacter,
+            type: 'player',
+            browserId: storage['getBrowserId'](), // Access private method
+          };
+
+          storage.saveCharacter(characterForStorage);
+          console.log('💾 Character saved to IndexedDB:', completedCharacter.name);
+        } catch (error) {
+          console.error('❌ Failed to save character to IndexedDB:', error);
+          // Continue anyway - character is still in memory
+        }
+
+        // Return the new character's ID
+        return completedCharacter.id;
       }
+
+      // Return null if no character was in the creation state
       return null;
     },
 

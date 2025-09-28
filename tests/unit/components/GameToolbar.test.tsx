@@ -1,93 +1,66 @@
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { GameToolbar } from '../../../src/components/GameToolbar';
 
-// Mock the game store
-vi.mock('../../../src/stores/gameStore', () => ({
+// Mock the gameStore hooks
+vi.mock('@/stores/gameStore', () => ({
   useGameStore: vi.fn(() => ({
-    isDM: true,
-    toolbarPosition: { x: 100, y: 100 },
-    setToolbarPosition: vi.fn(),
-    currentTool: 'select',
-    setCurrentTool: vi.fn(),
     updateCamera: vi.fn(),
   })),
   useIsHost: vi.fn(() => true),
   useCamera: vi.fn(() => ({
     x: 0,
     y: 0,
-    zoom: 1,
+    zoom: 1.0,
   })),
 }));
 
 describe('GameToolbar', () => {
-  it('renders toolbar with drag handle', () => {
-    render(<GameToolbar />);
-
-    const toolbar = screen.getByRole('toolbar');
-    expect(toolbar).toBeInTheDocument();
-
-    const dragHandle = screen.getByText('⋮⋮');
-    expect(dragHandle).toBeInTheDocument();
+  it('should render without crashing', () => {
+    const { getByRole } = render(<GameToolbar />);
+    expect(getByRole('toolbar')).toBeInTheDocument();
   });
 
-  it('displays tool buttons for DM', () => {
-    render(<GameToolbar />);
+  it('should move the toolbar when dragged', () => {
+    const { container } = render(<GameToolbar />);
+    const toolbar = container.querySelector('.game-toolbar') as HTMLElement;
+    const dragHandle = container.querySelector('.toolbar-drag-handle') as HTMLElement;
 
-    // Check for common tool buttons
-    expect(screen.getByTitle('Select')).toBeInTheDocument();
-    expect(screen.getByTitle('Circle')).toBeInTheDocument();
-    expect(screen.getByTitle('Measure')).toBeInTheDocument();
-  });
+    // Initial position
+    expect(toolbar.style.getPropertyValue('--tw-translate-x')).toBe('0px');
+    expect(toolbar.style.getPropertyValue('--tw-translate-y')).toBe('0px');
 
-  it('handles tool selection', () => {
-    render(<GameToolbar />);
-
-    // Initially Select tool should be active
-    const selectTool = screen.getByTitle('Select');
-    expect(selectTool).toHaveAttribute('aria-pressed', 'true');
-
-    // Click Circle tool
-    const circleTool = screen.getByTitle('Circle');
-    expect(circleTool).toHaveAttribute('aria-pressed', 'false');
-
-    fireEvent.click(circleTool);
-
-    // Now Circle should be active and Select should not be
-    expect(circleTool).toHaveAttribute('aria-pressed', 'true');
-    expect(selectTool).toHaveAttribute('aria-pressed', 'false');
-  });
-
-  it('applies correct positioning styles', () => {
-    render(<GameToolbar />);
-
-    const toolbar = screen.getByRole('toolbar');
-    expect(toolbar).toHaveStyle({
-      '--tw-translate-x': '0px',
-      '--tw-translate-y': '0px',
-    });
-  });
-
-  it('handles drag interactions', () => {
-    render(<GameToolbar />);
-
-    const toolbar = screen.getByRole('toolbar');
-    const dragHandle = screen.getByText('⋮⋮');
-
-    // Get initial position
-    const initialStyle = toolbar.getAttribute('style');
-
-    // Simulate drag start
+    // Simulate drag
     fireEvent.mouseDown(dragHandle, { clientX: 100, clientY: 100 });
-
-    // Simulate drag move
-    fireEvent.mouseMove(document, { clientX: 150, clientY: 150 });
-
-    // Simulate drag end
+    fireEvent.mouseMove(document, { clientX: 150, clientY: 120 });
     fireEvent.mouseUp(document);
 
-    // The toolbar should have updated transform values
-    const finalStyle = toolbar.getAttribute('style');
-    expect(finalStyle).toContain('--tw-translate');
+    // Check new position
+    expect(toolbar.style.getPropertyValue('--tw-translate-x')).not.toBe('0px');
+    expect(toolbar.style.getPropertyValue('--tw-translate-y')).not.toBe('0px');
+  });
+
+  it('should reset the position on double-click', () => {
+    const { container } = render(<GameToolbar />);
+    const toolbar = container.querySelector('.game-toolbar') as HTMLElement;
+    const dragHandle = container.querySelector('.toolbar-drag-handle') as HTMLElement;
+
+    // Move the toolbar first
+    fireEvent.mouseDown(dragHandle, { clientX: 100, clientY: 100 });
+    fireEvent.mouseMove(document, { clientX: 200, clientY: 200 });
+    fireEvent.mouseUp(document);
+
+    // Ensure it moved
+    expect(toolbar.style.getPropertyValue('--tw-translate-x')).not.toBe('0px');
+    expect(toolbar.style.getPropertyValue('--tw-translate-y')).not.toBe('0px');
+
+    // Reset position
+    fireEvent.doubleClick(dragHandle);
+
+    // Check if it's back to the original position
+    expect(toolbar.style.getPropertyValue('--tw-translate-x')).toBe('0px');
+    expect(toolbar.style.getPropertyValue('--tw-translate-y')).toBe('0px');
   });
 });

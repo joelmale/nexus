@@ -10,8 +10,29 @@
 
 import React, { useState, useRef } from 'react';
 import { useAppFlowStore } from '@/stores/appFlowStore';
-import { CharacterCreation } from './CharacterCreation';
+import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
+import { useCharacters } from '@/stores/characterStore';
 import type { PlayerCharacter } from '@/types/appFlow';
+import type { Character } from '@/types/character';
+
+// Convert between Character (new system) and PlayerCharacter (old system)
+const convertToPlayerCharacter = (character: Character): Omit<PlayerCharacter, 'id' | 'createdAt' | 'playerId'> => {
+  return {
+    name: character.name,
+    race: character.race?.name || '',
+    class: character.classes?.[0]?.name || '',
+    background: character.background?.name || '',
+    level: character.level,
+    stats: {
+      strength: character.abilities?.strength?.score || 10,
+      dexterity: character.abilities?.dexterity?.score || 10,
+      constitution: character.abilities?.constitution?.score || 10,
+      intelligence: character.abilities?.intelligence?.score || 10,
+      wisdom: character.abilities?.wisdom?.score || 10,
+      charisma: character.abilities?.charisma?.score || 10,
+    }
+  };
+};
 
 export const PlayerSetupPage: React.FC = () => {
   const {
@@ -26,15 +47,17 @@ export const PlayerSetupPage: React.FC = () => {
     resetToWelcome
   } = useAppFlowStore();
 
+  const { characters: newCharacters } = useCharacters();
+  const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
+
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [roomCode, setRoomCode] = useState('');
-  const [showCharacterCreation, setShowCharacterCreation] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const characters = getSavedCharacters();
-  const selectedCharacter = characters.find(c => c.id === selectedCharacterId);
+  const savedCharacters = getSavedCharacters();
+  const selectedCharacter = savedCharacters.find(c => c.id === selectedCharacterId);
 
   const handleJoinGame = async () => {
     if (!roomCode.trim() || roomCode.trim().length !== 4) {
@@ -95,32 +118,26 @@ export const PlayerSetupPage: React.FC = () => {
     reader.readAsText(file);
   };
 
-  const handleCharacterCreated = (newCharacter: Omit<PlayerCharacter, 'id' | 'createdAt' | 'playerId'>) => {
-    const character = createCharacter(newCharacter);
-    setSelectedCharacterId(character.id);
-    setShowCharacterCreation(false);
+  const handleCreateCharacter = () => {
+    if (user.id) {
+      startCharacterCreation(
+        user.id,
+        'fullpage',
+        (characterId) => {
+          // Convert the new character to old format and save to appFlow store
+          const newCharacter = newCharacters.find(c => c.id === characterId);
+          if (newCharacter) {
+            const playerCharacter = convertToPlayerCharacter(newCharacter);
+            const oldCharacter = createCharacter(playerCharacter);
+            setSelectedCharacterId(oldCharacter.id);
+          }
+        },
+        () => {
+          console.log('Character creation cancelled');
+        }
+      );
+    }
   };
-
-  if (showCharacterCreation) {
-    return (
-      <div className="player-setup">
-        <div className="setup-header">
-          <button
-            onClick={() => setShowCharacterCreation(false)}
-            className="back-button glass-button"
-            title="Back to Character Selection"
-          >
-            ←
-          </button>
-          <h1>Create New Character</h1>
-        </div>
-        <CharacterCreation
-          onCharacterCreated={handleCharacterCreated}
-          onCancel={() => setShowCharacterCreation(false)}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="player-setup">
@@ -159,14 +176,14 @@ export const PlayerSetupPage: React.FC = () => {
               <h2>🎭 Your Characters</h2>
               <div className="character-actions">
                 <button
-                  onClick={() => setShowCharacterCreation(true)}
+                  onClick={handleCreateCharacter}
                   className="glass-button secondary"
                 >
                   <span>➕</span>
                   Create New
                 </button>
 
-                {characters.length > 0 && (
+                {savedCharacters.length > 0 && (
                   <>
                     <button
                       onClick={handleExportCharacters}
@@ -197,13 +214,13 @@ export const PlayerSetupPage: React.FC = () => {
               </div>
             </div>
 
-            {characters.length === 0 ? (
+            {savedCharacters.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">🎭</div>
                 <h3>No Characters Yet</h3>
                 <p>Create your first character to begin your adventure!</p>
                 <button
-                  onClick={() => setShowCharacterCreation(true)}
+                  onClick={handleCreateCharacter}
                   className="glass-button primary"
                 >
                   <span>✨</span>
@@ -212,7 +229,7 @@ export const PlayerSetupPage: React.FC = () => {
               </div>
             ) : (
               <div className="character-grid">
-                {characters
+                {savedCharacters
                   .sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0))
                   .map(character => (
                     <div
@@ -314,7 +331,7 @@ export const PlayerSetupPage: React.FC = () => {
                 </div>
               )}
 
-              {!selectedCharacter && characters.length > 0 && (
+              {!selectedCharacter && savedCharacters.length > 0 && (
                 <div className="character-hint">
                   <p>💡 Select a character above to join with, or join without a character.</p>
                 </div>
@@ -323,6 +340,9 @@ export const PlayerSetupPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Character Creation Launcher */}
+      {LauncherComponent}
     </div>
   );
 };

@@ -1,17 +1,40 @@
 import type { Drawing } from '@/types/drawing';
 import type { Scene } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
+import { getLinearFlowStorage } from './linearFlowStorage';
 
 /**
  * Drawing persistence service that handles saving and loading drawings
- * from localStorage with future server synchronization support.
+ * Now using IndexedDB with automatic migration from localStorage.
  */
 class DrawingPersistenceService {
   private readonly STORAGE_PREFIX = 'nexus-drawings';
   private readonly SCENES_KEY = 'nexus-scenes';
-  
+  private storage = getLinearFlowStorage();
+  private migrationDone = false;
+
   /**
-   * Save drawings for a scene to localStorage
+   * Ensure migration is complete before any operations
+   */
+  private async ensureMigration(): Promise<void> {
+    if (this.migrationDone) return;
+
+    if (this.storage.needsDrawingMigration()) {
+      console.log('🔄 Auto-migrating drawing data from localStorage to IndexedDB...');
+      const result = await this.storage.migrateDrawingData();
+
+      if (result.errors.length > 0) {
+        console.warn('⚠️ Migration completed with some errors:', result.errors);
+      } else {
+        console.log('✅ Migration completed successfully:', result);
+      }
+    }
+
+    this.migrationDone = true;
+  }
+
+  /**
+   * Save drawings for a scene (now using IndexedDB)
    */
   saveDrawingsLocally(sceneId: string, drawings: Drawing[]): void {
     try {
@@ -102,31 +125,43 @@ class DrawingPersistenceService {
   }
 
   /**
-   * Save drawings using current approach (localStorage)
+   * Save drawings using IndexedDB (with auto-migration)
    */
   async saveDrawings(sceneId: string, drawings: Drawing[]): Promise<void> {
-    this.saveDrawingsLocally(sceneId, drawings);
+    await this.ensureMigration();
+    await this.storage.saveDrawings(sceneId, drawings);
   }
-  
+
   /**
-   * Load drawings using current approach (localStorage)
+   * Load drawings using IndexedDB (with auto-migration)
    */
   async loadDrawings(sceneId: string): Promise<Drawing[]> {
-    return this.loadDrawingsLocally(sceneId);
+    await this.ensureMigration();
+    return this.storage.getDrawings(sceneId);
   }
-  
+
   /**
-   * Save scene using current approach (localStorage)
+   * Save scene using IndexedDB (with auto-migration)
    */
   async saveScene(scene: Scene): Promise<void> {
-    this.saveSceneLocally(scene);
+    await this.ensureMigration();
+    await this.storage.saveScene(scene);
   }
-  
+
   /**
-   * Load all scenes using current approach (localStorage)
+   * Load all scenes using IndexedDB (with auto-migration)
    */
   async loadAllScenes(): Promise<Scene[]> {
-    return this.loadAllScenesLocally();
+    await this.ensureMigration();
+    return this.storage.getScenes();
+  }
+
+  /**
+   * Delete scene using IndexedDB (with auto-migration)
+   */
+  async deleteScene(sceneId: string): Promise<void> {
+    await this.ensureMigration();
+    this.storage.deleteScene(sceneId);
   }
 }
 

@@ -220,37 +220,5 @@
   font-size: 1.1rem;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .asset-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 1rem;
-  }
-  
-  .asset-thumbnail {
-    height: 120px;
-  }
-  
-  .asset-info {
-    padding: 0.75rem;
-  }
-  
-  .asset-controls {
-    flex-direction: column;
-  }
-  
-  .asset-search,
-  .category-filter {
-    min-width: auto;
-  }
-}
+/* Desktop/Tablet optimized asset browser - Mobile responsive design removed per requirements */
 
-@media (max-width: 480px) {
-  .asset-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  }
-  
-  .asset-browser {
-    padding: 1rem;
-  }
-}

@@ -31,6 +31,19 @@ export const Layout: React.FC = () => {
       });
     }
 
+    // Sync scenes from entity store to gameStore for UI
+    // Wait a bit for entity store to finish loading
+    setTimeout(async () => {
+      try {
+        const syncResult = await storage.syncScenesWithGameStore();
+        if (syncResult.synced > 0) {
+          console.log('🔄 Auto-synced scenes to UI on app load:', syncResult);
+        }
+      } catch (error) {
+        console.warn('Failed to auto-sync scenes:', error);
+      }
+    }, 1000); // 1 second delay to ensure entity store is ready
+
     // Always sync user data to gameStore on mount if we have user data
     if (user.name && user.type) {
       const gameStore = useGameStore.getState();

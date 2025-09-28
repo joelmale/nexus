@@ -1,0 +1,468 @@
+/* =============================================================================
+   UNIFIED TOOLBAR SYSTEM - Scene Canvas Toolbar
+   ============================================================================= */
+
+/* Toolbar CSS Custom Properties for different modes */
+:root {
+  /* Default (Normal) Toolbar Mode */
+  --toolbar-padding: 8px;
+  --toolbar-border-radius: 12px;
+  --toolbar-min-width: 200px;
+  --toolbar-section-gap: 12px;
+  --toolbar-button-gap: 4px;
+  --toolbar-button-padding: 8px 12px;
+  --toolbar-button-border-radius: 8px;
+  --toolbar-button-font-size: 13px;
+  --toolbar-icon-size: 16px;
+  --toolbar-icon-width: 20px;
+  --toolbar-label-font-size: 13px;
+  --toolbar-section-label-font-size: 11px;
+  --toolbar-section-label-spacing: 0.5px;
+  --toolbar-section-label-margin: 6px;
+}
+
+/* Compact Toolbar Mode */
+.scene-canvas-toolbar.compact {
+  --toolbar-padding: 3px;
+  --toolbar-border-radius: 6px;
+  --toolbar-min-width: 140px;
+  --toolbar-section-gap: 6px;
+  --toolbar-button-gap: 2px;
+  --toolbar-button-padding: 4px 6px;
+  --toolbar-button-border-radius: 4px;
+  --toolbar-button-font-size: 11px;
+  --toolbar-icon-size: 14px;
+  --toolbar-icon-width: 16px;
+  --toolbar-label-font-size: 10px;
+  --toolbar-section-label-font-size: 9px;
+  --toolbar-section-label-spacing: 0.3px;
+  --toolbar-section-label-margin: 3px;
+}
+
+/* Desktop/Tablet optimized toolbar - No mobile mode */
+
+/* =============================================================================
+   MAIN TOOLBAR CONTAINER
+   ============================================================================= */
+
+.scene-canvas-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--surface-primary);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--toolbar-border-radius);
+  padding: var(--toolbar-padding);
+  box-shadow: var(--shadow-glass-lg);
+  z-index: var(--z-toolbar);
+  max-height: calc(100vh - 40px);
+  max-width: calc(100vw - 20px);
+  overflow-y: auto;
+  min-width: var(--toolbar-min-width);
+  animation: slideIn var(--duration-300) ease-out;
+  transition: all var(--transition-base);
+}
+
+/* =============================================================================
+   TOOLBAR SECTIONS
+   ============================================================================= */
+
+.toolbar-section {
+  margin-bottom: var(--toolbar-section-gap);
+}
+
+.toolbar-section:last-child {
+  margin-bottom: 0;
+}
+
+.toolbar-section-label {
+  font-size: var(--toolbar-section-label-font-size);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--toolbar-section-label-spacing);
+  margin-bottom: var(--toolbar-section-label-margin);
+  padding-left: var(--spacing-1);
+}
+
+.toolbar-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--toolbar-button-gap);
+  border-radius: var(--toolbar-button-border-radius);
+  overflow: hidden;
+}
+
+/* =============================================================================
+   TOOLBAR BUTTONS
+   ============================================================================= */
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--toolbar-button-padding);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--toolbar-button-border-radius);
+  color: var(--text-primary);
+  font-size: var(--toolbar-button-font-size);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  width: 100%;
+  position: relative;
+  user-select: none;
+}
+
+.toolbar-btn:hover:not(.disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbar-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  box-shadow:
+    0 0 8px rgba(var(--color-primary-rgb), 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+.toolbar-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-btn.disabled:hover {
+  background: transparent;
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+/* DM-only indicator */
+.toolbar-btn.dm-only::before {
+  content: '👑';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  font-size: var(--text-xs);
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-1);
+  z-index: 1;
+}
+
+/* =============================================================================
+   TOOLBAR ICONS AND LABELS
+   ============================================================================= */
+
+.tool-icon {
+  font-size: var(--toolbar-icon-size);
+  width: var(--toolbar-icon-width);
+  text-align: center;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tool-label {
+  font-weight: var(--font-medium);
+  font-size: var(--toolbar-label-font-size);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* =============================================================================
+   STYLE PANEL
+   ============================================================================= */
+
+.style-panel {
+  position: absolute;
+  top: 0;
+  left: calc(100% + var(--spacing-2));
+  background: var(--surface-primary);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-4);
+  box-shadow: var(--shadow-glass-lg);
+  min-width: 200px;
+  z-index: calc(var(--z-toolbar) + 1);
+  animation: slideIn var(--duration-300) ease-out;
+}
+
+.style-section {
+  margin-bottom: var(--spacing-4);
+}
+
+.style-section:last-child {
+  margin-bottom: 0;
+}
+
+.style-section h4 {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-3) 0;
+}
+
+.style-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.style-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+}
+
+.style-controls input,
+.style-controls select {
+  padding: var(--spacing-2);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  transition: border-color var(--transition-fast);
+}
+
+.style-controls input:focus,
+.style-controls select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+/* Color input styling */
+.style-controls input[type="color"] {
+  width: 40px;
+  height: 32px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+/* Range input styling */
+.style-controls input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--surface-secondary);
+  border-radius: 3px;
+  outline: none;
+}
+
+.style-controls input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.style-controls input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+/* =============================================================================
+   DM PANEL
+   ============================================================================= */
+
+.dm-panel {
+  position: absolute;
+  top: 0;
+  left: calc(100% + var(--spacing-2));
+  background: var(--surface-primary);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-4);
+  box-shadow: var(--shadow-glass-lg);
+  min-width: 180px;
+  z-index: calc(var(--z-toolbar) + 1);
+  animation: slideIn var(--duration-300) ease-out;
+}
+
+.dm-section {
+  margin-bottom: var(--spacing-4);
+}
+
+.dm-section:last-child {
+  margin-bottom: 0;
+}
+
+.dm-section h4 {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-3) 0;
+}
+
+.dm-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.dm-controls label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.dm-controls input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+}
+
+/* Quick action buttons */
+.dm-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-3);
+}
+
+.btn.btn-small {
+  padding: var(--spacing-1) var(--spacing-3);
+  font-size: var(--text-xs);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-primary);
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-weight: var(--font-medium);
+}
+
+.btn.btn-small:hover {
+  background: var(--surface-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn.btn-danger {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.btn.btn-danger:hover {
+  background: var(--color-error);
+  color: white;
+}
+
+/* =============================================================================
+   DICE ROLLER GRID
+   ============================================================================= */
+
+.dice-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-1);
+}
+
+.dice-buttons-grid .toolbar-btn {
+  min-width: 0;
+  justify-content: center;
+  aspect-ratio: 1;
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================= */
+
+
+/* =============================================================================
+   ANIMATIONS
+   ============================================================================= */
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =============================================================================
+   ACCESSIBILITY
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-canvas-toolbar,
+  .style-panel,
+  .dm-panel,
+  .toolbar-btn {
+    animation: none;
+    transition: none;
+  }
+
+  .toolbar-btn:hover:not(.disabled) {
+    transform: none;
+  }
+
+  .btn.btn-small:hover {
+    transform: none;
+  }
+}
+
+/* Focus styles */
+.toolbar-btn:focus-visible,
+.btn.btn-small:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   THEME OVERRIDES
+   ============================================================================= */
+
+.solid-theme .scene-canvas-toolbar,
+.solid-theme .style-panel,
+.solid-theme .dm-panel {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--surface-primary);
+  box-shadow: var(--shadow-default);
+}
+
+.solid-theme .toolbar-btn:hover:not(.disabled) {
+  background: var(--surface-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.solid-theme .style-controls input,
+.solid-theme .style-controls select {
+  background: var(--surface-secondary);
+}

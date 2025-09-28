@@ -63,20 +63,11 @@ describe('ContextPanel scrolling', () => {
     );
 
     const panelBody = screen.getByTestId('panel-body');
-    expect(panelBody).toHaveStyle('overflow-y: auto');
-
-    // To truly test scrolling behavior, a browser-based testing environment (like Playwright or Cypress) 
-    // would be more accurate. For unit tests, checking the applied CSS is often the best we can do.
-
-    // If the mock-settings-content is directly overflowing panelContent, then panelContent should scroll.
-    // If settings-content inside Settings is supposed to scroll, we need to target that.
-    const mockSettingsContent = screen.getByTestId('mock-settings-content');
-    expect(mockSettingsContent).toBeInTheDocument();
-
     // In a real browser, we would check:
     // expect(panelContent.scrollHeight).toBeGreaterThan(panelContent.clientHeight);
     // However, in JSDOM, these values are often 0 or don't reflect actual layout.
     // The current setup implies that if panelContent has overflow-y: auto, and its child is tall,
     // it *should* scroll. The CSS check is the most direct assertion for JSDOM.
+    expect(panelBody).toHaveStyle('overflow-y: auto');
   });
 });

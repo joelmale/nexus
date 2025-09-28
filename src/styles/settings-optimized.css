@@ -1,0 +1,742 @@
+/* =============================================================================
+   OPTIMIZED SETTINGS COMPONENT - Using Design Tokens
+   ============================================================================= */
+
+/* =============================================================================
+   CONTAINER AND LAYOUT
+   ============================================================================= */
+
+.settings-container {
+  max-width: 900px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-8);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.settings-header h2 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.settings-actions {
+  display: flex;
+  gap: var(--spacing-4);
+  align-items: center;
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* =============================================================================
+   SETTINGS SECTIONS
+   ============================================================================= */
+
+.settings-section {
+  background: var(--surface-primary);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-6);
+  box-shadow: var(--shadow-glass);
+  animation: glassAppear var(--duration-600) ease-out;
+}
+
+.settings-section-header {
+  margin-bottom: var(--spacing-2);
+  border-bottom: 1px solid var(--border-primary);
+  padding-bottom: var(--spacing-2);
+}
+
+.settings-section-header h3 {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-2) 0;
+}
+
+.settings-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: var(--leading-relaxed);
+}
+
+.settings-section-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+/* =============================================================================
+   SETTING ITEMS
+   ============================================================================= */
+
+.setting-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--spacing-8);
+  padding: var(--spacing-4) 0;
+}
+
+.setting-item:not(:last-child) {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.setting-label {
+  min-width: 0;
+  flex: 1;
+}
+
+.setting-name {
+  display: block;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-1);
+}
+
+.setting-desc {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-normal);
+}
+
+.setting-control {
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+/* =============================================================================
+   FORM CONTROLS
+   ============================================================================= */
+
+.setting-select,
+.setting-input {
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--surface-secondary);
+  backdrop-filter: var(--glass-blur-subtle);
+  -webkit-backdrop-filter: var(--glass-blur-subtle);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  transition: all var(--transition-base);
+}
+
+.setting-select:focus,
+.setting-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+  background: var(--surface-hover);
+}
+
+.setting-input[type="number"] {
+  text-align: center;
+}
+
+/* =============================================================================
+   TOGGLE SWITCHES
+   ============================================================================= */
+
+.setting-toggle {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.setting-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-primary);
+  transition: all var(--duration-400);
+  border-radius: 34px;
+  backdrop-filter: var(--glass-blur-subtle);
+  -webkit-backdrop-filter: var(--glass-blur-subtle);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  transition: all var(--duration-400);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+}
+
+input:checked + .toggle-slider {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  border-color: var(--color-primary);
+}
+
+input:focus + .toggle-slider {
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+input:disabled + .toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =============================================================================
+   VOLUME CONTROL
+   ============================================================================= */
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.volume-slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-primary);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid white;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.volume-slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid white;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.volume-slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.volume-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  min-width: 40px;
+  text-align: center;
+}
+
+/* =============================================================================
+   COLOR SCHEME PICKER
+   ============================================================================= */
+
+.color-scheme-picker-modern {
+  width: 100%;
+  min-width: 300px;
+}
+
+.current-palette {
+  margin-bottom: var(--spacing-6);
+}
+
+.palette-swatches {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-2);
+  margin: 0 auto var(--spacing-4);
+}
+
+.color-swatch-modern {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.swatch-color {
+  width: 48px;
+  height: 32px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.swatch-color:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.color-code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.palette-name {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  text-align: center;
+}
+
+/* =============================================================================
+   DROPDOWN SELECTOR
+   ============================================================================= */
+
+.scheme-selector {
+  position: relative;
+}
+
+.dropdown-container {
+  position: relative;
+  width: 100%;
+}
+
+.dropdown-trigger {
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--surface-secondary);
+  backdrop-filter: var(--glass-blur-subtle);
+  -webkit-backdrop-filter: var(--glass-blur-subtle);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dropdown-trigger:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-secondary);
+}
+
+.dropdown-trigger:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+.dropdown-arrow {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  transition: transform var(--transition-base);
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: var(--spacing-2);
+  background: var(--surface-primary);
+  backdrop-filter: var(--glass-blur-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-glass-xl);
+  z-index: var(--z-dropdown);
+  max-height: 400px;
+  overflow-y: auto;
+  animation: dropdownAppear var(--duration-200) ease-out;
+}
+
+@keyframes dropdownAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-section {
+  padding: var(--spacing-4) 0;
+}
+
+.dropdown-section:not(:last-child) {
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.section-title {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 var(--spacing-4) var(--spacing-3) var(--spacing-4);
+  margin-bottom: var(--spacing-2);
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: var(--surface-hover);
+}
+
+.dropdown-item.active {
+  background: var(--surface-secondary);
+  border-left: 3px solid var(--color-primary);
+  padding-left: calc(var(--spacing-4) - 3px);
+}
+
+.mini-palette {
+  display: flex;
+  gap: var(--spacing-1);
+  flex-shrink: 0;
+}
+
+.mini-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid var(--border-subtle);
+}
+
+.scheme-label {
+  flex: 1;
+  font-weight: var(--font-medium);
+}
+
+.generate-random {
+  color: var(--color-primary);
+  font-weight: var(--font-semibold);
+}
+
+.generate-random:hover {
+  background: rgba(var(--color-primary-rgb), 0.1);
+}
+
+/* =============================================================================
+   CAMPAIGN BACKUP SECTION
+   ============================================================================= */
+
+.backup-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  background: var(--surface-subtle);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-subtle);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.stat-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+}
+
+.stat-value {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+}
+
+.stat-value.dirty {
+  color: var(--color-warning);
+}
+
+.stat-value.clean {
+  color: var(--color-success);
+}
+
+/* =============================================================================
+   BUTTONS
+   ============================================================================= */
+
+.setting-button {
+  padding: var(--spacing-3) var(--spacing-6);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 140px;
+  justify-content: center;
+}
+
+.setting-button.primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.setting-button.primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.setting-button.secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+}
+
+.setting-button.secondary:hover {
+  background: var(--surface-hover);
+}
+
+.setting-button.tertiary {
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.setting-button.tertiary:hover {
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+}
+
+.setting-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin var(--duration-1000) linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes glassAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =============================================================================
+   TAB NAVIGATION
+   ============================================================================= */
+
+.tab-nav button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-5);
+}
+
+.tab-nav button svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+  transition: all var(--transition-base);
+}
+
+.tab-nav button:hover svg,
+.tab-nav button.active svg {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+/* =============================================================================
+   SPECIAL LAYOUTS
+   ============================================================================= */
+
+.setting-item:has(.color-scheme-picker-modern) {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-4);
+}
+
+.setting-item:has(.color-scheme-picker-modern) .setting-label {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--spacing-4);
+}
+
+/* =============================================================================
+   SCROLLBAR STYLING
+   ============================================================================= */
+
+.dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+  background: var(--surface-secondary);
+  border-radius: 3px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 3px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--border-secondary);
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================= */
+
+/* Desktop/Tablet optimized design - Mobile responsive design removed per requirements */
+
+
+/* =============================================================================
+   ACCESSIBILITY
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-section,
+  .dropdown-menu,
+  .toggle-slider,
+  .volume-slider::-webkit-slider-thumb,
+  .swatch-color,
+  .setting-button {
+    animation: none;
+    transition: none;
+  }
+
+  .swatch-color:hover,
+  .setting-button:hover {
+    transform: none;
+  }
+
+  .tab-nav button:hover svg,
+  .tab-nav button.active svg {
+    transform: none;
+  }
+}
+
+/* Focus styles */
+.setting-toggle:focus-within .toggle-slider,
+.setting-button:focus-visible,
+.dropdown-trigger:focus-visible,
+.dropdown-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   THEME OVERRIDES
+   ============================================================================= */
+
+.solid-theme .settings-section,
+.solid-theme .dropdown-menu {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--surface-primary);
+  box-shadow: var(--shadow-default);
+}
+
+.solid-theme .setting-select,
+.solid-theme .setting-input,
+.solid-theme .dropdown-trigger {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--surface-secondary);
+}
+
+.solid-theme .toggle-slider {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}

@@ -1,7 +1,7 @@
 // Core game state types
 import type { Drawing } from './drawing';
-import type { PlacedToken } from './token';
-export type { PlacedToken };
+import type { PlacedToken, Token } from './token';
+export type { PlacedToken, Token, Drawing };
 
 export interface User {
   id: string;

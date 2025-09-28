@@ -18,6 +18,16 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   const camera = useCamera();
   const followDM = useFollowDM();
   const isHost = useIsHost();
+
+  // Safe access to scene properties with defaults
+  const safeGridSettings = scene.gridSettings || {
+    enabled: true,
+    size: 50,
+    color: '#ffffff',
+    opacity: 0.3,
+    snapToGrid: true,
+    showToPlayers: true
+  };
   const svgRef = useRef<SVGSVGElement>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
@@ -195,16 +205,16 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
             {/* Define patterns and gradients here */}
             <pattern
               id={`grid-${scene.id}`}
-              width={scene.gridSettings.size}
-              height={scene.gridSettings.size}
+              width={safeGridSettings.size}
+              height={safeGridSettings.size}
               patternUnits="userSpaceOnUse"
             >
               <path
-                d={`M ${scene.gridSettings.size} 0 L 0 0 0 ${scene.gridSettings.size}`}
+                d={`M ${safeGridSettings.size} 0 L 0 0 0 ${safeGridSettings.size}`}
                 fill="none"
-                stroke={scene.gridSettings.color}
+                stroke={safeGridSettings.color}
                 strokeWidth="1"
-                opacity={scene.gridSettings.opacity}
+                opacity={safeGridSettings.opacity}
               />
             </pattern>
           </defs>
@@ -219,7 +229,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
             )}
 
             {/* Grid layer */}
-            {scene.gridSettings.enabled && (
+            {safeGridSettings.enabled && (
               <SceneGrid 
                 scene={scene}
                 viewportSize={viewportSize}
@@ -239,7 +249,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
               activeTool={activeTool}
               drawingStyle={drawingStyle}
               camera={camera}
-              _gridSize={scene.gridSettings.size}
+              _gridSize={safeGridSettings.size}
               svgRef={svgRef}
               onSelectionChange={handleSelectionChange}
             />

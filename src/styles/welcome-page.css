@@ -309,57 +309,5 @@
   font-size: 1.2rem;
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
-  .welcome-content {
-    padding: 1rem;
-  }
+/* Desktop/Tablet optimized welcome page - Mobile responsive design removed per requirements */
 
-  .welcome-panel {
-    padding: 2rem;
-    max-width: 400px;
-  }
-
-  .brand-title {
-    font-size: 2rem;
-  }
-
-  .logo-icon {
-    font-size: 3rem;
-  }
-
-  .role-cards {
-    flex-direction: column;
-  }
-
-  .role-card {
-    padding: 1.25rem;
-  }
-
-  .begin-adventure-btn {
-    padding: 1rem 1.5rem;
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .welcome-panel {
-    padding: 1.5rem;
-  }
-
-  .brand-title {
-    font-size: 1.75rem;
-  }
-
-  .role-icon {
-    font-size: 2rem;
-  }
-
-  .role-info h3 {
-    font-size: 1.1rem;
-  }
-
-  .role-info p {
-    font-size: 0.85rem;
-  }
-}

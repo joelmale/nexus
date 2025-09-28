@@ -8,8 +8,16 @@ interface SceneGridProps {
 }
 
 export const SceneGrid: React.FC<SceneGridProps> = ({ scene, viewportSize, camera }) => {
-  const { gridSettings } = scene;
-  
+  // Safe access to scene properties with defaults
+  const gridSettings = scene.gridSettings || {
+    enabled: true,
+    size: 50,
+    color: '#ffffff',
+    opacity: 0.3,
+    snapToGrid: true,
+    showToPlayers: true
+  };
+
   if (!gridSettings.enabled) return null;
 
   // Calculate the grid bounds based on camera position and zoom

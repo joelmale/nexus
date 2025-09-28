@@ -145,12 +145,19 @@
 /* Add Entry */
 .add-entry {
   display: flex;
+  flex-direction: column;
   gap: 0.5rem;
   flex-shrink: 0;
   padding: 0.5rem;
   background: var(--glass-surface);
   border-radius: var(--border-radius);
   border: 1px solid var(--glass-border);
+}
+
+.add-entry-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .add-entry .name-input {
@@ -171,8 +178,13 @@
   color: var(--glass-text);
 }
 
+.add-entry .type-select {
+  flex: 1;
+}
+
 .add-entry .initiative-input {
-  width: 60px;
+  width: 70px;
+  flex-shrink: 0;
 }
 
 .add-btn {
@@ -617,42 +629,4 @@
   font-size: 1.1rem;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .initiative-tracker {
-    padding: 0.5rem;
-  }
-
-  .initiative-header {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: stretch;
-  }
-
-  .combat-controls {
-    justify-content: center;
-  }
-
-  .initiative-settings {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .add-entry {
-    flex-wrap: wrap;
-  }
-
-  .add-entry .name-input {
-    min-width: 0;
-    flex: 1 1 100%;
-  }
-
-  .hp-controls {
-    flex-direction: column;
-  }
-
-  .death-saves {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-}
+/* Desktop/Tablet optimized initiative tracker - Mobile responsive design removed per requirements */

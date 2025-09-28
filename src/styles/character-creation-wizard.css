@@ -1,0 +1,566 @@
+/* Character Creation Wizard Styles */
+
+/* =============================================================================
+   WIZARD CONTAINER LAYOUTS
+   ============================================================================= */
+
+.character-creation-wizard {
+  --wizard-primary: var(--primary-color, #3b82f6);
+  --wizard-secondary: var(--secondary-color, #64748b);
+  --wizard-success: var(--success-color, #10b981);
+  --wizard-background: var(--background-color, #1e293b);
+  --wizard-surface: var(--surface-color, #334155);
+  --wizard-text: var(--text-color, #f1f5f9);
+  --wizard-text-secondary: var(--text-secondary, #94a3b8);
+  --wizard-border: var(--border-color, #475569);
+  --wizard-input-bg: var(--input-bg, #475569);
+  --wizard-hover: var(--hover-color, #4f46e5);
+
+  font-family: var(--font-family, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
+  color: var(--wizard-text);
+}
+
+/* Full-page wizard layout */
+.character-wizard-fullpage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--wizard-background);
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.character-wizard-fullpage .wizard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Modal wizard layout */
+.character-wizard-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.character-wizard-modal .modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.character-wizard-modal .wizard-container {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  background: var(--wizard-surface);
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  /* Glassmorphism effect for modal */
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Theme-specific modal background */
+.solid-theme .character-wizard-modal .wizard-container {
+  backdrop-filter: none;
+  background: var(--wizard-surface);
+  border: 1px solid var(--wizard-border);
+}
+
+/* =============================================================================
+   WIZARD HEADER
+   ============================================================================= */
+
+.wizard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--wizard-border);
+  background: var(--wizard-surface);
+}
+
+.wizard-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--wizard-text);
+}
+
+.wizard-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.randomize-everything-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--wizard-primary);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.randomize-everything-btn:hover {
+  background: var(--wizard-hover);
+  transform: translateY(-1px);
+}
+
+.cancel-btn {
+  width: 2rem;
+  height: 2rem;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* =============================================================================
+   PROGRESS INDICATOR
+   ============================================================================= */
+
+.wizard-progress {
+  padding: 1.5rem 2rem;
+  background: var(--wizard-background);
+  border-bottom: 1px solid var(--wizard-border);
+}
+
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  position: relative;
+}
+
+.progress-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  left: 60%;
+  right: -40%;
+  height: 2px;
+  background: var(--wizard-border);
+  z-index: 1;
+}
+
+.progress-step.completed:not(:last-child)::after {
+  background: var(--wizard-success);
+}
+
+.step-number {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--wizard-border);
+  color: var(--wizard-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.progress-step.active .step-number {
+  background: var(--wizard-primary);
+  color: white;
+}
+
+.progress-step.completed .step-number {
+  background: var(--wizard-success);
+  color: white;
+}
+
+.step-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--wizard-text-secondary);
+  text-align: center;
+}
+
+.progress-step.active .step-label {
+  color: var(--wizard-text);
+}
+
+.progress-bar {
+  height: 4px;
+  background: var(--wizard-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--wizard-primary), var(--wizard-success));
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* =============================================================================
+   WIZARD CONTENT
+   ============================================================================= */
+
+.wizard-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.wizard-step {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.step-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--wizard-text);
+}
+
+.randomize-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(var(--wizard-primary-rgb, 59, 130, 246), 0.1);
+  color: var(--wizard-primary);
+  border: 1px solid rgba(var(--wizard-primary-rgb, 59, 130, 246), 0.2);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.randomize-all-btn:hover {
+  background: rgba(var(--wizard-primary-rgb, 59, 130, 246), 0.2);
+  border-color: rgba(var(--wizard-primary-rgb, 59, 130, 246), 0.3);
+}
+
+/* =============================================================================
+   FORM ELEMENTS
+   ============================================================================= */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.form-section {
+  grid-column: 1 / -1;
+}
+
+.form-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--wizard-text);
+  border-bottom: 2px solid var(--wizard-border);
+  padding-bottom: 0.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--wizard-text);
+}
+
+.input-with-dice {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  flex: 1;
+  padding: 0.75rem;
+  background: var(--wizard-input-bg);
+  border: 1px solid var(--wizard-border);
+  border-radius: 0.5rem;
+  color: var(--wizard-text);
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--wizard-primary);
+  box-shadow: 0 0 0 3px rgba(var(--wizard-primary-rgb, 59, 130, 246), 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 2.5rem;
+}
+
+.dice-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(var(--wizard-primary-rgb, 59, 130, 246), 0.1);
+  color: var(--wizard-primary);
+  border: 1px solid rgba(var(--wizard-primary-rgb, 59, 130, 246), 0.2);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dice-btn:hover {
+  background: rgba(var(--wizard-primary-rgb, 59, 130, 246), 0.2);
+  transform: scale(1.05);
+}
+
+.dice-btn:active {
+  transform: scale(0.95);
+}
+
+/* =============================================================================
+   ABILITY SCORES GRID
+   ============================================================================= */
+
+.abilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ability-score-group {
+  text-align: center;
+  padding: 1rem;
+  background: var(--wizard-input-bg);
+  border: 1px solid var(--wizard-border);
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.ability-score-group:hover {
+  border-color: var(--wizard-primary);
+}
+
+.ability-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--wizard-text-secondary);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ability-input-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.ability-input {
+  width: 3rem;
+  padding: 0.375rem;
+  background: var(--wizard-background);
+  border: 1px solid var(--wizard-border);
+  border-radius: 0.375rem;
+  color: var(--wizard-text);
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.ability-input:focus {
+  outline: none;
+  border-color: var(--wizard-primary);
+}
+
+.ability-modifier {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--wizard-text-secondary);
+  background: var(--wizard-background);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  min-width: 2rem;
+}
+
+.ability-score-help {
+  background: rgba(var(--wizard-primary-rgb, 59, 130, 246), 0.05);
+  border: 1px solid rgba(var(--wizard-primary-rgb, 59, 130, 246), 0.1);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ability-score-help p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--wizard-text-secondary);
+}
+
+.ability-score-help p:not(:last-child) {
+  margin-bottom: 0.5rem;
+}
+
+/* =============================================================================
+   NAVIGATION
+   ============================================================================= */
+
+.step-navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--wizard-border);
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--wizard-border);
+  border-radius: 0.5rem;
+  background: var(--wizard-surface);
+  color: var(--wizard-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--wizard-input-bg);
+  border-color: var(--wizard-primary);
+}
+
+.nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nav-btn.next {
+  background: var(--wizard-primary);
+  color: white;
+  border-color: var(--wizard-primary);
+}
+
+.nav-btn.next:hover:not(:disabled) {
+  background: var(--wizard-hover);
+  border-color: var(--wizard-hover);
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================= */
+
+/* Desktop/Tablet optimized wizard - Mobile responsive design removed per requirements */
+
+
+/* =============================================================================
+   THEME OVERRIDES
+   ============================================================================= */
+
+/* Solid theme specific adjustments */
+.solid-theme .character-creation-wizard {
+  --wizard-input-bg: var(--input-background, #f8fafc);
+  --wizard-text: var(--text-color, #0f172a);
+  --wizard-text-secondary: var(--text-secondary, #64748b);
+  --wizard-background: var(--background-color, #ffffff);
+  --wizard-surface: var(--surface-color, #f8fafc);
+  --wizard-border: var(--border-color, #e2e8f0);
+}
+
+.solid-theme .form-input,
+.solid-theme .form-select,
+.solid-theme .form-textarea {
+  background: var(--wizard-input-bg);
+  color: var(--wizard-text);
+}
+
+.solid-theme .ability-input {
+  background: white;
+  color: var(--wizard-text);
+}
+
+/* Animation for dice rolls */
+@keyframes diceRoll {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(90deg) scale(1.1); }
+  50% { transform: rotate(180deg) scale(1); }
+  75% { transform: rotate(270deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.dice-btn:active {
+  animation: diceRoll 0.6s ease-in-out;
+}

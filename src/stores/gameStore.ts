@@ -25,6 +25,11 @@ interface GameStore extends GameState {
   setActiveScene: (sceneId: string) => void;
   updateCamera: (camera: Partial<Camera>) => void;
   setFollowDM: (follow: boolean) => void;
+
+  // Bulk Scene Operations
+  deleteScenesById: (sceneIds: string[]) => void;
+  updateScenesVisibility: (sceneIds: string[], visibility: Scene['visibility']) => void;
+  duplicateScene: (sceneId: string) => Scene | null;
   
   // Drawing Actions
   createDrawing: (sceneId: string, drawing: Drawing) => void;
@@ -217,9 +222,9 @@ const eventHandlers: Record<string, EventHandler> = {
     if (state.session && eventData.user) {
       const existingIndex = state.session.players.findIndex(p => p.id === eventData.user.id) as number;
       if (existingIndex >= 0) {
-        state.session.players[existingIndex] = { ...eventData.user, canEditScenes: false };
+        state.session.players[existingIndex] = { ...state.session.players[existingIndex], ...eventData.user };
       } else {
-        state.session.players.push({ ...eventData.user, canEditScenes: false });
+        state.session.players.push(eventData.user);
       }
     }
   },
@@ -524,6 +529,11 @@ export const useGameStore = create<GameStore>()(
             : null;
         }
       });
+
+      // Delete from persistence
+      drawingPersistenceService.deleteScene(sceneId).catch(error => {
+        console.error('Failed to persist scene deletion:', error);
+      });
     },
 
     reorderScenes: (fromIndex, toIndex) => {
@@ -560,6 +570,68 @@ export const useGameStore = create<GameStore>()(
       set((state) => {
         state.sceneState.followDM = follow;
       });
+    },
+
+    // Bulk Scene Operations
+    deleteScenesById: (sceneIds) => {
+      set((state) => {
+        // Filter out the scenes to delete
+        state.sceneState.scenes = state.sceneState.scenes.filter(s => !sceneIds.includes(s.id));
+
+        // If the active scene was deleted, switch to first available scene
+        if (state.sceneState.activeSceneId && sceneIds.includes(state.sceneState.activeSceneId)) {
+          state.sceneState.activeSceneId = state.sceneState.scenes.length > 0
+            ? state.sceneState.scenes[0].id
+            : null;
+        }
+      });
+
+      // Delete each scene from persistence
+      sceneIds.forEach(sceneId => {
+        drawingPersistenceService.deleteScene(sceneId).catch(error => {
+          console.error('Failed to persist scene deletion:', error);
+        });
+      });
+    },
+
+    updateScenesVisibility: (sceneIds, visibility) => {
+      set((state) => {
+        sceneIds.forEach(sceneId => {
+          const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+          if (sceneIndex >= 0) {
+            state.sceneState.scenes[sceneIndex].visibility = visibility;
+            state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+
+            // Auto-save the updated scene to persistence
+            const scene = state.sceneState.scenes[sceneIndex];
+            drawingPersistenceService.saveScene(scene).catch(error => {
+              console.error('Failed to persist scene visibility update:', error);
+            });
+          }
+        });
+      });
+    },
+
+    duplicateScene: (sceneId) => {
+      const state = get();
+      const originalScene = state.sceneState.scenes.find(s => s.id === sceneId);
+      if (!originalScene) return null;
+
+      const duplicatedScene: Scene = {
+        ...originalScene,
+        id: uuidv4(),
+        name: `${originalScene.name} (Copy)`,
+        drawings: [...originalScene.drawings], // Deep copy drawings
+        placedTokens: [...originalScene.placedTokens], // Deep copy tokens
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      set((state) => {
+        state.sceneState.scenes.push(duplicatedScene);
+      });
+
+      return duplicatedScene;
     },
 
     // Drawing Management Actions

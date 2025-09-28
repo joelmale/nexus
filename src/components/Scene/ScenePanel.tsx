@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGameStore, useIsHost } from '@/stores/gameStore';
 import type { Scene } from '@/types/game';
+import { SceneManagement } from './SceneManagement';
 
 interface ScenePanelProps {
   scene?: Scene;
@@ -11,6 +12,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
   const isHost = useIsHost();
   const [editingName, setEditingName] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
+  const [managementMode, setManagementMode] = useState(false);
 
   // Add debugging for host detection
   React.useEffect(() => {
@@ -25,6 +27,15 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
       console.log('❌ ScenePanel: Not host, returning null');
     }
     return null;
+  }
+
+  // If in management mode, show the Scene Management component
+  if (managementMode) {
+    return (
+      <SceneManagement
+        onBackToSettings={() => setManagementMode(false)}
+      />
+    );
   }
 
   // Provide default values for missing properties
@@ -60,7 +71,16 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
     return (
       <div className="scene-panel">
         <div className="scene-panel-header">
-          <h3>Scene Management</h3>
+          <div className="scene-panel-header-top">
+            <h3>Scene Management</h3>
+            <button
+              onClick={() => setManagementMode(true)}
+              className="scene-management-toggle"
+              title="Manage All Scenes"
+            >
+              📋 Manage All
+            </button>
+          </div>
         </div>
         <div className="scene-panel-content">
           <div className="no-scene">
@@ -141,7 +161,16 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
   return (
     <div className="scene-panel">
       <div className="scene-panel-header">
-        <h3>Scene Settings</h3>
+        <div className="scene-panel-header-top">
+          <h3>Scene Settings</h3>
+          <button
+            onClick={() => setManagementMode(true)}
+            className="scene-management-toggle"
+            title="Manage All Scenes"
+          >
+            📋 Manage All
+          </button>
+        </div>
         <div className="scene-meta">
           <span className="scene-id">ID: {safeScene.id.slice(0, 8)}</span>
           <span className="scene-updated">

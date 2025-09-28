@@ -13,14 +13,24 @@ interface SceneEditorProps {
 export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
   const { updateScene } = useGameStore();
   const { storeImage } = useSceneImages();
+  // Safe access to scene properties with defaults
+  const safeGridSettings = scene.gridSettings || {
+    enabled: true,
+    size: 50,
+    color: '#ffffff',
+    opacity: 0.3,
+    snapToGrid: true,
+    showToPlayers: true
+  };
+
   const [formData, setFormData] = useState({
     name: scene.name,
     description: scene.description || '',
-    gridEnabled: scene.gridSettings.enabled,
-    gridSize: scene.gridSettings.size,
-    gridColor: scene.gridSettings.color,
-    gridOpacity: scene.gridSettings.opacity,
-    snapToGrid: scene.gridSettings.snapToGrid,
+    gridEnabled: safeGridSettings.enabled,
+    gridSize: safeGridSettings.size,
+    gridColor: safeGridSettings.color,
+    gridOpacity: safeGridSettings.opacity,
+    snapToGrid: safeGridSettings.snapToGrid,
   });
   const [backgroundImage, setBackgroundImage] = useState(scene.backgroundImage);
   const [isUploading, setIsUploading] = useState(false);

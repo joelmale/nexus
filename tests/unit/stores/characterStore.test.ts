@@ -3,30 +3,32 @@ import { act } from 'react-dom/test-utils';
 import { useCharacterStore } from '@/stores/characterStore';
 import type { Character, AbilityScores } from '@/types/character';
 import { createEmptyCharacter, calculateAbilityModifier } from '@/types/character';
+vi.mock('@/services/linearFlowStorage', () => ({
+  getLinearFlowStorage: vi.fn(() => ({
+    saveCharacter: vi.fn(),
+    getBrowserId: vi.fn(() => 'browser-id'),
+  })),
+}));
 
 // Mock the character types utilities
 describe('CharacterStore', () => {
-  vi.mock('@/types/character', () => ({
-    createEmptyCharacter: vi.fn(),
-    calculateAbilityModifier: (score: number) => Math.floor((score - 10) / 2),
-    calculateProficiencyBonus: (level: number) => Math.ceil(level / 4) + 1,
-    STANDARD_SKILLS: [
-      { name: 'Athletics', ability: 'strength' },
-      { name: 'Acrobatics', ability: 'dexterity' },
-      { name: 'Perception', ability: 'wisdom' },
-    ],
-  }));
-  beforeEach(() => {
-    // Reset store state before each test
-    act(() => {
-      useCharacterStore.getState().reset();
-    });
-
-    // Deep clone to avoid issues with frozen objects in tests
-    const mockCharacter: Character = JSON.parse(JSON.stringify({
-      id: 'char-123',
-      playerId: 'player-123',
-      name: 'Test Character',
+  vi.mock('@/types/character', async () => {
+    const actual = await vi.importActual('@/types/character');
+    return {
+      ...actual,
+      createEmptyCharacter: vi.fn(),
+      calculateAbilityModifier: (score: number) => Math.floor((score - 10) / 2),
+      calculateProficiencyBonus: (level: number) => Math.ceil(level / 4) + 1,
+      calculatePassivePerception: vi.fn().mockReturnValue(10),
+    };
+  });
+  let idCounter = 0;
+  const createMockCharacter = (playerId: string): Character => {
+    idCounter++;
+    return JSON.parse(JSON.stringify({
+      id: `char-${idCounter}`,
+      playerId,
+      name: `Test Character ${idCounter}`,
       level: 1,
       race: { name: 'Human', subrace: '', traits: [], abilityScoreIncrease: {}, languages: [], proficiencies: [] },
       classes: [{ name: 'Fighter', level: 1, hitDie: 'd10' }],
@@ -39,7 +41,12 @@ describe('CharacterStore', () => {
         wisdom: { score: 10, modifier: 0, savingThrow: 0 },
         charisma: { score: 10, modifier: 0, savingThrow: 0 },
       },
-      skills: [], // Initialize as empty array
+      skills: [
+        { name: 'Athletics', ability: 'strength', proficient: false, expertise: false, modifier: 0 },
+        { name: 'Acrobatics', ability: 'dexterity', proficient: false, expertise: false, modifier: 0 },
+        { name: 'Perception', ability: 'wisdom', proficient: false, expertise: false, modifier: 0 },
+        { name: 'Stealth', ability: 'dexterity', proficient: false, expertise: false, modifier: 0 },
+      ],
       hitPoints: { maximum: 10, current: 10, temporary: 0 },
       armorClass: 10,
       proficiencyBonus: 2,
@@ -65,8 +72,14 @@ describe('CharacterStore', () => {
       hitDice: { total: 1, remaining: 1 },
       inspiration: false,
     }));
+  };
 
-    vi.mocked(createEmptyCharacter).mockReturnValue(mockCharacter);
+  beforeEach(() => {
+    act(() => {
+      useCharacterStore.getState().reset();
+    });
+    idCounter = 0;
+    vi.mocked(createEmptyCharacter).mockImplementation(createMockCharacter);
   });
 
   describe('Character Creation', () => {
@@ -79,7 +92,7 @@ describe('CharacterStore', () => {
       });
 
       const { characters } = useCharacterStore.getState();
-      expect(characterId).toBe('char-123');
+      expect(characterId).toBe('char-1');
       expect(characters).toHaveLength(1);
       expect(characters[0].playerId).toBe(playerId);
       expect(createEmptyCharacter).toHaveBeenCalledWith(playerId);
@@ -443,6 +456,14 @@ describe('CharacterStore', () => {
             name: 'Test Character',
             race: { name: 'Human' },
             classes: [{ name: 'Fighter', level: 1 }],
+            abilities: {
+              strength: { score: 10, modifier: 0, savingThrow: 0 },
+              dexterity: { score: 10, modifier: 0, savingThrow: 0 },
+              constitution: { score: 10, modifier: 0, savingThrow: 0 },
+              intelligence: { score: 10, modifier: 0, savingThrow: 0 },
+              wisdom: { score: 10, modifier: 0, savingThrow: 0 },
+              charisma: { score: 10, modifier: 0, savingThrow: 0 },
+            },
           },
         });
       });

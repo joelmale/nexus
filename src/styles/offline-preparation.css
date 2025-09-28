@@ -367,36 +367,5 @@
   font-size: 1rem;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .offline-preparation {
-    padding: 1rem;
-  }
+/* Desktop/Tablet optimized preparation interface - Mobile responsive design removed per requirements */
 
-  .preparation-header h1 {
-    font-size: 2rem;
-  }
-
-  .content-section {
-    padding: 1.5rem;
-  }
-
-  .scene-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .settings-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .preparation-header {
-    margin-bottom: 2rem;
-  }
-
-  .content-section {
-    padding: 1rem;
-    margin-bottom: 1rem;
-  }
-}

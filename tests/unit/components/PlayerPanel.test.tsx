@@ -5,6 +5,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PlayerPanel } from '@/components/PlayerPanel';
 import { useSession, useIsHost } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
+import { useCharacterCreationLauncher } from '@/components/CharacterCreationLauncher';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import type { Character } from '@/types/character';
 import type { Player, Session } from '@/types/game';
@@ -18,6 +19,10 @@ vi.mock('@/stores/gameStore', () => ({
 vi.mock('@/stores/characterStore', () => ({
   useCharacters: vi.fn(),
   useCharacterCreation: vi.fn(),
+}));
+
+vi.mock('@/components/CharacterCreationLauncher', () => ({
+  useCharacterCreationLauncher: vi.fn(),
 }));
 
 vi.mock('@/stores/initiativeStore', () => ({
@@ -112,6 +117,12 @@ describe('PlayerPanel', () => {
     startCombat: vi.fn(),
   };
 
+  const mockLauncher = {
+    startCharacterCreation: vi.fn(),
+    LauncherComponent: null,
+    isActive: false,
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -125,6 +136,7 @@ describe('PlayerPanel', () => {
     });
     vi.mocked(useCharacterCreation).mockReturnValue(mockCharacterCreation);
     vi.mocked(useInitiativeStore).mockReturnValue(mockInitiativeActions);
+    vi.mocked(useCharacterCreationLauncher).mockReturnValue(mockLauncher);
   });
 
   describe('Component Rendering', () => {
@@ -205,9 +217,11 @@ describe('PlayerPanel', () => {
       const createButton = screen.getByText('➕ New Character');
       fireEvent.click(createButton);
 
-      expect(mockCharacterCreation.startCharacterCreation).toHaveBeenCalledWith(
+      expect(mockLauncher.startCharacterCreation).toHaveBeenCalledWith(
         expect.any(String),
-        'manual'
+        'modal',
+        expect.any(Function),
+        expect.any(Function)
       );
     });
 
@@ -331,102 +345,17 @@ describe('PlayerPanel', () => {
   });
 
   describe('Character Creation Wizard', () => {
-    const mockCreationState = {
-      playerId: 'player-1',
-      method: 'manual' as const,
-      step: 1,
-      totalSteps: 4,
-      character: {
-        name: 'Test Character',
-        race: { name: 'Human' },
-        classes: [{ name: 'Fighter', level: 1 }],
-        level: 1,
-      },
-    };
-
     it('should render character creation wizard when active', () => {
-      vi.mocked(useCharacterCreation).mockReturnValue({
-        ...mockCharacterCreation,
-        creationState: mockCreationState,
-      });
-
-      render(<PlayerPanel />);
-
-      expect(screen.getByText('Create New Character')).toBeInTheDocument();
-      expect(screen.getByText('Step 1 of 4')).toBeInTheDocument();
-    });
-
-    it('should handle wizard navigation', () => {
-      vi.mocked(useCharacterCreation).mockReturnValue({
-        ...mockCharacterCreation,
-        creationState: mockCreationState,
-      });
-
-      render(<PlayerPanel />);
-
-      const nextButton = screen.getByText('Next');
-      fireEvent.click(nextButton);
-
-      expect(mockCharacterCreation.nextCreationStep).toHaveBeenCalled();
-    });
-
-    it('should handle wizard cancellation', () => {
-      vi.mocked(useCharacterCreation).mockReturnValue({
-        ...mockCharacterCreation,
-        creationState: mockCreationState,
-      });
-
-      render(<PlayerPanel />);
-
-      const cancelButton = screen.getByText('❌');
-      fireEvent.click(cancelButton);
-
-      expect(mockCharacterCreation.cancelCharacterCreation).toHaveBeenCalled();
-    });
-
-    it('should handle character creation completion', () => {
-      const finalStepState = {
-        ...mockCreationState,
-        step: 4,
+      const mockLauncher = {
+        startCharacterCreation: vi.fn(),
+        LauncherComponent: <div data-testid="wizard">Character Creation Wizard</div>,
+        isActive: true,
       };
-
-      // Set up the mock to return the character id
-      mockCharacterCreation.completeCharacterCreation.mockReturnValue('new-char-id');
-
-      vi.mocked(useCharacterCreation).mockReturnValue({
-        ...mockCharacterCreation,
-        creationState: finalStepState,
-      });
+      vi.mocked(useCharacterCreationLauncher).mockReturnValue(mockLauncher);
 
       render(<PlayerPanel />);
 
-      const createButton = screen.getByText('Create Character');
-      fireEvent.click(createButton);
-
-      expect(mockCharacterCreation.completeCharacterCreation).toHaveBeenCalled();
-    });
-
-    it('should disable create button with incomplete data', () => {
-      const incompleteState = {
-        ...mockCreationState,
-        step: 4,
-        character: {
-          name: '',
-          race: null,
-          classes: [],
-          level: 1,
-        },
-      };
-
-      vi.mocked(useCharacterCreation).mockReturnValue({
-        ...mockCharacterCreation,
-        creationState: incompleteState,
-      });
-
-      render(<PlayerPanel />);
-
-      const createButton = screen.getByText('Create Character');
-      expect(createButton).toBeDisabled();
+      expect(screen.getByTestId('wizard')).toBeInTheDocument();
     });
   });
 
