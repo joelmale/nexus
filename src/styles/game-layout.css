@@ -43,6 +43,12 @@
   flex: 0 0 auto;
 }
 
+.header-center {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+}
+
 .header-right {
   flex: 1 1 auto;
   display: flex;
@@ -235,6 +241,28 @@
   border: 1px solid var(--glass-border);
   margin: 0 0.5rem;
   border-radius: var(--border-radius);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Browser-Style Scene Tab Bar */
+.scene-tab-bar {
+  position: relative;
+  background: #2a2a3e;
+  border-bottom: none;
+  z-index: 10;
+  min-height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+/* Scene Content Area */
+.scene-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #1a1a1a;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .layout-scene .scene-canvas {
@@ -390,23 +418,13 @@
   line-height: 1;
 }
 
-/* Floating Player Bar (Over Canvas) */
-.layout-players {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 90;
-  pointer-events: none;
-}
-
 .player-bar {
-  pointer-events: all;
   background: var(--glass-surface-strong);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius-lg);
-  padding: 0.75rem 1rem;
-  box-shadow: var(--shadow-glass-lg);
+  border-radius: var(--border-radius);
+  padding: 0.5rem;
+  box-shadow: var(--shadow-glass);
 }
 
 .connected-players {
@@ -464,8 +482,12 @@
   background: var(--glass-surface-strong);
   backdrop-filter: var(--glass-blur);
   border-left: 3px solid var(--glass-border);
-  transition: width 0.2s ease;
-  width: var(--sidebar-width);
+  transition: all 0.2s ease;
+  width: auto;
+  max-width: 600px; /* Allow more space for content while preventing excessive width */
+  max-height: 100vh; /* Force panel to not exceed viewport height */
+  height: 100%; /* Ensure panel takes full available height */
+  overflow: hidden; /* Prevent content from stretching the panel */
   position: relative;
   min-width: 60px;
   padding-top: 0; /* Explicitly remove padding */
@@ -482,17 +504,25 @@
 .sidebar-resize-handle {
   position: absolute;
   top: 0;
-  left: -9px;
-  width: 18px;
+  left: -12px;
+  width: 28px;
   height: 100%;
+  max-height: 100%;
   background: transparent;
   cursor: ew-resize;
   z-index: 1003;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.15s ease;
+  touch-action: pan-x; /* Enable proper touch handling */
+  user-select: none; /* Prevent text selection during drag */
 }
 
 .sidebar-resize-handle:hover {
-  background-color: var(--color-primary);
+  background-color: rgba(var(--color-primary-rgb), 0.1);
+}
+
+.sidebar-resize-handle:active,
+.sidebar-resize-handle.dragging {
+  background-color: rgba(var(--color-primary-rgb), 0.2);
 }
 
 .sidebar-resize-handle::before {
@@ -501,17 +531,27 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 12px;
-  height: 30px;
-  background: #555;
-  border-radius: 1px;
-  transition: all 0.2s ease;
+  width: 6px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 3px;
+  transition: all 0.15s ease;
+  pointer-events: none; /* Ensure clicks go to parent */
 }
 
 .sidebar-resize-handle:hover::before {
+  background: rgba(255, 255, 255, 0.8);
+  width: 8px;
+  height: 120px;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+}
+
+.sidebar-resize-handle:active::before,
+.sidebar-resize-handle.dragging::before {
   background: white;
-  width: 3px;
-  height: 40px;
+  width: 10px;
+  height: 140px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 /* Context Panel Updates */
@@ -520,6 +560,7 @@
   display: flex;
   flex-direction: column;
   padding-left: 6px; /* Account for resize handle */
+  min-height: 0;
 }
 
 /* Vertical Panel Tabs (Hidden when showTabs=false) */
@@ -610,12 +651,15 @@
 .panel-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal overflow issues with scrollbar */
   background: var(--glass-surface);
+  min-height: 0;
+  min-width: 0; /* Allow content to determine natural width */
 }
 
 .panel-body {
-  padding: 1rem;
-  height: 100%;
+  padding: var(--spacing-medium);
+  overflow-y: auto;
 }
 
 /* Collapsed State Content */

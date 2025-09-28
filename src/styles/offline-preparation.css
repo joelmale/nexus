@@ -1,0 +1,402 @@
+/**
+ * Offline Preparation Styles
+ *
+ * Glassmorphism styling for the offline game preparation interface.
+ * Provides clear visual hierarchy and modern aesthetics.
+ */
+
+.offline-preparation {
+  min-height: 100vh;
+  background: var(--color-background-primary);
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* Header */
+.preparation-header {
+  margin-bottom: 3rem;
+}
+
+.header-with-back {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.header-content {
+  flex: 1;
+  text-align: center;
+}
+
+.back-button {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  color: white;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateX(-2px);
+}
+
+.preparation-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.preparation-header p {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.phase-indicator {
+  display: inline-block;
+}
+
+.phase-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border-primary);
+}
+
+.phase-badge.preparation {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.phase-badge.ready {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.phase-badge.starting {
+  background: rgba(251, 146, 60, 0.2);
+  color: #fb923c;
+  border-color: rgba(251, 146, 60, 0.3);
+}
+
+/* Content Sections */
+.preparation-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.content-section {
+  background: var(--color-panel-background);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+.content-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Scene Management */
+.scene-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.scene-card {
+  background: var(--color-button-background);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(5px);
+}
+
+.scene-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-primary);
+}
+
+.scene-card.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-dim);
+}
+
+.scene-card h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.scene-card p {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+.scene-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.add-scene {
+  border: 2px dashed var(--color-border-secondary);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.add-scene:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-dim);
+}
+
+.add-scene-content {
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.add-icon {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Settings */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.setting-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.setting-group label {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.setting-group input,
+.setting-group textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 0.5rem;
+  background: var(--color-input-background);
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  transition: border-color 0.2s ease;
+}
+
+.setting-group input:focus,
+.setting-group textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-dim);
+}
+
+.setting-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+/* Go Live Section */
+.go-live-section {
+  text-align: center;
+}
+
+.ready-checklist h3 {
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+}
+
+.ready-checklist ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 2rem;
+  text-align: left;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ready-checklist li {
+  padding: 0.5rem 0;
+  color: var(--color-text-secondary);
+}
+
+.ready-checklist li.complete {
+  color: var(--color-success);
+}
+
+.ready-checklist li.incomplete {
+  color: var(--color-text-muted);
+}
+
+.ready-to-go h3 {
+  color: var(--color-success);
+  margin-bottom: 1rem;
+}
+
+.live-game-preview {
+  background: var(--color-button-background);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  text-align: left;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.live-game-preview h4 {
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.live-game-preview ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.live-game-preview li {
+  padding: 0.25rem 0;
+  color: var(--color-text-secondary);
+}
+
+.starting-live {
+  color: var(--color-text-primary);
+}
+
+.starting-live h3 {
+  color: var(--color-warning);
+  margin-bottom: 1rem;
+}
+
+.loading-indicator {
+  margin-top: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-border-secondary);
+  border-top: 3px solid var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Buttons */
+.btn-large {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Empty States */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-text-secondary);
+}
+
+.empty-state p {
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .offline-preparation {
+    padding: 1rem;
+  }
+
+  .preparation-header h1 {
+    font-size: 2rem;
+  }
+
+  .content-section {
+    padding: 1.5rem;
+  }
+
+  .scene-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .preparation-header {
+    margin-bottom: 2rem;
+  }
+
+  .content-section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+}

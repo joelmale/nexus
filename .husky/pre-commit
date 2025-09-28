@@ -1,0 +1,11 @@
+
+
+echo "🔍 Running layout validation..."
+
+# Run CSS layout validation
+node scripts/validate-layout-css.js
+
+# Run existing lint-staged tasks
+npx lint-staged
+
+echo "✅ Pre-commit validation passed!"

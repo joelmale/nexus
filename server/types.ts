@@ -5,6 +5,15 @@ export interface Room {
   players: Set<string>;
   connections: Map<string, WebSocket>;
   created: number;
+  lastActivity: number;
+  status: 'active' | 'hibernating' | 'abandoned';
+  hibernationTimer?: NodeJS.Timeout;
+  gameState?: {
+    scenes: any[];
+    activeSceneId: string | null;
+    characters: any[];
+    initiative: any;
+  };
 }
 
 export interface Connection {
@@ -19,7 +28,7 @@ export interface Connection {
 
 export interface ServerMessage {
   type: string;
-  data: any;
+  data: unknown;
   src?: string;
   dst?: string;
   timestamp: number;

@@ -24,6 +24,8 @@ export const DiceRoller: React.FC = () => {
   const [error, setError] = useState('');
   // Local state for the private roll toggle.
   const [isPrivate, setIsPrivate] = useState(false);
+  // Use a single state for roll mode to ensure mutual exclusivity.
+  const [rollMode, setRollMode] = useState<'none' | 'advantage' | 'disadvantage'>('none');
   const rollsListRef = useRef<HTMLDivElement>(null);
   const prevRollsCount = useRef(diceRolls.length);
 
@@ -46,7 +48,11 @@ export const DiceRoller: React.FC = () => {
       return;
     }
 
-    const roll = createDiceRoll(expression.trim(), user.id, user.name, isHost && isPrivate);
+    const roll = createDiceRoll(expression.trim(), user.id, user.name, {
+      isPrivate: isHost && isPrivate,
+      advantage: rollMode === 'advantage',
+      disadvantage: rollMode === 'disadvantage',
+    });
     if (!roll) {
       setError('Invalid dice expression. Use format like "2d6+3"');
       return;
@@ -62,9 +68,6 @@ export const DiceRoller: React.FC = () => {
     
     // Broadcast the roll to all other players in the session.
     webSocketService.sendEvent({ type: 'dice/roll', data: { roll } });
-    
-    // Clear the input field for the next roll.
-    setExpression('');
   };
 
   /**
@@ -74,7 +77,11 @@ export const DiceRoller: React.FC = () => {
   const handleQuickRoll = (expr: string) => {
     setError('');
     
-    const roll = createDiceRoll(expr, user.id, user.name, isHost && isPrivate);
+    const roll = createDiceRoll(expr, user.id, user.name, {
+      isPrivate: isHost && isPrivate,
+      advantage: rollMode === 'advantage',
+      disadvantage: rollMode === 'disadvantage',
+    });
     if (roll) {
       if (!diceRolls.some(r => r.id === roll.id)) {
         addDiceRoll(roll);
@@ -117,20 +124,34 @@ export const DiceRoller: React.FC = () => {
 
         {error && <div className="error">{error}</div>}
 
-        {isHost && (
-          <div className="private-roll-toggle">
-            <label>
-              <input
-                type="checkbox"
-                checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
-              />
-              <span>
-                Private Roll (DM only)
-              </span>
+        <div className="roll-options">
+          <label className="setting-toggle">
+            <input
+              type="checkbox"
+              checked={rollMode === 'advantage'}
+              onChange={(e) => setRollMode(e.target.checked ? 'advantage' : 'none')}
+            />
+            <span className="toggle-slider"></span>
+            <span className="toggle-label">Advantage</span>
+          </label>
+          <label className="setting-toggle">
+            <input
+              type="checkbox"
+              checked={rollMode === 'disadvantage'}
+              onChange={(e) => setRollMode(e.target.checked ? 'disadvantage' : 'none')}
+            />
+            <span className="toggle-slider"></span>
+            <span className="toggle-label">Disadvantage</span>
+          </label>
+
+          {isHost && (
+            <label className="setting-toggle">
+              <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
+              <span className="toggle-slider"></span>
+              <span className="toggle-label">Private Roll (DM only)</span>
             </label>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="quick-dice">
           <h3>Quick Roll</h3>
@@ -159,13 +180,20 @@ export const DiceRoller: React.FC = () => {
               <div key={roll.id} className={`dice-roll ${index === 0 ? 'new-roll' : ''} ${roll.isPrivate ? 'private' : ''}`}>
                 <div className="roll-header">
                   <span className="roller-name">{roll.userName}</span>
-                  <span className="roll-time">
+                  <div className="roll-meta">
                     {roll.isPrivate && <span className="private-tag">Private</span>}
-                    {new Date(roll.timestamp).toLocaleTimeString()}
-                  </span>
+                    <span className="roll-time">{new Date(roll.timestamp).toLocaleTimeString()}</span>
+                    <button 
+                      className="reroll-btn" 
+                      title={`Re-roll ${roll.expression}`}
+                      onClick={() => setExpression(roll.expression)}
+                    >
+                      ⟳
+                    </button>
+                  </div>
                 </div>
                 <div className="roll-result">
-                  {formatDiceRoll(roll)}
+                  <span dangerouslySetInnerHTML={{ __html: formatDiceRoll(roll) }} />
                 </div>
               </div>
             ))

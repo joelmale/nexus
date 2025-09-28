@@ -25,21 +25,19 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
   onTokenSelect,
   selectedToken
 }) => {
-  const { getAllTokens, getTokensByCategory, searchTokens, isLoading } = useTokenAssets();
+  const { getTokensByCategory, searchTokens, isLoading } = useTokenAssets();
   const { strategy, interfaceConfig } = useTokenInterfaceStrategy();
   
   const [activeCategory, setActiveCategory] = useState<TokenCategory>('pc');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredTokens = useMemo(() => {
-    const allTokens = getAllTokens();
-    
     if (searchQuery.trim()) {
       return searchTokens(searchQuery);
     }
     
     return getTokensByCategory(activeCategory);
-  }, [getAllTokens, getTokensByCategory, searchTokens, searchQuery, activeCategory]);
+  }, [getTokensByCategory, searchTokens, searchQuery, activeCategory]);
 
   const handleTokenClick = (token: Token) => {
     onTokenSelect(token);

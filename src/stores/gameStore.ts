@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { GameState, User, Session, DiceRoll, TabType, GameEvent, Scene, Camera, SceneState, UserSettings, ColorScheme } from '@/types/game';
+import type { GameState, User, Session, DiceRoll, TabType, GameEvent, Scene, Camera, UserSettings, ColorScheme, Player, TokenPlaceEvent, TokenMoveEvent, TokenUpdateEvent, TokenDeleteEvent, UserJoinEvent, UserLeaveEvent, SessionCreatedEvent, SessionJoinedEvent, SceneCreateEvent, SceneUpdateEvent, SceneDeleteEvent, SceneChangeEvent, CameraMoveEvent, DrawingCreateEvent, DrawingUpdateEvent, DrawingDeleteEvent, DrawingClearEvent, DiceRollEvent } from '@/types/game';
 import type { Drawing } from '@/types/drawing';
 import type { PlacedToken } from '@/types/token';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultColorSchemes, applyColorScheme } from '@/utils/colorSchemes';
 import { drawingPersistenceService } from '@/services/drawingPersistence';
+import { sessionPersistenceService } from '@/services/sessionPersistence';
 
 interface GameStore extends GameState {
   // Actions
@@ -20,6 +21,7 @@ interface GameStore extends GameState {
   createScene: (scene: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>) => Scene;
   updateScene: (sceneId: string, updates: Partial<Scene>) => void;
   deleteScene: (sceneId: string) => void;
+  reorderScenes: (fromIndex: number, toIndex: number) => void;
   setActiveScene: (sceneId: string) => void;
   updateCamera: (camera: Partial<Camera>) => void;
   setFollowDM: (follow: boolean) => void;
@@ -49,6 +51,15 @@ interface GameStore extends GameState {
   // Persistence Actions
   initializeFromStorage: () => Promise<void>;
   loadSceneDrawings: (sceneId: string) => Promise<void>;
+
+  // Session Persistence Actions
+  saveSessionState: () => void;
+  loadSessionState: () => void;
+  attemptSessionRecovery: () => Promise<boolean>;
+  clearSessionData: () => void;
+
+  // Developer Actions
+  toggleMockData: (enable: boolean) => void;
 }
 
 const initialState: GameState = {
@@ -74,9 +85,9 @@ const initialState: GameState = {
   },
   settings: {
     // Display Settings
-    colorScheme: defaultColorSchemes[0], // Nexus Default
+    colorScheme: defaultColorSchemes[1], // Emerald Depths
     theme: 'dark',
-    enableGlassmorphism: true,
+    enableGlassmorphism: false,
     reducedMotion: false,
     fontSize: 'medium',
     
@@ -107,41 +118,62 @@ const initialState: GameState = {
     highContrast: false,
     screenReaderMode: false,
     keyboardNavigation: true,
+
+    // Developer Settings
+    useMockData: process.env.NODE_ENV === 'development',
   },
 };
 
-type EventHandler = (state: GameState, data: any) => void;
+// --- Mock Data for Development (can be toggled via settings) ---
+const MOCK_PLAYERS: Player[] = [
+  { id: 'user-joel', name: 'Joel', type: 'host', color: '#6366f1', connected: true, canEditScenes: true },
+  { id: 'user-alice', name: 'Alice', type: 'player', color: '#ec4899', connected: true, canEditScenes: false },
+  { id: 'user-bob', name: 'Bob', type: 'player', color: '#22c55e', connected: false, canEditScenes: false },
+  { id: 'user-charlie', name: 'Charlie', type: 'player', color: '#f59e0b', connected: true, canEditScenes: false },
+];
+
+const MOCK_SESSION: Session = {
+  roomCode: 'TEST',
+  hostId: 'user-joel',
+  players: MOCK_PLAYERS,
+  status: 'connected',
+};
+
+type EventHandler = (state: GameState, data: unknown) => void;
 
 const eventHandlers: Record<string, EventHandler> = {
   'dice/roll': (state, data) => {
-    if (data.roll) {
-      state.diceRolls.unshift(data.roll);
+    const eventData = data as DiceRollEvent['data'];
+    if (eventData.roll) {
+      state.diceRolls.unshift(eventData.roll);
     }
   },
   'token/place': (state, data) => {
-    if (data.sceneId && data.token) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+    const eventData = data as TokenPlaceEvent['data'];
+    if (eventData.sceneId && eventData.token) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
       if (sceneIndex >= 0) {
         if (!state.sceneState.scenes[sceneIndex].placedTokens) {
           state.sceneState.scenes[sceneIndex].placedTokens = [];
         }
-        state.sceneState.scenes[sceneIndex].placedTokens.push(data.token);
+        state.sceneState.scenes[sceneIndex].placedTokens.push(eventData.token);
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
       }
     }
   },
   'token/move': (state, data) => {
-    if (data.sceneId && data.tokenId) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+    const eventData = data as TokenMoveEvent['data'];
+    if (eventData.sceneId && eventData.tokenId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
       if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
         const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
-          t => t.id === data.tokenId
+          t => t.id === eventData.tokenId
         );
         if (tokenIndex >= 0) {
-          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].x = data.position.x;
-          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].y = data.position.y;
-          if (data.rotation !== undefined) {
-            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].rotation = data.rotation;
+          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].x = eventData.position.x;
+          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].y = eventData.position.y;
+          if (eventData.rotation !== undefined) {
+            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].rotation = eventData.rotation;
           }
           state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].updatedAt = Date.now();
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
@@ -150,16 +182,17 @@ const eventHandlers: Record<string, EventHandler> = {
     }
   },
   'token/update': (state, data) => {
-    if (data.sceneId && data.tokenId && data.updates) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+    const eventData = data as TokenUpdateEvent['data'];
+    if (eventData.sceneId && eventData.tokenId && eventData.updates) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
       if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
         const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
-          t => t.id === data.tokenId
+          t => t.id === eventData.tokenId
         );
         if (tokenIndex >= 0) {
           state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex] = {
             ...state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex],
-            ...data.updates,
+            ...eventData.updates,
             updatedAt: Date.now(),
           };
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
@@ -168,37 +201,41 @@ const eventHandlers: Record<string, EventHandler> = {
     }
   },
   'token/delete': (state, data) => {
-    if (data.sceneId && data.tokenId) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+    const eventData = data as TokenDeleteEvent['data'];
+    if (eventData.sceneId && eventData.tokenId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
       if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
         state.sceneState.scenes[sceneIndex].placedTokens = state.sceneState.scenes[sceneIndex].placedTokens.filter(
-          t => t.id !== data.tokenId
+          t => t.id !== eventData.tokenId
         );
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
       }
     }
   },
   'user/join': (state, data) => {
-    if (state.session && data.user) {
-      const existingIndex = state.session.players.findIndex(p => p.id === data.user.id);
+    const eventData = data as UserJoinEvent['data'];
+    if (state.session && eventData.user) {
+      const existingIndex = state.session.players.findIndex(p => p.id === eventData.user.id) as number;
       if (existingIndex >= 0) {
-        state.session.players[existingIndex] = data.user;
+        state.session.players[existingIndex] = { ...eventData.user, canEditScenes: false };
       } else {
-        state.session.players.push(data.user);
+        state.session.players.push({ ...eventData.user, canEditScenes: false });
       }
     }
   },
   'user/leave': (state, data) => {
-    if (state.session && data.userId) {
-      state.session.players = state.session.players.filter(p => p.id !== data.userId);
+    const eventData = data as UserLeaveEvent['data'];
+    if (state.session && eventData.userId) {
+      state.session.players = state.session.players.filter(p => p.id !== eventData.userId);
     }
   },
   'session/created': (state, data) => {
     console.log('Creating session with data:', data);
+    const eventData = data as SessionCreatedEvent['data'];
     state.session = {
-      roomCode: data.roomCode || data.room,
+      roomCode: eventData.roomCode,
       hostId: state.user.id,
-      players: [{ ...state.user, connected: true }],
+      players: [{ ...state.user, connected: true, canEditScenes: state.user.type === 'host' }],
       status: 'connected',
     };
     state.user.type = 'host';
@@ -209,10 +246,16 @@ const eventHandlers: Record<string, EventHandler> = {
         id: uuidv4(),
         name: 'Scene 1',
         description: 'Enter description here',
+        visibility: 'public',
+        isEditable: true,
+        createdBy: state.user.id,
         backgroundImage: undefined,
-        gridSettings: { enabled: true, size: 50, color: '#ffffff', opacity: 0.3, snapToGrid: true },
+        gridSettings: { enabled: true, size: 50, color: '#ffffff', opacity: 0.3, snapToGrid: true, showToPlayers: true },
+        lightingSettings: { enabled: false, globalIllumination: true, ambientLight: 0.5, darkness: 0 },
         drawings: [],
         placedTokens: [],
+        isActive: false,
+        playerCount: 0,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -223,90 +266,144 @@ const eventHandlers: Record<string, EventHandler> = {
   },
   'session/joined': (state, data) => {
     console.log('Joining session with data:', data);
+    const eventData = data as SessionJoinedEvent['data'];
     state.session = {
-      roomCode: data.roomCode || data.room,
-      hostId: data.hostId,
-      players: data.players || [{ ...state.user, connected: true }],
+      roomCode: eventData.roomCode,
+      hostId: eventData.hostId,
+      players: eventData.players || [{ ...state.user, connected: true }],
       status: 'connected',
     };
     state.user.type = 'player';
     state.user.connected = true;
     console.log('Session joined:', state.session);
   },
+  'session/reconnected': (state, data) => {
+    console.log('Reconnecting to session with data:', data);
+    const eventData = data as any; // We'll type this properly later
+
+    // Update session data if provided
+    if (eventData.roomCode) {
+      if (!state.session) {
+        state.session = {
+          roomCode: eventData.roomCode,
+          hostId: eventData.hostId || state.user.id,
+          players: [{ ...state.user, connected: true, canEditScenes: state.user.type === 'host' }],
+          status: 'connected',
+        };
+      } else {
+        state.session.roomCode = eventData.roomCode;
+        state.session.hostId = eventData.hostId || state.session.hostId;
+        state.session.status = 'connected';
+      }
+    }
+
+    // Set user type based on whether they are the host
+    if (eventData.hostId === state.user.id || state.user.type === 'host') {
+      state.user.type = 'host';
+    } else {
+      state.user.type = 'player';
+    }
+
+    state.user.connected = true;
+
+    // If gameState is provided in the reconnection, apply it
+    if (eventData.gameState) {
+      console.log('Restoring game state from server on reconnection');
+      // Apply the game state updates
+      if (eventData.gameState.scenes) {
+        state.sceneState.scenes = eventData.gameState.scenes;
+      }
+      if (eventData.gameState.activeSceneId !== undefined) {
+        state.sceneState.activeSceneId = eventData.gameState.activeSceneId;
+      }
+    }
+
+    console.log('Session reconnected:', state.session);
+  },
   'scene/create': (state, data) => {
-    if (data.scene) {
-      state.sceneState.scenes.push(data.scene);
+    const eventData = data as SceneCreateEvent['data'];
+    if (eventData.scene) {
+      state.sceneState.scenes.push(eventData.scene);
       if (state.sceneState.activeSceneId === null) {
-        state.sceneState.activeSceneId = data.scene.id;
+        state.sceneState.activeSceneId = eventData.scene.id;
       }
     }
   },
   'scene/update': (state, data) => {
-    if (data.sceneId && data.updates) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+    const eventData = data as SceneUpdateEvent['data'];
+    if (eventData.sceneId && eventData.updates) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
       if (sceneIndex >= 0) {
-        state.sceneState.scenes[sceneIndex] = { ...state.sceneState.scenes[sceneIndex], ...data.updates, updatedAt: Date.now() };
+        state.sceneState.scenes[sceneIndex] = { ...state.sceneState.scenes[sceneIndex], ...eventData.updates, updatedAt: Date.now() };
       }
     }
   },
   'scene/delete': (state, data) => {
-    if (data.sceneId) {
-      state.sceneState.scenes = state.sceneState.scenes.filter(s => s.id !== data.sceneId);
-      if (state.sceneState.activeSceneId === data.sceneId) {
+    const eventData = data as SceneDeleteEvent['data'];
+    if (eventData.sceneId) {
+      state.sceneState.scenes = state.sceneState.scenes.filter(s => s.id !== eventData.sceneId);
+      if (state.sceneState.activeSceneId === eventData.sceneId) {
         state.sceneState.activeSceneId = state.sceneState.scenes.length > 0 ? state.sceneState.scenes[0].id : null;
       }
     }
   },
   'scene/change': (state, data) => {
-    if (data.sceneId) {
-      const sceneExists = state.sceneState.scenes.some(s => s.id === data.sceneId);
+    const eventData = data as SceneChangeEvent['data'];
+    if (eventData.sceneId) {
+      const sceneExists = state.sceneState.scenes.some(s => s.id === eventData.sceneId);
       if (sceneExists) {
-        state.sceneState.activeSceneId = data.sceneId;
+        state.sceneState.activeSceneId = eventData.sceneId;
         state.sceneState.camera = { x: 0, y: 0, zoom: 1.0 };
       }
     }
   },
   'camera/move': (state, data) => {
-    if (data.camera) {
-      Object.assign(state.sceneState.camera, data.camera);
+    const eventData = data as CameraMoveEvent['data'];
+    if (eventData.camera) {
+      Object.assign(state.sceneState.camera, eventData.camera);
     }
   },
   'drawing/create': (state, data) => {
-    if (data.sceneId && data.drawing) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+    const eventData = data as DrawingCreateEvent['data'];
+    if (eventData.sceneId && eventData.drawing) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
       if (sceneIndex >= 0) {
-        state.sceneState.scenes[sceneIndex].drawings.push(data.drawing);
+        state.sceneState.scenes[sceneIndex].drawings.push(eventData.drawing);
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
       }
     }
   },
   'drawing/update': (state, data) => {
-    if (data.sceneId && data.drawingId && data.updates) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+    const eventData = data as DrawingUpdateEvent['data'];
+    if (eventData.sceneId && eventData.drawingId && eventData.updates) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
       if (sceneIndex >= 0) {
-        const drawingIndex = state.sceneState.scenes[sceneIndex].drawings.findIndex(d => d.id === data.drawingId);
+        const drawingIndex = state.sceneState.scenes[sceneIndex].drawings.findIndex(d => d.id === eventData.drawingId);
         if (drawingIndex >= 0) {
-          state.sceneState.scenes[sceneIndex].drawings[drawingIndex] = { ...state.sceneState.scenes[sceneIndex].drawings[drawingIndex], ...data.updates, updatedAt: Date.now() };
-          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+           Object.assign(state.sceneState.scenes[sceneIndex].drawings[drawingIndex], eventData.updates);
+            state.sceneState.scenes[sceneIndex].drawings[drawingIndex].updatedAt = Date.now();
+            state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
         }
       }
     }
   },
   'drawing/delete': (state, data) => {
-    if (data.sceneId && data.drawingId) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+    const eventData = data as DrawingDeleteEvent['data'];
+    if (eventData.sceneId && eventData.drawingId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
       if (sceneIndex >= 0) {
-        state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(d => d.id !== data.drawingId);
+        state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(d => d.id !== eventData.drawingId);
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
       }
     }
   },
   'drawing/clear': (state, data) => {
-    if (data.sceneId) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === data.sceneId);
+    const eventData = data as DrawingClearEvent['data'];
+    if (eventData.sceneId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
       if (sceneIndex >= 0) {
-        if (data.layer) {
-          state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(d => d.layer !== data.layer);
+        if (eventData.layer) {
+          state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(d => d.layer !== eventData.layer);
         } else {
           state.sceneState.scenes[sceneIndex].drawings = [];
         }
@@ -422,10 +519,19 @@ export const useGameStore = create<GameStore>()(
         state.sceneState.scenes = state.sceneState.scenes.filter(s => s.id !== sceneId);
         // If the deleted scene was active, switch to first available scene
         if (state.sceneState.activeSceneId === sceneId) {
-          state.sceneState.activeSceneId = state.sceneState.scenes.length > 0 
-            ? state.sceneState.scenes[0].id 
+          state.sceneState.activeSceneId = state.sceneState.scenes.length > 0
+            ? state.sceneState.scenes[0].id
             : null;
         }
+      });
+    },
+
+    reorderScenes: (fromIndex, toIndex) => {
+      set((state) => {
+        const scenes = [...state.sceneState.scenes];
+        const [movedScene] = scenes.splice(fromIndex, 1);
+        scenes.splice(toIndex, 0, movedScene);
+        state.sceneState.scenes = scenes;
       });
     },
 
@@ -481,7 +587,7 @@ export const useGameStore = create<GameStore>()(
             d => d.id === drawingId
           );
           if (drawingIndex >= 0) {
-            const drawingToUpdate = state.sceneState.scenes[sceneIndex].drawings[drawingIndex];
+            const drawingToUpdate = state.sceneState.scenes[sceneIndex].drawings[drawingIndex] as Drawing;
             Object.assign(drawingToUpdate, updates);
             drawingToUpdate.updatedAt = Date.now();
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
@@ -563,6 +669,11 @@ export const useGameStore = create<GameStore>()(
     // Settings Management Actions
     updateSettings: (settingsUpdate) => {
       set((state) => {
+        const previousUseMockData = state.settings.useMockData;
+        if ('useMockData' in settingsUpdate && settingsUpdate.useMockData !== previousUseMockData) {
+          // Directly call the action within the same update to ensure atomicity
+          get().toggleMockData(!!settingsUpdate.useMockData);
+        }
         Object.assign(state.settings, settingsUpdate);
       });
     },
@@ -708,6 +819,188 @@ export const useGameStore = create<GameStore>()(
       } catch (error) {
         console.error('Failed to load scene drawings:', error);
       }
+    },
+
+    // Session Persistence Actions
+    saveSessionState: () => {
+      const state = get();
+
+      // Save session data if connected
+      if (state.session) {
+        sessionPersistenceService.saveSession({
+          roomCode: state.session.roomCode,
+          userId: state.user.id,
+          userType: state.user.type,
+          userName: state.user.name,
+          hostId: state.session.hostId,
+          lastActivity: Date.now(),
+          sessionVersion: 1,
+        });
+      }
+
+      // Save game state (characters, scenes, settings, etc.)
+      const gameStateData = {
+        characters: [], // TODO: Get from character store when integrated
+        initiative: {}, // TODO: Get from initiative store when integrated
+        scenes: state.sceneState.scenes,
+        activeSceneId: state.sceneState.activeSceneId,
+        settings: state.settings,
+      };
+
+      sessionPersistenceService.saveGameState(gameStateData);
+
+      // Also send game state to server if connected and user is host
+      if (state.user.type === 'host' && state.user.connected && state.session) {
+        try {
+          import('@/utils/websocket').then(({ webSocketService }) => {
+            if (webSocketService.isConnected()) {
+              webSocketService.sendGameStateUpdate({
+                sceneState: {
+                  scenes: state.sceneState.scenes,
+                  activeSceneId: state.sceneState.activeSceneId
+                },
+                characters: [], // TODO: Get from character store when integrated
+                initiative: {}, // TODO: Get from initiative store when integrated
+              });
+            }
+          });
+        } catch (error) {
+          console.error('Failed to send game state update:', error);
+        }
+      }
+    },
+
+    loadSessionState: () => {
+      const recoveryData = sessionPersistenceService.getRecoveryData();
+
+      if (recoveryData.gameState) {
+        set((state) => {
+          // Restore scenes and active scene (always restore, even if empty)
+          if (recoveryData.gameState) {
+            state.sceneState.scenes = recoveryData.gameState.scenes || [];
+            state.sceneState.activeSceneId = recoveryData.gameState.activeSceneId;
+            console.log(`🔄 Restored ${state.sceneState.scenes.length} scenes, activeSceneId: ${state.sceneState.activeSceneId}`);
+          }
+
+          // Restore settings
+          if (recoveryData.gameState && recoveryData.gameState.settings) {
+            state.settings = { ...state.settings, ...recoveryData.gameState.settings };
+          }
+        });
+
+        console.log('📂 Game state restored from localStorage');
+      }
+    },
+
+    attemptSessionRecovery: async () => {
+      console.log('🔄 Attempting session recovery...');
+
+      try {
+        // First check what's in localStorage for debugging
+        const sessionData = localStorage.getItem('nexus-session');
+        const gameStateData = localStorage.getItem('nexus-game-state');
+        console.log('🔍 Raw localStorage data:');
+        console.log('  Session:', sessionData ? JSON.parse(sessionData) : 'null');
+        console.log('  Game State:', gameStateData ? 'exists' : 'null');
+
+        const recoveryData = sessionPersistenceService.getRecoveryData();
+        console.log('🔍 Processed recovery data:', recoveryData);
+        if (recoveryData.gameState) {
+          console.log('🎮 Game state details:', {
+            scenes: recoveryData.gameState.scenes,
+            activeSceneId: recoveryData.gameState.activeSceneId,
+            scenesLength: recoveryData.gameState.scenes?.length || 0
+          });
+        }
+
+        if (!recoveryData.isValid || !recoveryData.session) {
+          console.log('❌ No valid session found for recovery');
+          return false;
+        }
+
+        if (!recoveryData.canReconnect) {
+          console.log('❌ Session too old or invalid for reconnection');
+          const sessionAge = Date.now() - recoveryData.session.lastActivity;
+          console.log(`   Session age: ${Math.round(sessionAge / 1000)}s (max: ${60 * 60}s)`);
+          sessionPersistenceService.clearAll();
+          return false;
+        }
+
+        console.log(`🏠 Attempting to reconnect to room ${recoveryData.session.roomCode} as ${recoveryData.session.userType}`);
+
+        // Load game state first
+        if (recoveryData.gameState) {
+          console.log('🎮 Restoring game state from localStorage');
+          get().loadSessionState();
+        }
+
+        // Restore user information from persisted session
+        set((state) => {
+          state.user = {
+            ...state.user,
+            id: recoveryData.session!.userId,
+            name: recoveryData.session!.userName,
+            type: recoveryData.session!.userType,
+            connected: false, // Will be set to true when WebSocket connects
+          };
+        });
+
+        // Import webSocketService here to avoid circular dependencies
+        const { webSocketService } = await import('@/utils/websocket');
+
+        // Attempt to reconnect to the WebSocket session
+        console.log(`🔌 Connecting WebSocket: roomCode=${recoveryData.session.roomCode}, userType=${recoveryData.session.userType}`);
+
+        // Pass the userType to determine if this is a host reconnection or player join
+        await webSocketService.connect(recoveryData.session.roomCode, recoveryData.session.userType);
+
+        // If we're the host and have game state, send it to the server
+        if (recoveryData.session.userType === 'host' && recoveryData.gameState && recoveryData.gameState.scenes.length > 0) {
+          console.log('📤 Sending restored game state to server');
+          webSocketService.sendGameStateUpdate({
+            sceneState: {
+              scenes: recoveryData.gameState.scenes,
+              activeSceneId: recoveryData.gameState.activeSceneId
+            },
+            characters: recoveryData.gameState.characters || [],
+            initiative: recoveryData.gameState.initiative || {},
+          });
+        }
+
+        console.log(`✅ Session recovery successful for room ${recoveryData.session.roomCode}`);
+        console.log(`🎮 Current game state after recovery:`, get().sceneState);
+        return true;
+      } catch (error) {
+        console.error('❌ Session recovery failed:', error);
+
+        // Only clear session data if WebSocket connection failed
+        // Keep local state in case user wants to try manual reconnection
+        if (error instanceof Error && error.message.includes('WebSocket')) {
+          console.log('🔄 WebSocket reconnection failed, but keeping local session data');
+        } else {
+          sessionPersistenceService.clearAll();
+        }
+
+        return false;
+      }
+    },
+
+    clearSessionData: () => {
+      sessionPersistenceService.clearAll();
+      console.log('🗑️ All session data cleared');
+    },
+
+    // Developer Actions
+    toggleMockData: (enable) => {
+      if (process.env.NODE_ENV !== 'development') return;
+
+      set((state) => {
+        state.session = enable ? MOCK_SESSION : null;
+        // When disabling mock data, also reset the user to avoid being stuck as the mock host.
+        if (!enable) {
+          state.user = { ...initialState.user, id: uuidv4() };
+        }
+      });
     },
   }))
 );

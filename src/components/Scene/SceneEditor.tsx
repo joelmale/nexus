@@ -12,7 +12,7 @@ interface SceneEditorProps {
 
 export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
   const { updateScene } = useGameStore();
-  const { storeImage, deleteImage } = useSceneImages();
+  const { storeImage } = useSceneImages();
   const [formData, setFormData] = useState({
     name: scene.name,
     description: scene.description || '',
@@ -74,8 +74,6 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
         setIsUploading(false);
       };
       
-      // For stored images, we need to get the blob URL to load it
-      const blobUrl = await storeImage(file, scene.id);
       img.src = URL.createObjectURL(file); // Use the original file for immediate preview
       
     } catch (error) {
@@ -124,6 +122,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
         color: formData.gridColor,
         opacity: Math.max(0, Math.min(1, Number(formData.gridOpacity))),
         snapToGrid: formData.snapToGrid,
+        showToPlayers: true,
       },
       backgroundImage,
     };

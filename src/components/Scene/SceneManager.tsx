@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useGameStore, useScenes, useActiveScene, useIsHost } from '@/stores/gameStore';
+import { useGameStore, useScenes, useActiveScene, useIsHost, useUser } from '@/stores/gameStore';
 import { SceneCanvas } from './SceneCanvas';
 import { SceneList } from './SceneList';
 import { SceneEditor } from './SceneEditor';
+import { sceneUtils } from '@/utils/sceneUtils';
 import type { Scene } from '@/types/game';
 
 export const SceneManager: React.FC = () => {
@@ -10,22 +11,12 @@ export const SceneManager: React.FC = () => {
   const scenes = useScenes();
   const activeScene = useActiveScene();
   const isHost = useIsHost();
+  const user = useUser();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingScene, setEditingScene] = useState<Scene | null>(null);
 
   const handleCreateScene = () => {
-    const defaultScene = {
-      name: `Scene ${scenes.length + 1}`,
-      description: '',
-      gridSettings: {
-        enabled: true,
-        size: 50,
-        color: '#ffffff',
-        opacity: 0.3,
-        snapToGrid: true,
-      },
-    };
-    
+    const defaultScene = sceneUtils.createDefaultScene(`Scene ${scenes.length + 1}`, user.id);
     const newScene = createScene(defaultScene);
     setEditingScene(newScene);
     setIsEditorOpen(true);

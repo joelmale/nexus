@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 export type DeviceType = 'mobile' | 'tablet' | 'desktop';
 export type ScreenSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -139,7 +139,7 @@ export const canUseFloatingWindows = (): Promise<boolean> => {
       } else {
         resolve(false);
       }
-    } catch (error) {
+    } catch {
       resolve(false);
     }
   });

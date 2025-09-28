@@ -36,13 +36,42 @@ export function rollDice(count: number, sides: number): number[] {
 export function createDiceRoll(
   expression: string,
   userId: string,
-  userName: string
+  userName: string,
+  options: {
+    isPrivate?: boolean;
+    advantage?: boolean;
+    disadvantage?: boolean;
+  } = {}
 ): DiceRoll | null {
   const parsed = parseDiceExpression(expression);
   if (!parsed) return null;
   
   const results = rollDice(parsed.count, parsed.sides);
-  const total = results.reduce((sum, roll) => sum + roll, 0) + parsed.modifier;
+  let advResults: number[] | undefined = undefined;
+  let total: number;
+
+  const rollSum = (rolls: number[]) => rolls.reduce((sum, r) => sum + r, 0);
+
+  if ((options.advantage || options.disadvantage) && parsed.count > 0) {
+    advResults = rollDice(parsed.count, parsed.sides);
+    const sum1 = rollSum(results);
+    const sum2 = rollSum(advResults);
+
+    if (options.advantage) {
+      total = Math.max(sum1, sum2) + parsed.modifier;
+    } else { // Disadvantage
+      total = Math.min(sum1, sum2) + parsed.modifier;
+    }
+  } else {
+    total = rollSum(results) + parsed.modifier;
+  }
+  
+  let crit: 'success' | 'failure' | undefined = undefined;
+  // Check for critical success/failure on a single d20 roll
+  if (parsed.count === 1 && parsed.sides === 20) {
+    if (results[0] === 20) crit = 'success';
+    if (results[0] === 1) crit = 'failure';
+  }
   
   return {
     id: uuidv4(),
@@ -50,33 +79,49 @@ export function createDiceRoll(
     userName,
     expression,
     results,
+    advResults,
     total,
+    crit,
     timestamp: Date.now(),
+    isPrivate: options.isPrivate || false,
   };
 }
 
 export function formatDiceRoll(roll: DiceRoll): string {
-  const { expression, results, total } = roll;
+  const { expression, results, total, advResults, crit } = roll;
   const parsed = parseDiceExpression(expression);
   
   if (!parsed) return `${expression} = ${total}`;
   
-  let result = `${expression}: [${results.join(', ')}]`;
-  
-  if (parsed.modifier !== 0) {
-    const rollSum = results.reduce((sum, r) => sum + r, 0);
-    result += ` ${parsed.modifier >= 0 ? '+' : ''}${parsed.modifier}`;
-    result += ` = ${total}`;
+  let resultText = '';
+  const critClass = crit === 'success' ? 'crit-success' : crit === 'failure' ? 'crit-failure' : '';
+
+  if (advResults) {
+    const sum1 = results.reduce((s, r) => s + r, 0);
+    const sum2 = advResults.reduce((s, r) => s + r, 0);
+    const isAdvantage = (sum1 + parsed.modifier) === roll.total || (sum2 + parsed.modifier) === roll.total ? Math.max(sum1, sum2) === roll.total - parsed.modifier : false;
+
+    const firstRollKept = isAdvantage ? sum1 >= sum2 : sum1 <= sum2;
+
+    const formatRollSet = (rolls: number[], kept: boolean) => 
+      `<span class="${kept ? 'kept-roll' : 'discarded-roll'}">[${rolls.join(', ')}]</span>`;
+
+    resultText = `${expression}: ${formatRollSet(results, firstRollKept)} | ${formatRollSet(advResults, !firstRollKept)}`;
   } else {
-    result += ` = ${total}`;
+    resultText = `${expression}: <span class="${critClass}">[${results.join(', ')}]</span>`;
   }
   
-  return result;
+  if (parsed.modifier !== 0) {
+    resultText += ` ${parsed.modifier >= 0 ? '+' : ''}${parsed.modifier}`;
+  }
+  
+  resultText += ` = <strong class="roll-total ${critClass}">${total}</strong>`;
+  
+  return resultText;
 }
 
 // Common dice expressions for quick access
 export const COMMON_DICE = [
   'd4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100',
-  '2d6', '3d6', '4d6',
-  '1d20+5', '1d20-2'
+  '2d6', '3d6', '4d6'
 ];

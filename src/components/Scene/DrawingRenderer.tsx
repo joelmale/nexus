@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { useUser, useActiveScene } from '@/stores/gameStore';
-import type { Drawing } from '@/types/drawing';
+import { useActiveScene } from '@/stores/gameStore';
+import type { Drawing, BaseDrawing } from '@/types/drawing';
 import type { Camera } from '@/types/game';
 
 interface DrawingRendererProps {
@@ -14,7 +14,6 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
   camera, 
   isHost 
 }) => {
-  const user = useUser();
   const activeScene = useActiveScene();
 
   // Get all drawings for this scene
@@ -91,29 +90,33 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
         );
 
       case 'polygon':
-        if (drawing.points.length < 3) return null;
-        const pathData = `M ${drawing.points.map(p => `${p.x} ${p.y}`).join(' L ')} Z`;
-        return (
-          <path
-            key={drawing.id}
-            d={pathData}
-            {...commonProps}
-          />
-        );
+        {
+          if (drawing.points.length < 3) return null;
+          const pathData = `M ${drawing.points.map(p => `${p.x} ${p.y}`).join(' L ')} Z`;
+          return (
+            <path
+              key={drawing.id}
+              d={pathData}
+              {...commonProps}
+            />
+          );
+        }
 
       case 'pencil':
-        if (drawing.points.length < 2) return null;
-        const pencilPath = `M ${drawing.points.map(p => `${p.x} ${p.y}`).join(' L ')}`;
-        return (
-          <path
-            key={drawing.id}
-            d={pencilPath}
-            {...commonProps}
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        );
+        {
+          if (drawing.points.length < 2) return null;
+          const pencilPath = `M ${drawing.points.map(p => `${p.x} ${p.y}`).join(' L ')}`;
+          return (
+            <path
+              key={drawing.id}
+              d={pencilPath}
+              {...commonProps}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          );
+        }
 
       case 'cone':
         return renderCone(drawing, commonProps);
@@ -171,12 +174,12 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
         return renderLineAoE(drawing, commonProps);
 
       default:
-        console.warn(`Unknown drawing type: ${(drawing as any).type}`);
+        console.warn(`Unknown drawing type: ${(drawing as BaseDrawing).type}`);
         return null;
     }
   };
 
-  const renderCone = (drawing: Drawing & { type: 'cone' }, props: any) => {
+  const renderCone = (drawing: Drawing & { type: 'cone' }, props: React.SVGAttributes<SVGPathElement>) => {
     const { origin, direction, length, angle } = drawing;
     const angleRad = (direction * Math.PI) / 180;
     const coneAngleRad = (angle * Math.PI) / 180;
@@ -199,7 +202,7 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
     );
   };
 
-  const renderLineAoE = (drawing: Drawing & { type: 'aoe-line' }, props: any) => {
+  const renderLineAoE = (drawing: Drawing & { type: 'aoe-line' }, props: React.SVGAttributes<SVGPathElement>) => {
     const { start, end, width } = drawing;
     const angle = Math.atan2(end.y - start.y, end.x - start.x);
     

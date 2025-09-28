@@ -2,10 +2,15 @@
 
 .settings-container {
   max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
 }
 
+  
 .settings-header {
   display: flex;
   align-items: center;
@@ -32,6 +37,9 @@
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* Settings Sections */
@@ -41,15 +49,15 @@
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius-lg);
-  padding: 2rem;
+  padding: 1rem;
   box-shadow: var(--shadow-glass);
   animation: glassAppear 0.6s ease-out;
 }
 
 .settings-section-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: .5rem;
   border-bottom: 1px solid var(--glass-border);
-  padding-bottom: 1rem;
+  padding-bottom: .5rem;
 }
 
 .settings-section-header h3 {
@@ -438,6 +446,107 @@ input:disabled + .toggle-slider {
   height: 16px;
   border-radius: 3px;
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Campaign Backup Section */
+.backup-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--glass-surface-weak);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--glass-text-muted);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 0.95rem;
+  color: var(--glass-text);
+  font-weight: 600;
+}
+
+.stat-value.dirty {
+  color: #fbbf24; /* yellow for unsaved changes */
+}
+
+.stat-value.clean {
+  color: #10b981; /* green for saved */
+}
+
+.setting-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.setting-button.primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.setting-button.primary:hover {
+  background: var(--color-primary-dark);
+}
+
+.setting-button.secondary {
+  background: transparent;
+  color: var(--glass-text);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.setting-button.secondary:hover {
+  background: var(--glass-surface-hover);
+}
+
+.setting-button.tertiary {
+  background: var(--glass-surface-weak);
+  color: var(--glass-text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.setting-button.tertiary:hover {
+  color: var(--glass-text);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.setting-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .scheme-label {

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { dndUtils, type Point, type Drawing, type DrawingStyle, type DrawingTool } from '@/types/drawing';
+import { type Point, type Drawing, type DrawingStyle, type DrawingTool } from '@/types/drawing';
 import type { Camera } from '@/types/game';
 import { useUser, useActiveScene, useDrawingActions } from '@/stores/gameStore';
 import { webSocketService } from '@/utils/websocket';
@@ -8,7 +8,7 @@ interface DrawingToolsProps {
   activeTool: DrawingTool | 'select' | 'pan' | 'measure';
   drawingStyle: DrawingStyle;
   camera: Camera;
-  gridSize: number;
+  _gridSize: number;
   svgRef: React.RefObject<SVGSVGElement>;
   onSelectionChange?: (selectedDrawings: string[]) => void;
 }
@@ -17,7 +17,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   activeTool,
   drawingStyle,
   camera,
-  gridSize,
+  _gridSize,
   svgRef,
   onSelectionChange
 }) => {
@@ -28,12 +28,12 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   const [pencilPath, setPencilPath] = useState<Point[]>([]);
   const [selectedDrawings, setSelectedDrawings] = useState<string[]>([]);
   const [isErasing, setIsErasing] = useState(false);
-  const [eraserRadius, setEraserRadius] = useState(20);
+  const eraserRadius = 20;
   const [selectionBox, setSelectionBox] = useState<{ start: Point; end: Point } | null>(null);
   
   const user = useUser();
   const activeScene = useActiveScene();
-  const { createDrawing, deleteDrawing, updateDrawing } = useDrawingActions();
+  const { createDrawing, deleteDrawing } = useDrawingActions();
   const isHost = user.type === 'host';
 
   // Convert screen coordinates to scene coordinates
@@ -95,38 +95,43 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       
       let intersects = false;
       
-      switch (drawing.type) {
-        case 'line':
-          intersects = isPointNearLine(point, drawing.start, drawing.end, radius);
-          break;
-        case 'rectangle':
-          intersects = isPointInRectangle(point, {
-            x: drawing.x,
-            y: drawing.y,
-            width: drawing.width,
-            height: drawing.height
-          }, radius);
-          break;
-        case 'circle':
-          const distance = Math.sqrt(
+      switch (drawing.type) { 
+        case 'line': {
+          intersects = isPointNearLine(point, drawing.start, drawing.end, radius); 
+          break; 
+        }
+        case 'rectangle': {
+          intersects = isPointInRectangle(point, { 
+            x: drawing.x, 
+            y: drawing.y, 
+            width: drawing.width, 
+            height: drawing.height 
+          }, radius); 
+          break; 
+        }
+        case 'circle': {
+          const distance = Math.sqrt( 
             Math.pow(point.x - drawing.center.x, 2) + 
-            Math.pow(point.y - drawing.center.y, 2)
-          );
-          intersects = distance <= drawing.radius + radius;
-          break;
-        case 'pencil':
+            Math.pow(point.y - drawing.center.y, 2) 
+          ); 
+          intersects = distance <= drawing.radius + radius; 
+          break; 
+        }
+        case 'pencil': {
           intersects = drawing.points.some(p => 
-            Math.sqrt(Math.pow(point.x - p.x, 2) + Math.pow(point.y - p.y, 2)) <= radius
-          );
-          break;
-        case 'polygon':
+            Math.sqrt(Math.pow(point.x - p.x, 2) + Math.pow(point.y - p.y, 2)) <= radius 
+          ); 
+          break; 
+        }
+        case 'polygon': {
           intersects = isPointInPolygon(point, drawing.points) || 
             drawing.points.some(p => 
-              Math.sqrt(Math.pow(point.x - p.x, 2) + Math.pow(point.y - p.y, 2)) <= radius
-            );
-          break;
-        default:
-          break;
+              Math.sqrt(Math.pow(point.x - p.x, 2) + Math.pow(point.y - p.y, 2)) <= radius 
+            ); 
+          break; 
+        }
+        default: 
+          break; 
       }
       
       if (intersects) {
@@ -230,13 +235,24 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
     
+    // Tools that don't interact with mousedown can be handled with an early return.
+    if (activeTool === 'pan' || activeTool === 'measure') {
+      return;
+    }
+    
     const point = screenToScene(e.clientX, e.clientY);
     
-    switch (activeTool) {
-      case 'select':
+    const defaultHandler = () => {
+      setStartPoint(point);
+      setCurrentPoint(point);
+      setIsDrawing(true);
+    };
+
+    const mouseDownHandlers: { [key: string]: (event: React.MouseEvent) => void } = {
+      select: (event) => {
         const drawingAtPoint = getDrawingsAtPoint(point, 10)[0];
         if (drawingAtPoint) {
-          if (e.shiftKey) {
+          if (event.shiftKey) {
             const newSelection = selectedDrawings.includes(drawingAtPoint)
               ? selectedDrawings.filter(id => id !== drawingAtPoint)
               : [...selectedDrawings, drawingAtPoint];
@@ -251,79 +267,67 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
           setSelectedDrawings([]);
           onSelectionChange?.([]);
         }
-        setStartPoint(point);
-        setCurrentPoint(point);
-        setIsDrawing(true);
-        break;
-        
-      case 'eraser':
+        defaultHandler();
+      },
+      eraser: () => {
         setIsErasing(true);
         const drawingsToErase = getDrawingsAtPoint(point, eraserRadius);
         drawingsToErase.forEach(id => deleteAndSyncDrawing(id));
         setStartPoint(point);
-        break;
-        
-      case 'pan':
-      case 'measure':
-        return;
-        
-      default:
-        if (activeTool === 'polygon') {
-          setPolygonPoints(prev => [...prev, point]);
-          return;
-        }
-        
-        if (activeTool === 'pencil') {
-          setPencilPath([point]);
-          setIsDrawing(true);
-          return;
-        }
-        
-        setStartPoint(point);
-        setCurrentPoint(point);
+      },
+      polygon: () => {
+        setPolygonPoints(prev => [...prev, point]);
+      },
+      pencil: () => {
+        setPencilPath([point]);
         setIsDrawing(true);
-        break;
+      },
     }
     
+    const handler = mouseDownHandlers[activeTool] || defaultHandler;
+    handler(e);
+
     e.stopPropagation();
   }, [activeTool, screenToScene, selectedDrawings, onSelectionChange, getDrawingsAtPoint, deleteAndSyncDrawing, eraserRadius]);
 
   // Handle mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (activeTool === 'pan' || activeTool === 'measure') return;
+
     const point = screenToScene(e.clientX, e.clientY);
-    
-    switch (activeTool) {
-      case 'select':
+
+    const defaultHandler = () => {
+      if (isDrawing) {
+        setCurrentPoint(point);
+      }
+    };
+
+    const mouseMoveHandlers: { [key: string]: () => void } = {
+      select: () => {
         if (isDrawing && selectionBox) {
           setSelectionBox({ start: selectionBox.start, end: point });
           setCurrentPoint(point);
         }
-        break;
-        
-      case 'eraser':
+      },
+      eraser: () => {
         if (isErasing) {
           const drawingsToErase = getDrawingsAtPoint(point, eraserRadius);
           drawingsToErase.forEach(id => deleteAndSyncDrawing(id));
         }
-        break;
-        
-      default:
-        if (!isDrawing && activeTool !== 'polygon') return;
-        
-        if (activeTool === 'pencil' && isDrawing) {
+      },
+      pencil: () => {
+        if (isDrawing) {
           setPencilPath(prev => [...prev, point]);
-          return;
         }
-        
-        if (activeTool === 'polygon') {
-          setCurrentPoint(point);
-          return;
-        }
-        
+      },
+      polygon: () => {
         setCurrentPoint(point);
-        break;
+      },
     }
-    
+
+    const handler = mouseMoveHandlers[activeTool] || defaultHandler;
+    handler();
+
     e.stopPropagation();
   }, [activeTool, screenToScene, isDrawing, isErasing, selectionBox, getDrawingsAtPoint, deleteAndSyncDrawing, eraserRadius]);
 
@@ -331,21 +335,23 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     const endPoint = screenToScene(e.clientX, e.clientY);
     
-    switch (activeTool) {
-      case 'select':
+    switch (activeTool) { 
+      case 'select': {
         if (selectionBox) {
           const selectedIds = getDrawingsInSelection(selectionBox.start, selectionBox.end);
           setSelectedDrawings(selectedIds);
           onSelectionChange?.(selectedIds);
           setSelectionBox(null);
         }
-        break;
+        break; 
+      }
         
-      case 'eraser':
+      case 'eraser': {
         setIsErasing(false);
         break;
+      }
         
-      default:
+      default: {
         if (!isDrawing || !startPoint || activeTool === 'polygon') return;
         
         const baseDrawing = {
@@ -357,37 +363,37 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
           createdBy: user.id,
         } as const;
 
-        let drawing: Drawing;
-
-        switch (activeTool) {
-          case 'line':
-            drawing = { ...baseDrawing, type: 'line', start: startPoint, end: endPoint };
-            break;
-          case 'rectangle':
-            drawing = {
+        // A dispatch table is a cleaner and more scalable alternative to a large switch statement.
+        const drawingCreators: { [key in DrawingTool]?: () => Drawing } = {
+          line: () => ({ ...baseDrawing, type: 'line', start: startPoint, end: endPoint }),
+          rectangle: () => ({
               ...baseDrawing,
               type: 'rectangle',
               x: Math.min(startPoint.x, endPoint.x),
               y: Math.min(startPoint.y, endPoint.y),
               width: Math.abs(endPoint.x - startPoint.x),
               height: Math.abs(endPoint.y - startPoint.y),
-            };
-            break;
-          case 'circle':
+          }),
+          circle: () => {
             const radius = Math.sqrt(
               Math.pow(endPoint.x - startPoint.x, 2) + Math.pow(endPoint.y - startPoint.y, 2)
             );
-            drawing = { ...baseDrawing, type: 'circle', center: startPoint, radius };
-            break;
-          case 'pencil':
-            drawing = { ...baseDrawing, type: 'pencil', points: pencilPath };
-            break;
-          default:
-            return;
-        }
+            return { ...baseDrawing, type: 'circle', center: startPoint, radius };
+          },
+          pencil: () => ({ ...baseDrawing, type: 'pencil', points: pencilPath }),
+        };
 
-        createAndSyncDrawing(drawing);
+        const createDrawingFunc = drawingCreators[activeTool as DrawingTool];
+
+        if (createDrawingFunc) {
+          const drawing = createDrawingFunc();
+          createAndSyncDrawing(drawing);
+        } else {
+          // If no creator function is found for the active tool, do nothing.
+          console.warn(`No drawing creator found for tool: ${activeTool}`);
+        }
         break;
+      }
     }
     
     setIsDrawing(false);

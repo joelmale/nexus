@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGameStore, useSettings, useColorScheme } from '@/stores/gameStore';
-import { 
-  defaultColorSchemes, 
-  generateRandomColorScheme, 
+import {
+  defaultColorSchemes,
+  generateRandomColorScheme,
   applyColorScheme,
-  getColorSchemePreview 
+  getColorSchemePreview
 } from '@/utils/colorSchemes';
-import { RefreshIcon, ColorIcon, SaveIcon } from './Icons';
+import { getLinearFlowStorage } from '@/services/linearFlowStorage';
+import { RefreshIcon, SaveIcon } from './Icons';
 import type { ColorScheme, UserSettings } from '@/types/game';
 
 /**
@@ -101,8 +102,6 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
     applyColorScheme(scheme);
     setIsDropdownOpen(false);
   };
-
-  const allSchemes = [...defaultColorSchemes, ...customSchemes];
 
   // Helper function to format the color string for display.
   const getHexColor = (color: string): string => {
@@ -229,7 +228,7 @@ export const Settings: React.FC = () => {
   }, [currentColorScheme]);
 
   // Generic handler for updating any setting in the global store.
-  const handleSettingChange = (key: keyof UserSettings, value: any) => {
+  const handleSettingChange = (key: keyof UserSettings, value: UserSettings[keyof UserSettings]) => {
     updateSettings({ [key]: value });
     setHasUnsavedChanges(true);
   };
@@ -312,7 +311,7 @@ export const Settings: React.FC = () => {
           >
             <select 
               value={settings.theme}
-              onChange={(e) => handleSettingChange('theme', e.target.value)}
+              onChange={(e) => handleSettingChange('theme', e.target.value as UserSettings['theme'])}
               className="setting-select"
             >
               <option value="auto">Auto (System)</option>
@@ -327,7 +326,7 @@ export const Settings: React.FC = () => {
           >
             <select 
               value={settings.fontSize}
-              onChange={(e) => handleSettingChange('fontSize', e.target.value)}
+              onChange={(e) => handleSettingChange('fontSize', e.target.value as UserSettings['fontSize'])}
               className="setting-select"
             >
               <option value="small">Small</option>
@@ -541,7 +540,7 @@ export const Settings: React.FC = () => {
           >
             <select 
               value={settings.imageQuality}
-              onChange={(e) => handleSettingChange('imageQuality', e.target.value)}
+              onChange={(e) => handleSettingChange('imageQuality', e.target.value as UserSettings['imageQuality'])}
               className="setting-select"
             >
               <option value="low">Low (Faster)</option>
@@ -612,7 +611,166 @@ export const Settings: React.FC = () => {
             </label>
           </SettingItem>
         </SettingsSection>
+
+        {/* Developer Settings - only show in development environment */}
+        {process.env.NODE_ENV === 'development' && (
+          <SettingsSection
+            title="Developer"
+            description="Settings for development and testing purposes"
+          >
+            <SettingItem
+              label="Use Mock Data"
+              description="Populate the lobby with mock players for testing"
+            >
+              <label className="setting-toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.useMockData ?? false}
+                  onChange={(e) => handleSettingChange('useMockData', e.target.checked)}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </SettingItem>
+          </SettingsSection>
+        )}
+
+        {/* Campaign Data Section */}
+        <SettingsSection
+          title="📦 Campaign Data"
+          description="Backup and restore your campaign data"
+        >
+          <CampaignBackupSection />
+        </SettingsSection>
       </div>
     </div>
+  );
+};
+
+// Campaign Backup Section Component
+const CampaignBackupSection: React.FC = () => {
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [stats, setStats] = useState<any>(null);
+
+  const storage = getLinearFlowStorage();
+
+  // Load stats on mount
+  useEffect(() => {
+    setStats(storage.getStats());
+  }, []);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      storage.downloadBackup();
+      console.log('📥 Campaign exported successfully');
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImport = async () => {
+    setIsImporting(true);
+    try {
+      await storage.uploadBackup();
+      setStats(storage.getStats()); // Refresh stats
+      console.log('📤 Campaign imported successfully');
+    } catch (error) {
+      console.error('Import failed:', error);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  return (
+    <>
+      <SettingItem
+        label="Campaign Statistics"
+        description="Current data stored in your campaign"
+      >
+        {stats && (
+          <div className="backup-stats">
+            <div className="stat-item">
+              <span className="stat-label">Entities:</span>
+              <span className="stat-value">{stats.entities}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Relationships:</span>
+              <span className="stat-value">{stats.relationships}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Last Saved:</span>
+              <span className="stat-value">
+                {stats.lastSaved ? new Date(stats.lastSaved).toLocaleString() : 'Never'}
+              </span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Status:</span>
+              <span className={`stat-value ${stats.isDirty ? 'dirty' : 'clean'}`}>
+                {stats.isDirty ? 'Unsaved Changes' : 'Saved'}
+              </span>
+            </div>
+          </div>
+        )}
+      </SettingItem>
+
+      <SettingItem
+        label="Export Campaign"
+        description="Download a backup file containing all your campaign data (scenes, characters, settings)"
+      >
+        <button
+          className="setting-button primary"
+          onClick={handleExport}
+          disabled={isExporting}
+        >
+          {isExporting ? (
+            <>
+              <span className="loading-spinner"></span>
+              Exporting...
+            </>
+          ) : (
+            <>
+              📥 Export Campaign
+            </>
+          )}
+        </button>
+      </SettingItem>
+
+      <SettingItem
+        label="Import Campaign"
+        description="Restore from a backup file (will replace current campaign data)"
+      >
+        <button
+          className="setting-button secondary"
+          onClick={handleImport}
+          disabled={isImporting}
+        >
+          {isImporting ? (
+            <>
+              <span className="loading-spinner"></span>
+              Importing...
+            </>
+          ) : (
+            <>
+              📤 Import Campaign
+            </>
+          )}
+        </button>
+      </SettingItem>
+
+      <SettingItem
+        label="Force Save"
+        description="Immediately save all pending changes to IndexedDB"
+      >
+        <button
+          className="setting-button tertiary"
+          onClick={() => storage.forceSave()}
+        >
+          💾 Force Save
+        </button>
+      </SettingItem>
+    </>
   );
 };

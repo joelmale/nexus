@@ -37,35 +37,69 @@
     "dev:all": "node scripts/dev-setup.js",
     "start:full": "concurrently \"npm run server:dev\" \"npm run dev\" --names \"backend,frontend\" --prefix-colors \"blue,green\"",
     "start:all": "node scripts/start-all.js",
-    "dev:quick": "node scripts/start-all.js"
+    "dev:quick": "node scripts/start-all.js",
+    "test": "vitest",
+    "test:unit": "vitest run tests/unit/**",
+    "test:integration": "vitest run --dir tests/integration",
+    "test:e2e": "vitest run --dir tests/e2e",
+    "test:all": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "test:layout": "playwright test tests/layout.test.ts",
+    "test:layout:quick": "playwright test tests/layout.test.ts --grep 'Layout panels should not exceed viewport height'",
+    "test:visual": "playwright test tests/visual-regression.test.ts",
+    "validate-layout": "node scripts/validate-layout-css.js",
+    "validate-env": "node scripts/validate-env.js",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
   },
   "dependencies": {
+    "@msgpack/msgpack": "^3.1.2",
     "dotenv": "^17.2.2",
     "immer": "^10.0.3",
-    "react": "^18.2.0",
+    "react": "^18.3.1",
     "react-dom": "^18.2.0",
     "sharp": "^0.34.4",
+    "transit-js": "^0.8.874",
     "uuid": "^9.0.1",
+    "vue-sonner": "^2.0.8",
     "ws": "^8.14.2",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.0.0",
+    "@commitlint/config-conventional": "^20.0.0",
     "@eslint/config-array": "^0.17.1",
     "@eslint/js": "^9.9.0",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^20.10.4",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
+    "@types/transit-js": "^0.8.3",
     "@types/uuid": "^9.0.7",
     "@types/ws": "^8.5.10",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/ui": "^3.2.4",
     "concurrently": "^8.2.2",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.21",
     "globals": "^15.9.0",
+    "husky": "^9.1.7",
+    "jsdom": "^27.0.0",
+    "lint-staged": "^16.2.1",
+    "prettier": "^3.6.2",
     "tsx": "^4.6.2",
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.0.8"
+    "vite": "^5.0.8",
+    "vitest": "^3.2.4"
   }
 }

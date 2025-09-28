@@ -111,7 +111,7 @@
 
 /* Lobby overrides - uses color scheme */
 .theme-solid .lobby-content {
-  background: var(--solid-bg-primary);
+  background: rgba(var(--color-surface-rgb), 0.3);
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
@@ -362,9 +362,9 @@
 .theme-solid .background-overlay {
   background: linear-gradient(
     135deg,
-    rgba(var(--color-surface-rgb), 0.8) 0%,
-    rgba(var(--color-surface-rgb), 0.9) 50%,
-    rgba(var(--color-surface-rgb), 0.8) 100%
+    rgba(var(--color-surface-rgb), 0.1) 0%,
+    rgba(var(--color-surface-rgb), 0.15) 50%,
+    rgba(var(--color-surface-rgb), 0.1) 100%
   );
   backdrop-filter: none !important;
 }
@@ -487,9 +487,211 @@
   background: var(--solid-border-light);
 }
 
+/* Settings and panel overrides for solid theme */
+.theme-solid .settings-section {
+  background: var(--solid-bg-primary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .scene-panel-header {
+  background: var(--solid-bg-primary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .visibility-option {
+  background: var(--solid-bg-secondary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-solid .visibility-option:hover {
+  background: var(--solid-bg-hover);
+  border-color: var(--solid-border-light);
+}
+
+.theme-solid .scene-section {
+  background: var(--solid-bg-primary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .checkbox-label {
+  background: var(--solid-bg-secondary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-solid .checkbox-label:hover {
+  background: var(--solid-bg-hover);
+  border-color: var(--solid-border-light);
+}
+
+.theme-solid .dropdown-trigger {
+  background: var(--solid-bg-secondary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+}
+
+.theme-solid .dropdown-trigger:hover {
+  background: var(--solid-bg-hover);
+  border-color: var(--solid-border-light);
+}
+
+.theme-solid .dropdown-menu {
+  background: var(--solid-bg-primary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.theme-solid .dropdown-item:hover {
+  background: var(--solid-bg-hover);
+}
+
+.theme-solid .dropdown-item.active {
+  background: var(--solid-bg-tertiary);
+  border-left: 3px solid var(--color-primary);
+}
+
+/* Form controls in solid theme */
+.theme-solid .setting-select,
+.theme-solid .setting-input {
+  background: var(--solid-bg-secondary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+  color: var(--solid-text);
+}
+
+.theme-solid .setting-select:focus,
+.theme-solid .setting-input:focus {
+  background: var(--solid-bg-hover);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.theme-solid .toggle-slider {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.theme-solid .volume-slider {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+}
+
+/* Scene editing controls in solid theme */
+.theme-solid .scene-name-display,
+.theme-solid .scene-description-display {
+  background: var(--solid-bg-secondary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-solid .scene-name-display:hover,
+.theme-solid .scene-description-display:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .scene-name-input,
+.theme-solid .scene-description-input {
+  background: var(--solid-bg-secondary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--color-accent);
+  color: var(--solid-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-solid .scene-name-input:focus,
+.theme-solid .scene-description-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+/* Scene management UI in solid theme */
+.theme-solid .scene-controls {
+  background: var(--solid-bg-primary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .scene-item {
+  background: var(--solid-bg-secondary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+}
+
+.theme-solid .scene-item:hover {
+  background: var(--solid-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .scene-item.active {
+  background: var(--solid-bg-tertiary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 20px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.theme-solid .empty-state {
+  background: var(--solid-bg-primary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .no-scene {
+  background: var(--solid-bg-secondary);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .background-preview {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+}
+
+.theme-solid .background-upload {
+  background: var(--solid-bg-secondary);
+  border: 2px dashed var(--solid-border);
+}
+
+.theme-solid .background-upload:hover {
+  border-color: var(--solid-border-light);
+  background: var(--solid-bg-hover);
+}
+
 /* Ensure text remains readable in solid theme */
 .theme-solid .layout-panel .panel-body,
 .theme-solid .settings-container {
+  height: 100%;
+  max-height: 100%;
   --glass-text: var(--solid-text);
   --glass-text-muted: var(--solid-text-muted);
   --glass-text-light: var(--solid-text-light);

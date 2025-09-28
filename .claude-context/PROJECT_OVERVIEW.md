@@ -14,6 +14,11 @@ Nexus is a modern virtual tabletop (VTT) for D&D and other tabletop RPGs, built 
 - Dynamically-sized side panel that adjusts to its content
 - Comprehensive settings panel for user customization
 
+## User Personas
+
+- **The DM, 'Alex'**: Needs tools that are fast, intuitive, and automate as much of the tedious bookkeeping as possible so they can focus on storytelling.
+- **The Player, 'Sam'**: Needs a character sheet that is easy to read, update, and use during a session. They want to feel immersed in the game, not bogged down by the interface.
+
 ## Architecture Overview
 - **Frontend**: React 18 + TypeScript + Vite
 - **Backend**: Node.js + Socket.IO for real-time features

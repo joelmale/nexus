@@ -251,7 +251,7 @@ export const getColorSchemePreview = (colorScheme: ColorScheme): string[] => {
 export const getContrastRatio = (color1: string, color2: string): number => {
   // This is a simplified contrast calculation
   // In a production app, you'd want a more robust implementation
-  const getLuminance = (color: string): number => {
+  const getLuminance = (_color: string): number => {
     // Simple luminance approximation
     return 0.5; // Placeholder - would need proper color parsing
   };

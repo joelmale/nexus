@@ -1,6 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useGameStore, useIsHost, useCamera } from '@/stores/gameStore';
-import { webSocketService } from '@/utils/websocket';
 
 interface Position {
   x: number;
@@ -60,7 +59,7 @@ export const GameToolbar: React.FC = () => {
       document.body.style.userSelect = 'none';
     };
     
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e: { clientX: number; clientY: number; }) => {
       if (!isDraggingRef.current) return;
       
       // Calculate new position based on mouse movement
@@ -76,7 +75,7 @@ export const GameToolbar: React.FC = () => {
       }
     };
     
-    const handleMouseUp = (e: MouseEvent) => {
+    const handleMouseUp = () => {
       if (!isDraggingRef.current) return;
       
       isDraggingRef.current = false;
@@ -100,7 +99,7 @@ export const GameToolbar: React.FC = () => {
     
     // Add global event listeners for move and up
     const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMove(e);
-    const handleGlobalMouseUp = (e: MouseEvent) => handleMouseUp(e);
+    const handleGlobalMouseUp = () => handleMouseUp();
     
     document.addEventListener('mousemove', handleGlobalMouseMove);
     document.addEventListener('mouseup', handleGlobalMouseUp);
@@ -122,8 +121,8 @@ export const GameToolbar: React.FC = () => {
       }));
     };
     
-    const handleTouchEnd = (e: TouchEvent) => {
-      handleMouseUp(new MouseEvent('mouseup'));
+    const handleTouchEnd = () => {
+      handleMouseUp();
     };
     
     dragHandle.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -140,7 +139,7 @@ export const GameToolbar: React.FC = () => {
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, []);
+  }, [translation]);
   
   // Organize tools into two rows for more compact layout
   const toolsRow1 = [
@@ -219,14 +218,14 @@ export const GameToolbar: React.FC = () => {
         {/* First Row - Main Tools and Camera */}
         <div className="toolbar-row">
           <div className="toolbar-group">
-            {toolsRow1.map((tool, index) => {
-              if (tool === '---') {
+            {toolsRow1.map((tool, index) => { 
+              if (typeof tool === 'string') {
                 return <div key={index} className="toolbar-separator" />;
               }
               
               return (
                 <button
-                  key={tool.id}
+                  key={tool.id} 
                   type="button"
                   className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
                   onClick={() => setActiveTool(tool.id)}
@@ -265,14 +264,14 @@ export const GameToolbar: React.FC = () => {
         {isHost && toolsRow2.length > 0 && (
           <div className="toolbar-row toolbar-row-secondary">
             <div className="toolbar-group">
-              {toolsRow2.map((tool, index) => {
-                if (tool === '---') {
+              {toolsRow2.map((tool, index) => { 
+                if (typeof tool === 'string') {
                   return <div key={index} className="toolbar-separator" />;
                 }
                 
                 return (
                   <button
-                    key={tool.id}
+                    key={tool.id} 
                     type="button"
                     className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
                     onClick={() => setActiveTool(tool.id)}

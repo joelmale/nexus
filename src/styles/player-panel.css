@@ -1,0 +1,619 @@
+/* Player Panel Styles */
+
+.player-panel {
+  padding: 1rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+/* Panel Header */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.panel-header h3 {
+  margin: 0;
+  color: var(--glass-text);
+  font-size: 1.2rem;
+}
+
+.back-btn {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  color: var(--glass-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background: var(--glass-surface-hover);
+  transform: translateY(-1px);
+}
+
+.begin-combat-btn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.begin-combat-btn:hover:not(:disabled) {
+  background: var(--color-secondary);
+  transform: translateY(-1px);
+}
+
+.begin-combat-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Section Headers */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header h4 {
+  margin: 0;
+  color: var(--glass-text);
+  font-size: 1rem;
+}
+
+/* My Characters Section */
+.my-characters-section {
+  flex-shrink: 0;
+}
+
+.create-character-btn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.create-character-btn:hover {
+  background: var(--color-secondary);
+  transform: translateY(-1px);
+}
+
+.character-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.character-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.character-item:hover {
+  background: var(--glass-surface-hover);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.character-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.character-info {
+  flex: 1;
+}
+
+.character-name {
+  font-weight: 600;
+  color: var(--glass-text);
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.character-details {
+  color: var(--glass-text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.character-stats {
+  color: var(--glass-text-muted);
+  font-size: 0.8rem;
+}
+
+.character-actions {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.character-item:hover .character-actions {
+  opacity: 1;
+}
+
+.view-icon {
+  font-size: 1.2rem;
+}
+
+.empty-characters {
+  text-align: center;
+  padding: 2rem;
+  color: var(--glass-text-muted);
+}
+
+.empty-characters p {
+  margin: 0.5rem 0;
+}
+
+/* All Players Section */
+.all-players-section {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.players-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Player Cards */
+.player-card {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.player-card.dm-card {
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--glass-surface) 0%, rgba(var(--color-primary-rgb), 0.1) 100%);
+}
+
+.player-card.offline {
+  opacity: 0.7;
+}
+
+.player-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.player-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.player-card.dm-card .player-avatar {
+  background: var(--color-primary);
+}
+
+.player-info {
+  flex: 1;
+}
+
+.player-name {
+  font-weight: 600;
+  color: var(--glass-text);
+  font-size: 1rem;
+}
+
+.player-role {
+  color: var(--glass-text-muted);
+  font-size: 0.9rem;
+  margin: 0.25rem 0;
+}
+
+.character-count {
+  color: var(--glass-text-muted);
+  font-size: 0.8rem;
+}
+
+.connection-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.connection-indicator.online {
+  color: #10b981;
+}
+
+.connection-indicator.offline {
+  color: #ef4444;
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s infinite;
+}
+
+.connection-indicator.offline .indicator-dot {
+  animation: none;
+  opacity: 0.5;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Player Characters */
+.player-characters {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.character-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.character-summary:last-child {
+  margin-bottom: 0;
+}
+
+.character-summary .character-name {
+  font-weight: 500;
+  color: var(--glass-text);
+}
+
+.character-summary .character-details {
+  color: var(--glass-text-muted);
+  flex: 1;
+  text-align: center;
+}
+
+.character-summary .character-hp {
+  color: var(--glass-text-muted);
+  font-family: monospace;
+}
+
+/* Player Controls */
+.player-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.dm-toggle-btn,
+.kick-btn {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.dm-toggle-btn:hover {
+  background: var(--color-secondary);
+  color: white;
+}
+
+.dm-toggle-btn.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.kick-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* Combat Prep Section */
+.combat-prep-section {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  flex-shrink: 0;
+}
+
+.combat-prep-section h4 {
+  margin: 0 0 1rem 0;
+  color: var(--glass-text);
+  font-size: 1rem;
+}
+
+.combat-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.combat-summary p {
+  margin: 0;
+  color: var(--glass-text-muted);
+}
+
+.combat-prep-btn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.combat-prep-btn:hover {
+  background: var(--color-secondary);
+  transform: translateY(-1px);
+}
+
+/* Character Creation Wizard */
+.character-creation-wizard {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  height: 100%;
+}
+
+.wizard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 1rem;
+}
+
+.wizard-header h3 {
+  margin: 0;
+  color: var(--glass-text);
+}
+
+.wizard-progress {
+  color: var(--glass-text-muted);
+  font-size: 0.9rem;
+}
+
+.wizard-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--glass-text-muted);
+  transition: color 0.2s ease;
+}
+
+.wizard-close:hover {
+  color: #ef4444;
+}
+
+.wizard-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.wizard-step h4 {
+  margin: 0 0 1rem 0;
+  color: var(--glass-text);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--glass-text);
+  font-weight: 500;
+}
+
+.wizard-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  background: var(--glass-surface);
+  color: var(--glass-text);
+  font-size: 1rem;
+}
+
+.wizard-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.race-grid,
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.race-option,
+.class-option {
+  padding: 1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  background: var(--glass-surface);
+  color: var(--glass-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.race-option:hover,
+.class-option:hover {
+  background: var(--glass-surface-hover);
+  border-color: var(--color-primary);
+}
+
+.race-option.selected,
+.class-option.selected {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.character-summary {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+}
+
+.character-summary h5 {
+  margin: 0 0 1rem 0;
+  color: var(--glass-text);
+}
+
+.character-summary p {
+  margin: 0.5rem 0;
+  color: var(--glass-text);
+}
+
+.wizard-footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.wizard-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.wizard-btn.primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.wizard-btn.primary:hover:not(:disabled) {
+  background: var(--color-secondary);
+  transform: translateY(-1px);
+}
+
+.wizard-btn.secondary {
+  background: var(--glass-surface);
+  color: var(--glass-text);
+  border: 1px solid var(--glass-border);
+}
+
+.wizard-btn.secondary:hover:not(:disabled) {
+  background: var(--glass-surface-hover);
+}
+
+.wizard-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .player-panel {
+    padding: 0.5rem;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .section-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .character-item {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .player-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .combat-summary {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .race-grid,
+  .class-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .wizard-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

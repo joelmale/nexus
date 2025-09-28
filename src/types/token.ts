@@ -12,7 +12,7 @@ export interface TokenStats {
   ac?: number;
   speed?: number;
   cr?: string; // Challenge Rating for monsters
-  [key: string]: any; // Allow custom stats
+  [key: string]: unknown; // Allow custom stats, 'unknown' is safer than 'any'
 }
 
 export interface TokenCondition {

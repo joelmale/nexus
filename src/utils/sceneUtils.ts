@@ -138,17 +138,32 @@ export const sceneUtils = {
   /**
    * Create a default scene configuration
    */
-  createDefaultScene(name?: string): Omit<Scene, 'id' | 'createdAt' | 'updatedAt'> {
+  createDefaultScene(name?: string, createdBy: string = 'unknown'): Omit<Scene, 'id' | 'createdAt' | 'updatedAt'> {
     return {
       name: name || 'New Scene',
       description: '',
+      visibility: 'public',
+      isEditable: true,
+      createdBy,
+      backgroundImage: undefined,
       gridSettings: {
         enabled: true,
         size: 50,
         color: '#ffffff',
         opacity: 0.3,
         snapToGrid: true,
+        showToPlayers: true,
       },
+      lightingSettings: {
+        enabled: false,
+        globalIllumination: true,
+        ambientLight: 0.5,
+        darkness: 0,
+      },
+      drawings: [],
+      placedTokens: [],
+      isActive: false,
+      playerCount: 0,
     };
   },
 

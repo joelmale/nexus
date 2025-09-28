@@ -9,7 +9,7 @@
   border-radius: 6px;
   padding: 3px;
   box-shadow: var(--shadow-glass);
-  z-index: 100;
+  z-index: 150;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
   min-width: 140px;
@@ -255,4 +255,11 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Dice Roller Quick Buttons Grid */
+.dice-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
 }

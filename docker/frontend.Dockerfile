@@ -1,15 +1,36 @@
-# Frontend Dockerfile - Multi-stage build for optimization
-FROM node:20-alpine AS builder
+# Multi-stage Dockerfile for Nexus VTT Frontend
 
-# Set working directory
+# Stage 1: Development
+FROM node:20-alpine AS development
+
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && \
-    npm cache clean --force
+# Install all dependencies (including dev dependencies)
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Expose Vite dev server port
+EXPOSE 5173
+
+# Start development server with hot reload
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+
+# Stage 2: Builder
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies
+RUN npm ci --only=production
 
 # Copy source code
 COPY . .
@@ -17,24 +38,22 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Stage 3: Production
+FROM nginx:alpine AS production
 
-# Copy custom nginx config
-COPY docker/nginx.conf /etc/nginx/nginx.conf
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Copy built assets from builder stage
+# Copy built application from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
 
 # Expose port
 EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

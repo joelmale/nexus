@@ -8,6 +8,10 @@ class NexusServer {
   private wss: WebSocketServer;
   private port: number;
 
+  // Session recovery settings
+  private readonly HIBERNATION_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+  private readonly ABANDONMENT_TIMEOUT = 60 * 60 * 1000; // 1 hour
+
   constructor(port: number) {
     this.port = port;
     
@@ -24,7 +28,7 @@ class NexusServer {
     console.log(`🌐 Connect to: ws://localhost:${port}/ws`);
   }
 
-  private handleConnection(ws: WebSocket, req: any) {
+  private handleConnection(ws: WebSocket, req: unknown) {
     const uuid = uuidv4();
     const url = new URL(req.url!, 'ws://localhost');
     const params = url.searchParams;
@@ -40,9 +44,12 @@ class NexusServer {
 
     const host = params.get('host');
     const join = params.get('join')?.toUpperCase();
+    const reconnect = params.get('reconnect')?.toUpperCase();
 
     if (host) {
       this.handleHostConnection(connection, host);
+    } else if (reconnect) {
+      this.handleHostReconnection(connection, reconnect);
     } else if (join) {
       this.handleJoinConnection(connection, join);
     } else {
@@ -83,6 +90,8 @@ class NexusServer {
       players: new Set([connection.id]),
       connections: new Map([[connection.id, connection.ws]]),
       created: Date.now(),
+      lastActivity: Date.now(),
+      status: 'active',
     };
 
     this.rooms.set(roomCode, room);
@@ -104,28 +113,106 @@ class NexusServer {
     console.log(`🏠 Room created: ${roomCode} by ${connection.id}`);
   }
 
-  private handleJoinConnection(connection: Connection, roomCode: string) {
+  private handleHostReconnection(connection: Connection, roomCode: string) {
     const room = this.rooms.get(roomCode);
-    
+
     if (!room) {
       this.sendError(connection, 'Room not found');
       return;
     }
 
+    if (room.status === 'abandoned') {
+      this.sendError(connection, 'Room has been abandoned');
+      return;
+    }
+
+    // Reactivate hibernated room and restore host
+    if (room.status === 'hibernating') {
+      console.log(`🔄 Host reconnecting to hibernated room: ${roomCode}`);
+
+      room.status = 'active';
+      room.lastActivity = Date.now();
+
+      // Clear hibernation timer
+      if (room.hibernationTimer) {
+        clearTimeout(room.hibernationTimer);
+        room.hibernationTimer = undefined;
+      }
+    } else {
+      console.log(`🔄 Host reconnecting to active room: ${roomCode}`);
+    }
+
+    // Set up host connection
+    room.host = connection.id;
     room.players.add(connection.id);
     room.connections.set(connection.id, connection.ws);
+    room.lastActivity = Date.now();
+    connection.room = roomCode;
+    connection.user = { name: 'Host', type: 'host' };
+
+    // Send reconnection confirmation
+    console.log(`🎮 Room gameState when reconnecting:`, room.gameState ? 'exists' : 'null', room.gameState);
+    this.sendMessage(connection, {
+      type: 'event',
+      data: {
+        name: 'session/reconnected',
+        roomCode,
+        room: roomCode,
+        uuid: connection.id,
+        hostId: room.host,
+        roomStatus: room.status,
+        gameState: room.gameState
+      },
+      timestamp: Date.now(),
+    });
+
+    // Notify all players about host reconnection
+    this.broadcastToRoom(roomCode, {
+      type: 'event',
+      data: {
+        name: 'session/host-reconnected',
+        uuid: connection.id
+      },
+      timestamp: Date.now(),
+    }, connection.id);
+
+    console.log(`🏠 Host reconnected to room ${roomCode}: ${connection.id}`);
+  }
+
+  private handleJoinConnection(connection: Connection, roomCode: string) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room) {
+      this.sendError(connection, 'Room not found');
+      return;
+    }
+
+    // Attempt room recovery if needed
+    if (room.status !== 'active') {
+      const recovered = this.attemptRoomRecovery(roomCode, connection);
+      if (!recovered) {
+        this.sendError(connection, 'Room is no longer available');
+        return;
+      }
+    }
+
+    room.players.add(connection.id);
+    room.connections.set(connection.id, connection.ws);
+    room.lastActivity = Date.now();
     connection.room = roomCode;
     connection.user = { name: 'Player', type: 'player' };
 
     // Notify player they joined
     this.sendMessage(connection, {
       type: 'event',
-      data: { 
-        name: 'session/joined', 
+      data: {
+        name: 'session/joined',
         roomCode, // Use roomCode for consistency
         room: roomCode, // Keep both for backward compatibility
         uuid: connection.id,
-        hostId: room.host 
+        hostId: room.host,
+        roomStatus: room.status,
+        gameState: room.gameState // Send saved game state if available
       },
       timestamp: Date.now(),
     });
@@ -133,9 +220,9 @@ class NexusServer {
     // Notify other players
     this.broadcastToRoom(roomCode, {
       type: 'event',
-      data: { 
-        name: 'session/join', 
-        uuid: connection.id 
+      data: {
+        name: 'session/join',
+        uuid: connection.id
       },
       timestamp: Date.now(),
     }, connection.id);
@@ -155,7 +242,15 @@ class NexusServer {
     const room = this.rooms.get(connection.room);
     if (!room) return;
 
+    // Update room activity
+    room.lastActivity = Date.now();
+
     console.log(`📨 Message from ${fromUuid} in room ${connection.room}: ${message.type}`);
+
+    // Handle game state updates
+    if (message.type === 'game-state-update' && message.data) {
+      this.updateRoomGameState(connection.room, message.data);
+    }
 
     // Route to specific player or broadcast to room
     if (message.dst) {
@@ -174,6 +269,37 @@ class NexusServer {
         timestamp: Date.now(),
       }, fromUuid);
     }
+  }
+
+  private updateRoomGameState(roomCode: string, gameStateUpdate: any) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return;
+
+    // Initialize game state if it doesn't exist
+    if (!room.gameState) {
+      room.gameState = {
+        scenes: [],
+        activeSceneId: null,
+        characters: [],
+        initiative: {},
+      };
+    }
+
+    // Update game state with new data
+    if (gameStateUpdate.scenes) {
+      room.gameState.scenes = gameStateUpdate.scenes;
+    }
+    if (gameStateUpdate.activeSceneId !== undefined) {
+      room.gameState.activeSceneId = gameStateUpdate.activeSceneId;
+    }
+    if (gameStateUpdate.characters) {
+      room.gameState.characters = gameStateUpdate.characters;
+    }
+    if (gameStateUpdate.initiative) {
+      room.gameState.initiative = gameStateUpdate.initiative;
+    }
+
+    console.log(`💾 Game state updated for room ${roomCode}`);
   }
 
   private broadcastToRoom(roomCode: string, message: ServerMessage, excludeUuid?: string) {
@@ -218,31 +344,30 @@ class NexusServer {
     }
 
     if (room.host === uuid) {
-      // Host left - destroy room and notify all players
-      console.log(`🏠 Host left, destroying room: ${connection.room}`);
-      
+      // Host left - hibernate room instead of destroying immediately
+      console.log(`🏠 Host left, hibernating room: ${connection.room}`);
+
+      this.hibernateRoom(connection.room);
+
+      // Notify remaining players about hibernation
       this.broadcastToRoom(connection.room, {
         type: 'event',
-        data: { name: 'session/ended' },
+        data: {
+          name: 'session/hibernated',
+          message: 'Host disconnected. Room will remain available for 10 minutes.',
+          reconnectWindow: this.HIBERNATION_TIMEOUT
+        },
         timestamp: Date.now(),
       });
 
-      // Close all connections in the room
-      room.connections.forEach((ws, connUuid) => {
-        if (connUuid !== uuid) {
-          ws.close();
-        }
-        this.connections.delete(connUuid);
-      });
-
-      this.rooms.delete(connection.room);
     } else {
       // Player left - notify others and update room
       console.log(`👋 Player left room ${connection.room}: ${uuid}`);
-      
+
       room.players.delete(uuid);
       room.connections.delete(uuid);
-      
+      room.lastActivity = Date.now();
+
       this.broadcastToRoom(connection.room, {
         type: 'event',
         data: { name: 'session/leave', uuid },
@@ -251,6 +376,85 @@ class NexusServer {
     }
 
     this.connections.delete(uuid);
+  }
+
+  private hibernateRoom(roomCode: string) {
+    const room = this.rooms.get(roomCode);
+    if (!room || room.status === 'hibernating') return;
+
+    room.status = 'hibernating';
+    room.lastActivity = Date.now();
+
+    // Clear existing hibernation timer if any
+    if (room.hibernationTimer) {
+      clearTimeout(room.hibernationTimer);
+    }
+
+    // Set timer to abandon room after hibernation timeout
+    room.hibernationTimer = setTimeout(() => {
+      this.abandonRoom(roomCode);
+    }, this.HIBERNATION_TIMEOUT);
+
+    console.log(`😴 Room ${roomCode} hibernated, will be abandoned in ${this.HIBERNATION_TIMEOUT / 1000}s`);
+  }
+
+  private abandonRoom(roomCode: string) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return;
+
+    console.log(`🗑️ Abandoning room: ${roomCode}`);
+
+    // Clear hibernation timer
+    if (room.hibernationTimer) {
+      clearTimeout(room.hibernationTimer);
+    }
+
+    // Close any remaining connections
+    room.connections.forEach((ws, connUuid) => {
+      ws.close();
+      this.connections.delete(connUuid);
+    });
+
+    // Remove room
+    this.rooms.delete(roomCode);
+  }
+
+  private attemptRoomRecovery(roomCode: string, connection: Connection): boolean {
+    const room = this.rooms.get(roomCode);
+    if (!room) return false;
+
+    if (room.status === 'abandoned') {
+      return false;
+    }
+
+    if (room.status === 'hibernating') {
+      // Reactivate hibernated room
+      console.log(`🔄 Reactivating hibernated room: ${roomCode}`);
+
+      room.status = 'active';
+      room.lastActivity = Date.now();
+
+      // Clear hibernation timer
+      if (room.hibernationTimer) {
+        clearTimeout(room.hibernationTimer);
+        room.hibernationTimer = undefined;
+      }
+
+      // Notify all players about room reactivation
+      this.broadcastToRoom(roomCode, {
+        type: 'event',
+        data: {
+          name: 'session/reactivated',
+          message: 'Room has been reactivated.',
+          reconnectedBy: connection.id
+        },
+        timestamp: Date.now(),
+      });
+
+      return true;
+    }
+
+    return room.status === 'active';
   }
 
   private generateRoomCode(): string {
@@ -270,16 +474,23 @@ class NexusServer {
   // Cleanup method for graceful shutdown
   public shutdown() {
     console.log('🛑 Shutting down Nexus server...');
-    
+
+    // Clear all hibernation timers
+    this.rooms.forEach((room) => {
+      if (room.hibernationTimer) {
+        clearTimeout(room.hibernationTimer);
+      }
+    });
+
     // Close all WebSocket connections
     this.connections.forEach((connection) => {
       connection.ws.close();
     });
-    
+
     // Clear all data
     this.rooms.clear();
     this.connections.clear();
-    
+
     // Close the WebSocket server
     this.wss.close(() => {
       console.log('✅ Server shutdown complete');
@@ -288,14 +499,23 @@ class NexusServer {
 
   // Statistics method for monitoring
   public getStats() {
+    const activeRooms = Array.from(this.rooms.values()).filter(r => r.status === 'active').length;
+    const hibernatingRooms = Array.from(this.rooms.values()).filter(r => r.status === 'hibernating').length;
+
     return {
-      activeRooms: this.rooms.size,
+      activeRooms,
+      hibernatingRooms,
+      totalRooms: this.rooms.size,
       totalConnections: this.connections.size,
       serverPort: this.port,
       rooms: Array.from(this.rooms.entries()).map(([code, room]) => ({
         code,
         playerCount: room.players.size,
+        connectionCount: room.connections.size,
+        status: room.status,
         created: new Date(room.created).toISOString(),
+        lastActivity: new Date(room.lastActivity).toISOString(),
+        hasGameState: !!room.gameState,
       })),
     };
   }
@@ -337,5 +557,5 @@ process.on('unhandledRejection', (reason, promise) => {
 // Optional: Log server statistics every 5 minutes
 setInterval(() => {
   const stats = server.getStats();
-  console.log(`📊 Server Stats: ${stats.activeRooms} rooms, ${stats.totalConnections} connections on port ${stats.serverPort}`);
+  console.log(`📊 Server Stats: ${stats.activeRooms} active, ${stats.hibernatingRooms} hibernating, ${stats.totalConnections} connections on port ${stats.serverPort}`);
 }, 5 * 60 * 1000);

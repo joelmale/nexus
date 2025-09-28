@@ -1,12 +1,12 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { useGameStore, useCamera, useFollowDM, useIsHost, useActiveScene } from '@/stores/gameStore';
+import { useGameStore, useCamera, useFollowDM, useIsHost } from '@/stores/gameStore';
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
 import { DrawingTools } from './DrawingTools';
 import { DrawingRenderer } from './DrawingRenderer';
 import { SelectionOverlay } from './SelectionOverlay';
 import { webSocketService } from '@/utils/websocket';
-import type { Scene, Camera } from '@/types/game';
+import type { Scene, WebSocketMessage } from '@/types/game';
 import type { DrawingTool, DrawingStyle, MeasurementTool } from '@/types/drawing';
 
 interface SceneCanvasProps {
@@ -18,15 +18,14 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   const camera = useCamera();
   const followDM = useFollowDM();
   const isHost = useIsHost();
-  const activeScene = useActiveScene();
   const svgRef = useRef<SVGSVGElement>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 600 });
 
   // Drawing state with selection support
-  const [activeTool, setActiveTool] = useState<DrawingTool | MeasurementTool | 'select' | 'pan'>('select');
-  const [drawingStyle, setDrawingStyle] = useState<DrawingStyle>({
+  const [activeTool] = useState<DrawingTool | MeasurementTool | 'select' | 'pan'>('select');
+  const [drawingStyle] = useState<DrawingStyle>({
     fillColor: '#ff0000',
     fillOpacity: 0.3,
     strokeColor: '#000000',
@@ -56,8 +55,9 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   // WebSocket event handling for incoming drawings and camera sync
   useEffect(() => {
-    const handleWebSocketMessage = (event: any) => {
-      const message = event.detail;
+    const handleWebSocketMessage = (event: Event) => {
+      const customEvent = event as CustomEvent<WebSocketMessage>;
+      const message = customEvent.detail;
       
       // Handle drawing synchronization events
       if (message.type === 'event' && message.data.name?.startsWith('drawing/')) {
@@ -161,30 +161,10 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     setIsPanning(false);
   }, []);
 
-  const handleStyleChange = useCallback((newStyle: Partial<DrawingStyle>) => {
-    setDrawingStyle(prev => ({ ...prev, ...newStyle }));
-  }, []);
-
   const handleSelectionChange = useCallback((newSelection: string[]) => {
     setSelectedDrawings(newSelection);
     console.log(`Selection changed: ${newSelection.length} drawing(s) selected`);
   }, []);
-
-  // Calculate transform for the scene content
-  const transform = `translate(${viewportSize.width / 2 - camera.x * camera.zoom}, ${viewportSize.height / 2 - camera.y * camera.zoom}) scale(${camera.zoom})`;
-
-  // Grid snapping utility
-  const snapToGrid = useCallback((x: number, y: number): { x: number; y: number } => {
-    if (!scene.gridSettings.snapToGrid || !scene.gridSettings.enabled) {
-      return { x, y };
-    }
-    
-    const gridSize = scene.gridSettings.size;
-    return {
-      x: Math.round(x / gridSize) * gridSize,
-      y: Math.round(y / gridSize) * gridSize,
-    };
-  }, [scene.gridSettings.snapToGrid, scene.gridSettings.enabled, scene.gridSettings.size]);
 
   // Determine cursor based on active tool and state
   const getCursor = () => {
@@ -193,6 +173,9 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     if (activeTool === 'select') return 'default';
     return 'crosshair';
   };
+
+  // Calculate transform for the scene content
+  const transform = `translate(${viewportSize.width / 2 - camera.x * camera.zoom}, ${viewportSize.height / 2 - camera.y * camera.zoom}) scale(${camera.zoom})`;
 
   return (
     <div className="scene-canvas-container">
@@ -256,7 +239,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
               activeTool={activeTool}
               drawingStyle={drawingStyle}
               camera={camera}
-              gridSize={scene.gridSettings.size}
+              _gridSize={scene.gridSettings.size}
               svgRef={svgRef}
               onSelectionChange={handleSelectionChange}
             />

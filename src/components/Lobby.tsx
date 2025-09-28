@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useGameStore, useSession, useIsHost } from '@/stores/gameStore';
+import { useGameLifecycleStore } from '@/stores/gameLifecycleStore';
 import { webSocketService } from '@/utils/websocket';
-import { NexusLogo, useAssetExists } from './Assets';
+import { NexusLogo } from './Assets';
+import { useAssetExists } from '@/utils/assets';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.png';
 
 export const Lobby: React.FC = () => {
   const { setUser } = useGameStore();
+  const { startPreparation, joinLiveGame } = useGameLifecycleStore();
   const session = useSession();
   const isHost = useIsHost();
   const [playerName, setPlayerName] = useState('');
@@ -24,10 +27,15 @@ export const Lobby: React.FC = () => {
     setError('');
 
     try {
+      // Set user as host
       setUser({ name: playerName.trim(), type: 'host' });
-      await webSocketService.connect();
+
+      // Start offline preparation mode instead of immediately connecting
+      startPreparation();
+
+      console.log('🎯 Started offline preparation mode');
     } catch (err) {
-      setError('Failed to create game session');
+      setError('Failed to start game preparation');
       console.error(err);
     } finally {
       setLoading(false);
@@ -48,10 +56,15 @@ export const Lobby: React.FC = () => {
     setError('');
 
     try {
+      // Set user as player
       setUser({ name: playerName.trim(), type: 'player' });
-      await webSocketService.connect(roomCode.trim().toUpperCase());
+
+      // Use lifecycle store to join live game
+      await joinLiveGame(roomCode.trim().toUpperCase());
+
+      console.log(`🎮 Joined live game: ${roomCode.trim().toUpperCase()}`);
     } catch (err) {
-      setError('Failed to join game session');
+      setError('Failed to join game session - room may not exist or be full');
       console.error(err);
     } finally {
       setLoading(false);

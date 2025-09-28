@@ -1,5 +1,6 @@
-import type { WebSocketMessage, GameEvent } from '@/types/game';
+import type { WebSocketMessage, GameEvent, DiceRoll, DrawingCreateEvent, DrawingUpdateEvent, DrawingDeleteEvent } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
+import { toast } from 'vue-sonner';
 
 class WebSocketService extends EventTarget {
   private ws: WebSocket | null = null;
@@ -10,13 +11,16 @@ class WebSocketService extends EventTarget {
   private connectionPromise: Promise<void> | null = null;
 
   // Get WebSocket URL dynamically from environment
-  private getWebSocketUrl(roomCode?: string): string {
+  private getWebSocketUrl(roomCode?: string, userType?: 'host' | 'player'): string {
     const wsPort = import.meta.env.VITE_WS_PORT || '5000';
     const wsUrl = `ws://localhost:${wsPort}/ws`;
-    return roomCode ? `${wsUrl}?join=${roomCode}` : wsUrl;
+    if (roomCode) {
+      return userType === 'host' ? `${wsUrl}?reconnect=${roomCode}` : `${wsUrl}?join=${roomCode}`;
+    }
+    return wsUrl;
   }
 
-  connect(roomCode?: string): Promise<void> {
+  connect(roomCode?: string, userType?: 'host' | 'player'): Promise<void> {
     // Prevent multiple simultaneous connection attempts
     if (this.connectionPromise) {
       return this.connectionPromise;
@@ -24,7 +28,7 @@ class WebSocketService extends EventTarget {
 
     this.connectionPromise = new Promise((resolve, reject) => {
       try {
-        const url = this.getWebSocketUrl(roomCode);
+        const url = this.getWebSocketUrl(roomCode, userType);
         
         console.log('Attempting to connect to:', url);
         this.ws = new WebSocket(url);
@@ -57,9 +61,10 @@ class WebSocketService extends EventTarget {
         this.ws.onmessage = (event) => {
           try {
             const message: WebSocketMessage = JSON.parse(event.data);
+            console.log('🔌 [CLIENT] Raw WebSocket message received:', event.data);
             this.handleMessage(message);
           } catch (error) {
-            console.error('Failed to parse WebSocket message:', error);
+            console.error('🔌 [CLIENT] Failed to parse WebSocket message:', error, event.data);
           }
         };
 
@@ -101,24 +106,28 @@ class WebSocketService extends EventTarget {
     this.dispatchEvent(new CustomEvent('message', { detail: message }));
 
     switch (message.type) {
-      case 'event':
+      case 'event': {
         console.log('🎯 Processing event:', message.data.name, message.data);
+
+        // Session events will be handled by the gameStore's applyEvent method
+
         const gameEvent: GameEvent = {
           type: message.data.name,
           data: message.data,
         };
         gameStore.applyEvent(gameEvent);
-        
+
         // Also emit a specific event for the drawing synchronization
         if (message.data.name === 'drawing/create') {
-          this.dispatchEvent(new CustomEvent('drawingSync', { 
-            detail: { 
-              type: 'drawing/create', 
-              data: message.data 
-            } 
+          this.dispatchEvent(new CustomEvent('drawingSync', {
+            detail: {
+              type: 'drawing/create',
+              data: message.data
+            }
           }));
         }
         break;
+      }
 
       case 'dice-roll':
         gameStore.addDiceRoll(message.data);
@@ -133,11 +142,33 @@ class WebSocketService extends EventTarget {
 
       case 'error':
         console.error('Server error:', message.data.message);
-        // You could show a toast notification here
+
+        // Handle specific error cases
+        if (message.data.message === 'Room not found') {
+          console.log('🗑️ Room not found - clearing stored session data');
+          // Import synchronously since sessionPersistenceService is already available
+          import('@/services/sessionPersistence').then(({ sessionPersistenceService }) => {
+            sessionPersistenceService.clearAll();
+            // Reset the game store to initial state
+            gameStore.reset();
+            toast.error('Session Expired', { description: 'Your previous session has expired. Creating a new room.' });
+          }).catch(error => {
+            console.error('Failed to clear session data:', error);
+            // Still reset the game store even if clearing fails
+            gameStore.reset();
+            toast.error('Session Expired', { description: 'Your previous session has expired. Creating a new room.' });
+          });
+        } else {
+          toast.error('Server Error', { description: message.data.message });
+        }
         break;
 
-      default:
-        console.warn('Unknown message type:', message.type);
+      default: {
+        // This is an exhaustive check. If a new message type is added, this will cause a TypeScript error.
+        const _exhaustiveCheck: never = message;
+        console.warn('Unknown message type:', _exhaustiveCheck);
+        break;
+      }
     }
   }
 
@@ -169,13 +200,13 @@ class WebSocketService extends EventTarget {
     console.log('📤 Sending event:', event.type, event.data);
     this.sendMessage({
       type: 'event',
-      data: { name: event.type, ...event.data },
+      data: { name: event.type, ...(event.data as object) },
       timestamp: Date.now(),
       src: useGameStore.getState().user.id,
     });
   }
 
-  sendDiceRoll(roll: any) {
+  sendDiceRoll(roll: DiceRoll) {
     this.sendMessage({
       type: 'dice-roll',
       data: roll,
@@ -184,14 +215,22 @@ class WebSocketService extends EventTarget {
     });
   }
 
+  // Send game state update to server for persistence
+  sendGameStateUpdate(partialState: Partial<{ sceneState?: any, characters?: any[], initiative?: any }>) {
+    console.log('📤 Sending game state update to server:', partialState);
+    this.sendMessage({
+      type: 'state',
+      data: partialState,
+      timestamp: Date.now(),
+      src: useGameStore.getState().user.id,
+    });
+  }
+
   // Specialized method for drawing synchronization
-  sendDrawingEvent(type: 'create' | 'update' | 'delete', sceneId: string, data: any) {
+  sendDrawingEvent(type: 'create' | 'update' | 'delete', sceneId: string, data: DrawingCreateEvent['data'] | DrawingUpdateEvent['data'] | DrawingDeleteEvent['data']) {
     const drawingEvent: GameEvent = {
       type: `drawing/${type}`,
-      data: {
-        sceneId,
-        ...data,
-      },
+      data: data,
     };
     this.sendEvent(drawingEvent);
   }

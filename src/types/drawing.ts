@@ -262,7 +262,7 @@ export const dndUtils = {
   },
   
   // Get spell area dimensions based on level
-  getSpellDimensions: (spellType: string, level: number): Partial<DrawingStyle> => {
+  getSpellDimensions: (spellType: string, _level: number): Partial<DrawingStyle> => {
     const preset = dndSpellPresets[spellType as keyof typeof dndSpellPresets];
     if (preset) {
       return {

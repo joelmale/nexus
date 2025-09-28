@@ -1,11 +1,15 @@
 import React, { useRef, useEffect } from 'react';
 import { DiceRoller } from './DiceRoller';
+import { InitiativeTracker } from './InitiativeTracker';
+import { PlayerPanel } from './PlayerPanel';
+import { ScenePanel } from './Scene/ScenePanel';
+import { useSession, useIsHost, useGameStore } from '@/stores/gameStore';
 import { Settings } from './Settings';
 import { Placeholder } from './Placeholder';
 
 interface ContextPanelProps {
-  activePanel: 'tokens' | 'scene' | 'props' | 'initiative' | 'dice' | 'lobby' | 'settings' | 'chat' | 'sounds';
-  onPanelChange: (panel: 'tokens' | 'scene' | 'props' | 'initiative' | 'dice' | 'lobby' | 'settings' | 'chat' | 'sounds') => void;
+  activePanel: 'tokens' | 'scene' | 'props' | 'initiative' | 'dice' | 'players' | 'settings' | 'chat' | 'sounds';
+  onPanelChange: (panel: 'tokens' | 'scene' | 'props' | 'initiative' | 'dice' | 'players' | 'settings' | 'chat' | 'sounds') => void;
   expanded: boolean;
   onToggleExpanded: () => void;
   onContentWidthChange: (width: number) => void;
@@ -19,25 +23,16 @@ interface ContextPanelProps {
  */
 export const ContextPanel: React.FC<ContextPanelProps> = ({
   activePanel,
-  onPanelChange,
+  onPanelChange: _onPanelChange,
   expanded,
-  onToggleExpanded,
+  onToggleExpanded: _onToggleExpanded,
   onContentWidthChange,
 }) => {
-  const panelBodyRef = useRef<HTMLDivElement>(null);
+  const panelContentRef = useRef<HTMLDivElement>(null);
+  const { sceneState } = useGameStore();
 
-  useEffect(() => {
-    if (expanded && panelBodyRef.current) {
-      // Use a timeout to allow content to render before measuring
-      const timer = setTimeout(() => {
-        if (panelBodyRef.current) {
-          const contentWidth = panelBodyRef.current.scrollWidth;
-          onContentWidthChange(contentWidth + 40); // Add padding
-        }
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [activePanel, expanded, onContentWidthChange]);
+  // Get current active scene
+  const currentScene = sceneState.scenes.find(scene => scene.id === sceneState.activeSceneId);
 
   const panels = [
     { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
@@ -47,24 +42,57 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     { id: 'dice' as const, icon: '🎲', label: 'Dice' },
     { id: 'sounds' as const, icon: '🔊', label: 'Sounds' },
     { id: 'chat' as const, icon: '💬', label: 'Chat' },
-    { id: 'lobby' as const, icon: '👥', label: 'Lobby' },
+    { id: 'players' as const, icon: '👥', label: 'Players' },
     { id: 'settings' as const, icon: '⚙️', label: 'Settings' },
   ];
+
+  // Track the last reported width to prevent infinite loops
+  const lastReportedWidthRef = useRef<number>(0);
+
+  // Simple approach: Set fixed widths per panel type
+  useEffect(() => {
+    if (!expanded) return;
+
+    // Define optimal widths for each panel type
+    const panelWidths = {
+      tokens: 320,
+      scene: 400,
+      props: 350,
+      initiative: 380,
+      dice: 300,
+      sounds: 320,
+      chat: 350,
+      players: 320,
+      settings: 400,
+    };
+
+    const targetWidth = panelWidths[activePanel] || 320;
+    const lastReported = lastReportedWidthRef.current;
+
+    // Only update if this is a different width than we last reported
+    if (targetWidth !== lastReported) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Panel width set: ${activePanel} -> ${targetWidth}px`);
+      }
+      lastReportedWidthRef.current = targetWidth;
+      onContentWidthChange(targetWidth);
+    }
+  }, [expanded, activePanel, onContentWidthChange]);
 
   return (
     <div className="context-panel" data-expanded={expanded}>
       {/* Panel Content */}
       {expanded && (
-        <div className="panel-content" role="tabpanel">
-          <div className="panel-body" ref={panelBodyRef}>
+        <div className="panel-content" role="tabpanel" ref={panelContentRef}>
+          <div className="panel-body" data-testid="panel-body">
             {activePanel === 'tokens' && <Placeholder title="Tokens" />}
-            {activePanel === 'scene' && <Placeholder title="Scene Settings" />}
+            {activePanel === 'scene' && <ScenePanel scene={currentScene} />}
             {activePanel === 'props' && <Placeholder title="Props" />}
-            {activePanel === 'initiative' && <Placeholder title="Initiative Tracker" />}
+            {activePanel === 'initiative' && <InitiativeTracker />}
             {activePanel === 'dice' && <DiceRoller />}
             {activePanel === 'sounds' && <Placeholder title="Sound Effects"/>}
             {activePanel === 'chat' && <Placeholder title="Chat"/>}
-            {activePanel === 'lobby' && <LobbyPanel />}
+            {activePanel === 'players' && <PlayerPanel />}
             {activePanel === 'settings' && <Settings />}
           </div>
         </div>
@@ -82,141 +110,3 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   );
 };
 
-const LobbyPanel: React.FC = () => {
-  // Mock data - in real app, this would come from game store
-  const connectedPlayers = [
-    { id: '1', name: 'Joel', isHost: true, avatar: 'J', connected: true, canEditScenes: true },
-    { id: '2', name: 'Alice', isHost: false, avatar: 'A', connected: true, canEditScenes: false },
-    { id: '3', name: 'Bob', isHost: false, avatar: 'B', connected: false, canEditScenes: false },
-  ];
-  
-  const currentUserIsHost = true; // This would come from game store
-  
-  const handleKickPlayer = (playerId: string, playerName: string) => {
-    if (window.confirm(`Kick ${playerName} from the game?`)) {
-      // Implement kick functionality
-      console.log('Kicking player:', playerId);
-    }
-  };
-  
-  const handleToggleDMPermissions = (playerId: string, playerName: string, currentPermissions: boolean) => {
-    const action = currentPermissions ? 'Remove' : 'Grant';
-    if (window.confirm(`${action} DM permissions for ${playerName}?`)) {
-      // Implement permission toggle
-      console.log(`${action} DM permissions for:`, playerId);
-    }
-  };
-  
-  return (
-    <div className="panel-section">
-      <h3>Game Lobby</h3>
-      <div className="lobby-stats">
-        <p className="lobby-info">
-          <strong>{connectedPlayers.filter(p => p.connected).length}</strong> of{' '}
-          <strong>{connectedPlayers.length}</strong> players connected
-        </p>
-      </div>
-      
-      <div className="player-list">
-        {connectedPlayers.map(player => (
-          <div key={player.id} className={`player-item ${!player.connected ? 'disconnected' : ''}`}>
-            <div className="player-info">
-              <div className={`player-avatar ${player.isHost ? 'host-avatar' : ''}`}>
-                {player.avatar}
-              </div>
-              <div className="player-details">
-                <div className="player-name">
-                  {player.name}
-                  {player.isHost && <span className="host-badge">HOST</span>}
-                  {player.canEditScenes && !player.isHost && <span className="dm-badge">DM</span>}
-                </div>
-                <div className="player-status">
-                  <span className={`status-dot ${player.connected ? 'online' : 'offline'}`} />
-                  {player.connected ? 'Online' : 'Disconnected'}
-                </div>
-              </div>
-            </div>
-            
-            {currentUserIsHost && !player.isHost && (
-              <div className="player-actions">
-                <button
-                  className={`action-btn ${player.canEditScenes ? 'active' : ''}`}
-                  onClick={() => handleToggleDMPermissions(player.id, player.name, player.canEditScenes)}
-                  title={player.canEditScenes ? 'Remove DM permissions' : 'Grant DM permissions'}
-                >
-                  ⚡
-                </button>
-                <button
-                  className="action-btn kick-btn"
-                  onClick={() => handleKickPlayer(player.id, player.name)}
-                  title="Kick player"
-                >
-                  🚪
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-      
-      {currentUserIsHost && (
-        <div className="lobby-controls">
-          <button className="btn btn-secondary" type="button">
-            📋 Copy Invite Link
-          </button>
-          <button className="btn btn-secondary" type="button">
-            🔒 Lock Game
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const TokenPanel: React.FC = () => (
-  <div className="panel-section">
-    <h3>Token Library</h3>
-    <p>Drag and drop character tokens onto the scene.</p>
-    {/* Token content will go here */}
-  </div>
-);
-
-const ScenePanel: React.FC = () => (
-  <div className="panel-section">
-    <h3>Scene Settings</h3>
-    <p>Configure background, grid, and lighting settings.</p>
-    {/* Scene settings will go here */}
-  </div>
-);
-
-const PropsPanel: React.FC = () => (
-  <div className="panel-section">
-    <h3>Props & Objects</h3>
-    <p>Add furniture, decorations, and interactive objects.</p>
-    {/* Props content will go here */}
-  </div>
-);
-
-const InitiativePanel: React.FC = () => (
-  <div className="panel-section">
-    <h3>Initiative Tracker</h3>
-    <p>Track turn order and combat rounds.</p>
-    {/* Initiative tracker will go here */}
-  </div>
-);
-
-const SoundsPanel: React.FC = () => (
-  <div className="panel-section">
-    <h3>Sound Effects</h3>
-    <p>Control ambient sounds, music, and sound effects.</p>
-    {/* Sound effects content will go here */}
-  </div>
-);
-
-const ChatPanel: React.FC = () => (
-  <div className="panel-section">
-    <h3>Chat</h3>
-    <p>Communicate with players via public and private messages.</p>
-    {/* Chat content will go here */}
-  </div>
-);

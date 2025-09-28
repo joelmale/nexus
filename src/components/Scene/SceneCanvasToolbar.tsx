@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGameStore, useIsHost } from '@/stores/gameStore';
+import { useIsHost } from '@/stores/gameStore';
 import type { DrawingTool, DrawingStyle, MeasurementTool } from '@/types/drawing';
 
 export interface ToolbarProps {
@@ -62,7 +62,7 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
       }
       return;
     }
-    onToolChange(toolId as any);
+    onToolChange(toolId as DrawingTool | MeasurementTool | 'select' | 'pan');
   };
 
   const ToolButton: React.FC<{

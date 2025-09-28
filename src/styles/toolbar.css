@@ -1,1 +1,381 @@
-/* Scene Canvas Toolbar Styles */\n.scene-canvas-toolbar {\n  position: absolute;\n  top: 10px;\n  left: 10px;\n  background: var(--glass-bg);\n  backdrop-filter: blur(10px);\n  border: 1px solid var(--glass-border);\n  border-radius: 12px;\n  padding: 8px;\n  box-shadow: var(--glass-shadow);\n  z-index: 100;\n  max-height: calc(100vh - 40px);\n  overflow-y: auto;\n  min-width: 200px;\n  animation: slideIn 0.3s ease-out;\n}\n\n.toolbar-section {\n  margin-bottom: 12px;\n}\n\n.toolbar-section:last-child {\n  margin-bottom: 0;\n}\n\n.toolbar-section-label {\n  font-size: 11px;\n  font-weight: 600;\n  color: var(--text-secondary);\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n  margin-bottom: 6px;\n  padding-left: 2px;\n}\n\n.toolbar-buttons {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n  border-radius: 8px;\n  overflow: hidden;\n}\n\n.toolbar-btn {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  padding: 8px 12px;\n  background: transparent;\n  border: 1px solid transparent;\n  border-radius: 8px;\n  color: var(--text-primary);\n  font-size: 13px;\n  cursor: pointer;\n  transition: all 0.2s ease;\n  text-align: left;\n  width: 100%;\n  position: relative;\n}\n\n.toolbar-btn:hover:not(.disabled) {\n  background: var(--glass-hover-bg);\n  border-color: var(--glass-border);\n  transform: translateY(-1px);\n}\n\n.toolbar-btn.active {\n  background: var(--primary-bg);\n  border-color: var(--primary-border);\n  color: var(--primary-text);\n  box-shadow: \n    0 0 8px rgba(var(--primary-rgb), 0.3),\n    inset 0 1px 2px rgba(255, 255, 255, 0.1);\n}\n\n.toolbar-btn.disabled {\n  opacity: 0.5;\n  cursor: not-allowed;\n}\n\n.toolbar-btn.dm-only::before {\n  content: '👑';\n  position: absolute;\n  top: -2px;\n  left: -2px;\n  font-size: 12px;\n  background: rgba(0, 0, 0, 0.8);\n  border-radius: 4px;\n  padding: 1px;\n}\n\n.tool-icon {\n  font-size: 16px;\n  width: 20px;\n  text-align: center;\n  flex-shrink: 0;\n}\n\n.tool-label {\n  font-weight: 500;\n}\n\n/* Style Panel */\n.style-panel {\n  position: absolute;\n  top: 0;\n  left: calc(100% + 10px);\n  background: var(--glass-bg);\n  backdrop-filter: blur(10px);\n  border: 1px solid var(--glass-border);\n  border-radius: 12px;\n  padding: 16px;\n  box-shadow: var(--glass-shadow);\n  min-width: 280px;\n  z-index: 101;\n}\n\n.style-section {\n  margin-bottom: 16px;\n}\n\n.style-section:last-child {\n  margin-bottom: 0;\n}\n\n.style-section h4 {\n  font-size: 14px;\n  font-weight: 600;\n  color: var(--text-primary);\n  margin: 0 0 10px 0;\n}\n\n.style-controls {\n  display: flex;\n  flex-direction: column;\n  gap: 12px;\n}\n\n.style-controls label {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n  font-size: 12px;\n  color: var(--text-secondary);\n  font-weight: 500;\n}\n\n.style-controls input[type=\"color\"] {\n  width: 40px;\n  height: 30px;\n  border: none;\n  border-radius: 6px;\n  cursor: pointer;\n  background: none;\n}\n\n.style-controls input[type=\"range\"] {\n  width: 100%;\n  height: 4px;\n  border-radius: 2px;\n  background: var(--surface-secondary);\n  outline: none;\n  cursor: pointer;\n}\n\n.style-controls input[type=\"range\"]::-webkit-slider-thumb {\n  appearance: none;\n  width: 16px;\n  height: 16px;\n  border-radius: 50%;\n  background: var(--primary);\n  cursor: pointer;\n  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);\n}\n\n.style-controls select,\n.style-controls input[type=\"number\"] {\n  padding: 6px 8px;\n  border: 1px solid var(--glass-border);\n  border-radius: 6px;\n  background: var(--surface-primary);\n  color: var(--text-primary);\n  font-size: 12px;\n  cursor: pointer;\n}\n\n/* D&D Specific Styles */\n.dnd-cone-info {\n  background: var(--surface-secondary);\n  border: 1px solid var(--glass-border);\n  border-radius: 6px;\n  padding: 8px;\n  margin-top: 8px;\n}\n\n.dnd-cone-info p {\n  margin: 0 0 4px 0;\n  font-size: 11px;\n  color: var(--text-secondary);\n}\n\n.dnd-cone-info strong {\n  color: var(--text-primary);\n}\n\n/* DM Panel */\n.dm-panel {\n  position: absolute;\n  top: 0;\n  left: calc(100% + 10px);\n  background: var(--glass-bg);\n  backdrop-filter: blur(10px);\n  border: 1px solid var(--glass-border);\n  border-radius: 12px;\n  padding: 16px;\n  box-shadow: var(--glass-shadow);\n  min-width: 250px;\n  z-index: 101;\n}\n\n.dm-section {\n  margin-bottom: 16px;\n}\n\n.dm-section h4 {\n  font-size: 14px;\n  font-weight: 600;\n  color: var(--text-primary);\n  margin: 0 0 10px 0;\n}\n\n.dm-controls {\n  display: flex;\n  flex-direction: column;\n  gap: 10px;\n}\n\n.dm-controls label {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  font-size: 12px;\n  color: var(--text-secondary);\n  cursor: pointer;\n}\n\n/* Drawing Tool Instructions */\n.drawing-instructions,\n.measurement-instructions {\n  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);\n  user-select: none;\n  pointer-events: none;\n}\n\n/* Measurement animations */\n.measurement.current {\n  animation: pulse 1s ease-in-out infinite;\n}\n\n.measurement.completed {\n  opacity: 0.8;\n}\n\n@keyframes pulse {\n  0%, 100% { opacity: 1; }\n  50% { opacity: 0.7; }\n}\n\n/* Drawing Preview Styles */\n.drawing-preview {\n  opacity: 0.7;\n  stroke-dasharray: 3,3;\n  animation: dash 1s linear infinite;\n}\n\n@keyframes dash {\n  to { stroke-dashoffset: -6; }\n}\n\n.pencil-preview {\n  opacity: 0.8;\n  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));\n}\n\n.polygon-preview {\n  opacity: 0.7;\n  stroke-dasharray: 2,2;\n}\n\n.polygon-point {\n  stroke: rgba(0, 0, 0, 0.3);\n  stroke-width: 1;\n}\n\n/* Mobile Responsiveness */\n@media (max-width: 768px) {\n  .scene-canvas-toolbar {\n    position: fixed;\n    top: auto;\n    bottom: 10px;\n    left: 50%;\n    transform: translateX(-50%);\n    flex-direction: row;\n    padding: 6px;\n    min-width: auto;\n    max-width: calc(100vw - 20px);\n    overflow-x: auto;\n    overflow-y: visible;\n  }\n  \n  .toolbar-section {\n    margin-bottom: 0;\n    margin-right: 8px;\n  }\n  \n  .toolbar-buttons {\n    flex-direction: row;\n    gap: 2px;\n  }\n  \n  .toolbar-btn {\n    padding: 6px 8px;\n    min-width: 60px;\n    justify-content: center;\n  }\n  \n  .tool-label,\n  .toolbar-section-label {\n    display: none;\n  }\n  \n  .style-panel,\n  .dm-panel {\n    position: fixed;\n    bottom: 60px;\n    left: 50%;\n    transform: translateX(-50%);\n    max-width: calc(100vw - 20px);\n  }\n}\n\n/* Animations */\n@keyframes slideIn {\n  from {\n    opacity: 0;\n    transform: translateY(-10px);\n  }\n  to {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n\n/* Tooltips */\n.toolbar-btn[title]:hover::after {\n  content: attr(title);\n  position: absolute;\n  bottom: 100%;\n  left: 50%;\n  transform: translateX(-50%);\n  background: rgba(0, 0, 0, 0.9);\n  color: white;\n  padding: 4px 8px;\n  border-radius: 4px;\n  font-size: 11px;\n  white-space: nowrap;\n  z-index: 1000;\n  margin-bottom: 4px;\n}\n\n.toolbar-btn[title]:hover::before {\n  content: '';\n  position: absolute;\n  bottom: 100%;\n  left: 50%;\n  transform: translateX(-50%);\n  border: 4px solid transparent;\n  border-top-color: rgba(0, 0, 0, 0.9);\n  z-index: 1000;\n}\n
+/* Scene Canvas Toolbar Styles */
+.scene-canvas-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: var(--glass-shadow);
+  z-index: 150;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  min-width: 200px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.toolbar-section {
+  margin-bottom: 12px;
+}
+
+.toolbar-section:last-child {
+  margin-bottom: 0;
+}
+
+.toolbar-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  padding-left: 2px;
+}
+
+.toolbar-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+  position: relative;
+}
+
+.toolbar-btn:hover:not(.disabled) {
+  background: var(--glass-hover-bg);
+  border-color: var(--glass-border);
+  transform: translateY(-1px);
+}
+
+.toolbar-btn.active {
+  background: var(--primary-bg);
+  border-color: var(--primary-border);
+  color: var(--primary-text);
+  box-shadow: 
+    0 0 8px rgba(var(--primary-rgb), 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+.toolbar-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-btn.dm-only::before {
+  content: '👑';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
+  padding: 1px;
+}
+
+.tool-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.tool-label {
+  font-weight: 500;
+}
+
+/* Style Panel */
+.style-panel {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 10px);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--glass-shadow);
+  min-width: 280px;
+  z-index: 101;
+}
+
+.style-section {
+  margin-bottom: 16px;
+}
+
+.style-section:last-child {
+  margin-bottom: 0;
+}
+
+.style-section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 10px 0;
+}
+
+.style-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.style-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.style-controls input[type="color"] {
+  width: 40px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: none;
+}
+
+.style-controls input[type="range"] {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-secondary);
+  outline: none;
+  cursor: pointer;
+}
+
+.style-controls input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.style-controls select,
+.style-controls input[type="number"] {
+  padding: 6px 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* D&D Specific Styles */
+.dnd-cone-info {
+  background: var(--surface-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  padding: 8px;
+  margin-top: 8px;
+}
+
+.dnd-cone-info p {
+  margin: 0 0 4px 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.dnd-cone-info strong {
+  color: var(--text-primary);
+}
+
+/* DM Panel */
+.dm-panel {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 10px);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--glass-shadow);
+  min-width: 250px;
+  z-index: 101;
+}
+
+.dm-section {
+  margin-bottom: 16px;
+}
+
+.dm-section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 10px 0;
+}
+
+.dm-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dm-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* Drawing Tool Instructions */
+.drawing-instructions,
+.measurement-instructions {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Measurement animations */
+.measurement.current {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.measurement.completed {
+  opacity: 0.8;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Drawing Preview Styles */
+.drawing-preview {
+  opacity: 0.7;
+  stroke-dasharray: 3,3;
+  animation: dash 1s linear infinite;
+}
+
+@keyframes dash {
+  to { stroke-dashoffset: -6; }
+}
+
+.pencil-preview {
+  opacity: 0.8;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
+}
+
+.polygon-preview {
+  opacity: 0.7;
+  stroke-dasharray: 2,2;
+}
+
+.polygon-point {
+  stroke: rgba(0, 0, 0, 0.3);
+  stroke-width: 1;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .scene-canvas-toolbar {
+    position: fixed;
+    top: auto;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+    padding: 6px;
+    min-width: auto;
+    max-width: calc(100vw - 20px);
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+  
+  .toolbar-section {
+    margin-bottom: 0;
+    margin-right: 8px;
+  }
+  
+  .toolbar-buttons {
+    flex-direction: row;
+    gap: 2px;
+  }
+  
+  .toolbar-btn {
+    padding: 6px 8px;
+    min-width: 60px;
+    justify-content: center;
+  }
+  
+  .tool-label,
+  .toolbar-section-label {
+    display: none;
+  }
+  
+  .style-panel,
+  .dm-panel {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100vw - 20px);
+  }
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tooltips */
+.toolbar-btn[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 1000;
+  margin-bottom: 4px;
+}
+
+.toolbar-btn[title]:hover::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.9);
+  z-index: 1000;
+}

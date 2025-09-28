@@ -66,9 +66,9 @@ class DrawingPersistenceService {
       const existingIndex = scenesData.findIndex(s => s.id === scene.id);
       
       if (existingIndex >= 0) {
-        scenesData[existingIndex] = { ...scene, lastUpdated: Date.now() };
+        scenesData[existingIndex] = { ...scene, updatedAt: Date.now() };
       } else {
-        scenesData.push({ ...scene, lastUpdated: Date.now() });
+        scenesData.push({ ...scene, updatedAt: Date.now() });
       }
       
       localStorage.setItem(this.SCENES_KEY, JSON.stringify(scenesData));
@@ -135,22 +135,22 @@ export const drawingPersistenceService = new DrawingPersistenceService();
 
 // Hook for React components to use the persistence service
 export const useDrawingPersistence = () => {
-  const gameStore = useGameStore();
-  
+  const sceneState = useGameStore(state => state.sceneState);
+  const updateScene = useGameStore(state => state.updateScene);
+
   const saveCurrentScene = async () => {
-    const state = gameStore.getState();
-    const activeScene = state.sceneState.scenes.find(
-      s => s.id === state.sceneState.activeSceneId
+    const activeScene = sceneState.scenes.find(
+      s => s.id === sceneState.activeSceneId
     );
-    
+
     if (activeScene) {
       await drawingPersistenceService.saveScene(activeScene);
     }
   };
-  
+
   const loadScene = async (sceneId: string) => {
     const drawings = await drawingPersistenceService.loadDrawings(sceneId);
-    gameStore.getState().updateScene(sceneId, { drawings });
+    updateScene(sceneId, { drawings });
     return drawings;
   };
   

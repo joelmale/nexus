@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useGameStore } from './gameStore';
-import type { GameEvent, Scene, PlacedToken, User } from '@/types/game';
+import type { GameEvent, Scene, PlacedToken, User, DiceRoll } from '@/types/game';
 import { v4 as uuidv4 } from 'uuid';
 
 // Mock the persistence service to avoid actual DB operations in tests
@@ -27,16 +27,50 @@ describe('gameStore event handlers', () => {
       const scene: Scene = {
         id: sceneId,
         name: 'Test Scene',
+        description: 'Test scene description',
+        visibility: 'private',
+        isEditable: true,
+        createdBy: 'test-user',
         placedTokens: [],
         drawings: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        gridSettings: { enabled: true, size: 50, color: '#fff', opacity: 0.5, snapToGrid: true },
+        gridSettings: {
+          enabled: true,
+          size: 50,
+          color: '#fff',
+          opacity: 0.5,
+          snapToGrid: true,
+          showToPlayers: true
+        },
+        lightingSettings: {
+          enabled: false,
+          globalIllumination: true,
+          ambientLight: 0.5,
+          darkness: 0,
+        },
+        isActive: false,
+        playerCount: 0,
       };
-      useGameStore.setState(state => ({ sceneState: { ...state.sceneState, scenes: [scene] } }));
+      useGameStore.setState(_state => ({ sceneState: { ..._state.sceneState, scenes: [scene] } }));
 
       // Act: Apply the 'token/place' event
-      const token: PlacedToken = { id: uuidv4(), assetId: 'asset1', x: 100, y: 100, width: 50, height: 50, rotation: 0, opacity: 1, visible: true, name: 'Goblin', createdAt: Date.now(), updatedAt: Date.now() };
+      const token: PlacedToken = { 
+        id: uuidv4(), 
+        tokenId: 'token-goblin',
+        sceneId: sceneId,
+        x: 100, 
+        y: 100, 
+        rotation: 0, 
+        scale: 1,
+        layer: 'tokens',
+        visibleToPlayers: true,
+        dmNotesOnly: false,
+        conditions: [],
+        placedBy: 'user-1',
+        createdAt: Date.now(), 
+        updatedAt: Date.now() 
+      };
       const event: GameEvent = { type: 'token/place', data: { sceneId, token } };
       useGameStore.getState().applyEvent(event);
 
@@ -51,17 +85,50 @@ describe('gameStore event handlers', () => {
       // Setup: Create a scene with a token
       const sceneId = uuidv4();
       const tokenId = uuidv4();
-      const initialToken: PlacedToken = { id: tokenId, assetId: 'asset1', x: 100, y: 100, width: 50, height: 50, rotation: 0, opacity: 1, visible: true, name: 'Goblin', createdAt: Date.now(), updatedAt: Date.now() };
+      const initialToken: PlacedToken = { 
+        id: tokenId, 
+        tokenId: 'token-goblin',
+        sceneId: sceneId,
+        x: 100, 
+        y: 100, 
+        rotation: 0, 
+        scale: 1,
+        layer: 'tokens',
+        visibleToPlayers: true,
+        dmNotesOnly: false,
+        conditions: [],
+        placedBy: 'user-1',
+        createdAt: Date.now(), updatedAt: Date.now() 
+      };
       const scene: Scene = {
         id: sceneId,
         name: 'Test Scene',
+        description: 'Test scene description',
+        visibility: 'private',
+        isEditable: true,
+        createdBy: 'test-user',
         placedTokens: [initialToken],
         drawings: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        gridSettings: { enabled: true, size: 50, color: '#fff', opacity: 0.5, snapToGrid: true },
+        gridSettings: {
+          enabled: true,
+          size: 50,
+          color: '#fff',
+          opacity: 0.5,
+          snapToGrid: true,
+          showToPlayers: true
+        },
+        lightingSettings: {
+          enabled: false,
+          globalIllumination: true,
+          ambientLight: 0.5,
+          darkness: 0,
+        },
+        isActive: false,
+        playerCount: 0,
       };
-      useGameStore.setState(state => ({ sceneState: { ...state.sceneState, scenes: [scene] } }));
+      useGameStore.setState(_state => ({ sceneState: { ..._state.sceneState, scenes: [scene] } }));
 
       // Act: Apply the 'token/move' event
       const newPosition = { x: 250, y: 300 };
@@ -82,7 +149,7 @@ describe('gameStore event handlers', () => {
     it('should handle "user/join" event and add a new player to the session', () => {
       // Setup: Create a session with one player (the host)
       const host: User = { id: 'host-id', name: 'Host', type: 'host', color: 'red', connected: true };
-      useGameStore.setState(state => ({ session: { roomCode: 'ABCD', hostId: 'host-id', players: [host], status: 'connected' } }));
+      useGameStore.setState({ session: { roomCode: 'ABCD', hostId: 'host-id', players: [{ ...host, canEditScenes: true }], status: 'connected' } });
 
       // Act: Apply the 'user/join' event for a new player
       const newUser: User = { id: 'player-id', name: 'New Player', type: 'player', color: 'blue', connected: true };
@@ -98,7 +165,7 @@ describe('gameStore event handlers', () => {
     it('should handle "user/join" event and update an existing player\'s data', () => {
       // Setup: Create a session with a player who will be updated
       const initialUser: User = { id: 'player-id', name: 'Player', type: 'player', color: 'blue', connected: false };
-      useGameStore.setState(state => ({ session: { roomCode: 'ABCD', hostId: 'host-id', players: [initialUser], status: 'connected' } }));
+      useGameStore.setState({ session: { roomCode: 'ABCD', hostId: 'host-id', players: [{ ...initialUser, canEditScenes: false }], status: 'connected' } });
 
       // Act: Apply the 'user/join' event with updated data for the same user
       const updatedUser: User = { id: 'player-id', name: 'Player', type: 'player', color: 'blue', connected: true };
@@ -115,8 +182,62 @@ describe('gameStore event handlers', () => {
   describe('Scene Events', () => {
     it('should handle "scene/delete" event and remove a scene', () => {
       // Setup: Create two scenes
-      const scene1: Scene = { id: 'scene-1', name: 'Scene One', placedTokens: [], drawings: [], createdAt: Date.now(), updatedAt: Date.now(), gridSettings: { enabled: true, size: 50, color: '#fff', opacity: 0.5, snapToGrid: true } };
-      const scene2: Scene = { id: 'scene-2', name: 'Scene Two', placedTokens: [], drawings: [], createdAt: Date.now(), updatedAt: Date.now(), gridSettings: { enabled: true, size: 50, color: '#fff', opacity: 0.5, snapToGrid: true } };
+      const scene1: Scene = {
+        id: 'scene-1',
+        name: 'Scene One',
+        description: 'Test scene one',
+        visibility: 'private',
+        isEditable: true,
+        createdBy: 'test-user',
+        placedTokens: [],
+        drawings: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        gridSettings: {
+          enabled: true,
+          size: 50,
+          color: '#fff',
+          opacity: 0.5,
+          snapToGrid: true,
+          showToPlayers: true
+        },
+        lightingSettings: {
+          enabled: false,
+          globalIllumination: true,
+          ambientLight: 0.5,
+          darkness: 0,
+        },
+        isActive: false,
+        playerCount: 0,
+      };
+      const scene2: Scene = {
+        id: 'scene-2',
+        name: 'Scene Two',
+        description: 'Test scene two',
+        visibility: 'private',
+        isEditable: true,
+        createdBy: 'test-user',
+        placedTokens: [],
+        drawings: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        gridSettings: {
+          enabled: true,
+          size: 50,
+          color: '#fff',
+          opacity: 0.5,
+          snapToGrid: true,
+          showToPlayers: true
+        },
+        lightingSettings: {
+          enabled: false,
+          globalIllumination: true,
+          ambientLight: 0.5,
+          darkness: 0,
+        },
+        isActive: false,
+        playerCount: 0,
+      };
       useGameStore.setState(state => ({
         sceneState: {
           ...state.sceneState,
@@ -138,7 +259,34 @@ describe('gameStore event handlers', () => {
 
     it('should handle "scene/delete" for the last scene and set activeSceneId to null', () => {
       // Setup: Create one scene
-      const scene1: Scene = { id: 'scene-1', name: 'Scene One', placedTokens: [], drawings: [], createdAt: Date.now(), updatedAt: Date.now(), gridSettings: { enabled: true, size: 50, color: '#fff', opacity: 0.5, snapToGrid: true } };
+      const scene1: Scene = {
+        id: 'scene-1',
+        name: 'Scene One',
+        description: 'Test scene one',
+        visibility: 'private',
+        isEditable: true,
+        createdBy: 'test-user',
+        placedTokens: [],
+        drawings: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        gridSettings: {
+          enabled: true,
+          size: 50,
+          color: '#fff',
+          opacity: 0.5,
+          snapToGrid: true,
+          showToPlayers: true
+        },
+        lightingSettings: {
+          enabled: false,
+          globalIllumination: true,
+          ambientLight: 0.5,
+          darkness: 0,
+        },
+        isActive: false,
+        playerCount: 0,
+      };
       useGameStore.setState(state => ({
         sceneState: {
           ...state.sceneState,

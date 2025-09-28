@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
-import type { AssetManifest, AssetMetadata } from '../shared/types';
+import type { AssetManifest } from '../shared/types';
 
 // Asset categories for directory structure
 const ASSET_CATEGORIES = {
@@ -200,7 +200,7 @@ app.use((req, res) => {
   });
 });
 
-app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((error: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('❌ Server error:', error);
   res.status(500).json({ error: 'Internal server error' });
 });

@@ -155,27 +155,102 @@ The Scene Editor includes a professional asset browser:
 
 ### Available Scripts
 
+#### 🚀 **Quick Start Commands**
 ```bash
-# Development
-npm run dev              # Start frontend (port 5173)
+npm run start:all        # Start all servers (frontend + backend + assets) - Full development
+npm run dev              # Start frontend only - Quick UI development
+npm run setup           # Interactive setup menu (recommended for first time)
+npm run dev:all         # Alternative all-in-one development start
+npm run start:full      # Start with named process output
+```
+
+#### 📋 **When to Use Which Command**
+- **`npm run dev`** - Frontend only, perfect for UI work and offline preparation mode
+- **`npm run start:all`** - Full stack, needed for multiplayer features and WebSocket server
+- **`npm run setup`** - First time setup with intelligent port conflict resolution
+
+#### 🖥️ **Development - Frontend**
+```bash
+npm run dev              # Start frontend only (port 5173) - Quick UI development
+npm run dev:3000         # Start frontend on port 3000
+npm run dev:4000         # Start frontend on port 4000
+npm run dev:8080         # Start frontend on port 8080
+npm run preview          # Preview production build
+```
+
+#### 🔌 **Development - Backend/WebSocket**
+```bash
 npm run server:dev       # Start WebSocket server (port 5000)
-cd asset-server && npm run dev  # Start asset server (port 8080)
-npm run start:all        # Start all three servers at once
-npm run setup           # Interactive setup menu
+npm run server:dev:5001  # Start WebSocket server on port 5001
+npm run server:dev:5002  # Start WebSocket server on port 5002
+npm run server:dev:8080  # Start WebSocket server on port 8080
+npm run server:test      # Run server in test mode
+```
 
-# Asset Processing
-node scripts/process-assets.js <input> <output>  # Process assets
-npm install sharp       # Install image processing library
+#### 🏗️ **Build Commands**
+```bash
+npm run build           # Production build (frontend)
+npm run build:server    # Build server TypeScript
+npm run build:all       # Build both frontend and server
+npm run server:build    # Same as build:server
+npm run server:start    # Start production server (after build)
+```
 
-# Build & Quality
-npm run build           # Production build
-npm run lint            # TypeScript and ESLint checks
+#### 🧪 **Testing & Quality**
+```bash
+# Type Checking & Linting
 npm run type-check      # TypeScript validation only
+npm run lint            # ESLint + TypeScript checks
 
-# Port Management (if defaults are busy)
-npm run dev:3000        # Frontend on specific port
-npm run server:dev:5001 # WebSocket on specific port
-PORT=8081 npm run dev   # Asset server on different port (in asset-server/)
+# Unit & Integration Tests
+npm run test            # Start test suite in watch mode
+npm run test:unit       # Run unit tests only
+npm run test:integration # Run integration tests
+npm run test:e2e        # Run end-to-end tests
+npm run test:all        # Run all tests once
+npm run test:watch      # Run tests in watch mode
+npm run test:coverage   # Run tests with coverage report
+npm run test:ui         # Open Vitest UI
+
+# Visual & Layout Tests
+npm run test:layout     # Run Playwright layout tests
+npm run test:layout:quick # Quick layout validation
+npm run test:visual     # Visual regression testing
+```
+
+#### 🐳 **Docker Commands**
+```bash
+npm run docker:dev      # Start development environment
+npm run docker:dev:build # Build and start dev environment
+npm run docker:dev:down # Stop development environment
+npm run docker:build   # Production build with Docker
+npm run docker:deploy  # Deploy to production
+npm run docker:logs    # View container logs
+npm run docker:setup   # Full Docker environment setup
+```
+
+#### 🎨 **Asset Management**
+```bash
+npm run organize-assets # Organize asset directory structure
+npm run update-assets  # Update asset references in code
+npm run check-ports    # Check available ports
+
+# Manual asset processing
+node scripts/process-assets.js <input> <output>  # Process assets
+npm install sharp      # Install image processing library
+```
+
+#### 🔧 **Development Tools**
+```bash
+npm run validate-layout # Validate CSS layout rules
+npm run validate-env   # Validate environment configuration
+npm run setup:legacy   # Legacy setup script
+npm run dev:quick      # Quick development start (alias)
+```
+
+#### 📦 **Legacy & Utility**
+```bash
+npm run prepare        # Husky git hooks setup (auto-run on install)
 ```
 
 ### Architecture Deep Dive

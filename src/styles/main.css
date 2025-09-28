@@ -3,6 +3,14 @@
 @import './settings.css';
 @import './asset-browser.css';
 @import './layout.css';
+@import './dice-roller.css';
+@import './initiative-tracker.css';
+@import './character-sheet.css';
+@import './player-panel.css';
+@import './offline-preparation.css';
+@import './welcome-page.css';
+@import './character-creation.css';
+@import './linear-flow.css';
 @import './theme-solid.css';
 
 /* CSS Reset and base styles */
@@ -546,121 +554,6 @@ button.disconnect-btn:hover {
   box-shadow: 0 8px 30px rgba(239, 68, 68, 0.4);
 }
 
-/* Dice Roller */
-.dice-roller {
-  max-width: 1000px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.dice-input, .dice-history {
-  background: var(--glass-surface-strong);
-  backdrop-filter: var(--glass-blur-strong);
-  -webkit-backdrop-filter: var(--glass-blur-strong);
-  padding: 2rem;
-  border-radius: var(--border-radius-xl);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-glass-lg);
-  position: relative;
-  overflow: hidden;
-}
-
-.dice-input::before, .dice-history::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-}
-
-.dice-input h2, .dice-history h3 {
-  margin-bottom: 1.5rem;
-  color: var(--glass-text);
-  font-weight: 700;
-  font-size: 1.5rem;
-}
-
-.roll-controls {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.dice-expression {
-  flex: 1;
-  padding: 1rem;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius);
-  font-size: 1.1rem;
-  background: var(--glass-surface);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  color: var(--glass-text);
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.dice-expression::placeholder {
-  color: var(--glass-text-light);
-}
-
-.dice-expression:focus {
-  outline: none;
-  border-color: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1), 0 0 20px rgba(255, 255, 255, 0.2);
-  background: var(--glass-surface-hover);
-}
-
-.roll-btn {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  color: white;
-  padding: 1rem 2rem;
-  width: auto;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
-}
-
-.roll-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
-}
-
-.quick-dice h3 {
-  margin: 2rem 0 1.5rem 0;
-  font-size: 1.2rem;
-  color: var(--glass-text-muted);
-  font-weight: 600;
-}
-
-.dice-buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 0.75rem;
-}
-
-.dice-btn {
-  padding: 0.75rem;
-  background: var(--glass-surface);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius);
-  font-size: 0.95rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
-  width: auto;
-  transition: all 0.3s ease;
-}
-
-.dice-btn:hover {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-}
-
 .rolls-list {
   max-height: 450px;
   overflow-y: auto;
@@ -684,101 +577,6 @@ button.disconnect-btn:hover {
 
 .rolls-list::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
-}
-
-.no-rolls {
-  text-align: center;
-  color: var(--glass-text-muted);
-  font-style: italic;
-  padding: 3rem;
-}
-
-.dice-roll {
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--glass-border);
-  margin-bottom: 1rem;
-  background: var(--glass-surface);
-  border-radius: var(--border-radius);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  transition: all 0.3s ease;
-}
-
-.dice-roll:hover {
-  background: var(--glass-surface-hover);
-  transform: translateX(5px);
-  box-shadow: var(--shadow-glass);
-}
-
-.dice-roll.private {
-  background: rgba(99, 102, 241, 0.1);
-  border-left: 4px solid var(--color-primary);
-  padding-left: calc(1.5rem - 4px);
-}
-
-.dice-roll.new-roll {
-  animation: newRollFlash 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes newRollFlash {
-  0% {
-    background: var(--glass-surface-strong);
-    transform: scale(1.02);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-  }
-  100% {
-    background: var(--glass-surface);
-    transform: scale(1);
-    box-shadow: none;
-  }
-}
-
-.dice-roll:last-child {
-  margin-bottom: 0;
-}
-
-.roll-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.roller-name {
-  font-weight: 700;
-  color: var(--glass-text);
-  background: linear-gradient(135deg, #fff 0%, #f0f9ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.roll-time {
-  font-size: 0.85rem;
-  color: var(--glass-text-light);
-  font-family: 'JetBrains Mono', monospace;
-}
-.roll-time .private-tag {
-  background: var(--color-primary);
-  color: white;
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  margin-right: 0.5rem;
-}
-
-.roll-result {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 1.1rem;
-  background: var(--glass-surface-hover);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  padding: 1rem;
-  border-radius: var(--border-radius);
-  border: 1px solid var(--glass-border);
-  font-weight: 600;
 }
 
 /* Placeholder */

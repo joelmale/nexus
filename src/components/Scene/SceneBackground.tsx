@@ -8,7 +8,7 @@ interface SceneBackgroundProps {
 
 export const SceneBackground: React.FC<SceneBackgroundProps> = ({ 
   backgroundImage, 
-  sceneId 
+  sceneId: _sceneId 
 }) => {
   const { url, width, height, offsetX = 0, offsetY = 0, scale = 1 } = backgroundImage;
 

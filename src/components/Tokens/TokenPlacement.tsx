@@ -3,7 +3,6 @@ import type { PlacedToken, Token } from '@/types/token';
 import type { Camera } from '@/types/game';
 import { useUser, useActiveScene } from '@/stores/gameStore';
 import { webSocketService } from '@/utils/websocket';
-import { getTokenPixelSize } from '@/types/token';
 
 interface TokenPlacementProps {
   activeTool: 'token-place' | string;

@@ -2,9 +2,11 @@
 import type { AssetMetadata, AssetManifest, AssetSearchResult, AssetCategoryResult } from '../../shared/types';
 import type { Scene } from '@/types/game';
 
+// Re-export types for use in components
+export type { AssetMetadata, AssetManifest, AssetSearchResult, AssetCategoryResult };
+
 // Asset server configuration - using Vite environment variables
 const ASSET_SERVER_URL = import.meta.env.VITE_ASSET_SERVER_URL || 'http://localhost:8080';
-const LOCAL_CACHE_PREFIX = 'nexus-asset-cache-';
 
 /**
  * Asset Manager for handling external map assets efficiently
@@ -26,15 +28,18 @@ export class AssetManager {
    * Load the asset manifest from the asset server
    */
   async loadAssetManifest(): Promise<AssetManifest> {
-    if (this.manifest) return this.manifest;
+    if (this.manifest) return this.manifest as AssetManifest;
 
     try {
       const response = await fetch(`${ASSET_SERVER_URL}/manifest.json`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      this.manifest = await response.json();
-      return this.manifest;
+      const manifestData = await response.json();
+      if (!manifestData) {
+        throw new Error('Received empty manifest data from server');
+      }
+      return (this.manifest = manifestData);
     } catch (error) {
       console.error('Failed to load asset manifest:', error);
       // Fallback to empty manifest
@@ -178,23 +183,27 @@ export class AssetManager {
   private async getCachedAsset(assetId: string): Promise<Blob | null> {
     try {
       const db = await this.openCacheDB();
-      const transaction = db.transaction(['assets'], 'readonly');
-      const store = transaction.objectStore('assets');
-      const result = await store.get(assetId);
-      
-      if (result) {
-        // Check if cache is expired (e.g., 7 days)
-        const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-        if (Date.now() - result.timestamp > maxAge) {
-          // Cache expired, delete it
-          await this.deleteCachedAsset(assetId);
-          return null;
-        }
-        
-        return result.blob;
-      }
-      
-      return null;
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['assets'], 'readonly');
+        const store = transaction.objectStore('assets');
+        const request = store.get(assetId);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const result = request.result as { id: string; blob: Blob; timestamp: number } | undefined;
+          if (result && result.timestamp) {
+            // Check if cache is expired (e.g., 7 days)
+            const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+            if (Date.now() - result.timestamp > maxAge) {
+              this.deleteCachedAsset(assetId).finally(() => resolve(null)); // Expired
+            } else {
+              resolve(result.blob); // Valid
+            }
+          } else {
+            resolve(null); // Not found
+          }
+        };
+      });
     } catch (error) {
       console.warn('Failed to get cached asset:', error);
       return null;

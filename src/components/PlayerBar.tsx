@@ -2,7 +2,7 @@ import React from 'react';
 import { useGameStore } from '@/stores/gameStore';
 
 export const PlayerBar: React.FC = () => {
-  const { session, user } = useGameStore();
+  const { session } = useGameStore();
   
   if (!session) return null;
   
@@ -13,7 +13,7 @@ export const PlayerBar: React.FC = () => {
           <div key={player.id} className="player-indicator">
             <span className="player-avatar">{player.name[0].toUpperCase()}</span>
             <span className="player-name">{player.name}</span>
-            {player.isHost && <span className="host-badge">DM</span>}
+            {player.type === 'host' && <span className="host-badge">DM</span>}
           </div>
         ))}
       </div>

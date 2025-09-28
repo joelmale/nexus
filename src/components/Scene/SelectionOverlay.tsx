@@ -1,6 +1,7 @@
 import React from 'react';
 import { useActiveScene } from '@/stores/gameStore';
 import type { Camera } from '@/types/game';
+import type { Drawing, Point } from '@/types/drawing';
 
 interface SelectionOverlayProps {
   selectedDrawings: string[];
@@ -13,7 +14,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   selectedDrawings,
   sceneId,
   camera,
-  onClearSelection
+  onClearSelection: _onClearSelection
 }) => {
   const activeScene = useActiveScene();
 
@@ -25,7 +26,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     selectedDrawings.includes(drawing.id)
   );
 
-  const renderSelectionIndicator = (drawing: any) => {
+  const renderSelectionIndicator = (drawing: Drawing) => {
     const strokeWidth = 2 / camera.zoom;
     const selectionProps = {
       fill: 'none',
@@ -37,7 +38,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     };
 
     switch (drawing.type) {
-      case 'line':
+      case 'line': {
         return (
           <line
             key={`selection-${drawing.id}`}
@@ -48,8 +49,9 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             {...selectionProps}
           />
         );
+      }
 
-      case 'rectangle':
+      case 'rectangle': {
         const padding = 5 / camera.zoom;
         return (
           <rect
@@ -61,8 +63,9 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             {...selectionProps}
           />
         );
+      }
 
-      case 'circle':
+      case 'circle': {
         const radiusPadding = 5 / camera.zoom;
         return (
           <circle
@@ -73,10 +76,11 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             {...selectionProps}
           />
         );
+      }
 
-      case 'polygon':
+      case 'polygon': {
         if (drawing.points.length < 3) return null;
-        const pathData = `M ${drawing.points.map((p: any) => `${p.x} ${p.y}`).join(' L ')} Z`;
+        const pathData = `M ${drawing.points.map((p: Point) => `${p.x} ${p.y}`).join(' L ')} Z`;
         return (
           <path
             key={`selection-${drawing.id}`}
@@ -84,10 +88,11 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             {...selectionProps}
           />
         );
+      }
 
-      case 'pencil':
+      case 'pencil': {
         if (drawing.points.length < 2) return null;
-        const pencilPath = `M ${drawing.points.map((p: any) => `${p.x} ${p.y}`).join(' L ')}`;
+        const pencilPath = `M ${drawing.points.map((p: Point) => `${p.x} ${p.y}`).join(' L ')}`;
         return (
           <path
             key={`selection-${drawing.id}`}
@@ -95,8 +100,9 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             {...selectionProps}
           />
         );
+      }
 
-      case 'aoe-sphere':
+      case 'aoe-sphere': {
         return (
           <circle
             key={`selection-${drawing.id}`}
@@ -106,8 +112,9 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             {...selectionProps}
           />
         );
+      }
 
-      case 'aoe-cube':
+      case 'aoe-cube': {
         const cubePadding = 5 / camera.zoom;
         return (
           <rect
@@ -119,8 +126,9 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             {...selectionProps}
           />
         );
+      }
 
-      case 'cone':
+      case 'cone': {
         // Simplified cone selection - just show origin point
         return (
           <circle
@@ -131,7 +139,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             {...selectionProps}
           />
         );
-
+      }
       default:
         return null;
     }
@@ -159,7 +167,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 };
 
 // Helper function to render selection handles for single selection
-const renderSelectionHandles = (drawing: any, camera: Camera) => {
+const renderSelectionHandles = (drawing: Drawing, camera: Camera) => {
   const handleSize = 6 / camera.zoom;
   const handleProps = {
     width: handleSize,
@@ -173,7 +181,7 @@ const renderSelectionHandles = (drawing: any, camera: Camera) => {
   const handles: JSX.Element[] = [];
 
   switch (drawing.type) {
-    case 'rectangle':
+    case 'rectangle': {
       // Corner handles for rectangles
       const corners = [
         { x: drawing.x, y: drawing.y },
@@ -192,8 +200,9 @@ const renderSelectionHandles = (drawing: any, camera: Camera) => {
         );
       });
       break;
+    }
 
-    case 'circle':
+    case 'circle': {
       // Radius handles for circles
       const radiusPoints = [
         { x: drawing.center.x + drawing.radius, y: drawing.center.y },
@@ -212,8 +221,9 @@ const renderSelectionHandles = (drawing: any, camera: Camera) => {
         );
       });
       break;
+    }
 
-    case 'line':
+    case 'line': {
       // End point handles for lines
       [drawing.start, drawing.end].forEach((point, index) => {
         handles.push(
@@ -226,7 +236,7 @@ const renderSelectionHandles = (drawing: any, camera: Camera) => {
         );
       });
       break;
-
+    }
     default:
       break;
   }
@@ -235,7 +245,7 @@ const renderSelectionHandles = (drawing: any, camera: Camera) => {
 };
 
 // Helper function to render bounding box for multi-selection
-const renderMultiSelectionBounds = (drawings: any[], camera: Camera) => {
+const renderMultiSelectionBounds = (drawings: Drawing[], camera: Camera) => {
   if (drawings.length === 0) return null;
 
   // Calculate bounding box for all selected drawings
@@ -262,7 +272,7 @@ const renderMultiSelectionBounds = (drawings: any[], camera: Camera) => {
         maxY = Math.max(maxY, drawing.center.y + drawing.radius);
         break;
       case 'polygon':
-        drawing.points.forEach((point: any) => {
+        drawing.points.forEach((point: Point) => {
           minX = Math.min(minX, point.x);
           maxX = Math.max(maxX, point.x);
           minY = Math.min(minY, point.y);
@@ -270,7 +280,7 @@ const renderMultiSelectionBounds = (drawings: any[], camera: Camera) => {
         });
         break;
       case 'pencil':
-        drawing.points.forEach((point: any) => {
+        drawing.points.forEach((point: Point) => {
           minX = Math.min(minX, point.x);
           maxX = Math.max(maxX, point.x);
           minY = Math.min(minY, point.y);

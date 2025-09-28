@@ -1,0 +1,17 @@
+# Ignore artifacts:
+build
+dist
+coverage
+
+# Ignore dependencies:
+node_modules
+
+# Ignore generated files:
+package-lock.json
+
+# Ignore assets:
+assets
+public/assets
+
+# Ignore context files:
+.claude-context
