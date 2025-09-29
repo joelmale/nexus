@@ -49,6 +49,8 @@
   position: absolute;
   top: 10px;
   left: 10px;
+  max-height: calc(100vh - 20px);
+  max-width: calc(100vw - 20px);
   background: var(--surface-primary);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -57,6 +59,7 @@
   padding: var(--toolbar-padding);
   box-shadow: var(--shadow-glass-lg);
   z-index: var(--z-toolbar);
+  overflow: hidden;
   max-height: calc(100vh - 40px);
   max-width: calc(100vw - 20px);
   overflow-y: auto;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSession, useIsHost } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
+import { useAppFlowStore } from '@/stores/appFlowStore';
 import { CharacterSheet } from './CharacterSheet';
 import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
 import type { Player } from '@/types/game';
@@ -13,12 +14,19 @@ interface PlayerCardProps {
   onToggleDM?: (playerId: string, currentPermissions: boolean) => void;
 }
 
-const PlayerCard: React.FC<PlayerCardProps> = ({ player, isHost, onKick, onToggleDM }) => {
+const PlayerCard: React.FC<PlayerCardProps> = ({
+  player,
+  isHost,
+  onKick,
+  onToggleDM,
+}) => {
   const { characters } = useCharacters();
-  const playerCharacters = characters.filter(c => c.playerId === player.id);
+  const playerCharacters = characters.filter((c) => c.playerId === player.id);
 
   return (
-    <div className={`player-card ${player.type === 'host' ? 'dm-card' : ''} ${player.connected ? 'online' : 'offline'}`}>
+    <div
+      className={`player-card ${player.type === 'host' ? 'dm-card' : ''} ${player.connected ? 'online' : 'offline'}`}
+    >
       <div className="player-header">
         <div className="player-avatar">
           {player.type === 'host' ? '👑' : '⚔️'}
@@ -30,23 +38,29 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, isHost, onKick, onToggl
             {player.canEditScenes && player.type !== 'host' && ' (Co-DM)'}
           </div>
           <div className="character-count">
-            {playerCharacters.length} character{playerCharacters.length !== 1 ? 's' : ''}
+            {playerCharacters.length} character
+            {playerCharacters.length !== 1 ? 's' : ''}
           </div>
         </div>
-        <div className={`connection-indicator ${player.connected ? 'online' : 'offline'}`}>
+        <div
+          className={`connection-indicator ${player.connected ? 'online' : 'offline'}`}
+        >
           <span className="indicator-dot"></span>
-          <span className="status-text">{player.connected ? 'Online' : 'Offline'}</span>
+          <span className="status-text">
+            {player.connected ? 'Online' : 'Offline'}
+          </span>
         </div>
       </div>
 
       {/* Character List */}
       {playerCharacters.length > 0 && (
         <div className="player-characters">
-          {playerCharacters.map(character => (
+          {playerCharacters.map((character) => (
             <div key={character.id} className="character-summary">
               <span className="character-name">{character.name}</span>
               <span className="character-details">
-                Level {character.level} {character.race?.name} {character.classes?.[0]?.name}
+                Level {character.level} {character.race?.name}{' '}
+                {character.classes?.[0]?.name}
               </span>
               <span className="character-hp">
                 {character.hitPoints.current}/{character.hitPoints.maximum} HP
@@ -62,7 +76,11 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, isHost, onKick, onToggl
           <button
             onClick={() => onToggleDM?.(player.id, player.canEditScenes)}
             className={`dm-toggle-btn ${player.canEditScenes ? 'active' : ''}`}
-            title={player.canEditScenes ? 'Remove DM permissions' : 'Grant DM permissions'}
+            title={
+              player.canEditScenes
+                ? 'Remove DM permissions'
+                : 'Grant DM permissions'
+            }
           >
             {player.canEditScenes ? '📋→👤' : '👤→📋'}
           </button>
@@ -79,42 +97,46 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, isHost, onKick, onToggl
   );
 };
 
-
 export const PlayerPanel: React.FC = () => {
   const session = useSession();
   const isHost = useIsHost();
-  const { characters, activeCharacter, setActiveCharacter, createCharacter } = useCharacters();
-  const { creationState, startCharacterCreation, cancelCharacterCreation } = useCharacterCreation();
+  const { characters, activeCharacter, setActiveCharacter } = useCharacters();
+  useCharacterCreation();
   const { addEntry, rollInitiativeForAll, startCombat } = useInitiativeStore();
-  const [showCharacterSheet, setShowCharacterSheet] = useState(false);
-  const { startCharacterCreation: launchWizard, LauncherComponent } = useCharacterCreationLauncher();
+  const [, setShowCharacterSheet] = useState(false);
+  const { LauncherComponent } = useCharacterCreationLauncher();
+  const { setView } = useAppFlowStore();
 
   const players = session?.players ?? [];
-  
+
   // Determine the current user based on whether they are a host or player
   let currentUserId: string | undefined;
   if (isHost) {
-    currentUserId = players.find(p => p.type === 'host')?.id;
+    currentUserId = players.find((p) => p.type === 'host')?.id;
   } else {
     // For non-hosts, find the first player (this works better for tests)
-    currentUserId = players.find(p => p.type === 'player')?.id;
+    currentUserId = players.find((p) => p.type === 'player')?.id;
   }
-  
+
   // Filter characters for the current user
-  const myCharacters = currentUserId ? characters.filter(c => c.playerId === currentUserId) : [];
+  const myCharacters = currentUserId
+    ? characters.filter((c) => c.playerId === currentUserId)
+    : [];
   const effectiveMyCharacters = myCharacters;
-  const effectiveUserId = currentUserId;
 
   const handleKickPlayer = (playerId: string) => {
-    const player = players.find(p => p.id === playerId);
+    const player = players.find((p) => p.id === playerId);
     if (player && window.confirm(`Kick ${player.name} from the game?`)) {
       // TODO: Implement kick functionality
       console.log('Kicking player:', playerId);
     }
   };
 
-  const handleToggleDMPermissions = (playerId: string, currentPermissions: boolean) => {
-    const player = players.find(p => p.id === playerId);
+  const handleToggleDMPermissions = (
+    playerId: string,
+    currentPermissions: boolean,
+  ) => {
+    const player = players.find((p) => p.id === playerId);
     if (player) {
       const action = currentPermissions ? 'Remove' : 'Grant';
       if (window.confirm(`${action} DM permissions for ${player.name}?`)) {
@@ -125,25 +147,8 @@ export const PlayerPanel: React.FC = () => {
   };
 
   const handleCreateCharacter = () => {
-    if (effectiveUserId) {
-      launchWizard(
-        effectiveUserId,
-        'modal',
-        (characterId) => {
-          console.log('Character created:', characterId);
-          // Optionally view the new character immediately
-          setActiveCharacter(characterId);
-        },
-        () => {
-          console.log('Character creation cancelled');
-        }
-      );
-    }
-  };
-
-  const handleCharacterCreationComplete = () => {
-    // Character creation completed
-    setShowCharacterSheet(false);
+    // Navigate to player setup page for character creation
+    setView('player_setup');
   };
 
   const handleViewCharacter = (characterId: string) => {
@@ -157,7 +162,7 @@ export const PlayerPanel: React.FC = () => {
 
   const handleBeginCombat = () => {
     // Add all player characters to initiative tracker
-    characters.forEach(character => {
+    characters.forEach((character) => {
       addEntry({
         name: character.name,
         type: 'player' as const,
@@ -183,12 +188,16 @@ export const PlayerPanel: React.FC = () => {
     startCombat();
 
     // TODO: Switch to initiative tab programmatically
-    console.log('All characters added to initiative tracker and combat started');
+    console.log(
+      'All characters added to initiative tracker and combat started',
+    );
   };
 
   // Show character sheet if one is active
   if (activeCharacter) {
-    const isReadonly = !effectiveMyCharacters.some(c => c.id === activeCharacter.id);
+    const isReadonly = !effectiveMyCharacters.some(
+      (c) => c.id === activeCharacter.id,
+    );
     return (
       <div className="player-panel">
         <div className="panel-header">
@@ -207,7 +216,6 @@ export const PlayerPanel: React.FC = () => {
       </div>
     );
   }
-
 
   return (
     <div className="player-panel">
@@ -239,7 +247,7 @@ export const PlayerPanel: React.FC = () => {
 
         {effectiveMyCharacters.length > 0 ? (
           <div className="character-list">
-            {effectiveMyCharacters.map(character => (
+            {effectiveMyCharacters.map((character) => (
               <div
                 key={character.id}
                 className="character-item"
@@ -251,10 +259,12 @@ export const PlayerPanel: React.FC = () => {
                 <div className="character-info">
                   <div className="character-name">{character.name}</div>
                   <div className="character-details">
-                    Level {character.level} {character.race?.name} {character.classes?.[0]?.name}
+                    Level {character.level} {character.race?.name}{' '}
+                    {character.classes?.[0]?.name}
                   </div>
                   <div className="character-stats">
-                    HP: {character.hitPoints.current}/{character.hitPoints.maximum} | AC: {character.armorClass}
+                    HP: {character.hitPoints.current}/
+                    {character.hitPoints.maximum} | AC: {character.armorClass}
                   </div>
                 </div>
                 <div className="character-actions">
@@ -274,11 +284,14 @@ export const PlayerPanel: React.FC = () => {
       {/* All Players Section */}
       <div className="all-players-section">
         <div className="section-header">
-          <h4>All Players ({players.filter(p => p.connected).length}/{players.length} online)</h4>
+          <h4>
+            All Players ({players.filter((p) => p.connected).length}/
+            {players.length} online)
+          </h4>
         </div>
 
         <div className="players-list">
-          {players.map(player => (
+          {players.map((player) => (
             <PlayerCard
               key={player.id}
               player={player}
@@ -296,10 +309,7 @@ export const PlayerPanel: React.FC = () => {
           <h4>Combat Preparation</h4>
           <div className="combat-summary">
             <p>{characters.length} player characters ready</p>
-            <button
-              onClick={handleBeginCombat}
-              className="combat-prep-btn"
-            >
+            <button onClick={handleBeginCombat} className="combat-prep-btn">
               🎲 Add All to Initiative
             </button>
           </div>

@@ -11,7 +11,7 @@ import {
   getAvailableRaces,
   getAvailableClasses,
   getAvailableBackgrounds,
-  getAvailableAlignments
+  getAvailableAlignments,
 } from '@/utils/characterGenerator';
 import type { Character, AbilityScores } from '@/types/character';
 
@@ -39,11 +39,11 @@ interface WizardStepProps {
 const CoreConceptStep: React.FC<WizardStepProps> = ({
   character,
   updateCharacter,
-  onNext,
-  onPrevious,
-  canProceed,
-  isFirstStep,
-  isLastStep
+  onNext: _onNext,
+  onPrevious: _onPrevious,
+  canProceed: _canProceed,
+  isFirstStep: _isFirstStep,
+  isLastStep: _isLastStep,
 }) => {
   const handleRandomizeAll = () => {
     const randomChar = generateRandomCharacter(character.playerId || '');
@@ -52,7 +52,7 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
       race: randomChar.race,
       classes: randomChar.classes,
       background: randomChar.background,
-      alignment: randomChar.alignment
+      alignment: randomChar.alignment,
     });
   };
 
@@ -135,8 +135,10 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
               className="form-select"
             >
               <option value="">Select a race</option>
-              {getAvailableRaces().map(race => (
-                <option key={race} value={race}>{race}</option>
+              {getAvailableRaces().map((race) => (
+                <option key={race} value={race}>
+                  {race}
+                </option>
               ))}
             </select>
             <button
@@ -167,8 +169,10 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
               className="form-select"
             >
               <option value="">Select a class</option>
-              {getAvailableClasses().map(cls => (
-                <option key={cls} value={cls}>{cls}</option>
+              {getAvailableClasses().map((cls) => (
+                <option key={cls} value={cls}>
+                  {cls}
+                </option>
               ))}
             </select>
             <button
@@ -199,8 +203,10 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
               className="form-select"
             >
               <option value="">Select a background</option>
-              {getAvailableBackgrounds().map(bg => (
-                <option key={bg} value={bg}>{bg}</option>
+              {getAvailableBackgrounds().map((bg) => (
+                <option key={bg} value={bg}>
+                  {bg}
+                </option>
               ))}
             </select>
             <button
@@ -224,8 +230,10 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
               className="form-select"
             >
               <option value="">Select alignment</option>
-              {getAvailableAlignments().map(alignment => (
-                <option key={alignment} value={alignment}>{alignment}</option>
+              {getAvailableAlignments().map((alignment) => (
+                <option key={alignment} value={alignment}>
+                  {alignment}
+                </option>
               ))}
             </select>
             <button
@@ -245,29 +253,14 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
             type="number"
             id="character-level"
             value={character.level || 1}
-            onChange={(e) => updateCharacter({ level: parseInt(e.target.value) || 1 })}
+            onChange={(e) =>
+              updateCharacter({ level: parseInt(e.target.value) || 1 })
+            }
             min="1"
             max="20"
             className="form-input"
           />
         </div>
-      </div>
-
-      <div className="step-navigation">
-        <button
-          className="nav-btn previous"
-          onClick={onPrevious}
-          disabled={isFirstStep}
-        >
-          ← Previous
-        </button>
-        <button
-          className="nav-btn next"
-          onClick={onNext}
-          disabled={!canProceed}
-        >
-          Next →
-        </button>
       </div>
     </div>
   );
@@ -280,11 +273,11 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
 const AbilityScoresStep: React.FC<WizardStepProps> = ({
   character,
   updateCharacter,
-  onNext,
-  onPrevious,
-  canProceed,
-  isFirstStep,
-  isLastStep
+  onNext: _onNext,
+  onPrevious: _onPrevious,
+  canProceed: _canProceed,
+  isFirstStep: _isFirstStep,
+  isLastStep: _isLastStep,
 }) => {
   const handleRandomizeAbilities = () => {
     const newAbilities = randomizeAbilityScores();
@@ -303,8 +296,8 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
         ...character.abilities[ability],
         score,
         modifier: newModifier,
-        savingThrow: newModifier
-      }
+        savingThrow: newModifier,
+      },
     };
 
     updateCharacter({ abilities: updatedAbilities });
@@ -335,16 +328,19 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
               <input
                 type="number"
                 value={abilityData.score}
-                onChange={(e) => handleAbilityChange(
-                  abilityName as keyof AbilityScores,
-                  parseInt(e.target.value) || 10
-                )}
+                onChange={(e) =>
+                  handleAbilityChange(
+                    abilityName as keyof AbilityScores,
+                    parseInt(e.target.value) || 10,
+                  )
+                }
                 min="1"
                 max="20"
                 className="ability-input"
               />
               <div className="ability-modifier">
-                {abilityData.modifier >= 0 ? '+' : ''}{abilityData.modifier}
+                {abilityData.modifier >= 0 ? '+' : ''}
+                {abilityData.modifier}
               </div>
             </div>
           </div>
@@ -352,25 +348,10 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
       </div>
 
       <div className="ability-score-help">
-        <p>Standard ability score generation uses 4d6, dropping the lowest die.</p>
+        <p>
+          Standard ability score generation uses 4d6, dropping the lowest die.
+        </p>
         <p>Scores can be manually adjusted between 1-20.</p>
-      </div>
-
-      <div className="step-navigation">
-        <button
-          className="nav-btn previous"
-          onClick={onPrevious}
-          disabled={isFirstStep}
-        >
-          ← Previous
-        </button>
-        <button
-          className="nav-btn next"
-          onClick={onNext}
-          disabled={!canProceed}
-        >
-          Next →
-        </button>
       </div>
     </div>
   );
@@ -383,11 +364,11 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
 const DetailsStep: React.FC<WizardStepProps> = ({
   character,
   updateCharacter,
-  onNext,
-  onPrevious,
-  canProceed,
-  isFirstStep,
-  isLastStep
+  onNext: _onNext,
+  onPrevious: _onPrevious,
+  canProceed: _canProceed,
+  isFirstStep: _isFirstStep,
+  isLastStep: _isLastStep,
 }) => {
   return (
     <div className="wizard-step details-step">
@@ -406,7 +387,9 @@ const DetailsStep: React.FC<WizardStepProps> = ({
               type="number"
               id="armor-class"
               value={character.armorClass || 10}
-              onChange={(e) => updateCharacter({ armorClass: parseInt(e.target.value) || 10 })}
+              onChange={(e) =>
+                updateCharacter({ armorClass: parseInt(e.target.value) || 10 })
+              }
               min="1"
               className="form-input"
             />
@@ -424,8 +407,8 @@ const DetailsStep: React.FC<WizardStepProps> = ({
                   hitPoints: {
                     maximum: maxHP,
                     current: maxHP,
-                    temporary: 0
-                  }
+                    temporary: 0,
+                  },
                 });
               }}
               min="1"
@@ -439,7 +422,9 @@ const DetailsStep: React.FC<WizardStepProps> = ({
               type="number"
               id="speed"
               value={character.speed || 30}
-              onChange={(e) => updateCharacter({ speed: parseInt(e.target.value) || 30 })}
+              onChange={(e) =>
+                updateCharacter({ speed: parseInt(e.target.value) || 30 })
+              }
               min="0"
               step="5"
               className="form-input"
@@ -456,9 +441,13 @@ const DetailsStep: React.FC<WizardStepProps> = ({
             <textarea
               id="personality-traits"
               value={character.personalityTraits?.join('\n') || ''}
-              onChange={(e) => updateCharacter({
-                personalityTraits: e.target.value.split('\n').filter(t => t.trim())
-              })}
+              onChange={(e) =>
+                updateCharacter({
+                  personalityTraits: e.target.value
+                    .split('\n')
+                    .filter((t) => t.trim()),
+                })
+              }
               placeholder="Describe your character's personality traits..."
               className="form-textarea"
               rows={3}
@@ -470,9 +459,11 @@ const DetailsStep: React.FC<WizardStepProps> = ({
             <textarea
               id="ideals"
               value={character.ideals?.join('\n') || ''}
-              onChange={(e) => updateCharacter({
-                ideals: e.target.value.split('\n').filter(t => t.trim())
-              })}
+              onChange={(e) =>
+                updateCharacter({
+                  ideals: e.target.value.split('\n').filter((t) => t.trim()),
+                })
+              }
               placeholder="What drives your character..."
               className="form-textarea"
               rows={2}
@@ -484,9 +475,11 @@ const DetailsStep: React.FC<WizardStepProps> = ({
             <textarea
               id="bonds"
               value={character.bonds?.join('\n') || ''}
-              onChange={(e) => updateCharacter({
-                bonds: e.target.value.split('\n').filter(t => t.trim())
-              })}
+              onChange={(e) =>
+                updateCharacter({
+                  bonds: e.target.value.split('\n').filter((t) => t.trim()),
+                })
+              }
               placeholder="Important connections and relationships..."
               className="form-textarea"
               rows={2}
@@ -498,32 +491,17 @@ const DetailsStep: React.FC<WizardStepProps> = ({
             <textarea
               id="flaws"
               value={character.flaws?.join('\n') || ''}
-              onChange={(e) => updateCharacter({
-                flaws: e.target.value.split('\n').filter(t => t.trim())
-              })}
+              onChange={(e) =>
+                updateCharacter({
+                  flaws: e.target.value.split('\n').filter((t) => t.trim()),
+                })
+              }
               placeholder="Character weaknesses or vices..."
               className="form-textarea"
               rows={2}
             />
           </div>
         </div>
-      </div>
-
-      <div className="step-navigation">
-        <button
-          className="nav-btn previous"
-          onClick={onPrevious}
-          disabled={isFirstStep}
-        >
-          ← Previous
-        </button>
-        <button
-          className="nav-btn next"
-          onClick={onNext}
-          disabled={!canProceed}
-        >
-          {isLastStep ? 'Create Character' : 'Next →'}
-        </button>
       </div>
     </div>
   );
@@ -533,20 +511,15 @@ const DetailsStep: React.FC<WizardStepProps> = ({
 // MAIN WIZARD COMPONENT
 // =============================================================================
 
-export const CharacterCreationWizard: React.FC<CharacterCreationWizardProps> = ({
-  playerId,
-  onComplete,
-  onCancel,
-  isModal = false
-}) => {
+export const CharacterCreationWizard: React.FC<
+  CharacterCreationWizardProps
+> = ({ playerId, onComplete, onCancel, isModal = false }) => {
   const {
     creationState,
     startCharacterCreation,
     updateCreationState,
-    nextCreationStep,
-    previousCreationStep,
     completeCharacterCreation,
-    cancelCharacterCreation
+    cancelCharacterCreation,
   } = useCharacterCreation();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -563,7 +536,7 @@ export const CharacterCreationWizard: React.FC<CharacterCreationWizardProps> = (
 
   const updateCharacter = (updates: Partial<Character>) => {
     updateCreationState({
-      character: { ...character, ...updates }
+      character: { ...character, ...updates },
     });
   };
 
@@ -599,9 +572,13 @@ export const CharacterCreationWizard: React.FC<CharacterCreationWizardProps> = (
   const canProceedFromStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(character.name && character.race?.name && character.classes?.[0]?.name);
+        return !!(
+          character.name &&
+          character.race?.name &&
+          character.classes?.[0]?.name
+        );
       case 2:
-        return !!(character.abilities);
+        return !!character.abilities;
       case 3:
         return true; // Details are optional
       default:
@@ -617,7 +594,7 @@ export const CharacterCreationWizard: React.FC<CharacterCreationWizardProps> = (
       onPrevious: handlePrevious,
       canProceed: canProceedFromStep(currentStep),
       isFirstStep: currentStep === 1,
-      isLastStep: currentStep === totalSteps
+      isLastStep: currentStep === totalSteps,
     };
 
     switch (currentStep) {
@@ -632,17 +609,59 @@ export const CharacterCreationWizard: React.FC<CharacterCreationWizardProps> = (
     }
   };
 
-  const containerClass = isModal ? 'character-wizard-modal' : 'character-wizard-fullpage';
+  const containerClass = isModal
+    ? 'character-wizard-modal'
+    : 'character-wizard-fullpage';
 
   return (
     <div className={`character-creation-wizard ${containerClass}`}>
       {isModal && <div className="modal-backdrop" onClick={handleCancel} />}
 
-      <div className="wizard-container">
-        {/* Header */}
+      <div className="wizard-container character-sheet-layout">
+        {/* Header Bar */}
         <div className="wizard-header">
-          <h1>Create New Character</h1>
-          <div className="wizard-actions">
+          {/* Header Left Navigation */}
+          <div className="header-nav-left">
+            <button
+              className="nav-btn previous header-nav"
+              onClick={handlePrevious}
+              disabled={currentStep === 1}
+            >
+              ← Previous
+            </button>
+          </div>
+
+          <div className="header-center">
+            <div className="header-left">
+              <h1>Create New Character</h1>
+              <div className="wizard-progress">
+                <div className="progress-steps">
+                  {Array.from({ length: totalSteps }, (_, i) => (
+                    <div
+                      key={i + 1}
+                      className={`progress-step ${i + 1 <= currentStep ? 'active' : ''} ${i + 1 < currentStep ? 'completed' : ''}`}
+                    >
+                      <div className="step-number">{i + 1}</div>
+                      <div className="step-label">
+                        {i + 1 === 1 && 'Core'}
+                        {i + 1 === 2 && 'Abilities'}
+                        {i + 1 === 3 && 'Details'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Header Right Navigation */}
+          <div className="header-nav-right">
             <button
               className="randomize-everything-btn"
               onClick={handleRandomizeAll}
@@ -651,42 +670,142 @@ export const CharacterCreationWizard: React.FC<CharacterCreationWizardProps> = (
               🎲 Random Character
             </button>
             <button
-              className="cancel-btn"
-              onClick={handleCancel}
+              className="nav-btn next header-nav"
+              onClick={handleNext}
+              disabled={!canProceedFromStep(currentStep)}
             >
+              {currentStep === totalSteps ? 'Create Character' : 'Next →'}
+            </button>
+            <button className="cancel-btn" onClick={handleCancel}>
               ✕
             </button>
           </div>
         </div>
 
-        {/* Progress Indicator */}
-        <div className="wizard-progress">
-          <div className="progress-steps">
-            {Array.from({ length: totalSteps }, (_, i) => (
-              <div
-                key={i + 1}
-                className={`progress-step ${i + 1 <= currentStep ? 'active' : ''} ${i + 1 < currentStep ? 'completed' : ''}`}
-              >
-                <div className="step-number">{i + 1}</div>
-                <div className="step-label">
-                  {i + 1 === 1 && 'Concept'}
-                  {i + 1 === 2 && 'Abilities'}
-                  {i + 1 === 3 && 'Details'}
+        {/* Main Character Sheet Layout */}
+        <div className="character-sheet-main">
+          {/* Character Preview Panel (Left/Top) */}
+          <div className="character-preview-panel">
+            <div className="character-summary">
+              <div className="character-portrait">
+                <div className="portrait-placeholder">🎭</div>
+              </div>
+              <div className="character-basics">
+                <h2 className="character-name">
+                  {character.name || 'Unnamed Character'}
+                </h2>
+                <div className="character-identity">
+                  <span className="race">{character.race?.name || 'Race'}</span>
+                  <span className="separator">•</span>
+                  <span className="class">
+                    {character.classes?.[0]?.name || 'Class'}
+                  </span>
+                  <span className="separator">•</span>
+                  <span className="level">Level {character.level || 1}</span>
+                </div>
+                <div className="character-background">
+                  {character.background?.name || 'Background'}
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Quick Stats */}
+            <div className="quick-stats">
+              <div className="combat-stats">
+                <div className="stat-block">
+                  <div className="stat-block-header">Armor Class</div>
+                  <div className="stat-block-value">
+                    {character.armorClass || 10}
+                  </div>
+                </div>
+
+                <div className="stat-block">
+                  <div className="stat-block-header">Hit Points</div>
+                  <div className="stat-block-value">
+                    {typeof character.hitPoints === 'object'
+                      ? character.hitPoints?.maximum ||
+                        character.hitPoints?.current ||
+                        8
+                      : character.hitPoints || 8}
+                  </div>
+                </div>
+
+                <div className="stat-block">
+                  <div className="stat-block-header">Speed</div>
+                  <div className="stat-block-value">
+                    {character.speed || 30} ft.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Ability Scores */}
+            <div className="ability-scores-preview">
+              <h3>Ability Scores</h3>
+              <div className="abilities-grid">
+                {[
+                  'strength',
+                  'dexterity',
+                  'constitution',
+                  'intelligence',
+                  'wisdom',
+                  'charisma',
+                ].map((ability) => {
+                  const abilityData =
+                    character.abilities?.[ability as keyof AbilityScores];
+                  const score =
+                    typeof abilityData === 'object'
+                      ? abilityData?.score
+                      : abilityData || 10;
+                  const modifier =
+                    typeof abilityData === 'object'
+                      ? abilityData?.modifier || 0
+                      : Math.floor((score - 10) / 2);
+
+                  return (
+                    <div key={ability} className="ability-score">
+                      <div className="ability-name">
+                        {ability.slice(0, 3).toUpperCase()}
+                      </div>
+                      <div className="ability-value">{score}</div>
+                      <div className="ability-modifier">
+                        {modifier >= 0 ? '+' : ''}
+                        {modifier}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-          <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            />
+
+          {/* Step Content Panel (Right/Bottom) */}
+          <div className="wizard-content-panel">
+            <div className="wizard-content">{renderCurrentStep()}</div>
           </div>
         </div>
 
-        {/* Step Content */}
-        <div className="wizard-content">
-          {renderCurrentStep()}
+        {/* Footer Navigation */}
+        <div className="wizard-footer">
+          <button
+            className="nav-btn previous footer-nav"
+            onClick={handlePrevious}
+            disabled={currentStep === 1}
+          >
+            ← Previous
+          </button>
+
+          <div className="footer-center">
+            Step {currentStep} of {totalSteps}
+          </div>
+
+          <button
+            className="nav-btn next footer-nav"
+            onClick={handleNext}
+            disabled={!canProceedFromStep(currentStep)}
+          >
+            {currentStep === totalSteps ? 'Create Character' : 'Next →'}
+          </button>
         </div>
       </div>
     </div>

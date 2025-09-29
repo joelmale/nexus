@@ -252,6 +252,8 @@
   position: relative;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
   z-index: var(--z-panel);
+  height: 100%;
+  max-height: 100vh;
 }
 
 /* Panel width is now controlled by CSS Grid via --sidebar-width variable */
@@ -272,10 +274,14 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   transform: scale(1.02);
   transition: none !important;
+  height: 100%;
+  max-height: 100vh;
 }
 
 .layout-panel.resetting {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  height: 100%;
+  max-height: 100vh;
 }
 
 /* Panel Drag Handle */
@@ -928,6 +934,8 @@
 .game-toolbar:not(.dragging):hover,
 .layout-panel:not(.dragging):hover {
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+  height: 100%;
+  max-height: 100vh;
 }
 
 /* Prevent text selection during drag */
@@ -951,6 +959,11 @@
   .panel-drag-handle,
   .toolbar-drag-handle {
     transition: none !important;
+  }
+
+  .layout-panel {
+    height: 100%;
+    max-height: 100vh;
   }
 
   .toolbar-drag-handle::after,

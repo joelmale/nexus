@@ -620,6 +620,58 @@
   }
 }
 
+/* Player Setup Page Customizations */
+.player-setup .glass-input.room-code-input {
+  font-size: 0.85rem;
+  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+}
+
+.player-setup .setup-panel {
+  padding: 1.5rem;
+}
+
+.player-setup .setup-section {
+  margin-bottom: 1.5rem;
+}
+
+.player-setup .section-header {
+  margin-bottom: 1rem;
+}
+
+.player-setup .section-header h2 {
+  margin-bottom: 0.5rem;
+}
+
+.player-setup .character-grid {
+  gap: 1rem;
+}
+
+.player-setup .character-card {
+  padding: 1rem;
+}
+
+.player-setup .join-form {
+  padding: 1rem;
+}
+
+.player-setup .form-row {
+  gap: 1rem;
+}
+
+.player-setup .empty-state {
+  padding: 2rem 1.5rem;
+  margin: 1rem 0;
+}
+
+.player-setup .character-actions {
+  gap: 0.75rem;
+}
+
+.player-setup .glass-button {
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .particle,
@@ -628,11 +680,11 @@
   .status-dot {
     animation: none;
   }
-  
+
   .glass-panel {
     animation: none;
   }
-  
+
   .glass-button:hover,
   .action-card:hover {
     transform: none;

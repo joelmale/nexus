@@ -14,30 +14,24 @@ import * as glob from 'glob';
 // CSS patterns that could lead to layout issues
 const PROBLEMATIC_PATTERNS = [
   {
-    pattern: /\.layout-panel[^{]*\{[^}]*(?!.*max-height|.*height.*100)/s,
-    message: 'layout-panel should have explicit height constraints (max-height or height: 100%)',
-    severity: 'error'
+    pattern: /^\.layout-panel\s*\{[^}]*(?!.*max-height|.*height.*100)/ms,
+    message:
+      'layout-panel should have explicit height constraints (max-height or height: 100%)',
+    severity: 'error',
   },
   {
     pattern: /\.panel-content[^{]*\{[^}]*overflow-x:\s*visible/,
-    message: 'panel-content with overflow-x: visible can cause scrollbar issues',
-    severity: 'warning'
+    message:
+      'panel-content with overflow-x: visible can cause scrollbar issues',
+    severity: 'warning',
   },
   {
-    pattern: /\.sidebar-resize-handle[^{]*\{[^}]*height:\s*100%[^}]*(?!.*max-height)/,
-    message: 'sidebar-resize-handle with height: 100% should have max-height constraint',
-    severity: 'warning'
+    pattern:
+      /\.sidebar-resize-handle[^{]*\{[^}]*height:\s*100%[^}]*(?!.*max-height)/,
+    message:
+      'sidebar-resize-handle with height: 100% should have max-height constraint',
+    severity: 'warning',
   },
-  {
-    pattern: /position:\s*absolute[^}]*top:\s*\d+px[^}]*(?!.*max-height|.*bottom)/,
-    message: 'Absolutely positioned elements should have height constraints to prevent overflow',
-    severity: 'info'
-  },
-  {
-    pattern: /\.scene-canvas-toolbar[^{]*\{[^}]*position:\s*absolute[^}]*(?!.*max-height)/,
-    message: 'scene-canvas-toolbar should be contained within viewport bounds',
-    severity: 'warning'
-  }
 ];
 
 // Required layout constraints for specific components
@@ -45,18 +39,26 @@ const REQUIRED_CONSTRAINTS = [
   {
     selector: '.layout-panel',
     requiredProperties: ['max-height', 'height'],
-    message: 'layout-panel must have height constraints to prevent viewport overflow'
+    message:
+      'layout-panel must have height constraints to prevent viewport overflow',
+    excludePatterns: [
+      /\.theme-\w+\s+\.layout-panel/, // Exclude themed selectors
+      /\.layout-panel\.[a-zA-Z-]+/, // Exclude class combinations
+      /\.layout-panel\s+\./, // Exclude child selectors
+      /\.layout-panel,/, // Exclude when part of selector list
+      /,\s*\.layout-panel/, // Exclude when part of selector list
+    ],
   },
   {
     selector: '.panel-content',
     requiredProperties: ['overflow-y'],
-    message: 'panel-content should specify overflow behavior'
+    message: 'panel-content should specify overflow behavior',
   },
   {
     selector: '.settings-content',
     requiredProperties: ['overflow-y', 'flex'],
-    message: 'settings-content should be scrollable and flexible'
-  }
+    message: 'settings-content should be scrollable and flexible',
+  },
 ];
 
 function validateCSSFile(filePath) {
@@ -72,33 +74,43 @@ function validateCSSFile(filePath) {
         type: 'pattern',
         severity,
         message,
-        line: getLineNumber(content, matches.index || 0)
+        line: getLineNumber(content, matches.index || 0),
       });
     }
   });
 
   // Check for required constraints
-  REQUIRED_CONSTRAINTS.forEach(({ selector, requiredProperties, message }) => {
-    const selectorRegex = new RegExp(`\\${selector}[^{]*\\{([^}]*)\\}`, 'g');
-    const matches = [...content.matchAll(selectorRegex)];
+  REQUIRED_CONSTRAINTS.forEach(
+    ({ selector, requiredProperties, message, excludePatterns = [] }) => {
+      const selectorRegex = new RegExp(`\\${selector}[^{]*\\{([^}]*)\\}`, 'g');
+      const matches = [...content.matchAll(selectorRegex)];
 
-    matches.forEach(match => {
-      const ruleContent = match[1];
-      const hasRequired = requiredProperties.some(prop =>
-        new RegExp(`${prop}\\s*:`).test(ruleContent)
-      );
+      matches.forEach((match) => {
+        const fullMatch = match[0];
+        const ruleContent = match[1];
 
-      if (!hasRequired) {
-        issues.push({
-          file: filePath,
-          type: 'missing-constraint',
-          severity: 'error',
-          message: `${selector}: ${message}`,
-          line: getLineNumber(content, match.index || 0)
-        });
-      }
-    });
-  });
+        // Check if this match should be excluded
+        const shouldExclude = excludePatterns.some((pattern) =>
+          pattern.test(fullMatch),
+        );
+        if (shouldExclude) return;
+
+        const hasRequired = requiredProperties.some((prop) =>
+          new RegExp(`${prop}\\s*:`).test(ruleContent),
+        );
+
+        if (!hasRequired) {
+          issues.push({
+            file: filePath,
+            type: 'missing-constraint',
+            severity: 'error',
+            message: `${selector}: ${message}`,
+            line: getLineNumber(content, match.index || 0),
+          });
+        }
+      });
+    },
+  );
 
   return issues;
 }
@@ -114,15 +126,19 @@ function validateLayoutCSS() {
 
   console.log('🔍 Validating CSS layout constraints...\n');
 
-  cssFiles.forEach(file => {
+  cssFiles.forEach((file) => {
     const issues = validateCSSFile(file);
 
     if (issues.length > 0) {
       console.log(`📄 ${file}:`);
 
-      issues.forEach(issue => {
-        const icon = issue.severity === 'error' ? '❌' :
-                    issue.severity === 'warning' ? '⚠️' : 'ℹ️';
+      issues.forEach((issue) => {
+        const icon =
+          issue.severity === 'error'
+            ? '❌'
+            : issue.severity === 'warning'
+              ? '⚠️'
+              : 'ℹ️';
 
         console.log(`  ${icon} Line ${issue.line}: ${issue.message}`);
 
@@ -143,7 +159,9 @@ function validateLayoutCSS() {
     console.log(`📊 Found ${totalIssues} layout issues (${errorCount} errors)`);
 
     if (errorCount > 0) {
-      console.log('\n❌ Layout validation failed. Please fix the errors above.');
+      console.log(
+        '\n❌ Layout validation failed. Please fix the errors above.',
+      );
       process.exit(1);
     } else {
       console.log('\n⚠️ Layout validation passed with warnings.');

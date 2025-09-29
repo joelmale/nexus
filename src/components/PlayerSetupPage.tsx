@@ -16,7 +16,9 @@ import type { PlayerCharacter } from '@/types/appFlow';
 import type { Character } from '@/types/character';
 
 // Convert between Character (new system) and PlayerCharacter (old system)
-const convertToPlayerCharacter = (character: Character): Omit<PlayerCharacter, 'id' | 'createdAt' | 'playerId'> => {
+const convertToPlayerCharacter = (
+  character: Character,
+): Omit<PlayerCharacter, 'id' | 'createdAt' | 'playerId'> => {
   return {
     name: character.name,
     race: character.race?.name || '',
@@ -30,7 +32,7 @@ const convertToPlayerCharacter = (character: Character): Omit<PlayerCharacter, '
       intelligence: character.abilities?.intelligence?.score || 10,
       wisdom: character.abilities?.wisdom?.score || 10,
       charisma: character.abilities?.charisma?.score || 10,
-    }
+    },
   };
 };
 
@@ -38,26 +40,30 @@ export const PlayerSetupPage: React.FC = () => {
   const {
     user,
     getSavedCharacters,
-    selectCharacter,
     deleteCharacter,
     createCharacter,
     joinRoomWithCode,
     exportCharacters,
     importCharacters,
-    resetToWelcome
+    resetToWelcome,
   } = useAppFlowStore();
 
   const { characters: newCharacters } = useCharacters();
-  const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
+  const { startCharacterCreation, LauncherComponent } =
+    useCharacterCreationLauncher();
 
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
+    null,
+  );
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const savedCharacters = getSavedCharacters();
-  const selectedCharacter = savedCharacters.find(c => c.id === selectedCharacterId);
+  const selectedCharacter = savedCharacters.find(
+    (c) => c.id === selectedCharacterId,
+  );
 
   const handleJoinGame = async () => {
     if (!roomCode.trim() || roomCode.trim().length !== 4) {
@@ -70,9 +76,8 @@ export const PlayerSetupPage: React.FC = () => {
 
     try {
       await joinRoomWithCode(roomCode.trim().toUpperCase(), selectedCharacter);
-    } catch (err) {
+    } catch {
       setError('Failed to join room - room may not exist or be full');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -100,7 +105,9 @@ export const PlayerSetupPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportCharacters = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportCharacters = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -111,7 +118,7 @@ export const PlayerSetupPage: React.FC = () => {
         importCharacters(data);
         setError('');
         alert('Characters imported successfully!');
-      } catch (err) {
+      } catch {
         setError('Failed to import characters - invalid file format');
       }
     };
@@ -125,7 +132,7 @@ export const PlayerSetupPage: React.FC = () => {
         'fullpage',
         (characterId) => {
           // Convert the new character to old format and save to appFlow store
-          const newCharacter = newCharacters.find(c => c.id === characterId);
+          const newCharacter = newCharacters.find((c) => c.id === characterId);
           if (newCharacter) {
             const playerCharacter = convertToPlayerCharacter(newCharacter);
             const oldCharacter = createCharacter(playerCharacter);
@@ -134,7 +141,7 @@ export const PlayerSetupPage: React.FC = () => {
         },
         () => {
           console.log('Character creation cancelled');
-        }
+        },
       );
     }
   };
@@ -158,7 +165,10 @@ export const PlayerSetupPage: React.FC = () => {
               </button>
               <div className="header-content">
                 <h1>⚔️ Player Setup</h1>
-                <p>Welcome, <strong>{user.name}</strong>! Select a character and join your adventure.</p>
+                <p>
+                  Welcome, <strong>{user.name}</strong>! Select a character and
+                  join your adventure.
+                </p>
               </div>
             </div>
           </div>
@@ -174,64 +184,71 @@ export const PlayerSetupPage: React.FC = () => {
           <div className="setup-section">
             <div className="section-header">
               <h2>🎭 Your Characters</h2>
-              <div className="character-actions">
-                <button
-                  onClick={handleCreateCharacter}
-                  className="glass-button secondary"
-                >
-                  <span>➕</span>
-                  Create New
-                </button>
+              {savedCharacters.length > 0 && (
+                <div className="character-actions">
+                  <button
+                    onClick={handleExportCharacters}
+                    className="glass-button secondary"
+                    title="Export characters to file"
+                  >
+                    <span>📤</span>
+                    Export
+                  </button>
 
-                {savedCharacters.length > 0 && (
-                  <>
-                    <button
-                      onClick={handleExportCharacters}
-                      className="glass-button secondary"
-                      title="Export characters to file"
-                    >
-                      <span>📤</span>
-                      Export
-                    </button>
-
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportCharacters}
-                      style={{ display: 'none' }}
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="glass-button secondary"
-                      title="Import characters from file"
-                    >
-                      <span>📥</span>
-                      Import
-                    </button>
-                  </>
-                )}
-              </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportCharacters}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="glass-button secondary"
+                    title="Import characters from file"
+                  >
+                    <span>📥</span>
+                    Import
+                  </button>
+                </div>
+              )}
             </div>
 
             {savedCharacters.length === 0 ? (
-              <div className="empty-state">
+              <div className="empty-state" style={{ textAlign: 'center' }}>
                 <div className="empty-icon">🎭</div>
                 <h3>No Characters Yet</h3>
                 <p>Create your first character to begin your adventure!</p>
-                <button
-                  onClick={handleCreateCharacter}
-                  className="glass-button primary"
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '1rem',
+                    flexWrap: 'wrap',
+                  }}
                 >
-                  <span>✨</span>
-                  Create First Character
-                </button>
+                  <button
+                    onClick={handleCreateCharacter}
+                    className="glass-button primary"
+                  >
+                    <span>✨</span>
+                    Create First Character
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="glass-button secondary"
+                    title="Import characters from file"
+                  >
+                    <span>📥</span>
+                    Import Characters
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="character-grid">
                 {savedCharacters
                   .sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0))
-                  .map(character => (
+                  .map((character) => (
                     <div
                       key={character.id}
                       className={`character-card glass-panel ${
@@ -241,22 +258,32 @@ export const PlayerSetupPage: React.FC = () => {
                     >
                       <div className="character-info">
                         <h3>{character.name}</h3>
-                        <p>Level {character.level} {character.race} {character.class}</p>
-                        <p className="character-background">{character.background}</p>
+                        <p>
+                          Level {character.level} {character.race}{' '}
+                          {character.class}
+                        </p>
+                        <p className="character-background">
+                          {character.background}
+                        </p>
                         {character.lastUsed && (
                           <p className="last-used">
-                            Last used: {new Date(character.lastUsed).toLocaleDateString()}
+                            Last used:{' '}
+                            {new Date(character.lastUsed).toLocaleDateString()}
                           </p>
                         )}
                       </div>
 
                       <div className="character-stats">
-                        {Object.entries(character.stats).map(([stat, value]) => (
-                          <div key={stat} className="stat-mini">
-                            <span className="stat-name">{stat.substring(0, 3).toUpperCase()}</span>
-                            <span className="stat-value">{value}</span>
-                          </div>
-                        ))}
+                        {Object.entries(character.stats).map(
+                          ([stat, value]) => (
+                            <div key={stat} className="stat-mini">
+                              <span className="stat-name">
+                                {stat.substring(0, 3).toUpperCase()}
+                              </span>
+                              <span className="stat-value">{value}</span>
+                            </div>
+                          ),
+                        )}
                       </div>
 
                       <div className="character-actions">
@@ -294,7 +321,9 @@ export const PlayerSetupPage: React.FC = () => {
                       id="roomCode"
                       type="text"
                       value={roomCode}
-                      onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                      onChange={(e) =>
+                        setRoomCode(e.target.value.toUpperCase())
+                      }
                       placeholder="Enter 4-character code"
                       maxLength={4}
                       className="glass-input room-code-input"
@@ -326,14 +355,18 @@ export const PlayerSetupPage: React.FC = () => {
                 <div className="selected-character-info">
                   <p>
                     <strong>Joining as:</strong> {selectedCharacter.name}
-                    (Level {selectedCharacter.level} {selectedCharacter.race} {selectedCharacter.class})
+                    (Level {selectedCharacter.level} {selectedCharacter.race}{' '}
+                    {selectedCharacter.class})
                   </p>
                 </div>
               )}
 
               {!selectedCharacter && savedCharacters.length > 0 && (
                 <div className="character-hint">
-                  <p>💡 Select a character above to join with, or join without a character.</p>
+                  <p>
+                    💡 Select a character above to join with, or join without a
+                    character.
+                  </p>
                 </div>
               )}
             </div>
