@@ -1,4 +1,4 @@
-
+#!/bin/sh
 
 echo "🔍 Running layout validation..."
 
