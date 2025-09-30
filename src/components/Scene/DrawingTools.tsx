@@ -562,44 +562,115 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       pointerEvents: 'none' as const,
     };
 
+    // Calculate distance for measurement label
+    const distanceInPixels = distance(startPoint, currentPoint);
+    const distanceInFeet = (distanceInPixels / _gridSize) * 5; // Assuming 5ft per grid square
+    const midX = (startPoint.x + currentPoint.x) / 2;
+    const midY = (startPoint.y + currentPoint.y) / 2;
+
     switch (activeTool) {
       case 'line':
         return (
-          <line
-            x1={startPoint.x}
-            y1={startPoint.y}
-            x2={currentPoint.x}
-            y2={currentPoint.y}
-            {...previewStyle}
-            fill="none"
-          />
+          <>
+            <line
+              x1={startPoint.x}
+              y1={startPoint.y}
+              x2={currentPoint.x}
+              y2={currentPoint.y}
+              {...previewStyle}
+              fill="none"
+            />
+            {/* Distance indicator */}
+            <text
+              x={midX}
+              y={midY - 10 / camera.zoom}
+              fill="#00bcd4"
+              fontSize={14 / camera.zoom}
+              fontWeight="bold"
+              textAnchor="middle"
+              pointerEvents="none"
+              style={{
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+              }}
+            >
+              {distanceInFeet.toFixed(1)} ft
+            </text>
+          </>
         );
 
-      case 'rectangle':
+      case 'rectangle': {
+        const width = Math.abs(currentPoint.x - startPoint.x);
+        const height = Math.abs(currentPoint.y - startPoint.y);
+        const widthFeet = (width / _gridSize) * 5;
+        const heightFeet = (height / _gridSize) * 5;
+        const rectMidX = Math.min(startPoint.x, currentPoint.x) + width / 2;
+        const rectMidY = Math.min(startPoint.y, currentPoint.y) + height / 2;
+
         return (
-          <rect
-            x={Math.min(startPoint.x, currentPoint.x)}
-            y={Math.min(startPoint.y, currentPoint.y)}
-            width={Math.abs(currentPoint.x - startPoint.x)}
-            height={Math.abs(currentPoint.y - startPoint.y)}
-            {...previewStyle}
-          />
+          <>
+            <rect
+              x={Math.min(startPoint.x, currentPoint.x)}
+              y={Math.min(startPoint.y, currentPoint.y)}
+              width={width}
+              height={height}
+              {...previewStyle}
+            />
+            {/* Dimension indicator */}
+            <text
+              x={rectMidX}
+              y={rectMidY - 10 / camera.zoom}
+              fill="#00bcd4"
+              fontSize={14 / camera.zoom}
+              fontWeight="bold"
+              textAnchor="middle"
+              pointerEvents="none"
+              style={{
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+              }}
+            >
+              {widthFeet.toFixed(1)} × {heightFeet.toFixed(1)} ft
+            </text>
+          </>
         );
+      }
 
       case 'circle': {
         const radius = distance(startPoint, currentPoint);
+        const radiusFeet = (radius / _gridSize) * 5;
+
         return (
-          <circle
-            cx={startPoint.x}
-            cy={startPoint.y}
-            r={radius}
-            {...previewStyle}
-          />
+          <>
+            <circle
+              cx={startPoint.x}
+              cy={startPoint.y}
+              r={radius}
+              {...previewStyle}
+            />
+            {/* Radius indicator */}
+            <text
+              x={startPoint.x}
+              y={startPoint.y - radius - 15 / camera.zoom}
+              fill="#00bcd4"
+              fontSize={14 / camera.zoom}
+              fontWeight="bold"
+              textAnchor="middle"
+              pointerEvents="none"
+              style={{
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+              }}
+            >
+              r: {radiusFeet.toFixed(1)} ft
+            </text>
+          </>
         );
       }
 
       case 'cone': {
         const length = distance(startPoint, currentPoint);
+        const lengthFeet = (length / _gridSize) * 5;
         const direction =
           (Math.atan2(
             currentPoint.y - startPoint.y,
@@ -621,7 +692,31 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
         const pathData = `M ${startPoint.x} ${startPoint.y} L ${leftX} ${leftY} A ${length} ${length} 0 0 1 ${rightX} ${rightY} Z`;
 
-        return <path d={pathData} {...previewStyle} />;
+        // Calculate label position at the end of the cone
+        const labelX = startPoint.x + Math.cos(angleRad) * length;
+        const labelY = startPoint.y + Math.sin(angleRad) * length;
+
+        return (
+          <>
+            <path d={pathData} {...previewStyle} />
+            {/* Length indicator */}
+            <text
+              x={labelX}
+              y={labelY - 15 / camera.zoom}
+              fill="#00bcd4"
+              fontSize={14 / camera.zoom}
+              fontWeight="bold"
+              textAnchor="middle"
+              pointerEvents="none"
+              style={{
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+              }}
+            >
+              {lengthFeet.toFixed(1)} ft
+            </text>
+          </>
+        );
       }
 
       default:

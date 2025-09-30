@@ -1,5 +1,6 @@
-import React from 'react';
-import { useActiveScene } from '@/stores/gameStore';
+import React, { useState, useCallback } from 'react';
+import { useActiveScene, useDrawingActions } from '@/stores/gameStore';
+import { webSocketService } from '@/utils/websocket';
 import type { Camera } from '@/types/game';
 import type { Drawing, Point } from '@/types/drawing';
 
@@ -14,16 +15,152 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   selectedDrawings,
   sceneId,
   camera,
-  onClearSelection: _onClearSelection
+  onClearSelection: _onClearSelection,
 }) => {
   const activeScene = useActiveScene();
+  const { updateDrawing } = useDrawingActions();
+  const [resizingHandle, setResizingHandle] = useState<{
+    drawingId: string;
+    handleIndex: number;
+    type: 'corner' | 'radius' | 'endpoint';
+  } | null>(null);
 
-  if (!activeScene || activeScene.id !== sceneId || selectedDrawings.length === 0) {
+  // Convert screen coordinates to scene coordinates
+  const screenToScene = useCallback(
+    (clientX: number, clientY: number, svgRef: SVGSVGElement | null): Point => {
+      if (!svgRef) return { x: 0, y: 0 };
+      const rect = svgRef.getBoundingClientRect();
+      const screenX = clientX - rect.left;
+      const screenY = clientY - rect.top;
+      const viewportWidth = rect.width;
+      const viewportHeight = rect.height;
+      const sceneX = (screenX - viewportWidth / 2) / camera.zoom + camera.x;
+      const sceneY = (screenY - viewportHeight / 2) / camera.zoom + camera.y;
+      return { x: sceneX, y: sceneY };
+    },
+    [camera],
+  );
+
+  // Handle mouse move for resizing
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!resizingHandle || !activeScene) return;
+
+      const drawing = activeScene.drawings.find(
+        (d) => d.id === resizingHandle.drawingId,
+      );
+      if (!drawing) return;
+
+      const svgElement = (e.target as Element).closest('svg');
+      const mousePos = screenToScene(e.clientX, e.clientY, svgElement);
+
+      let updates: Partial<Drawing> = {};
+
+      switch (drawing.type) {
+        case 'rectangle': {
+          const corners = [
+            { x: drawing.x, y: drawing.y }, // top-left
+            { x: drawing.x + drawing.width, y: drawing.y }, // top-right
+            { x: drawing.x, y: drawing.y + drawing.height }, // bottom-left
+            { x: drawing.x + drawing.width, y: drawing.y + drawing.height }, // bottom-right
+          ];
+          const handleIndex = resizingHandle.handleIndex;
+
+          if (handleIndex === 0) {
+            // top-left
+            updates = {
+              x: mousePos.x,
+              y: mousePos.y,
+              width: corners[3].x - mousePos.x,
+              height: corners[3].y - mousePos.y,
+            };
+          } else if (handleIndex === 1) {
+            // top-right
+            updates = {
+              y: mousePos.y,
+              width: mousePos.x - drawing.x,
+              height: corners[2].y - mousePos.y,
+            };
+          } else if (handleIndex === 2) {
+            // bottom-left
+            updates = {
+              x: mousePos.x,
+              width: corners[1].x - mousePos.x,
+              height: mousePos.y - drawing.y,
+            };
+          } else if (handleIndex === 3) {
+            // bottom-right
+            updates = {
+              width: mousePos.x - drawing.x,
+              height: mousePos.y - drawing.y,
+            };
+          }
+          break;
+        }
+
+        case 'circle': {
+          const dx = mousePos.x - drawing.center.x;
+          const dy = mousePos.y - drawing.center.y;
+          const newRadius = Math.sqrt(dx * dx + dy * dy);
+          updates = { radius: Math.max(5, newRadius) };
+          break;
+        }
+
+        case 'line': {
+          if (resizingHandle.handleIndex === 0) {
+            updates = { start: mousePos };
+          } else if (resizingHandle.handleIndex === 1) {
+            updates = { end: mousePos };
+          }
+          break;
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        updateDrawing(sceneId, drawing.id, updates);
+
+        // Sync to other players
+        webSocketService.sendEvent({
+          type: 'drawing/update',
+          data: {
+            sceneId,
+            drawingId: drawing.id,
+            updates,
+          },
+        });
+      }
+    },
+    [resizingHandle, activeScene, screenToScene, updateDrawing, sceneId],
+  );
+
+  // Handle mouse up to stop resizing
+  const handleMouseUp = useCallback(() => {
+    setResizingHandle(null);
+  }, []);
+
+  // Set up mouse event listeners
+  React.useEffect(() => {
+    if (resizingHandle) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [resizingHandle, handleMouseMove, handleMouseUp]);
+
+  // Early return after all hooks
+  if (
+    !activeScene ||
+    activeScene.id !== sceneId ||
+    selectedDrawings.length === 0
+  ) {
     return null;
   }
 
-  const selectedDrawingObjects = activeScene.drawings.filter(drawing => 
-    selectedDrawings.includes(drawing.id)
+  const selectedDrawingObjects = activeScene.drawings.filter((drawing) =>
+    selectedDrawings.includes(drawing.id),
   );
 
   const renderSelectionIndicator = (drawing: Drawing) => {
@@ -148,14 +285,20 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   return (
     <g className="selection-overlay">
       {selectedDrawingObjects.map(renderSelectionIndicator)}
-      
+
       {/* Selection control handles */}
       {selectedDrawings.length === 1 && selectedDrawingObjects[0] && (
         <g className="selection-handles">
-          {renderSelectionHandles(selectedDrawingObjects[0], camera)}
+          {renderSelectionHandles(
+            selectedDrawingObjects[0],
+            camera,
+            (drawingId, handleIndex, type) => {
+              setResizingHandle({ drawingId, handleIndex, type });
+            },
+          )}
         </g>
       )}
-      
+
       {/* Multi-selection bounding box */}
       {selectedDrawings.length > 1 && (
         <g className="multi-selection-bounds">
@@ -167,8 +310,16 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 };
 
 // Helper function to render selection handles for single selection
-const renderSelectionHandles = (drawing: Drawing, camera: Camera) => {
-  const handleSize = 6 / camera.zoom;
+const renderSelectionHandles = (
+  drawing: Drawing,
+  camera: Camera,
+  onHandleMouseDown: (
+    drawingId: string,
+    handleIndex: number,
+    type: 'corner' | 'radius' | 'endpoint',
+  ) => void,
+) => {
+  const handleSize = 8 / camera.zoom;
   const handleProps = {
     width: handleSize,
     height: handleSize,
@@ -176,6 +327,7 @@ const renderSelectionHandles = (drawing: Drawing, camera: Camera) => {
     stroke: '#ffffff',
     strokeWidth: 1 / camera.zoom,
     className: 'selection-handle',
+    cursor: 'pointer',
   };
 
   const handles: JSX.Element[] = [];
@@ -196,7 +348,12 @@ const renderSelectionHandles = (drawing: Drawing, camera: Camera) => {
             x={corner.x - handleSize / 2}
             y={corner.y - handleSize / 2}
             {...handleProps}
-          />
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onHandleMouseDown(drawing.id, index, 'corner');
+            }}
+            style={{ cursor: 'nwse-resize' }}
+          />,
         );
       });
       break;
@@ -217,7 +374,12 @@ const renderSelectionHandles = (drawing: Drawing, camera: Camera) => {
             x={point.x - handleSize / 2}
             y={point.y - handleSize / 2}
             {...handleProps}
-          />
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onHandleMouseDown(drawing.id, index, 'radius');
+            }}
+            style={{ cursor: 'pointer' }}
+          />,
         );
       });
       break;
@@ -232,7 +394,12 @@ const renderSelectionHandles = (drawing: Drawing, camera: Camera) => {
             x={point.x - handleSize / 2}
             y={point.y - handleSize / 2}
             {...handleProps}
-          />
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onHandleMouseDown(drawing.id, index, 'endpoint');
+            }}
+            style={{ cursor: 'move' }}
+          />,
         );
       });
       break;
@@ -249,9 +416,12 @@ const renderMultiSelectionBounds = (drawings: Drawing[], camera: Camera) => {
   if (drawings.length === 0) return null;
 
   // Calculate bounding box for all selected drawings
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
 
-  drawings.forEach(drawing => {
+  drawings.forEach((drawing) => {
     switch (drawing.type) {
       case 'line':
         minX = Math.min(minX, drawing.start.x, drawing.end.x);
@@ -293,7 +463,7 @@ const renderMultiSelectionBounds = (drawings: Drawing[], camera: Camera) => {
   });
 
   const padding = 10 / camera.zoom;
-  
+
   return (
     <rect
       x={minX - padding}
