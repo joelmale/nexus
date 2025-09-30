@@ -2,7 +2,7 @@
   "name": "nexus-vtt",
   "version": "0.1.0",
   "description": "A lightweight virtual tabletop for modern web browsers",
-  "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

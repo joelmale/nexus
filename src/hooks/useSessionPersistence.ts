@@ -15,21 +15,25 @@ interface UseSessionPersistenceOptions {
   enableAutoRecovery?: boolean;
 }
 
-export function useSessionPersistence(options: UseSessionPersistenceOptions = {}) {
+export function useSessionPersistence(
+  options: UseSessionPersistenceOptions = {},
+) {
   const {
     autoSave = true,
     saveInterval = 30000, // 30 seconds
     enableAutoRecovery = true,
   } = options;
 
-  const saveSessionState = useGameStore(state => state.saveSessionState);
-  const loadSessionState = useGameStore(state => state.loadSessionState);
-  const attemptSessionRecovery = useGameStore(state => state.attemptSessionRecovery);
-  const clearSessionData = useGameStore(state => state.clearSessionData);
+  const saveSessionState = useGameStore((state) => state.saveSessionState);
+  const loadSessionState = useGameStore((state) => state.loadSessionState);
+  const attemptSessionRecovery = useGameStore(
+    (state) => state.attemptSessionRecovery,
+  );
+  const clearSessionData = useGameStore((state) => state.clearSessionData);
 
-  const session = useGameStore(state => state.session);
-  const scenes = useGameStore(state => state.sceneState.scenes);
-  const settings = useGameStore(state => state.settings);
+  const session = useGameStore((state) => state.session);
+  const scenes = useGameStore((state) => state.sceneState.scenes);
+  const settings = useGameStore((state) => state.settings);
 
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSaveRef = useRef<number>(0);
@@ -40,7 +44,8 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions = {}
 
     // Debounce saves to avoid excessive localStorage writes
     const now = Date.now();
-    if (now - lastSaveRef.current < 1000) { // Minimum 1 second between saves
+    if (now - lastSaveRef.current < 1000) {
+      // Minimum 1 second between saves
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
@@ -91,7 +96,8 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions = {}
 
       try {
         // Check for URL-based reconnection first
-        const reconnectionData = sessionPersistenceService.checkForReconnection();
+        const reconnectionData =
+          sessionPersistenceService.checkForReconnection();
         if (reconnectionData) {
           console.log('🔗 Found reconnection data in URL', reconnectionData);
 
@@ -114,7 +120,7 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions = {}
             try {
               const toast = (window as any).toast;
               toast.success('Session restored successfully');
-            } catch (error) {
+            } catch {
               // Ignore toast errors
             }
           }
@@ -144,7 +150,8 @@ export function useSessionPersistence(options: UseSessionPersistenceOptions = {}
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   // Handle beforeunload to save final state
@@ -216,7 +223,7 @@ export function useSessionRecoveryUI() {
 
       // Could show a modal or notification asking if user wants to reconnect
       return window.confirm(
-        `Found a recent session in room ${recoveryData.session?.roomCode}. Would you like to reconnect?`
+        `Found a recent session in room ${recoveryData.session?.roomCode}. Would you like to reconnect?`,
       );
     },
   };

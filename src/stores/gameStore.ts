@@ -649,8 +649,9 @@ export const useGameStore = create<GameStore>()(
         }
       });
 
-      // Auto-save the new scene to persistence
-      drawingPersistenceService.saveScene(scene).catch((error) => {
+      // Auto-save the new scene to persistence (serialize to plain object)
+      const plainScene = JSON.parse(JSON.stringify(scene));
+      drawingPersistenceService.saveScene(plainScene).catch((error) => {
         console.error('Failed to persist new scene:', error);
       });
 
@@ -669,8 +670,10 @@ export const useGameStore = create<GameStore>()(
             updatedAt: Date.now(),
           };
 
-          // Auto-save the updated scene to persistence
-          const scene = state.sceneState.scenes[sceneIndex];
+          // Auto-save the updated scene to persistence (serialize to plain object)
+          const scene = JSON.parse(
+            JSON.stringify(state.sceneState.scenes[sceneIndex]),
+          );
           drawingPersistenceService.saveScene(scene).catch((error) => {
             console.error('Failed to persist updated scene:', error);
           });
@@ -780,8 +783,10 @@ export const useGameStore = create<GameStore>()(
             state.sceneState.scenes[sceneIndex].visibility = visibility;
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
 
-            // Auto-save the updated scene to persistence
-            const scene = state.sceneState.scenes[sceneIndex];
+            // Auto-save the updated scene to persistence (serialize to plain object)
+            const scene = JSON.parse(
+              JSON.stringify(state.sceneState.scenes[sceneIndex]),
+            );
             drawingPersistenceService.saveScene(scene).catch((error) => {
               console.error(
                 'Failed to persist scene visibility update:',
@@ -827,8 +832,10 @@ export const useGameStore = create<GameStore>()(
           state.sceneState.scenes[sceneIndex].drawings.push(drawing);
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
 
-          // Auto-save to persistence
-          const scene = state.sceneState.scenes[sceneIndex];
+          // Auto-save to persistence (serialize to plain object to avoid proxy issues)
+          const scene = JSON.parse(
+            JSON.stringify(state.sceneState.scenes[sceneIndex]),
+          );
           drawingPersistenceService.saveScene(scene).catch((error) => {
             console.error(
               'Failed to persist scene after drawing creation:',
@@ -855,8 +862,10 @@ export const useGameStore = create<GameStore>()(
             drawingToUpdate.updatedAt = Date.now();
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
 
-            // Auto-save to persistence
-            const scene = state.sceneState.scenes[sceneIndex];
+            // Auto-save to persistence (serialize to plain object)
+            const scene = JSON.parse(
+              JSON.stringify(state.sceneState.scenes[sceneIndex]),
+            );
             drawingPersistenceService.saveScene(scene).catch((error) => {
               console.error(
                 'Failed to persist scene after drawing update:',
@@ -880,8 +889,10 @@ export const useGameStore = create<GameStore>()(
             );
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
 
-          // Auto-save to persistence
-          const scene = state.sceneState.scenes[sceneIndex];
+          // Auto-save to persistence (serialize to plain object)
+          const scene = JSON.parse(
+            JSON.stringify(state.sceneState.scenes[sceneIndex]),
+          );
           drawingPersistenceService.saveScene(scene).catch((error) => {
             console.error(
               'Failed to persist scene after drawing deletion:',
@@ -908,8 +919,10 @@ export const useGameStore = create<GameStore>()(
           }
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
 
-          // Auto-save to persistence
-          const scene = state.sceneState.scenes[sceneIndex];
+          // Auto-save to persistence (serialize to plain object)
+          const scene = JSON.parse(
+            JSON.stringify(state.sceneState.scenes[sceneIndex]),
+          );
           drawingPersistenceService.saveScene(scene).catch((error) => {
             console.error(
               'Failed to persist scene after clearing drawings:',

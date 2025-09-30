@@ -3,13 +3,33 @@ import { DiceRoller } from './DiceRoller';
 import { InitiativeTracker } from './InitiativeTracker';
 import { PlayerPanel } from './PlayerPanel';
 import { ScenePanel } from './Scene/ScenePanel';
-import { useSession, useIsHost, useGameStore } from '@/stores/gameStore';
+import { useGameStore } from '@/stores/gameStore';
 import { Settings } from './Settings';
 import { Placeholder } from './Placeholder';
 
 interface ContextPanelProps {
-  activePanel: 'tokens' | 'scene' | 'props' | 'initiative' | 'dice' | 'players' | 'settings' | 'chat' | 'sounds';
-  onPanelChange: (panel: 'tokens' | 'scene' | 'props' | 'initiative' | 'dice' | 'players' | 'settings' | 'chat' | 'sounds') => void;
+  activePanel:
+    | 'tokens'
+    | 'scene'
+    | 'props'
+    | 'initiative'
+    | 'dice'
+    | 'players'
+    | 'settings'
+    | 'chat'
+    | 'sounds';
+  onPanelChange: (
+    panel:
+      | 'tokens'
+      | 'scene'
+      | 'props'
+      | 'initiative'
+      | 'dice'
+      | 'players'
+      | 'settings'
+      | 'chat'
+      | 'sounds',
+  ) => void;
   expanded: boolean;
   onToggleExpanded: () => void;
   onContentWidthChange: (width: number) => void;
@@ -17,7 +37,7 @@ interface ContextPanelProps {
 
 /**
  * Renders the content for the active sidebar panel.
- * This component acts as a container that displays the correct panel UI 
+ * This component acts as a container that displays the correct panel UI
  * based on the `activePanel` prop provided by its parent layout component (e.g., GameLayout).
  * It does not manage its own state for which panel is active.
  */
@@ -32,7 +52,9 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   const { sceneState } = useGameStore();
 
   // Get current active scene
-  const currentScene = sceneState.scenes.find(scene => scene.id === sceneState.activeSceneId);
+  const currentScene = sceneState.scenes.find(
+    (scene) => scene.id === sceneState.activeSceneId,
+  );
 
   const panels = [
     { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
@@ -58,8 +80,8 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       tokens: 320,
       scene: 400,
       props: 350,
-      initiative: 450,  // Increased for complex combat interface
-      dice: 380,        // Increased for dice controls and history
+      initiative: 450, // Increased for complex combat interface
+      dice: 380, // Increased for dice controls and history
       sounds: 320,
       chat: 350,
       players: 320,
@@ -84,14 +106,18 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       {/* Panel Content */}
       {expanded && (
         <div className="panel-content" role="tabpanel" ref={panelContentRef}>
-          <div className="panel-body" data-testid="panel-body" style={{ overflowY: 'auto' }}>
+          <div
+            className="panel-body"
+            data-testid="panel-body"
+            style={{ overflowY: 'auto' }}
+          >
             {activePanel === 'tokens' && <Placeholder title="Tokens" />}
             {activePanel === 'scene' && <ScenePanel scene={currentScene} />}
             {activePanel === 'props' && <Placeholder title="Props" />}
             {activePanel === 'initiative' && <InitiativeTracker />}
             {activePanel === 'dice' && <DiceRoller />}
-            {activePanel === 'sounds' && <Placeholder title="Sound Effects"/>}
-            {activePanel === 'chat' && <Placeholder title="Chat"/>}
+            {activePanel === 'sounds' && <Placeholder title="Sound Effects" />}
+            {activePanel === 'chat' && <Placeholder title="Chat" />}
             {activePanel === 'players' && <PlayerPanel />}
             {activePanel === 'settings' && <Settings />}
           </div>
@@ -102,11 +128,10 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       {!expanded && (
         <div className="collapsed-content">
           <div className="collapsed-icon">
-            {panels.find(p => p.id === activePanel)?.icon}
+            {panels.find((p) => p.id === activePanel)?.icon}
           </div>
         </div>
       )}
     </div>
   );
 };
-

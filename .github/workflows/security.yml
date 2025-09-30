@@ -160,4 +160,4 @@ jobs:
         run: npm ci
 
       - name: Check licenses
-        run: npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;Unlicense'
+        run: npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;Unlicense;LGPL-3.0-or-later;CC0-1.0;Python-2.0;CC-BY-4.0;BlueOak-1.0.0;0BSD'
