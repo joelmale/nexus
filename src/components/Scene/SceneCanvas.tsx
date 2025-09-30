@@ -11,6 +11,7 @@ import { SceneBackground } from './SceneBackground';
 import { DrawingTools } from './DrawingTools';
 import { DrawingRenderer } from './DrawingRenderer';
 import { SelectionOverlay } from './SelectionOverlay';
+import { DrawingPropertiesPanel } from './DrawingPropertiesPanel';
 import { webSocketService } from '@/utils/websocket';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type {
@@ -207,6 +208,10 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     );
   }, []);
 
+  const handleClosePropertiesPanel = useCallback(() => {
+    setSelectedDrawings([]);
+  }, []);
+
   // Determine cursor based on active tool and state
   const getCursor = () => {
     if (isPanning) return 'grabbing';
@@ -220,6 +225,15 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   return (
     <div className="scene-canvas-container">
+      {/* Drawing Properties Panel */}
+      {selectedDrawings.length > 0 && activeTool === 'select' && (
+        <DrawingPropertiesPanel
+          selectedDrawingIds={selectedDrawings}
+          sceneId={scene.id}
+          onClose={handleClosePropertiesPanel}
+        />
+      )}
+
       <svg
         ref={svgRef}
         className="scene-canvas"

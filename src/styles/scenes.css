@@ -1786,3 +1786,192 @@
   border-color: var(--color-primary);
   transform: translateY(-1px);
 }
+/* ============================================================================
+   Drawing Properties Panel
+   ============================================================================ */
+
+.drawing-properties-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  background: linear-gradient(135deg, rgba(42, 42, 62, 0.95) 0%, rgba(32, 32, 52, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.drawing-properties-panel .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.drawing-properties-panel .panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--glass-text, #e0e0e0);
+  text-transform: capitalize;
+}
+
+.drawing-properties-panel .close-btn {
+  background: transparent;
+  border: none;
+  color: var(--glass-text, #e0e0e0);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.drawing-properties-panel .close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-primary, #00bcd4);
+}
+
+.drawing-properties-panel .panel-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
+}
+
+.drawing-properties-panel .property-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.drawing-properties-panel .property-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--glass-text, #e0e0e0);
+  opacity: 0.9;
+}
+
+.drawing-properties-panel .color-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.drawing-properties-panel .color-picker {
+  width: 50px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.drawing-properties-panel .color-text {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: var(--glass-text, #e0e0e0);
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.drawing-properties-panel .color-text:focus {
+  outline: none;
+  border-color: var(--color-primary, #00bcd4);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.drawing-properties-panel .slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.drawing-properties-panel .slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-primary, #00bcd4);
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.drawing-properties-panel .slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 8px var(--color-primary, #00bcd4);
+}
+
+.drawing-properties-panel .slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-primary, #00bcd4);
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.drawing-properties-panel .slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 8px var(--color-primary, #00bcd4);
+}
+
+.drawing-properties-panel .delete-btn {
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(185, 28, 28, 0.2) 100%);
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  border-radius: 6px;
+  color: #fca5a5;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.drawing-properties-panel .delete-btn:hover {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.3) 0%, rgba(185, 28, 28, 0.3) 100%);
+  border-color: rgba(220, 38, 38, 0.6);
+  color: #fee2e2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.drawing-properties-panel .delete-btn:active {
+  transform: translateY(0);
+}
