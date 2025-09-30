@@ -122,15 +122,23 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     [activeScene, deleteDrawing],
   );
 
-  // Get drawings that intersect with a point (for eraser)
+  // Get drawings that intersect with a point (for eraser and selection)
   const getDrawingsAtPoint = useCallback(
     (point: Point, radius: number = 5): string[] => {
       if (!activeScene) return [];
 
       const intersectedDrawings: string[] = [];
 
+      console.log(
+        `🔍 Checking ${activeScene.drawings.length} drawings at point (${point.x.toFixed(0)}, ${point.y.toFixed(0)}) with radius ${radius}`,
+      );
+
       activeScene.drawings.forEach((drawing) => {
-        if (!isHost && drawing.createdBy !== user.id) return;
+        // Filter: non-hosts can only select their own drawings
+        if (!isHost && drawing.createdBy !== user.id) {
+          console.log(`  ⏭️ Skipping ${drawing.type} (not created by user)`);
+          return;
+        }
 
         let intersects = false;
 
@@ -193,10 +201,14 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
         }
 
         if (intersects) {
+          console.log(`  ✅ ${drawing.type} intersects!`);
           intersectedDrawings.push(drawing.id);
+        } else {
+          console.log(`  ❌ ${drawing.type} does not intersect`);
         }
       });
 
+      console.log(`📊 Total intersected: ${intersectedDrawings.length}`);
       return intersectedDrawings;
     },
     [activeScene, isHost, user.id],
@@ -294,7 +306,13 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
         [key: string]: (event: React.MouseEvent) => void;
       } = {
         select: (event) => {
-          const drawingAtPoint = getDrawingsAtPoint(point, 10)[0];
+          const drawingsAtPoint = getDrawingsAtPoint(point, 15); // Increased radius for better detection
+          console.log(
+            `🎯 Click at (${point.x.toFixed(0)}, ${point.y.toFixed(0)}), found ${drawingsAtPoint.length} drawings:`,
+            drawingsAtPoint,
+          );
+
+          const drawingAtPoint = drawingsAtPoint[0];
           if (drawingAtPoint) {
             if (event.shiftKey) {
               const newSelection = selectedDrawings.includes(drawingAtPoint)

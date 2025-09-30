@@ -114,6 +114,20 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
           }
           break;
         }
+
+        case 'polygon': {
+          // Update specific vertex
+          const newPoints = [...drawing.points];
+          newPoints[resizingHandle.handleIndex] = mousePos;
+          updates = { points: newPoints };
+          break;
+        }
+
+        case 'cone': {
+          // Update origin position
+          updates = { origin: mousePos };
+          break;
+        }
       }
 
       if (Object.keys(updates).length > 0) {
@@ -404,6 +418,45 @@ const renderSelectionHandles = (
       });
       break;
     }
+
+    case 'polygon': {
+      // Vertex handles for polygons
+      drawing.points.forEach((point: Point, index: number) => {
+        handles.push(
+          <rect
+            key={`handle-${index}`}
+            x={point.x - handleSize / 2}
+            y={point.y - handleSize / 2}
+            {...handleProps}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onHandleMouseDown(drawing.id, index, 'endpoint');
+            }}
+            style={{ cursor: 'move' }}
+          />,
+        );
+      });
+      break;
+    }
+
+    case 'cone': {
+      // Origin handle for cone
+      handles.push(
+        <rect
+          key="handle-origin"
+          x={drawing.origin.x - handleSize / 2}
+          y={drawing.origin.y - handleSize / 2}
+          {...handleProps}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            onHandleMouseDown(drawing.id, 0, 'endpoint');
+          }}
+          style={{ cursor: 'move' }}
+        />,
+      );
+      break;
+    }
+
     default:
       break;
   }
