@@ -436,7 +436,12 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               };
             },
             cone: () => {
-              const length = distance(startPoint, endPoint);
+              const rawLength = distance(startPoint, endPoint);
+              // Snap to 5ft increments (1 grid square = 5ft)
+              const snappedLength =
+                Math.round(rawLength / _gridSize) * _gridSize;
+              const length = Math.max(_gridSize, snappedLength); // Minimum 5ft
+
               const direction =
                 (Math.atan2(
                   endPoint.y - startPoint.y,
@@ -450,7 +455,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
                 origin: startPoint,
                 direction,
                 length,
-                angle: 90, // Standard 90-degree cone for D&D 5e
+                angle: 53.13, // D&D 5e cone: equilateral triangle, width = distance from origin
               };
             },
             pencil: () => ({
@@ -492,6 +497,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       user.id,
       createAndSyncDrawing,
       pencilPath,
+      _gridSize,
     ],
   );
 
@@ -669,8 +675,12 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       }
 
       case 'cone': {
-        const length = distance(startPoint, currentPoint);
+        const rawLength = distance(startPoint, currentPoint);
+        // Snap to 5ft increments
+        const snappedLength = Math.round(rawLength / _gridSize) * _gridSize;
+        const length = Math.max(_gridSize, snappedLength);
         const lengthFeet = (length / _gridSize) * 5;
+
         const direction =
           (Math.atan2(
             currentPoint.y - startPoint.y,
@@ -679,7 +689,8 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
             180) /
           Math.PI;
         const angleRad = (direction * Math.PI) / 180;
-        const coneAngleRad = (90 * Math.PI) / 180; // 90-degree cone
+        // D&D 5e cone: 53.13 degrees (equilateral triangle, width = distance)
+        const coneAngleRad = (53.13 * Math.PI) / 180;
 
         const leftX =
           startPoint.x + Math.cos(angleRad - coneAngleRad / 2) * length;
@@ -713,7 +724,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
                   '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
               }}
             >
-              {lengthFeet.toFixed(1)} ft
+              {lengthFeet.toFixed(0)} ft
             </text>
           </>
         );
