@@ -50,9 +50,9 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 600 });
   const [drawingStyle] = useState<DrawingStyle>({
     fillColor: '#ff0000',
-    fillOpacity: 0.3,
+    fillOpacity: 0.5,
     strokeColor: '#000000',
-    strokeWidth: 2,
+    strokeWidth: 5,
     strokeDashArray: undefined,
     visibleToPlayers: true,
     dmNotesOnly: false,

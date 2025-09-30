@@ -30,13 +30,16 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
     firstDrawing?.style.fillColor || '#ff0000',
   );
   const [fillOpacity, setFillOpacity] = useState(
-    firstDrawing?.style.fillOpacity ?? 0.3,
+    firstDrawing?.style.fillOpacity ?? 0.5,
   );
   const [strokeColor, setStrokeColor] = useState(
     firstDrawing?.style.strokeColor || '#000000',
   );
   const [strokeWidth, setStrokeWidth] = useState(
-    firstDrawing?.style.strokeWidth || 2,
+    firstDrawing?.style.strokeWidth || 5,
+  );
+  const [strokeDashArray, setStrokeDashArray] = useState(
+    firstDrawing?.style.strokeDashArray || undefined,
   );
 
   // Update local state when selection changes
@@ -46,6 +49,7 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
       setFillOpacity(firstDrawing.style.fillOpacity);
       setStrokeColor(firstDrawing.style.strokeColor);
       setStrokeWidth(firstDrawing.style.strokeWidth);
+      setStrokeDashArray(firstDrawing.style.strokeDashArray);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -54,6 +58,7 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
     firstDrawing?.style.fillOpacity,
     firstDrawing?.style.strokeColor,
     firstDrawing?.style.strokeWidth,
+    firstDrawing?.style.strokeDashArray,
   ]);
 
   if (!activeScene || selectedDrawings.length === 0) {
@@ -117,17 +122,44 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
     handleStyleUpdate({ strokeWidth: newWidth });
   };
 
+  const handleBorderStyleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    const newDashArray = value === 'dashed' ? '5,5' : undefined;
+    setStrokeDashArray(newDashArray);
+    handleStyleUpdate({ strokeDashArray: newDashArray });
+  };
+
   return (
-    <div className="drawing-properties-panel">
-      <div className="panel-header">
-        <h3>
+    <div
+      className="absolute top-5 right-5 w-[300px] border border-white/10 rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.4)] z-[1000] backdrop-blur-md animate-[slideInRight_0.3s_ease]"
+      style={{
+        background:
+          'linear-gradient(135deg, rgba(var(--color-surface-rgb, 42, 42, 62), 0.8) 0%, rgba(var(--color-background-rgb, 32, 32, 52), 0.8) 100%)',
+      }}
+    >
+      <style>
+        {`
+          @keyframes slideInRight {
+            from {
+              opacity: 0;
+              transform: translateX(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+        `}
+      </style>
+      <div className="flex justify-between items-center p-4 border-b border-white/10">
+        <h3 className="m-0 text-base font-semibold text-[var(--glass-text,#e0e0e0)] capitalize">
           {selectedDrawings.length === 1
             ? `Edit ${firstDrawing.type}`
             : `Edit ${selectedDrawings.length} drawings`}
         </h3>
         <button
           type="button"
-          className="close-btn"
+          className="bg-transparent border-none text-[var(--glass-text,#e0e0e0)] text-2xl leading-none cursor-pointer p-0 w-6 h-6 flex items-center justify-center rounded transition-all duration-200 hover:bg-white/10 hover:text-[var(--color-primary,#00bcd4)]"
           onClick={onClose}
           aria-label="Close properties panel"
         >
@@ -135,7 +167,7 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
         </button>
       </div>
 
-      <div className="panel-content">
+      <div className="p-4 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-120px)]">
         {/* Fill Color */}
         <div className="property-group">
           <label htmlFor="fill-color">Fill Color</label>
@@ -212,11 +244,26 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
           />
         </div>
 
+        {/* Border Style */}
+        <div className="property-group">
+          <label htmlFor="border-style">Border Style</label>
+          <select
+            id="border-style"
+            value={strokeDashArray ? 'dashed' : 'solid'}
+            onChange={handleBorderStyleChange}
+            className="color-text"
+            style={{ cursor: 'pointer' }}
+          >
+            <option value="solid">Solid</option>
+            <option value="dashed">Dashed</option>
+          </select>
+        </div>
+
         {/* Delete Button */}
         <div className="property-group">
           <button
             type="button"
-            className="delete-btn"
+            className="px-4 py-2.5 bg-red-500/20 border border-red-500/40 rounded-md text-red-400 text-sm font-medium cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 hover:bg-red-500/30 hover:border-red-500/60 hover:text-red-300 hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(239,68,68,0.3)] active:translate-y-0"
             onClick={handleDelete}
             aria-label={`Delete ${selectedDrawings.length} drawing(s)`}
           >

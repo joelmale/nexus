@@ -1795,12 +1795,11 @@
   top: 20px;
   right: 20px;
   width: 300px;
-  background: linear-gradient(135deg, rgba(42, 42, 62, 0.95) 0%, rgba(32, 32, 52, 0.95) 100%);
+  background: linear-gradient(135deg, rgb(42, 42, 62) 0%, rgb(32, 32, 52) 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   z-index: 1000;
-  backdrop-filter: blur(10px);
   animation: slideInRight 0.3s ease;
 }
 
