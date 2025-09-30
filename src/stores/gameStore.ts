@@ -55,6 +55,7 @@ interface GameStore extends GameState {
   setActiveScene: (sceneId: string) => void;
   updateCamera: (camera: Partial<Camera>) => void;
   setFollowDM: (follow: boolean) => void;
+  setActiveTool: (tool: string) => void;
 
   // Bulk Scene Operations
   deleteScenesById: (sceneIds: string[]) => void;
@@ -133,6 +134,7 @@ const initialState: GameState = {
       zoom: 1.0,
     },
     followDM: true,
+    activeTool: 'select' as const,
   },
   settings: {
     // Display Settings
@@ -731,6 +733,12 @@ export const useGameStore = create<GameStore>()(
     setFollowDM: (follow) => {
       set((state) => {
         state.sceneState.followDM = follow;
+      });
+    },
+
+    setActiveTool: (tool) => {
+      set((state) => {
+        state.sceneState.activeTool = tool;
       });
     },
 
@@ -1352,6 +1360,8 @@ export const useActiveScene = () =>
 export const useCamera = () => useGameStore((state) => state.sceneState.camera);
 export const useFollowDM = () =>
   useGameStore((state) => state.sceneState.followDM);
+export const useActiveTool = () =>
+  useGameStore((state) => state.sceneState.activeTool);
 
 // Settings selectors
 export const useSettings = () => useGameStore((state) => state.settings);

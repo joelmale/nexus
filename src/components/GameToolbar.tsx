@@ -1,6 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
-import { useGameStore, useIsHost, useCamera } from '@/stores/gameStore';
+import {
+  useGameStore,
+  useIsHost,
+  useCamera,
+  useActiveTool,
+} from '@/stores/gameStore';
 
 interface Position {
   x: number;
@@ -10,10 +15,10 @@ interface Position {
 const TOOLBAR_TYPE = 'GAME_TOOLBAR';
 
 export const GameToolbar: React.FC = () => {
-  const [activeTool, setActiveTool] = useState('select');
+  const activeTool = useActiveTool();
   const [isCompact, setIsCompact] = useState(false);
   const isHost = useIsHost();
-  const { updateCamera, settings } = useGameStore();
+  const { updateCamera, settings, setActiveTool } = useGameStore();
   const camera = useCamera();
 
   // Check if toolbar is in floating mode (experimental feature)

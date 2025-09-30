@@ -162,6 +162,7 @@ export interface SceneState {
   activeSceneId: string | null;
   camera: Camera;
   followDM: boolean; // Whether players follow DM's camera
+  activeTool: string; // Currently selected tool
 }
 
 // WebSocket message types
