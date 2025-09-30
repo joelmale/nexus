@@ -168,96 +168,111 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
       </div>
 
       <div className="p-4 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-120px)]">
-        {/* Fill Color */}
-        <div className="property-group">
-          <label htmlFor="fill-color">Fill Color</label>
-          <div className="color-input-group">
-            <input
-              id="fill-color"
-              type="color"
-              value={fillColor}
-              onChange={handleFillColorChange}
-              className="color-picker"
-            />
-            <input
-              type="text"
-              value={fillColor}
-              onChange={handleFillColorChange}
-              className="color-text"
-              placeholder="#000000"
-            />
+        {/* Only show style controls for single selection */}
+        {selectedDrawings.length === 1 && (
+          <>
+            {/* Fill Color */}
+            <div className="property-group">
+              <label htmlFor="fill-color">Fill Color</label>
+              <div className="color-input-group">
+                <input
+                  id="fill-color"
+                  type="color"
+                  value={fillColor}
+                  onChange={handleFillColorChange}
+                  className="color-picker"
+                />
+                <input
+                  type="text"
+                  value={fillColor}
+                  onChange={handleFillColorChange}
+                  className="color-text"
+                  placeholder="#000000"
+                />
+              </div>
+            </div>
+
+            {/* Fill Opacity */}
+            <div className="property-group">
+              <label htmlFor="fill-opacity">
+                Fill Opacity: {Math.round(fillOpacity * 100)}%
+              </label>
+              <input
+                id="fill-opacity"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={fillOpacity}
+                onChange={handleFillOpacityChange}
+                className="slider"
+              />
+            </div>
+
+            {/* Stroke Color */}
+            <div className="property-group">
+              <label htmlFor="stroke-color">Border Color</label>
+              <div className="color-input-group">
+                <input
+                  id="stroke-color"
+                  type="color"
+                  value={strokeColor}
+                  onChange={handleStrokeColorChange}
+                  className="color-picker"
+                />
+                <input
+                  type="text"
+                  value={strokeColor}
+                  onChange={handleStrokeColorChange}
+                  className="color-text"
+                  placeholder="#000000"
+                />
+              </div>
+            </div>
+
+            {/* Stroke Width */}
+            <div className="property-group">
+              <label htmlFor="stroke-width">
+                Border Width: {strokeWidth.toFixed(1)}px
+              </label>
+              <input
+                id="stroke-width"
+                type="range"
+                min="0"
+                max="20"
+                step="0.5"
+                value={strokeWidth}
+                onChange={handleStrokeWidthChange}
+                className="slider"
+              />
+            </div>
+
+            {/* Border Style */}
+            <div className="property-group">
+              <label htmlFor="border-style">Border Style</label>
+              <select
+                id="border-style"
+                value={strokeDashArray ? 'dashed' : 'solid'}
+                onChange={handleBorderStyleChange}
+                className="color-text"
+                style={{ cursor: 'pointer' }}
+              >
+                <option value="solid">Solid</option>
+                <option value="dashed">Dashed</option>
+              </select>
+            </div>
+          </>
+        )}
+
+        {/* Show info for multi-selection */}
+        {selectedDrawings.length > 1 && (
+          <div className="property-group">
+            <p className="text-sm text-[var(--glass-text,#e0e0e0)] opacity-70 m-0">
+              {selectedDrawings.length} drawings selected. Use the delete button
+              below to remove all selected drawings.
+            </p>
           </div>
-        </div>
-
-        {/* Fill Opacity */}
-        <div className="property-group">
-          <label htmlFor="fill-opacity">
-            Fill Opacity: {Math.round(fillOpacity * 100)}%
-          </label>
-          <input
-            id="fill-opacity"
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={fillOpacity}
-            onChange={handleFillOpacityChange}
-            className="slider"
-          />
-        </div>
-
-        {/* Stroke Color */}
-        <div className="property-group">
-          <label htmlFor="stroke-color">Border Color</label>
-          <div className="color-input-group">
-            <input
-              id="stroke-color"
-              type="color"
-              value={strokeColor}
-              onChange={handleStrokeColorChange}
-              className="color-picker"
-            />
-            <input
-              type="text"
-              value={strokeColor}
-              onChange={handleStrokeColorChange}
-              className="color-text"
-              placeholder="#000000"
-            />
-          </div>
-        </div>
-
-        {/* Stroke Width */}
-        <div className="property-group">
-          <label htmlFor="stroke-width">
-            Border Width: {strokeWidth.toFixed(1)}px
-          </label>
-          <input
-            id="stroke-width"
-            type="range"
-            min="0"
-            max="20"
-            step="0.5"
-            value={strokeWidth}
-            onChange={handleStrokeWidthChange}
-            className="slider"
-          />
-        </div>
-
-        {/* Border Style */}
-        <div className="property-group">
-          <label htmlFor="border-style">Border Style</label>
-          <select
-            id="border-style"
-            value={strokeDashArray ? 'dashed' : 'solid'}
-            onChange={handleBorderStyleChange}
-            className="color-text"
-            style={{ cursor: 'pointer' }}
-          >
-            <option value="solid">Solid</option>
-            <option value="dashed">Dashed</option>
-          </select>
-        </div>
+        )}
 
         {/* Delete Button */}
         <div className="property-group">

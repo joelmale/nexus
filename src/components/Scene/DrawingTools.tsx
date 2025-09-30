@@ -144,6 +144,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
         switch (drawing.type) {
           case 'line': {
+            console.log(
+              `  🔎 Line: start=(${drawing.start.x}, ${drawing.start.y}), end=(${drawing.end.x}, ${drawing.end.y})`,
+            );
             intersects = isPointNearLine(
               point,
               drawing.start,
@@ -186,8 +189,32 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
             break;
           }
           case 'cone': {
-            // Check if point is near the origin
-            intersects = isPointInCircle(point, drawing.origin, radius + 10);
+            // Check if point is within the cone's bounding area
+            // The cone extends from origin in a direction with a certain length and angle
+            console.log(
+              `  🔎 Cone: origin=(${drawing.origin.x}, ${drawing.origin.y}), length=${drawing.length}, direction=${drawing.direction}°`,
+            );
+            const dx = point.x - drawing.origin.x;
+            const dy = point.y - drawing.origin.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            console.log(
+              `  🔎 Cone: distance=${distance.toFixed(1)}, cone length=${drawing.length}`,
+            );
+
+            // Check if click is within a circle around the origin with radius = cone length
+            // This is a simplified check - a proper check would verify the point is within the cone angle
+            if (distance <= drawing.length + radius) {
+              // Optional: also check if the point is roughly in the cone's direction
+              const clickAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
+              const angleDiff = Math.abs(
+                ((clickAngle - drawing.direction + 180) % 360) - 180,
+              );
+              const halfConeAngle = drawing.angle / 2;
+              console.log(
+                `  🔎 Cone: click angle=${clickAngle.toFixed(1)}°, cone direction=${drawing.direction}°, angle diff=${angleDiff.toFixed(1)}°, half cone angle=${halfConeAngle.toFixed(1)}°`,
+              );
+              intersects = angleDiff <= halfConeAngle + 30; // Add 30° tolerance
+            }
             break;
           }
           case 'text':
