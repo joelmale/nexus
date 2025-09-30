@@ -6,7 +6,6 @@
  */
 
 import { getOgresStore } from './ogresStyleStore';
-import { SerializationService } from './serialization';
 import type { Scene, Token, Drawing } from '@/types/game';
 import type { PlayerCharacter, GameConfig } from '@/types/appFlow';
 
@@ -24,7 +23,9 @@ export class LinearFlowStorage {
     let migratedDrawings = 0;
 
     try {
-      console.log('🔄 Migrating drawing data from localStorage to IndexedDB...');
+      console.log(
+        '🔄 Migrating drawing data from localStorage to IndexedDB...',
+      );
 
       // Migrate scenes
       const scenesData = localStorage.getItem('nexus-scenes');
@@ -49,9 +50,13 @@ export class LinearFlowStorage {
 
       // Migrate drawings for each scene
       const localStorageKeys = Object.keys(localStorage);
-      const drawingKeys = localStorageKeys.filter(key => key.startsWith('nexus-drawings-'));
+      const drawingKeys = localStorageKeys.filter((key) =>
+        key.startsWith('nexus-drawings-'),
+      );
 
-      console.log(`📂 Found ${drawingKeys.length} drawing sets in localStorage`);
+      console.log(
+        `📂 Found ${drawingKeys.length} drawing sets in localStorage`,
+      );
 
       for (const key of drawingKeys) {
         try {
@@ -63,7 +68,9 @@ export class LinearFlowStorage {
             if (data.drawings && Array.isArray(data.drawings)) {
               await this.saveDrawings(sceneId, data.drawings);
               migratedDrawings += data.drawings.length;
-              console.log(`✅ Migrated ${data.drawings.length} drawings for scene ${sceneId}`);
+              console.log(
+                `✅ Migrated ${data.drawings.length} drawings for scene ${sceneId}`,
+              );
             }
           }
 
@@ -75,7 +82,9 @@ export class LinearFlowStorage {
         }
       }
 
-      console.log(`✅ Migration complete: ${migratedScenes} scenes, ${migratedDrawings} drawings`);
+      console.log(
+        `✅ Migration complete: ${migratedScenes} scenes, ${migratedDrawings} drawings`,
+      );
 
       return { migratedScenes, migratedDrawings, errors };
     } catch (error) {
@@ -89,7 +98,9 @@ export class LinearFlowStorage {
   needsDrawingMigration(): boolean {
     const hasOldScenes = localStorage.getItem('nexus-scenes') !== null;
     const localStorageKeys = Object.keys(localStorage);
-    const hasOldDrawings = localStorageKeys.some(key => key.startsWith('nexus-drawings-'));
+    const hasOldDrawings = localStorageKeys.some((key) =>
+      key.startsWith('nexus-drawings-'),
+    );
 
     return hasOldScenes || hasOldDrawings;
   }
@@ -104,8 +115,8 @@ export class LinearFlowStorage {
       hostId: 'test-dm',
       config: {
         name: 'Test Campaign',
-        description: 'Test session for debugging'
-      }
+        description: 'Test session for debugging',
+      },
     });
 
     // Create test scene
@@ -114,7 +125,7 @@ export class LinearFlowStorage {
       description: 'A test scene for debugging',
       sessionId: sessionId.id,
       background: { type: 'color', value: '#ffffff' },
-      gridSize: 50
+      gridSize: 50,
     });
 
     // Create test character
@@ -123,13 +134,13 @@ export class LinearFlowStorage {
       type: 'player',
       sessionId: sessionId.id,
       sceneId: sceneId.id,
-      position: { x: 100, y: 100 }
+      position: { x: 100, y: 100 },
     });
 
     console.log('🧪 Created test entities:', {
       session: sessionId.id,
       scene: sceneId.id,
-      character: characterId.id
+      character: characterId.id,
     });
 
     console.log('🧪 Current stats:', this.getStats());
@@ -149,14 +160,17 @@ export class LinearFlowStorage {
       const dbNames = ['nexus-ogres-store', 'nexus-vtt'];
       for (const dbName of dbNames) {
         try {
-          await new Promise<void>((resolve, reject) => {
+          await new Promise<void>((resolve) => {
             const deleteReq = indexedDB.deleteDatabase(dbName);
             deleteReq.onsuccess = () => {
               console.log(`🗑️ Deleted database: ${dbName}`);
               resolve();
             };
             deleteReq.onerror = () => {
-              console.warn(`Failed to delete database ${dbName}:`, deleteReq.error);
+              console.warn(
+                `Failed to delete database ${dbName}:`,
+                deleteReq.error,
+              );
               resolve(); // Continue anyway
             };
             deleteReq.onblocked = () => {
@@ -182,7 +196,9 @@ export class LinearFlowStorage {
   /**
    * Create a scene using the entity store
    */
-  async createScene(sceneData: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>): Promise<Scene> {
+  async createScene(
+    sceneData: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<Scene> {
     const scene = this.store.createScene(sceneData);
 
     // Auto-save to IndexedDB (throttled)
@@ -227,24 +243,27 @@ export class LinearFlowStorage {
    * Save scene (upsert existing)
    */
   async saveScene(scene: Scene): Promise<void> {
+    // Serialize scene to plain object (handles Zustand draft proxies)
+    const plainScene = JSON.parse(JSON.stringify(scene));
+
     // Check if scene exists
-    const existingScene = this.store.get<Scene>(scene.id);
+    const existingScene = this.store.get<Scene>(plainScene.id);
 
     if (existingScene) {
       // Update existing
-      this.store.update<Scene>(scene.id, {
-        ...scene,
-        updatedAt: Date.now()
+      this.store.update<Scene>(plainScene.id, {
+        ...plainScene,
+        updatedAt: Date.now(),
       });
-      console.log('🎬 Updated scene in entity store:', scene.name);
+      console.log('🎬 Updated scene in entity store:', plainScene.name);
     } else {
       // Create new
       this.store.create<Scene>('scene', {
-        ...scene,
-        createdAt: scene.createdAt || Date.now(),
-        updatedAt: Date.now()
+        ...plainScene,
+        createdAt: plainScene.createdAt || Date.now(),
+        updatedAt: Date.now(),
       });
-      console.log('🎬 Created scene in entity store:', scene.name);
+      console.log('🎬 Created scene in entity store:', plainScene.name);
     }
   }
 
@@ -265,7 +284,7 @@ export class LinearFlowStorage {
         ...drawing,
         sceneId,
         createdAt: drawing.createdAt || Date.now(),
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       });
     }
 
@@ -278,7 +297,7 @@ export class LinearFlowStorage {
   getDrawings(sceneId: string): Drawing[] {
     return this.store.query<Drawing>({
       type: 'drawing',
-      where: { sceneId }
+      where: { sceneId },
     });
   }
 
@@ -297,12 +316,15 @@ export class LinearFlowStorage {
    * Add a single drawing to a scene
    */
   addDrawing(sceneId: string, drawing: Drawing): Drawing {
-    const drawingEntity = this.store.create<Drawing & { sceneId: string }>('drawing', {
-      ...drawing,
-      sceneId,
-      createdAt: drawing.createdAt || Date.now(),
-      updatedAt: Date.now()
-    });
+    const drawingEntity = this.store.create<Drawing & { sceneId: string }>(
+      'drawing',
+      {
+        ...drawing,
+        sceneId,
+        createdAt: drawing.createdAt || Date.now(),
+        updatedAt: Date.now(),
+      },
+    );
 
     console.log(`🎨 Added drawing to scene ${sceneId}:`, drawing.id);
     return drawingEntity;
@@ -314,7 +336,7 @@ export class LinearFlowStorage {
   updateDrawing(drawingId: string, updates: Partial<Drawing>): Drawing | null {
     const updated = this.store.update<Drawing>(drawingId, {
       ...updates,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     });
 
     if (updated) {
@@ -344,9 +366,11 @@ export class LinearFlowStorage {
    */
   saveCharacter(character: PlayerCharacter): PlayerCharacter {
     // Convert to entity format
-    const characterEntity = this.store.create<PlayerCharacter & { type: 'character' }>('character', {
+    const characterEntity = this.store.create<
+      PlayerCharacter & { type: 'character' }
+    >('character', {
       ...character,
-      browserId: this.getBrowserId()
+      browserId: this.getBrowserId(),
     });
 
     console.log('👤 Saved character to entity store:', character.name);
@@ -360,7 +384,7 @@ export class LinearFlowStorage {
     const browserId = this.getBrowserId();
     return this.store.query<PlayerCharacter>({
       type: 'character',
-      where: { browserId }
+      where: { browserId },
     });
   }
 
@@ -381,7 +405,7 @@ export class LinearFlowStorage {
   saveGameConfig(roomCode: string, config: GameConfig): void {
     this.store.create('game-config', {
       roomCode,
-      ...config
+      ...config,
     });
   }
 
@@ -391,10 +415,10 @@ export class LinearFlowStorage {
   getGameConfig(roomCode: string): GameConfig | null {
     const configs = this.store.query({
       type: 'game-config',
-      where: { roomCode }
+      where: { roomCode },
     });
 
-    return configs.length > 0 ? configs[0] as GameConfig : null;
+    return configs.length > 0 ? (configs[0] as GameConfig) : null;
   }
 
   // =============================================================================
@@ -413,10 +437,10 @@ export class LinearFlowStorage {
     // Remove any existing session for this browser
     const existingSessions = this.store.query({
       type: 'session',
-      where: { browserId: this.getBrowserId() }
+      where: { browserId: this.getBrowserId() },
     });
 
-    existingSessions.forEach(session => {
+    existingSessions.forEach((session) => {
       this.store.delete(session.id);
     });
 
@@ -424,7 +448,7 @@ export class LinearFlowStorage {
     this.store.create('session', {
       ...sessionData,
       browserId: this.getBrowserId(),
-      lastActivity: Date.now()
+      lastActivity: Date.now(),
     });
 
     console.log('💾 Saved session to entity store');
@@ -441,7 +465,7 @@ export class LinearFlowStorage {
       this.store.create('session-legacy', {
         ...sessionData,
         browserId,
-        dataType: 'session'
+        dataType: 'session',
       });
     }
 
@@ -450,7 +474,7 @@ export class LinearFlowStorage {
       this.store.create('session-legacy', {
         ...gameState,
         browserId,
-        dataType: 'gameState'
+        dataType: 'gameState',
       });
     }
 
@@ -463,7 +487,7 @@ export class LinearFlowStorage {
   loadSession(): any | null {
     const sessions = this.store.query({
       type: 'session',
-      where: { browserId: this.getBrowserId() }
+      where: { browserId: this.getBrowserId() },
     });
 
     if (sessions.length === 0) return null;
@@ -481,17 +505,17 @@ export class LinearFlowStorage {
 
     const sessionData = this.store.query({
       type: 'session-legacy',
-      where: { browserId, dataType: 'session' }
+      where: { browserId, dataType: 'session' },
     });
 
     const gameStateData = this.store.query({
       type: 'session-legacy',
-      where: { browserId, dataType: 'gameState' }
+      where: { browserId, dataType: 'gameState' },
     });
 
     return {
       session: sessionData.length > 0 ? sessionData[0] : null,
-      gameState: gameStateData.length > 0 ? gameStateData[0] : null
+      gameState: gameStateData.length > 0 ? gameStateData[0] : null,
     };
   }
 
@@ -504,20 +528,20 @@ export class LinearFlowStorage {
     // Clear regular sessions
     const sessions = this.store.query({
       type: 'session',
-      where: { browserId }
+      where: { browserId },
     });
 
-    sessions.forEach(session => {
+    sessions.forEach((session) => {
       this.store.delete(session.id);
     });
 
     // Clear legacy sessions
     const legacySessions = this.store.query({
       type: 'session-legacy',
-      where: { browserId }
+      where: { browserId },
     });
 
-    legacySessions.forEach(session => {
+    legacySessions.forEach((session) => {
       this.store.delete(session.id);
     });
 
@@ -545,7 +569,7 @@ export class LinearFlowStorage {
       characters: 0,
       sessions: 0,
       legacySessions: 0,
-      browserId: false
+      browserId: false,
     };
 
     try {
@@ -564,13 +588,18 @@ export class LinearFlowStorage {
       if (sessionData || gameStateData) {
         try {
           const parsedSession = sessionData ? JSON.parse(sessionData) : null;
-          const parsedGameState = gameStateData ? JSON.parse(gameStateData) : null;
+          const parsedGameState = gameStateData
+            ? JSON.parse(gameStateData)
+            : null;
 
           this.saveLegacySessionData(parsedSession, parsedGameState);
           stats.legacySessions++;
 
           // Migrate scenes from gameState if available
-          if (parsedGameState?.scenes && Array.isArray(parsedGameState.scenes)) {
+          if (
+            parsedGameState?.scenes &&
+            Array.isArray(parsedGameState.scenes)
+          ) {
             for (const scene of parsedGameState.scenes) {
               await this.createScene(scene);
               stats.scenes++;
@@ -578,7 +607,10 @@ export class LinearFlowStorage {
           }
 
           // Migrate characters from gameState
-          if (parsedGameState?.characters && Array.isArray(parsedGameState.characters)) {
+          if (
+            parsedGameState?.characters &&
+            Array.isArray(parsedGameState.characters)
+          ) {
             parsedGameState.characters.forEach((character: any) => {
               this.saveCharacter(character);
               stats.characters++;
@@ -588,8 +620,9 @@ export class LinearFlowStorage {
           // Clean up old localStorage
           localStorage.removeItem('nexus-session');
           localStorage.removeItem('nexus-game-state');
-          console.log('🗑️ Cleaned up nexus-session and nexus-game-state from localStorage');
-
+          console.log(
+            '🗑️ Cleaned up nexus-session and nexus-game-state from localStorage',
+          );
         } catch (error) {
           console.error('Failed to migrate session persistence data:', error);
         }
@@ -601,7 +634,8 @@ export class LinearFlowStorage {
         try {
           const parsed = JSON.parse(appFlowData);
           if (parsed.state) {
-            const { user, roomCode, view, gameConfig, selectedCharacter } = parsed.state;
+            const { user, roomCode, view, gameConfig, selectedCharacter } =
+              parsed.state;
 
             // Migrate session
             if (user?.name && roomCode) {
@@ -609,7 +643,7 @@ export class LinearFlowStorage {
                 user,
                 roomCode,
                 view: view || 'game',
-                isConnected: false
+                isConnected: false,
               });
               stats.sessions++;
             }
@@ -627,8 +661,9 @@ export class LinearFlowStorage {
           }
 
           // Clean up old localStorage (but keep for Zustand compatibility)
-          console.log('📝 Note: Keeping nexus-app-flow for Zustand compatibility');
-
+          console.log(
+            '📝 Note: Keeping nexus-app-flow for Zustand compatibility',
+          );
         } catch (error) {
           console.error('Failed to migrate app flow data:', error);
         }
@@ -640,7 +675,7 @@ export class LinearFlowStorage {
         try {
           const characters = JSON.parse(charactersData);
           if (Array.isArray(characters)) {
-            characters.forEach(character => {
+            characters.forEach((character) => {
               this.saveCharacter(character);
               stats.characters++;
             });
@@ -648,14 +683,19 @@ export class LinearFlowStorage {
 
           localStorage.removeItem('nexus-characters');
           console.log('🗑️ Cleaned up nexus-characters from localStorage');
-
         } catch (error) {
           console.error('Failed to migrate characters data:', error);
         }
       }
 
       // 5. Check if migration was successful
-      if (stats.characters > 0 || stats.scenes > 0 || stats.sessions > 0 || stats.legacySessions > 0 || stats.browserId) {
+      if (
+        stats.characters > 0 ||
+        stats.scenes > 0 ||
+        stats.sessions > 0 ||
+        stats.legacySessions > 0 ||
+        stats.browserId
+      ) {
         stats.migrated = true;
         console.log('✅ Comprehensive migration complete:', stats);
 
@@ -667,7 +707,6 @@ export class LinearFlowStorage {
       } else {
         console.log('ℹ️ No data found to migrate');
       }
-
     } catch (error) {
       console.error('❌ Migration failed:', error);
     }
@@ -691,11 +730,15 @@ export class LinearFlowStorage {
       'nexus-game-state',
       'nexus-browser-id',
       'nexus-characters',
-      'nexus-scenes'
+      'nexus-scenes',
     ];
 
-    const hasOldData = needsMigrationKeys.some(key => localStorage.getItem(key) !== null);
-    const hasOldDrawings = localStorageKeys.some(key => key.startsWith('nexus-drawings-'));
+    const hasOldData = needsMigrationKeys.some(
+      (key) => localStorage.getItem(key) !== null,
+    );
+    const hasOldDrawings = localStorageKeys.some((key) =>
+      key.startsWith('nexus-drawings-'),
+    );
 
     return hasOldData || hasOldDrawings;
   }
@@ -717,15 +760,17 @@ export class LinearFlowStorage {
       'nexus-game-state',
       'nexus-browser-id',
       'nexus-characters',
-      'nexus-scenes'
+      'nexus-scenes',
     ];
 
     // Remove drawing keys
-    const drawingKeys = localStorageKeys.filter(key => key.startsWith('nexus-drawings-'));
+    const drawingKeys = localStorageKeys.filter((key) =>
+      key.startsWith('nexus-drawings-'),
+    );
     keysToRemove.push(...drawingKeys);
 
     // Remove old data
-    keysToRemove.forEach(key => {
+    keysToRemove.forEach((key) => {
       if (localStorage.getItem(key) !== null) {
         localStorage.removeItem(key);
         removedKeys.push(key);
@@ -735,10 +780,10 @@ export class LinearFlowStorage {
     // Keep these keys (they're still used)
     const keysToKeep = [
       'nexus-app-flow', // Zustand persistence
-      'nexus-migration-complete' // Migration flag
+      'nexus-migration-complete', // Migration flag
     ];
 
-    keysToKeep.forEach(key => {
+    keysToKeep.forEach((key) => {
       if (localStorage.getItem(key) !== null) {
         keptKeys.push(key);
       }
@@ -746,7 +791,7 @@ export class LinearFlowStorage {
 
     console.log('🧹 Migration cleanup complete:', {
       removed: removedKeys.length,
-      kept: keptKeys.length
+      kept: keptKeys.length,
     });
 
     return { removedKeys, keptKeys };
@@ -774,13 +819,15 @@ export class LinearFlowStorage {
    * Download backup file (for user)
    */
   downloadBackup(filename?: string): void {
-    this.exportCampaign().then(backupData => {
+    this.exportCampaign().then((backupData) => {
       const blob = new Blob([backupData], { type: 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename || `nexus-campaign-${new Date().toISOString().split('T')[0]}.nexus`;
+      a.download =
+        filename ||
+        `nexus-campaign-${new Date().toISOString().split('T')[0]}.nexus`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -827,7 +874,7 @@ export class LinearFlowStorage {
 
   private getBrowserId(): string {
     // Check IndexedDB first (new system)
-    let browserIdEntity = this.store.get<any>('browser-id');
+    const browserIdEntity = this.store.get<any>('browser-id');
 
     if (browserIdEntity) {
       return browserIdEntity.value;
@@ -867,13 +914,20 @@ export class LinearFlowStorage {
   /**
    * Sync scenes from entity store to gameStore (for UI)
    */
-  async syncScenesWithGameStore(): Promise<{ synced: number; errors: string[] }> {
+  async syncScenesWithGameStore(): Promise<{
+    synced: number;
+    errors: string[];
+  }> {
     try {
       // Dynamic import to avoid circular dependencies
       const { useGameStore } = await import('@/stores/gameStore');
 
       const entityScenes = this.getScenes();
-      console.log('🔄 Syncing', entityScenes.length, 'scenes from entity store to gameStore');
+      console.log(
+        '🔄 Syncing',
+        entityScenes.length,
+        'scenes from entity store to gameStore',
+      );
 
       // Use the store's update method to modify sceneState.scenes directly
       useGameStore.setState((state) => {
@@ -886,17 +940,20 @@ export class LinearFlowStorage {
         }
       });
 
-      console.log('✅ Synced scenes to gameStore:', entityScenes.map(s => s.name));
+      console.log(
+        '✅ Synced scenes to gameStore:',
+        entityScenes.map((s) => s.name),
+      );
 
       return {
         synced: entityScenes.length,
-        errors: []
+        errors: [],
       };
     } catch (error) {
       console.error('❌ Failed to sync scenes to gameStore:', error);
       return {
         synced: 0,
-        errors: [String(error)]
+        errors: [String(error)],
       };
     }
   }
@@ -905,9 +962,6 @@ export class LinearFlowStorage {
    * Clear all data (careful!)
    */
   async clearAllData(): Promise<void> {
-    const stats = this.getStats();
-    const entityIds = Array.from({ length: stats.entities }, (_, i) => i);
-
     // This is destructive - maybe add confirmation
     console.warn('🗑️ Clearing all campaign data...');
 
@@ -967,7 +1021,9 @@ if (typeof window !== 'undefined') {
     },
     getGameStoreScenes: () => {
       // Import gameStore dynamically to avoid circular imports
-      return window.__gameStore ? window.__gameStore.getState().sceneState.scenes : 'GameStore not available';
+      return window.__gameStore
+        ? window.__gameStore.getState().sceneState.scenes
+        : 'GameStore not available';
     },
     // Enhanced migration functions
     migrateFromLocalStorage: async () => {
@@ -997,6 +1053,6 @@ if (typeof window !== 'undefined') {
     uploadBackup: async () => {
       const storage = getLinearFlowStorage();
       return await storage.uploadBackup();
-    }
+    },
   };
 }

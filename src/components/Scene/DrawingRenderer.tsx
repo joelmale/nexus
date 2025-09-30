@@ -173,11 +173,16 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
             y={drawing.position.y}
             fontSize={drawing.fontSize / camera.zoom}
             fontFamily={drawing.fontFamily}
-            fill={commonProps.stroke}
+            fill="#ffffff"
+            stroke="#000000"
+            strokeWidth={0.5 / camera.zoom}
             textAnchor="middle"
             dominantBaseline="middle"
             pointerEvents="all"
             className={commonProps.className}
+            style={{
+              paintOrder: 'stroke fill',
+            }}
           >
             {drawing.text}
           </text>

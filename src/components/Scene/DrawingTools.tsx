@@ -177,6 +177,17 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               drawing.points.some((p) => isPointInCircle(point, p, radius));
             break;
           }
+          case 'cone': {
+            // Check if point is near the origin
+            intersects = isPointInCircle(point, drawing.origin, radius + 10);
+            break;
+          }
+          case 'text':
+          case 'ping': {
+            // Check if point is near the text/ping position
+            intersects = isPointInCircle(point, drawing.position, radius + 15);
+            break;
+          }
           default:
             break;
         }
@@ -236,6 +247,21 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
             case 'polygon':
               return drawing.points.some(
                 (p) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY,
+              );
+            case 'cone':
+              return (
+                drawing.origin.x >= minX &&
+                drawing.origin.x <= maxX &&
+                drawing.origin.y >= minY &&
+                drawing.origin.y <= maxY
+              );
+            case 'text':
+            case 'ping':
+              return (
+                drawing.position.x >= minX &&
+                drawing.position.x <= maxX &&
+                drawing.position.y >= minY &&
+                drawing.position.y <= maxY
               );
             default:
               return false;
