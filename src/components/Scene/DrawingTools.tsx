@@ -14,6 +14,7 @@ import {
   isPointInRectangle,
   isPointInPolygon,
   isPointInCircle,
+  gridSnap,
 } from '@/utils/mathUtils';
 
 interface DrawingToolsProps {
@@ -23,6 +24,7 @@ interface DrawingToolsProps {
   _gridSize: number;
   svgRef: React.RefObject<SVGSVGElement>;
   onSelectionChange?: (selectedDrawings: string[]) => void;
+  snapToGrid?: boolean;
 }
 
 export const DrawingTools: React.FC<DrawingToolsProps> = ({
@@ -32,10 +34,11 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   _gridSize,
   svgRef,
   onSelectionChange,
+  snapToGrid: shouldSnapToGrid = false,
 }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
-  const [, setCurrentPoint] = useState<Point | null>(null);
+  const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
   const [polygonPoints, setPolygonPoints] = useState<Point[]>([]);
   const [pencilPath, setPencilPath] = useState<Point[]>([]);
   const [selectedDrawings, setSelectedDrawings] = useState<string[]>([]);
@@ -53,19 +56,30 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
   // Convert screen coordinates to scene coordinates
   const screenToScene = useCallback(
-    (screenX: number, screenY: number): Point => {
+    (
+      screenX: number,
+      screenY: number,
+      applySnap: boolean = shouldSnapToGrid,
+    ): Point => {
       if (!svgRef.current) return { x: 0, y: 0 };
 
       const rect = svgRef.current.getBoundingClientRect();
       const svgX = screenX - rect.left;
       const svgY = screenY - rect.top;
 
-      const sceneX = (svgX - rect.width / 2) / camera.zoom + camera.x;
-      const sceneY = (svgY - rect.height / 2) / camera.zoom + camera.y;
+      let sceneX = (svgX - rect.width / 2) / camera.zoom + camera.x;
+      let sceneY = (svgY - rect.height / 2) / camera.zoom + camera.y;
+
+      // Apply grid snapping if enabled
+      if (applySnap && _gridSize > 0) {
+        const snapped = gridSnap({ x: sceneX, y: sceneY }, _gridSize);
+        sceneX = snapped.x;
+        sceneY = snapped.y;
+      }
 
       return { x: sceneX, y: sceneY };
     },
-    [camera, svgRef],
+    [camera, svgRef, shouldSnapToGrid, _gridSize],
   );
 
   // Create and sync a drawing
@@ -421,6 +435,24 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
                 radius,
               };
             },
+            cone: () => {
+              const length = distance(startPoint, endPoint);
+              const direction =
+                (Math.atan2(
+                  endPoint.y - startPoint.y,
+                  endPoint.x - startPoint.x,
+                ) *
+                  180) /
+                Math.PI;
+              return {
+                ...baseDrawing,
+                type: 'cone',
+                origin: startPoint,
+                direction,
+                length,
+                angle: 90, // Standard 90-degree cone for D&D 5e
+              };
+            },
             pencil: () => ({
               ...baseDrawing,
               type: 'pencil',
@@ -517,9 +549,169 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     return null;
   }
 
+  // Render preview shapes while drawing
+  const renderPreview = () => {
+    if (!isDrawing || !startPoint || !currentPoint) return null;
+
+    const previewStyle = {
+      fill: drawingStyle.fillColor,
+      fillOpacity: drawingStyle.fillOpacity * 0.5, // Make preview semi-transparent
+      stroke: drawingStyle.strokeColor,
+      strokeWidth: drawingStyle.strokeWidth / camera.zoom,
+      strokeDasharray: '5,5', // Dashed preview
+      pointerEvents: 'none' as const,
+    };
+
+    switch (activeTool) {
+      case 'line':
+        return (
+          <line
+            x1={startPoint.x}
+            y1={startPoint.y}
+            x2={currentPoint.x}
+            y2={currentPoint.y}
+            {...previewStyle}
+            fill="none"
+          />
+        );
+
+      case 'rectangle':
+        return (
+          <rect
+            x={Math.min(startPoint.x, currentPoint.x)}
+            y={Math.min(startPoint.y, currentPoint.y)}
+            width={Math.abs(currentPoint.x - startPoint.x)}
+            height={Math.abs(currentPoint.y - startPoint.y)}
+            {...previewStyle}
+          />
+        );
+
+      case 'circle': {
+        const radius = distance(startPoint, currentPoint);
+        return (
+          <circle
+            cx={startPoint.x}
+            cy={startPoint.y}
+            r={radius}
+            {...previewStyle}
+          />
+        );
+      }
+
+      case 'cone': {
+        const length = distance(startPoint, currentPoint);
+        const direction =
+          (Math.atan2(
+            currentPoint.y - startPoint.y,
+            currentPoint.x - startPoint.x,
+          ) *
+            180) /
+          Math.PI;
+        const angleRad = (direction * Math.PI) / 180;
+        const coneAngleRad = (90 * Math.PI) / 180; // 90-degree cone
+
+        const leftX =
+          startPoint.x + Math.cos(angleRad - coneAngleRad / 2) * length;
+        const leftY =
+          startPoint.y + Math.sin(angleRad - coneAngleRad / 2) * length;
+        const rightX =
+          startPoint.x + Math.cos(angleRad + coneAngleRad / 2) * length;
+        const rightY =
+          startPoint.y + Math.sin(angleRad + coneAngleRad / 2) * length;
+
+        const pathData = `M ${startPoint.x} ${startPoint.y} L ${leftX} ${leftY} A ${length} ${length} 0 0 1 ${rightX} ${rightY} Z`;
+
+        return <path d={pathData} {...previewStyle} />;
+      }
+
+      default:
+        return null;
+    }
+  };
+
+  // Render polygon preview lines
+  const renderPolygonPreview = () => {
+    if (activeTool !== 'polygon' || polygonPoints.length === 0) return null;
+
+    const previewStyle = {
+      stroke: drawingStyle.strokeColor,
+      strokeWidth: drawingStyle.strokeWidth / camera.zoom,
+      fill: 'none',
+      strokeDasharray: '5,5',
+      pointerEvents: 'none' as const,
+    };
+
+    return (
+      <>
+        {/* Draw lines between polygon points */}
+        {polygonPoints.map((point, index) => {
+          if (index === 0) return null;
+          const prevPoint = polygonPoints[index - 1];
+          return (
+            <line
+              key={`polygon-line-${index}`}
+              x1={prevPoint.x}
+              y1={prevPoint.y}
+              x2={point.x}
+              y2={point.y}
+              {...previewStyle}
+            />
+          );
+        })}
+
+        {/* Draw line from last point to current cursor position */}
+        {currentPoint && (
+          <line
+            x1={polygonPoints[polygonPoints.length - 1].x}
+            y1={polygonPoints[polygonPoints.length - 1].y}
+            x2={currentPoint.x}
+            y2={currentPoint.y}
+            {...previewStyle}
+          />
+        )}
+
+        {/* Draw points as small circles */}
+        {polygonPoints.map((point, index) => (
+          <circle
+            key={`polygon-point-${index}`}
+            cx={point.x}
+            cy={point.y}
+            r={3 / camera.zoom}
+            fill={drawingStyle.strokeColor}
+            pointerEvents="none"
+          />
+        ))}
+      </>
+    );
+  };
+
+  // Render selection box
+  const renderSelectionBox = () => {
+    if (!selectionBox) return null;
+
+    const x = Math.min(selectionBox.start.x, selectionBox.end.x);
+    const y = Math.min(selectionBox.start.y, selectionBox.end.y);
+    const width = Math.abs(selectionBox.end.x - selectionBox.start.x);
+    const height = Math.abs(selectionBox.end.y - selectionBox.start.y);
+
+    return (
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill="rgba(0, 120, 255, 0.1)"
+        stroke="rgba(0, 120, 255, 0.5)"
+        strokeWidth={1 / camera.zoom}
+        strokeDasharray="5,5"
+        pointerEvents="none"
+      />
+    );
+  };
+
   return (
     <g className="drawing-tools">
-      {/* Render previews, selections, and other UI elements */}
+      {/* Interaction layer */}
       <rect
         x={-10000}
         y={-10000}
@@ -540,6 +732,13 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
                 : 'crosshair',
         }}
       />
+
+      {/* Render preview shapes */}
+      <g className="drawing-preview">
+        {renderPreview()}
+        {renderPolygonPreview()}
+        {renderSelectionBox()}
+      </g>
     </g>
   );
 };

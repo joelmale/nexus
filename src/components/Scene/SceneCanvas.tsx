@@ -279,6 +279,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
             _gridSize={safeGridSettings.size}
             svgRef={svgRef}
             onSelectionChange={handleSelectionChange}
+            snapToGrid={safeGridSettings.snapToGrid}
           />
 
           {/* Selection overlay */}
