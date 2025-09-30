@@ -131,10 +131,10 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
 
   return (
     <div
-      className="absolute top-5 right-5 w-[300px] border border-white/10 rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.4)] z-[1000] backdrop-blur-md animate-[slideInRight_0.3s_ease]"
+      className="absolute top-8 right-8 w-[300px] border-2 border-white/20 rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.1)] z-[1000] backdrop-blur-md animate-[slideInRight_0.3s_ease]"
       style={{
         background:
-          'linear-gradient(135deg, rgba(var(--color-surface-rgb, 42, 42, 62), 0.8) 0%, rgba(var(--color-background-rgb, 32, 32, 52), 0.8) 100%)',
+          'linear-gradient(135deg, rgba(var(--color-surface-rgb, 42, 42, 62), 0.75) 0%, rgba(var(--color-background-rgb, 32, 32, 52), 0.75) 100%)',
       }}
     >
       <style>
@@ -263,7 +263,45 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
         <div className="property-group">
           <button
             type="button"
-            className="px-4 py-2.5 bg-red-500/20 border border-red-500/40 rounded-md text-red-400 text-sm font-medium cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 hover:bg-red-500/30 hover:border-red-500/60 hover:text-red-300 hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(239,68,68,0.3)] active:translate-y-0"
+            style={{
+              padding: '10px 16px',
+              background: 'rgba(127, 29, 29, 0.9)',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '6px',
+              color: '#fca5a5',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              boxShadow:
+                '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(127, 29, 29, 0.95)';
+              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+              e.currentTarget.style.color = '#fecaca';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow =
+                '0 4px 16px rgba(239, 68, 68, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(127, 29, 29, 0.9)';
+              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+              e.currentTarget.style.color = '#fca5a5';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow =
+                '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)';
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow =
+                '0 1px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)';
+            }}
             onClick={handleDelete}
             aria-label={`Delete ${selectedDrawings.length} drawing(s)`}
           >

@@ -1947,30 +1947,4 @@
   box-shadow: 0 0 8px var(--color-primary, #00bcd4);
 }
 
-.drawing-properties-panel .delete-btn {
-  padding: 10px 16px;
-  background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(185, 28, 28, 0.2) 100%);
-  border: 1px solid rgba(220, 38, 38, 0.4);
-  border-radius: 6px;
-  color: #fca5a5;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.drawing-properties-panel .delete-btn:hover {
-  background: linear-gradient(135deg, rgba(220, 38, 38, 0.3) 0%, rgba(185, 28, 28, 0.3) 100%);
-  border-color: rgba(220, 38, 38, 0.6);
-  color: #fee2e2;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-}
-
-.drawing-properties-panel .delete-btn:active {
-  transform: translateY(0);
-}
+/* Delete button styles moved to Tailwind classes in component */
