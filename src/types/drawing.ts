@@ -9,6 +9,7 @@ export type DrawingTool =
   | 'polygon' // Multi-point polygons
   | 'text' // Text annotations
   | 'eraser' // Eraser tool
+  | 'ping' // Ping location marker
 
   // D&D 5e specific shapes
   | 'cone' // Cone of effect (follows 5e rules)
@@ -181,6 +182,15 @@ export interface DMNotesDrawing extends BaseDrawing {
   private: boolean; // If true, only DM can see
 }
 
+export interface PingDrawing extends BaseDrawing {
+  type: 'ping';
+  position: Point;
+  playerId: string; // Who created the ping
+  playerName: string; // Display name
+  timestamp: number; // When created (for auto-fade)
+  duration: number; // How long to show in ms (default 3000)
+}
+
 // Union type for all drawing types
 export type Drawing =
   | LineDrawing
@@ -197,7 +207,8 @@ export type Drawing =
   | FogOfWarDrawing
   | DynamicLightDrawing
   | VisionBlockDrawing
-  | DMNotesDrawing;
+  | DMNotesDrawing
+  | PingDrawing;
 
 // Measurement data
 export interface Measurement {

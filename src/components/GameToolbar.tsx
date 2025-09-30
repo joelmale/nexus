@@ -108,7 +108,7 @@ export const GameToolbar: React.FC = () => {
         { id: 'select', icon: '👆', label: 'Select' },
         { id: 'measure', icon: '📏', label: 'Measure' },
         { id: 'note', icon: '📝', label: 'Note' },
-        { id: 'focus', icon: '📷', label: 'Focus' },
+        { id: 'ping', icon: '📍', label: 'Ping' },
       ],
     },
     {

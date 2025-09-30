@@ -287,6 +287,56 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
           }
           defaultHandler();
         },
+        ping: () => {
+          // Create a ping that auto-fades after 3 seconds
+          const ping: Drawing = {
+            id: `ping-${Date.now()}-${Math.random()}`,
+            type: 'ping',
+            position: point,
+            playerId: user.id,
+            playerName: user.name,
+            timestamp: Date.now(),
+            duration: 3000,
+            style: drawingStyle,
+            createdAt: Date.now(),
+            createdBy: user.id,
+          };
+
+          createAndSyncDrawing(ping);
+
+          // Auto-remove after duration
+          setTimeout(() => {
+            if (activeScene) {
+              deleteDrawing(activeScene.id, ping.id);
+              // Sync deletion
+              webSocketService.sendEvent({
+                type: 'drawing/delete',
+                data: {
+                  sceneId: activeScene.id,
+                  drawingId: ping.id,
+                },
+              });
+            }
+          }, ping.duration);
+        },
+        note: () => {
+          // For now, create a text drawing prompt
+          const noteText = prompt('Enter note text:');
+          if (noteText && noteText.trim()) {
+            const note: Drawing = {
+              id: `note-${Date.now()}-${Math.random()}`,
+              type: 'text',
+              position: point,
+              text: noteText.trim(),
+              fontSize: 16,
+              fontFamily: 'Arial, sans-serif',
+              style: drawingStyle,
+              createdAt: Date.now(),
+              createdBy: user.id,
+            };
+            createAndSyncDrawing(note);
+          }
+        },
         eraser: () => {
           setIsErasing(true);
           const drawingsToErase = getDrawingsAtPoint(point, eraserRadius);
@@ -315,6 +365,12 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       getDrawingsAtPoint,
       deleteAndSyncDrawing,
       eraserRadius,
+      activeScene,
+      createAndSyncDrawing,
+      deleteDrawing,
+      drawingStyle,
+      user.id,
+      user.name,
     ],
   );
 
