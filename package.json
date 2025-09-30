@@ -65,6 +65,8 @@
     "dotenv": "^17.2.2",
     "immer": "^10.0.3",
     "react": "^18.3.1",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^18.2.0",
     "sharp": "^0.34.4",
     "transit-js": "^0.8.874",

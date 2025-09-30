@@ -1,11 +1,14 @@
 import React, { useEffect } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { LinearLayout } from './LinearLayout';
 import { useAppFlowStore } from '@/stores/appFlowStore';
 import { useGameStore } from '@/stores/gameStore';
 import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 
 export const Layout: React.FC = () => {
-  const { view, user, roomCode, isConnectedToRoom, gameConfig } = useAppFlowStore();
+  const { view, user, roomCode, isConnectedToRoom, gameConfig } =
+    useAppFlowStore();
 
   // Add initial state logging, sync gameStore, and handle migration
   useEffect(() => {
@@ -15,20 +18,23 @@ export const Layout: React.FC = () => {
         user,
         roomCode,
         isConnectedToRoom,
-        gameConfig
+        gameConfig,
       });
     }
 
     // Check for and perform localStorage migration to IndexedDB
     const storage = getLinearFlowStorage();
     if (storage.needsMigration()) {
-      storage.migrateFromLocalStorage().then(stats => {
-        if (stats.migrated) {
-          console.log('🔄 Migration completed:', stats);
-        }
-      }).catch(error => {
-        console.error('Migration failed:', error);
-      });
+      storage
+        .migrateFromLocalStorage()
+        .then((stats) => {
+          if (stats.migrated) {
+            console.log('🔄 Migration completed:', stats);
+          }
+        })
+        .catch((error) => {
+          console.error('Migration failed:', error);
+        });
     }
 
     // Sync scenes from entity store to gameStore for UI
@@ -49,13 +55,13 @@ export const Layout: React.FC = () => {
       const gameStore = useGameStore.getState();
       gameStore.setUser({
         name: user.name,
-        type: user.type === 'dm' ? 'host' : 'player'
+        type: user.type === 'dm' ? 'host' : 'player',
       });
 
       if (process.env.NODE_ENV === 'development') {
         console.log('🔄 Initial gameStore sync on mount:', {
           name: user.name,
-          type: user.type === 'dm' ? 'host' : 'player'
+          type: user.type === 'dm' ? 'host' : 'player',
         });
       }
     }
@@ -69,7 +75,7 @@ export const Layout: React.FC = () => {
         hasUserName: !!user.name,
         hasUserType: !!user.type,
         hasRoomCode: !!roomCode,
-        isConnected: isConnectedToRoom
+        isConnected: isConnectedToRoom,
       });
     }
 
@@ -80,7 +86,7 @@ export const Layout: React.FC = () => {
           user: user.name,
           type: user.type,
           room: roomCode,
-          isConnected: isConnectedToRoom
+          isConnected: isConnectedToRoom,
         });
       }
 
@@ -88,7 +94,7 @@ export const Layout: React.FC = () => {
       const gameStore = useGameStore.getState();
       gameStore.setUser({
         name: user.name,
-        type: user.type === 'dm' ? 'host' : 'player'
+        type: user.type === 'dm' ? 'host' : 'player',
       });
 
       if (process.env.NODE_ENV === 'development') {
@@ -104,11 +110,15 @@ export const Layout: React.FC = () => {
           isWelcomeView: view === 'welcome',
           hasName: !!user.name,
           hasType: !!user.type,
-          hasRoom: !!roomCode
+          hasRoom: !!roomCode,
         });
       }
     }
   }, [view, user.name, user.type, roomCode, isConnectedToRoom]);
 
-  return <LinearLayout />;
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <LinearLayout />
+    </DndProvider>
+  );
 };

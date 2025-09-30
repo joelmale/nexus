@@ -561,11 +561,15 @@
 
 .layout-toolbar {
   position: absolute;
-  bottom: var(--spacing-6);
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: var(--z-toolbar);
   pointer-events: none; /* Allow clicks to pass through container */
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding: var(--spacing-6);
 }
 
 .game-toolbar {
@@ -578,8 +582,102 @@
   box-shadow: var(--shadow-glass-lg);
   transition: all var(--transition-base);
   pointer-events: auto; /* Restore pointer events for the toolbar itself */
+}
+
+/* Floating toolbar mode (experimental) */
+.game-toolbar.floating {
   /* Apply drag translation */
   transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0));
+}
+
+/* Docked toolbar mode (default) */
+.game-toolbar.docked {
+  width: auto;
+  max-width: none;
+  border-radius: var(--border-radius);
+  justify-content: flex-start;
+  margin: 0;
+  padding: var(--spacing-2) var(--spacing-3);
+}
+
+.game-toolbar.docked .toolbar-content {
+  width: auto;
+}
+
+/* Docked mode: Two-row layout container */
+.toolbar-docked-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+/* Docked mode: Each row */
+.toolbar-docked-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  flex-wrap: nowrap;
+}
+
+/* Docked mode: Buttons - icon only with tooltips */
+.game-toolbar.docked .toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-3);
+  min-width: 48px;
+  min-height: 48px;
+}
+
+.game-toolbar.docked .tool-icon {
+  font-size: var(--text-xl);
+}
+
+/* Tooltip styling */
+.game-toolbar.docked .toolbar-btn[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--border-radius);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  margin-bottom: var(--spacing-2);
+  z-index: 1000;
+}
+
+/* Responsive scaling for docked toolbar */
+@media (max-width: 1400px) {
+  .game-toolbar.docked .toolbar-btn {
+    padding: var(--spacing-2);
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .game-toolbar.docked .tool-icon {
+    font-size: var(--text-lg);
+  }
+}
+
+@media (max-width: 1100px) {
+  .toolbar-docked-row {
+    flex-wrap: wrap;
+  }
+
+  .game-toolbar.docked .toolbar-btn {
+    padding: var(--spacing-2);
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .game-toolbar.docked .tool-icon {
+    font-size: var(--text-base);
+  }
 }
 
 .game-toolbar.positioned {

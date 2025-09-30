@@ -1,6 +1,36 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { GameState, User, Session, DiceRoll, TabType, GameEvent, Scene, Camera, UserSettings, ColorScheme, Player, TokenPlaceEvent, TokenMoveEvent, TokenUpdateEvent, TokenDeleteEvent, UserJoinEvent, UserLeaveEvent, SessionCreatedEvent, SessionJoinedEvent, SceneCreateEvent, SceneUpdateEvent, SceneDeleteEvent, SceneChangeEvent, CameraMoveEvent, DrawingCreateEvent, DrawingUpdateEvent, DrawingDeleteEvent, DrawingClearEvent, DiceRollEvent } from '@/types/game';
+import type {
+  GameState,
+  User,
+  Session,
+  DiceRoll,
+  TabType,
+  GameEvent,
+  Scene,
+  Camera,
+  UserSettings,
+  ColorScheme,
+  Player,
+  TokenPlaceEvent,
+  TokenMoveEvent,
+  TokenUpdateEvent,
+  TokenDeleteEvent,
+  UserJoinEvent,
+  UserLeaveEvent,
+  SessionCreatedEvent,
+  SessionJoinedEvent,
+  SceneCreateEvent,
+  SceneUpdateEvent,
+  SceneDeleteEvent,
+  SceneChangeEvent,
+  CameraMoveEvent,
+  DrawingCreateEvent,
+  DrawingUpdateEvent,
+  DrawingDeleteEvent,
+  DrawingClearEvent,
+  DiceRollEvent,
+} from '@/types/game';
 import type { Drawing } from '@/types/drawing';
 import type { PlacedToken } from '@/types/token';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,7 +46,7 @@ interface GameStore extends GameState {
   setActiveTab: (tab: TabType) => void;
   applyEvent: (event: GameEvent) => void;
   reset: () => void;
-  
+
   // Scene Actions
   createScene: (scene: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>) => Scene;
   updateScene: (sceneId: string, updates: Partial<Scene>) => void;
@@ -28,31 +58,47 @@ interface GameStore extends GameState {
 
   // Bulk Scene Operations
   deleteScenesById: (sceneIds: string[]) => void;
-  updateScenesVisibility: (sceneIds: string[], visibility: Scene['visibility']) => void;
+  updateScenesVisibility: (
+    sceneIds: string[],
+    visibility: Scene['visibility'],
+  ) => void;
   duplicateScene: (sceneId: string) => Scene | null;
-  
+
   // Drawing Actions
   createDrawing: (sceneId: string, drawing: Drawing) => void;
-  updateDrawing: (sceneId: string, drawingId: string, updates: Partial<Drawing>) => void;
+  updateDrawing: (
+    sceneId: string,
+    drawingId: string,
+    updates: Partial<Drawing>,
+  ) => void;
   deleteDrawing: (sceneId: string, drawingId: string) => void;
   clearDrawings: (sceneId: string, layer?: string) => void;
   getSceneDrawings: (sceneId: string) => Drawing[];
   getVisibleDrawings: (sceneId: string, isHost: boolean) => Drawing[];
-  
+
   // Settings Actions
   updateSettings: (settings: Partial<UserSettings>) => void;
   setColorScheme: (colorScheme: ColorScheme) => void;
   setEnableGlassmorphism: (enabled: boolean) => void;
   resetSettings: () => void;
-  
+
   // Token Actions
   placeToken: (sceneId: string, token: PlacedToken) => void;
-  moveToken: (sceneId: string, tokenId: string, position: { x: number; y: number }, rotation?: number) => void;
-  updateToken: (sceneId: string, tokenId: string, updates: Partial<PlacedToken>) => void;
+  moveToken: (
+    sceneId: string,
+    tokenId: string,
+    position: { x: number; y: number },
+    rotation?: number,
+  ) => void;
+  updateToken: (
+    sceneId: string,
+    tokenId: string,
+    updates: Partial<PlacedToken>,
+  ) => void;
   deleteToken: (sceneId: string, tokenId: string) => void;
   getSceneTokens: (sceneId: string) => PlacedToken[];
   getVisibleTokens: (sceneId: string, isHost: boolean) => PlacedToken[];
-  
+
   // Persistence Actions
   initializeFromStorage: () => Promise<void>;
   loadSceneDrawings: (sceneId: string) => Promise<void>;
@@ -95,30 +141,30 @@ const initialState: GameState = {
     enableGlassmorphism: false,
     reducedMotion: false,
     fontSize: 'medium',
-    
+
     // Audio Settings
     enableSounds: true,
     diceRollSounds: true,
     notificationSounds: true,
     masterVolume: 75,
-    
+
     // Gameplay Settings
     autoRollInitiative: false,
     showOtherPlayersRolls: true,
     highlightActivePlayer: true,
     snapToGridByDefault: true,
     defaultGridSize: 50,
-    
+
     // Privacy Settings
     allowSpectators: true,
     shareCharacterSheets: false,
     logGameSessions: true,
-    
+
     // Performance Settings
     maxTokensPerScene: 100,
     imageQuality: 'medium',
     enableAnimations: true,
-    
+
     // Accessibility Settings
     highContrast: false,
     screenReaderMode: false,
@@ -126,15 +172,46 @@ const initialState: GameState = {
 
     // Developer Settings
     useMockData: process.env.NODE_ENV === 'development',
+
+    // Experimental Settings
+    floatingToolbar: false, // Default to docked toolbar
   },
 };
 
 // --- Mock Data for Development (can be toggled via settings) ---
 const MOCK_PLAYERS: Player[] = [
-  { id: 'user-joel', name: 'Joel', type: 'host', color: '#6366f1', connected: true, canEditScenes: true },
-  { id: 'user-alice', name: 'Alice', type: 'player', color: '#ec4899', connected: true, canEditScenes: false },
-  { id: 'user-bob', name: 'Bob', type: 'player', color: '#22c55e', connected: false, canEditScenes: false },
-  { id: 'user-charlie', name: 'Charlie', type: 'player', color: '#f59e0b', connected: true, canEditScenes: false },
+  {
+    id: 'user-joel',
+    name: 'Joel',
+    type: 'host',
+    color: '#6366f1',
+    connected: true,
+    canEditScenes: true,
+  },
+  {
+    id: 'user-alice',
+    name: 'Alice',
+    type: 'player',
+    color: '#ec4899',
+    connected: true,
+    canEditScenes: false,
+  },
+  {
+    id: 'user-bob',
+    name: 'Bob',
+    type: 'player',
+    color: '#22c55e',
+    connected: false,
+    canEditScenes: false,
+  },
+  {
+    id: 'user-charlie',
+    name: 'Charlie',
+    type: 'player',
+    color: '#f59e0b',
+    connected: true,
+    canEditScenes: false,
+  },
 ];
 
 const MOCK_SESSION: Session = {
@@ -156,7 +233,9 @@ const eventHandlers: Record<string, EventHandler> = {
   'token/place': (state, data) => {
     const eventData = data as TokenPlaceEvent['data'];
     if (eventData.sceneId && eventData.token) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
       if (sceneIndex >= 0) {
         if (!state.sceneState.scenes[sceneIndex].placedTokens) {
           state.sceneState.scenes[sceneIndex].placedTokens = [];
@@ -169,18 +248,26 @@ const eventHandlers: Record<string, EventHandler> = {
   'token/move': (state, data) => {
     const eventData = data as TokenMoveEvent['data'];
     if (eventData.sceneId && eventData.tokenId) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
       if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
-        const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
-          t => t.id === eventData.tokenId
-        );
+        const tokenIndex = state.sceneState.scenes[
+          sceneIndex
+        ].placedTokens.findIndex((t) => t.id === eventData.tokenId);
         if (tokenIndex >= 0) {
-          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].x = eventData.position.x;
-          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].y = eventData.position.y;
+          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].x =
+            eventData.position.x;
+          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].y =
+            eventData.position.y;
           if (eventData.rotation !== undefined) {
-            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].rotation = eventData.rotation;
+            state.sceneState.scenes[sceneIndex].placedTokens[
+              tokenIndex
+            ].rotation = eventData.rotation;
           }
-          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].updatedAt = Date.now();
+          state.sceneState.scenes[sceneIndex].placedTokens[
+            tokenIndex
+          ].updatedAt = Date.now();
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
         }
       }
@@ -189,11 +276,13 @@ const eventHandlers: Record<string, EventHandler> = {
   'token/update': (state, data) => {
     const eventData = data as TokenUpdateEvent['data'];
     if (eventData.sceneId && eventData.tokenId && eventData.updates) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
       if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
-        const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
-          t => t.id === eventData.tokenId
-        );
+        const tokenIndex = state.sceneState.scenes[
+          sceneIndex
+        ].placedTokens.findIndex((t) => t.id === eventData.tokenId);
         if (tokenIndex >= 0) {
           state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex] = {
             ...state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex],
@@ -208,11 +297,14 @@ const eventHandlers: Record<string, EventHandler> = {
   'token/delete': (state, data) => {
     const eventData = data as TokenDeleteEvent['data'];
     if (eventData.sceneId && eventData.tokenId) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
       if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
-        state.sceneState.scenes[sceneIndex].placedTokens = state.sceneState.scenes[sceneIndex].placedTokens.filter(
-          t => t.id !== eventData.tokenId
-        );
+        state.sceneState.scenes[sceneIndex].placedTokens =
+          state.sceneState.scenes[sceneIndex].placedTokens.filter(
+            (t) => t.id !== eventData.tokenId,
+          );
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
       }
     }
@@ -220,9 +312,14 @@ const eventHandlers: Record<string, EventHandler> = {
   'user/join': (state, data) => {
     const eventData = data as UserJoinEvent['data'];
     if (state.session && eventData.user) {
-      const existingIndex = state.session.players.findIndex(p => p.id === eventData.user.id) as number;
+      const existingIndex = state.session.players.findIndex(
+        (p) => p.id === eventData.user.id,
+      ) as number;
       if (existingIndex >= 0) {
-        state.session.players[existingIndex] = { ...state.session.players[existingIndex], ...eventData.user };
+        state.session.players[existingIndex] = {
+          ...state.session.players[existingIndex],
+          ...eventData.user,
+        };
       } else {
         state.session.players.push(eventData.user);
       }
@@ -231,7 +328,9 @@ const eventHandlers: Record<string, EventHandler> = {
   'user/leave': (state, data) => {
     const eventData = data as UserLeaveEvent['data'];
     if (state.session && eventData.userId) {
-      state.session.players = state.session.players.filter(p => p.id !== eventData.userId);
+      state.session.players = state.session.players.filter(
+        (p) => p.id !== eventData.userId,
+      );
     }
   },
   'session/created': (state, data) => {
@@ -240,7 +339,13 @@ const eventHandlers: Record<string, EventHandler> = {
     state.session = {
       roomCode: eventData.roomCode,
       hostId: state.user.id,
-      players: [{ ...state.user, connected: true, canEditScenes: state.user.type === 'host' }],
+      players: [
+        {
+          ...state.user,
+          connected: true,
+          canEditScenes: state.user.type === 'host',
+        },
+      ],
       status: 'connected',
     };
     state.user.type = 'host';
@@ -255,8 +360,20 @@ const eventHandlers: Record<string, EventHandler> = {
         isEditable: true,
         createdBy: state.user.id,
         backgroundImage: undefined,
-        gridSettings: { enabled: true, size: 50, color: '#ffffff', opacity: 0.3, snapToGrid: true, showToPlayers: true },
-        lightingSettings: { enabled: false, globalIllumination: true, ambientLight: 0.5, darkness: 0 },
+        gridSettings: {
+          enabled: true,
+          size: 50,
+          color: '#ffffff',
+          opacity: 0.3,
+          snapToGrid: true,
+          showToPlayers: true,
+        },
+        lightingSettings: {
+          enabled: false,
+          globalIllumination: true,
+          ambientLight: 0.5,
+          darkness: 0,
+        },
         drawings: [],
         placedTokens: [],
         isActive: false,
@@ -292,7 +409,13 @@ const eventHandlers: Record<string, EventHandler> = {
         state.session = {
           roomCode: eventData.roomCode,
           hostId: eventData.hostId || state.user.id,
-          players: [{ ...state.user, connected: true, canEditScenes: state.user.type === 'host' }],
+          players: [
+            {
+              ...state.user,
+              connected: true,
+              canEditScenes: state.user.type === 'host',
+            },
+          ],
           status: 'connected',
         };
       } else {
@@ -337,25 +460,38 @@ const eventHandlers: Record<string, EventHandler> = {
   'scene/update': (state, data) => {
     const eventData = data as SceneUpdateEvent['data'];
     if (eventData.sceneId && eventData.updates) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
       if (sceneIndex >= 0) {
-        state.sceneState.scenes[sceneIndex] = { ...state.sceneState.scenes[sceneIndex], ...eventData.updates, updatedAt: Date.now() };
+        state.sceneState.scenes[sceneIndex] = {
+          ...state.sceneState.scenes[sceneIndex],
+          ...eventData.updates,
+          updatedAt: Date.now(),
+        };
       }
     }
   },
   'scene/delete': (state, data) => {
     const eventData = data as SceneDeleteEvent['data'];
     if (eventData.sceneId) {
-      state.sceneState.scenes = state.sceneState.scenes.filter(s => s.id !== eventData.sceneId);
+      state.sceneState.scenes = state.sceneState.scenes.filter(
+        (s) => s.id !== eventData.sceneId,
+      );
       if (state.sceneState.activeSceneId === eventData.sceneId) {
-        state.sceneState.activeSceneId = state.sceneState.scenes.length > 0 ? state.sceneState.scenes[0].id : null;
+        state.sceneState.activeSceneId =
+          state.sceneState.scenes.length > 0
+            ? state.sceneState.scenes[0].id
+            : null;
       }
     }
   },
   'scene/change': (state, data) => {
     const eventData = data as SceneChangeEvent['data'];
     if (eventData.sceneId) {
-      const sceneExists = state.sceneState.scenes.some(s => s.id === eventData.sceneId);
+      const sceneExists = state.sceneState.scenes.some(
+        (s) => s.id === eventData.sceneId,
+      );
       if (sceneExists) {
         state.sceneState.activeSceneId = eventData.sceneId;
         state.sceneState.camera = { x: 0, y: 0, zoom: 1.0 };
@@ -371,7 +507,9 @@ const eventHandlers: Record<string, EventHandler> = {
   'drawing/create': (state, data) => {
     const eventData = data as DrawingCreateEvent['data'];
     if (eventData.sceneId && eventData.drawing) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
       if (sceneIndex >= 0) {
         state.sceneState.scenes[sceneIndex].drawings.push(eventData.drawing);
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
@@ -381,13 +519,21 @@ const eventHandlers: Record<string, EventHandler> = {
   'drawing/update': (state, data) => {
     const eventData = data as DrawingUpdateEvent['data'];
     if (eventData.sceneId && eventData.drawingId && eventData.updates) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
       if (sceneIndex >= 0) {
-        const drawingIndex = state.sceneState.scenes[sceneIndex].drawings.findIndex(d => d.id === eventData.drawingId);
+        const drawingIndex = state.sceneState.scenes[
+          sceneIndex
+        ].drawings.findIndex((d) => d.id === eventData.drawingId);
         if (drawingIndex >= 0) {
-           Object.assign(state.sceneState.scenes[sceneIndex].drawings[drawingIndex], eventData.updates);
-            state.sceneState.scenes[sceneIndex].drawings[drawingIndex].updatedAt = Date.now();
-            state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+          Object.assign(
+            state.sceneState.scenes[sceneIndex].drawings[drawingIndex],
+            eventData.updates,
+          );
+          state.sceneState.scenes[sceneIndex].drawings[drawingIndex].updatedAt =
+            Date.now();
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
         }
       }
     }
@@ -395,9 +541,13 @@ const eventHandlers: Record<string, EventHandler> = {
   'drawing/delete': (state, data) => {
     const eventData = data as DrawingDeleteEvent['data'];
     if (eventData.sceneId && eventData.drawingId) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
       if (sceneIndex >= 0) {
-        state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(d => d.id !== eventData.drawingId);
+        state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[
+          sceneIndex
+        ].drawings.filter((d) => d.id !== eventData.drawingId);
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
       }
     }
@@ -405,10 +555,15 @@ const eventHandlers: Record<string, EventHandler> = {
   'drawing/clear': (state, data) => {
     const eventData = data as DrawingClearEvent['data'];
     if (eventData.sceneId) {
-      const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === eventData.sceneId);
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
       if (sceneIndex >= 0) {
         if (eventData.layer) {
-          state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(d => d.layer !== eventData.layer);
+          state.sceneState.scenes[sceneIndex].drawings =
+            state.sceneState.scenes[sceneIndex].drawings.filter(
+              (d) => d.layer !== eventData.layer,
+            );
         } else {
           state.sceneState.scenes[sceneIndex].drawings = [];
         }
@@ -452,10 +607,10 @@ export const useGameStore = create<GameStore>()(
 
     applyEvent: (event) => {
       console.log('Applying event:', event.type, event.data); // Debug log
-      
+
       const handler = eventHandlers[event.type];
       if (handler) {
-        set(state => {
+        set((state) => {
           handler(state, event.data);
         });
       } else {
@@ -469,7 +624,7 @@ export const useGameStore = create<GameStore>()(
         user: {
           ...initialState.user,
           id: uuidv4(), // Generate new ID on reset
-        }
+        },
       }));
     },
 
@@ -483,7 +638,7 @@ export const useGameStore = create<GameStore>()(
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
-      
+
       set((state) => {
         state.sceneState.scenes.push(scene);
         // If this is the first scene, make it active
@@ -491,28 +646,30 @@ export const useGameStore = create<GameStore>()(
           state.sceneState.activeSceneId = scene.id;
         }
       });
-      
+
       // Auto-save the new scene to persistence
-      drawingPersistenceService.saveScene(scene).catch(error => {
+      drawingPersistenceService.saveScene(scene).catch((error) => {
         console.error('Failed to persist new scene:', error);
       });
-      
+
       return scene;
     },
 
     updateScene: (sceneId, updates) => {
       set((state) => {
-        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        const sceneIndex = state.sceneState.scenes.findIndex(
+          (s) => s.id === sceneId,
+        );
         if (sceneIndex >= 0) {
           state.sceneState.scenes[sceneIndex] = {
             ...state.sceneState.scenes[sceneIndex],
             ...updates,
             updatedAt: Date.now(),
           };
-          
+
           // Auto-save the updated scene to persistence
           const scene = state.sceneState.scenes[sceneIndex];
-          drawingPersistenceService.saveScene(scene).catch(error => {
+          drawingPersistenceService.saveScene(scene).catch((error) => {
             console.error('Failed to persist updated scene:', error);
           });
         }
@@ -521,17 +678,20 @@ export const useGameStore = create<GameStore>()(
 
     deleteScene: (sceneId) => {
       set((state) => {
-        state.sceneState.scenes = state.sceneState.scenes.filter(s => s.id !== sceneId);
+        state.sceneState.scenes = state.sceneState.scenes.filter(
+          (s) => s.id !== sceneId,
+        );
         // If the deleted scene was active, switch to first available scene
         if (state.sceneState.activeSceneId === sceneId) {
-          state.sceneState.activeSceneId = state.sceneState.scenes.length > 0
-            ? state.sceneState.scenes[0].id
-            : null;
+          state.sceneState.activeSceneId =
+            state.sceneState.scenes.length > 0
+              ? state.sceneState.scenes[0].id
+              : null;
         }
       });
 
       // Delete from persistence
-      drawingPersistenceService.deleteScene(sceneId).catch(error => {
+      drawingPersistenceService.deleteScene(sceneId).catch((error) => {
         console.error('Failed to persist scene deletion:', error);
       });
     },
@@ -547,7 +707,9 @@ export const useGameStore = create<GameStore>()(
 
     setActiveScene: (sceneId) => {
       set((state) => {
-        const sceneExists = state.sceneState.scenes.some(s => s.id === sceneId);
+        const sceneExists = state.sceneState.scenes.some(
+          (s) => s.id === sceneId,
+        );
         if (sceneExists) {
           state.sceneState.activeSceneId = sceneId;
           // Reset camera when switching scenes
@@ -576,19 +738,25 @@ export const useGameStore = create<GameStore>()(
     deleteScenesById: (sceneIds) => {
       set((state) => {
         // Filter out the scenes to delete
-        state.sceneState.scenes = state.sceneState.scenes.filter(s => !sceneIds.includes(s.id));
+        state.sceneState.scenes = state.sceneState.scenes.filter(
+          (s) => !sceneIds.includes(s.id),
+        );
 
         // If the active scene was deleted, switch to first available scene
-        if (state.sceneState.activeSceneId && sceneIds.includes(state.sceneState.activeSceneId)) {
-          state.sceneState.activeSceneId = state.sceneState.scenes.length > 0
-            ? state.sceneState.scenes[0].id
-            : null;
+        if (
+          state.sceneState.activeSceneId &&
+          sceneIds.includes(state.sceneState.activeSceneId)
+        ) {
+          state.sceneState.activeSceneId =
+            state.sceneState.scenes.length > 0
+              ? state.sceneState.scenes[0].id
+              : null;
         }
       });
 
       // Delete each scene from persistence
-      sceneIds.forEach(sceneId => {
-        drawingPersistenceService.deleteScene(sceneId).catch(error => {
+      sceneIds.forEach((sceneId) => {
+        drawingPersistenceService.deleteScene(sceneId).catch((error) => {
           console.error('Failed to persist scene deletion:', error);
         });
       });
@@ -596,16 +764,21 @@ export const useGameStore = create<GameStore>()(
 
     updateScenesVisibility: (sceneIds, visibility) => {
       set((state) => {
-        sceneIds.forEach(sceneId => {
-          const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        sceneIds.forEach((sceneId) => {
+          const sceneIndex = state.sceneState.scenes.findIndex(
+            (s) => s.id === sceneId,
+          );
           if (sceneIndex >= 0) {
             state.sceneState.scenes[sceneIndex].visibility = visibility;
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
 
             // Auto-save the updated scene to persistence
             const scene = state.sceneState.scenes[sceneIndex];
-            drawingPersistenceService.saveScene(scene).catch(error => {
-              console.error('Failed to persist scene visibility update:', error);
+            drawingPersistenceService.saveScene(scene).catch((error) => {
+              console.error(
+                'Failed to persist scene visibility update:',
+                error,
+              );
             });
           }
         });
@@ -614,7 +787,9 @@ export const useGameStore = create<GameStore>()(
 
     duplicateScene: (sceneId) => {
       const state = get();
-      const originalScene = state.sceneState.scenes.find(s => s.id === sceneId);
+      const originalScene = state.sceneState.scenes.find(
+        (s) => s.id === sceneId,
+      );
       if (!originalScene) return null;
 
       const duplicatedScene: Scene = {
@@ -637,15 +812,20 @@ export const useGameStore = create<GameStore>()(
     // Drawing Management Actions
     createDrawing: (sceneId, drawing) => {
       set((state) => {
-        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        const sceneIndex = state.sceneState.scenes.findIndex(
+          (s) => s.id === sceneId,
+        );
         if (sceneIndex >= 0) {
           state.sceneState.scenes[sceneIndex].drawings.push(drawing);
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-          
+
           // Auto-save to persistence
           const scene = state.sceneState.scenes[sceneIndex];
-          drawingPersistenceService.saveScene(scene).catch(error => {
-            console.error('Failed to persist scene after drawing creation:', error);
+          drawingPersistenceService.saveScene(scene).catch((error) => {
+            console.error(
+              'Failed to persist scene after drawing creation:',
+              error,
+            );
           });
         }
       });
@@ -653,21 +833,27 @@ export const useGameStore = create<GameStore>()(
 
     updateDrawing: (sceneId, drawingId, updates) => {
       set((state) => {
-        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        const sceneIndex = state.sceneState.scenes.findIndex(
+          (s) => s.id === sceneId,
+        );
         if (sceneIndex >= 0) {
-          const drawingIndex = state.sceneState.scenes[sceneIndex].drawings.findIndex(
-            d => d.id === drawingId
-          );
+          const drawingIndex = state.sceneState.scenes[
+            sceneIndex
+          ].drawings.findIndex((d) => d.id === drawingId);
           if (drawingIndex >= 0) {
-            const drawingToUpdate = state.sceneState.scenes[sceneIndex].drawings[drawingIndex] as Drawing;
+            const drawingToUpdate = state.sceneState.scenes[sceneIndex]
+              .drawings[drawingIndex] as Drawing;
             Object.assign(drawingToUpdate, updates);
             drawingToUpdate.updatedAt = Date.now();
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-            
+
             // Auto-save to persistence
             const scene = state.sceneState.scenes[sceneIndex];
-            drawingPersistenceService.saveScene(scene).catch(error => {
-              console.error('Failed to persist scene after drawing update:', error);
+            drawingPersistenceService.saveScene(scene).catch((error) => {
+              console.error(
+                'Failed to persist scene after drawing update:',
+                error,
+              );
             });
           }
         }
@@ -676,17 +862,23 @@ export const useGameStore = create<GameStore>()(
 
     deleteDrawing: (sceneId, drawingId) => {
       set((state) => {
-        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        const sceneIndex = state.sceneState.scenes.findIndex(
+          (s) => s.id === sceneId,
+        );
         if (sceneIndex >= 0) {
-          state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(
-            d => d.id !== drawingId
-          );
+          state.sceneState.scenes[sceneIndex].drawings =
+            state.sceneState.scenes[sceneIndex].drawings.filter(
+              (d) => d.id !== drawingId,
+            );
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-          
+
           // Auto-save to persistence
           const scene = state.sceneState.scenes[sceneIndex];
-          drawingPersistenceService.saveScene(scene).catch(error => {
-            console.error('Failed to persist scene after drawing deletion:', error);
+          drawingPersistenceService.saveScene(scene).catch((error) => {
+            console.error(
+              'Failed to persist scene after drawing deletion:',
+              error,
+            );
           });
         }
       });
@@ -694,21 +886,27 @@ export const useGameStore = create<GameStore>()(
 
     clearDrawings: (sceneId, layer) => {
       set((state) => {
-        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        const sceneIndex = state.sceneState.scenes.findIndex(
+          (s) => s.id === sceneId,
+        );
         if (sceneIndex >= 0) {
           if (layer) {
-            state.sceneState.scenes[sceneIndex].drawings = state.sceneState.scenes[sceneIndex].drawings.filter(
-              d => d.layer !== layer
-            );
+            state.sceneState.scenes[sceneIndex].drawings =
+              state.sceneState.scenes[sceneIndex].drawings.filter(
+                (d) => d.layer !== layer,
+              );
           } else {
             state.sceneState.scenes[sceneIndex].drawings = [];
           }
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
-          
+
           // Auto-save to persistence
           const scene = state.sceneState.scenes[sceneIndex];
-          drawingPersistenceService.saveScene(scene).catch(error => {
-            console.error('Failed to persist scene after clearing drawings:', error);
+          drawingPersistenceService.saveScene(scene).catch((error) => {
+            console.error(
+              'Failed to persist scene after clearing drawings:',
+              error,
+            );
           });
         }
       });
@@ -716,24 +914,24 @@ export const useGameStore = create<GameStore>()(
 
     getSceneDrawings: (sceneId) => {
       const state = get();
-      const scene = state.sceneState.scenes.find(s => s.id === sceneId);
+      const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
       return scene?.drawings || [];
     },
 
     getVisibleDrawings: (sceneId, isHost) => {
       const state = get();
-      const scene = state.sceneState.scenes.find(s => s.id === sceneId);
+      const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
       if (!scene) return [];
-      
-      return scene.drawings.filter(drawing => {
+
+      return scene.drawings.filter((drawing) => {
         // DM can see all drawings
         if (isHost) return true;
-        
+
         // Players can only see drawings visible to them
         if (drawing.layer === 'dm-only') return false;
         if (drawing.style.dmNotesOnly) return false;
         if (drawing.style.visibleToPlayers === false) return false;
-        
+
         return true;
       });
     },
@@ -742,7 +940,10 @@ export const useGameStore = create<GameStore>()(
     updateSettings: (settingsUpdate) => {
       set((state) => {
         const previousUseMockData = state.settings.useMockData;
-        if ('useMockData' in settingsUpdate && settingsUpdate.useMockData !== previousUseMockData) {
+        if (
+          'useMockData' in settingsUpdate &&
+          settingsUpdate.useMockData !== previousUseMockData
+        ) {
           // Directly call the action within the same update to ensure atomicity
           get().toggleMockData(!!settingsUpdate.useMockData);
         }
@@ -767,7 +968,9 @@ export const useGameStore = create<GameStore>()(
     // Token Management Actions
     placeToken: (sceneId, token) => {
       set((state) => {
-        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+        const sceneIndex = state.sceneState.scenes.findIndex(
+          (s) => s.id === sceneId,
+        );
         if (sceneIndex >= 0) {
           if (!state.sceneState.scenes[sceneIndex].placedTokens) {
             state.sceneState.scenes[sceneIndex].placedTokens = [];
@@ -780,18 +983,29 @@ export const useGameStore = create<GameStore>()(
 
     moveToken: (sceneId, tokenId, position, rotation) => {
       set((state) => {
-        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
-        if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
-          const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
-            t => t.id === tokenId
-          );
+        const sceneIndex = state.sceneState.scenes.findIndex(
+          (s) => s.id === sceneId,
+        );
+        if (
+          sceneIndex >= 0 &&
+          state.sceneState.scenes[sceneIndex].placedTokens
+        ) {
+          const tokenIndex = state.sceneState.scenes[
+            sceneIndex
+          ].placedTokens.findIndex((t) => t.id === tokenId);
           if (tokenIndex >= 0) {
-            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].x = position.x;
-            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].y = position.y;
+            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].x =
+              position.x;
+            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].y =
+              position.y;
             if (rotation !== undefined) {
-              state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].rotation = rotation;
+              state.sceneState.scenes[sceneIndex].placedTokens[
+                tokenIndex
+              ].rotation = rotation;
             }
-            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].updatedAt = Date.now();
+            state.sceneState.scenes[sceneIndex].placedTokens[
+              tokenIndex
+            ].updatedAt = Date.now();
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
           }
         }
@@ -800,13 +1014,19 @@ export const useGameStore = create<GameStore>()(
 
     updateToken: (sceneId, tokenId, updates) => {
       set((state) => {
-        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
-        if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
-          const tokenIndex = state.sceneState.scenes[sceneIndex].placedTokens.findIndex(
-            t => t.id === tokenId
-          );
+        const sceneIndex = state.sceneState.scenes.findIndex(
+          (s) => s.id === sceneId,
+        );
+        if (
+          sceneIndex >= 0 &&
+          state.sceneState.scenes[sceneIndex].placedTokens
+        ) {
+          const tokenIndex = state.sceneState.scenes[
+            sceneIndex
+          ].placedTokens.findIndex((t) => t.id === tokenId);
           if (tokenIndex >= 0) {
-            const tokenToUpdate = state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex];
+            const tokenToUpdate =
+              state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex];
             Object.assign(tokenToUpdate, updates);
             tokenToUpdate.updatedAt = Date.now();
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
@@ -817,11 +1037,17 @@ export const useGameStore = create<GameStore>()(
 
     deleteToken: (sceneId, tokenId) => {
       set((state) => {
-        const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
-        if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedTokens) {
-          state.sceneState.scenes[sceneIndex].placedTokens = state.sceneState.scenes[sceneIndex].placedTokens.filter(
-            t => t.id !== tokenId
-          );
+        const sceneIndex = state.sceneState.scenes.findIndex(
+          (s) => s.id === sceneId,
+        );
+        if (
+          sceneIndex >= 0 &&
+          state.sceneState.scenes[sceneIndex].placedTokens
+        ) {
+          state.sceneState.scenes[sceneIndex].placedTokens =
+            state.sceneState.scenes[sceneIndex].placedTokens.filter(
+              (t) => t.id !== tokenId,
+            );
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
         }
       });
@@ -829,22 +1055,22 @@ export const useGameStore = create<GameStore>()(
 
     getSceneTokens: (sceneId) => {
       const state = get();
-      const scene = state.sceneState.scenes.find(s => s.id === sceneId);
+      const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
       return scene?.placedTokens || [];
     },
 
     getVisibleTokens: (sceneId, isHost) => {
       const state = get();
-      const scene = state.sceneState.scenes.find(s => s.id === sceneId);
+      const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
       if (!scene) return [];
-      
-      return scene.placedTokens.filter(token => {
+
+      return scene.placedTokens.filter((token) => {
         // DM can see all tokens
         if (isHost) return true;
-        
+
         // Players can only see visible tokens
         if (!token.visibleToPlayers) return false;
-        
+
         return true;
       });
     },
@@ -854,12 +1080,12 @@ export const useGameStore = create<GameStore>()(
         state.settings = initialState.settings;
       });
     },
-    
+
     // Persistence Management Actions
     initializeFromStorage: async () => {
       try {
         const savedScenes = await drawingPersistenceService.loadAllScenes();
-        
+
         if (savedScenes.length > 0) {
           set((state) => {
             state.sceneState.scenes = savedScenes;
@@ -874,19 +1100,21 @@ export const useGameStore = create<GameStore>()(
         console.error('Failed to initialize from storage:', error);
       }
     },
-    
+
     loadSceneDrawings: async (sceneId) => {
       try {
         const drawings = await drawingPersistenceService.loadDrawings(sceneId);
-        
+
         set((state) => {
-          const sceneIndex = state.sceneState.scenes.findIndex(s => s.id === sceneId);
+          const sceneIndex = state.sceneState.scenes.findIndex(
+            (s) => s.id === sceneId,
+          );
           if (sceneIndex >= 0) {
             state.sceneState.scenes[sceneIndex].drawings = drawings;
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
           }
         });
-        
+
         console.log(`Loaded ${drawings.length} drawings for scene ${sceneId}`);
       } catch (error) {
         console.error('Failed to load scene drawings:', error);
@@ -929,7 +1157,7 @@ export const useGameStore = create<GameStore>()(
               webSocketService.sendGameStateUpdate({
                 sceneState: {
                   scenes: state.sceneState.scenes,
-                  activeSceneId: state.sceneState.activeSceneId
+                  activeSceneId: state.sceneState.activeSceneId,
                 },
                 characters: [], // TODO: Get from character store when integrated
                 initiative: {}, // TODO: Get from initiative store when integrated
@@ -950,13 +1178,19 @@ export const useGameStore = create<GameStore>()(
           // Restore scenes and active scene (always restore, even if empty)
           if (recoveryData.gameState) {
             state.sceneState.scenes = recoveryData.gameState.scenes || [];
-            state.sceneState.activeSceneId = recoveryData.gameState.activeSceneId;
-            console.log(`🔄 Restored ${state.sceneState.scenes.length} scenes, activeSceneId: ${state.sceneState.activeSceneId}`);
+            state.sceneState.activeSceneId =
+              recoveryData.gameState.activeSceneId;
+            console.log(
+              `🔄 Restored ${state.sceneState.scenes.length} scenes, activeSceneId: ${state.sceneState.activeSceneId}`,
+            );
           }
 
           // Restore settings
           if (recoveryData.gameState && recoveryData.gameState.settings) {
-            state.settings = { ...state.settings, ...recoveryData.gameState.settings };
+            state.settings = {
+              ...state.settings,
+              ...recoveryData.gameState.settings,
+            };
           }
         });
 
@@ -972,7 +1206,10 @@ export const useGameStore = create<GameStore>()(
         const sessionData = localStorage.getItem('nexus-session');
         const gameStateData = localStorage.getItem('nexus-game-state');
         console.log('🔍 Raw localStorage data:');
-        console.log('  Session:', sessionData ? JSON.parse(sessionData) : 'null');
+        console.log(
+          '  Session:',
+          sessionData ? JSON.parse(sessionData) : 'null',
+        );
         console.log('  Game State:', gameStateData ? 'exists' : 'null');
 
         const recoveryData = sessionPersistenceService.getRecoveryData();
@@ -981,7 +1218,7 @@ export const useGameStore = create<GameStore>()(
           console.log('🎮 Game state details:', {
             scenes: recoveryData.gameState.scenes,
             activeSceneId: recoveryData.gameState.activeSceneId,
-            scenesLength: recoveryData.gameState.scenes?.length || 0
+            scenesLength: recoveryData.gameState.scenes?.length || 0,
           });
         }
 
@@ -993,12 +1230,16 @@ export const useGameStore = create<GameStore>()(
         if (!recoveryData.canReconnect) {
           console.log('❌ Session too old or invalid for reconnection');
           const sessionAge = Date.now() - recoveryData.session.lastActivity;
-          console.log(`   Session age: ${Math.round(sessionAge / 1000)}s (max: ${60 * 60}s)`);
+          console.log(
+            `   Session age: ${Math.round(sessionAge / 1000)}s (max: ${60 * 60}s)`,
+          );
           sessionPersistenceService.clearAll();
           return false;
         }
 
-        console.log(`🏠 Attempting to reconnect to room ${recoveryData.session.roomCode} as ${recoveryData.session.userType}`);
+        console.log(
+          `🏠 Attempting to reconnect to room ${recoveryData.session.roomCode} as ${recoveryData.session.userType}`,
+        );
 
         // Load game state first
         if (recoveryData.gameState) {
@@ -1021,25 +1262,36 @@ export const useGameStore = create<GameStore>()(
         const { webSocketService } = await import('@/utils/websocket');
 
         // Attempt to reconnect to the WebSocket session
-        console.log(`🔌 Connecting WebSocket: roomCode=${recoveryData.session.roomCode}, userType=${recoveryData.session.userType}`);
+        console.log(
+          `🔌 Connecting WebSocket: roomCode=${recoveryData.session.roomCode}, userType=${recoveryData.session.userType}`,
+        );
 
         // Pass the userType to determine if this is a host reconnection or player join
-        await webSocketService.connect(recoveryData.session.roomCode, recoveryData.session.userType);
+        await webSocketService.connect(
+          recoveryData.session.roomCode,
+          recoveryData.session.userType,
+        );
 
         // If we're the host and have game state, send it to the server
-        if (recoveryData.session.userType === 'host' && recoveryData.gameState && recoveryData.gameState.scenes.length > 0) {
+        if (
+          recoveryData.session.userType === 'host' &&
+          recoveryData.gameState &&
+          recoveryData.gameState.scenes.length > 0
+        ) {
           console.log('📤 Sending restored game state to server');
           webSocketService.sendGameStateUpdate({
             sceneState: {
               scenes: recoveryData.gameState.scenes,
-              activeSceneId: recoveryData.gameState.activeSceneId
+              activeSceneId: recoveryData.gameState.activeSceneId,
             },
             characters: recoveryData.gameState.characters || [],
             initiative: recoveryData.gameState.initiative || {},
           });
         }
 
-        console.log(`✅ Session recovery successful for room ${recoveryData.session.roomCode}`);
+        console.log(
+          `✅ Session recovery successful for room ${recoveryData.session.roomCode}`,
+        );
         console.log(`🎮 Current game state after recovery:`, get().sceneState);
         return true;
       } catch (error) {
@@ -1048,7 +1300,9 @@ export const useGameStore = create<GameStore>()(
         // Only clear session data if WebSocket connection failed
         // Keep local state in case user wants to try manual reconnection
         if (error instanceof Error && error.message.includes('WebSocket')) {
-          console.log('🔄 WebSocket reconnection failed, but keeping local session data');
+          console.log(
+            '🔄 WebSocket reconnection failed, but keeping local session data',
+          );
         } else {
           sessionPersistenceService.clearAll();
         }
@@ -1074,46 +1328,54 @@ export const useGameStore = create<GameStore>()(
         }
       });
     },
-  }))
+  })),
 );
 
 // Selectors for common queries
-export const useUser = () => useGameStore(state => state.user);
-export const useSession = () => useGameStore(state => state.session);
-export const useDiceRolls = () => useGameStore(state => state.diceRolls);
-export const useActiveTab = () => useGameStore(state => state.activeTab);
-export const useIsHost = () => useGameStore(state => state.user.type === 'host');
-export const useIsConnected = () => useGameStore(state => state.user.connected);
+export const useUser = () => useGameStore((state) => state.user);
+export const useSession = () => useGameStore((state) => state.session);
+export const useDiceRolls = () => useGameStore((state) => state.diceRolls);
+export const useActiveTab = () => useGameStore((state) => state.activeTab);
+export const useIsHost = () =>
+  useGameStore((state) => state.user.type === 'host');
+export const useIsConnected = () =>
+  useGameStore((state) => state.user.connected);
 
 // Scene selectors
-export const useSceneState = () => useGameStore(state => state.sceneState);
-export const useScenes = () => useGameStore(state => state.sceneState.scenes);
-export const useActiveScene = () => useGameStore(state => {
-  const { scenes, activeSceneId } = state.sceneState;
-  return scenes.find(s => s.id === activeSceneId) || null;
-});
-export const useCamera = () => useGameStore(state => state.sceneState.camera);
-export const useFollowDM = () => useGameStore(state => state.sceneState.followDM);
+export const useSceneState = () => useGameStore((state) => state.sceneState);
+export const useScenes = () => useGameStore((state) => state.sceneState.scenes);
+export const useActiveScene = () =>
+  useGameStore((state) => {
+    const { scenes, activeSceneId } = state.sceneState;
+    return scenes.find((s) => s.id === activeSceneId) || null;
+  });
+export const useCamera = () => useGameStore((state) => state.sceneState.camera);
+export const useFollowDM = () =>
+  useGameStore((state) => state.sceneState.followDM);
 
 // Settings selectors
-export const useSettings = () => useGameStore(state => state.settings);
-export const useColorScheme = () => useGameStore(state => state.settings.colorScheme);
-export const useTheme = () => useGameStore(state => state.settings.theme);
+export const useSettings = () => useGameStore((state) => state.settings);
+export const useColorScheme = () =>
+  useGameStore((state) => state.settings.colorScheme);
+export const useTheme = () => useGameStore((state) => state.settings.theme);
 
 // Drawing selectors
-export const useSceneDrawings = (sceneId: string) => useGameStore(state => {
-  const scene = state.sceneState.scenes.find(s => s.id === sceneId);
-  return scene?.drawings || [];
-});
+export const useSceneDrawings = (sceneId: string) =>
+  useGameStore((state) => {
+    const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
+    return scene?.drawings || [];
+  });
 
-export const useVisibleDrawings = (sceneId: string) => useGameStore(state => {
-  const isHost = state.user.type === 'host';
-  return state.getVisibleDrawings(sceneId, isHost);
-});
+export const useVisibleDrawings = (sceneId: string) =>
+  useGameStore((state) => {
+    const isHost = state.user.type === 'host';
+    return state.getVisibleDrawings(sceneId, isHost);
+  });
 
-export const useDrawingActions = () => useGameStore(state => ({
-  createDrawing: state.createDrawing,
-  updateDrawing: state.updateDrawing,
-  deleteDrawing: state.deleteDrawing,
-  clearDrawings: state.clearDrawings,
-}));
+export const useDrawingActions = () =>
+  useGameStore((state) => ({
+    createDrawing: state.createDrawing,
+    updateDrawing: state.updateDrawing,
+    deleteDrawing: state.deleteDrawing,
+    clearDrawings: state.clearDrawings,
+  }));
