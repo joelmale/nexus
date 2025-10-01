@@ -106,6 +106,11 @@ export const GameToolbar: React.FC = () => {
       label: 'Basic Tools',
       tools: [
         { id: 'select', icon: '👆', label: 'Select' },
+        { id: 'pan', icon: '✋', label: 'Pan' },
+        { id: 'move', icon: '✥', label: 'Move' },
+        { id: 'copy', icon: '📋', label: 'Copy' },
+        { id: 'cut', icon: '✂️', label: 'Cut' },
+        { id: 'paste', icon: '📄', label: 'Paste' },
         { id: 'measure', icon: '📏', label: 'Measure' },
         { id: 'note', icon: '📝', label: 'Note' },
         { id: 'ping', icon: '📍', label: 'Ping' },
@@ -132,9 +137,9 @@ export const GameToolbar: React.FC = () => {
           { id: 'mask-create', icon: '🌟', label: 'Create Mask' },
           { id: 'mask-toggle', icon: '✨', label: 'Toggle Mask' },
           { id: 'mask-remove', icon: '🧽', label: 'Remove Mask' },
-          { id: 'mask-show', icon: '👁', label: 'Show All' },
-          { id: 'mask-hide', icon: '🙈', label: 'Hide All' },
-          { id: 'grid', icon: '⊞', label: 'Grid' },
+          { id: 'mask-show', icon: '👁', label: 'Reveal Scene' },
+          { id: 'mask-hide', icon: '🙈', label: 'Hide Scene' },
+          { id: 'grid-align', icon: '📐', label: 'Grid Alignment' },
         ],
       }
     : null;
@@ -221,150 +226,188 @@ export const GameToolbar: React.FC = () => {
         {isFloating ? (
           /* Floating Mode: Compact layout without labels */
           <>
-            <div className="toolbar-row">
-              <div className="toolbar-group">
+            <div className="flex gap-2 mb-2">
+              <div className="flex gap-1">
                 {toolGroups[0].tools.map((tool) => (
                   <button
                     key={tool.id}
                     type="button"
-                    className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
+                    className={`
+                      unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                      ${
+                        activeTool === tool.id
+                          ? 'bg-gradient-to-b from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/50 translate-y-0'
+                          : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                      }
+                    `}
                     onClick={() => setActiveTool(tool.id)}
                     aria-pressed={activeTool === tool.id}
                     title={tool.label}
                   >
-                    <span className="tool-icon">{tool.icon}</span>
+                    {tool.icon}
                   </button>
                 ))}
               </div>
 
-              <div className="toolbar-separator" />
+              <div className="w-px bg-gray-600" />
 
-              <div className="toolbar-group">
+              <div className="flex gap-1">
                 {toolGroups[1].tools.map((tool) => (
                   <button
                     key={tool.id}
                     type="button"
-                    className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
+                    className={`
+                      unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                      ${
+                        activeTool === tool.id
+                          ? 'bg-gradient-to-b from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/50 translate-y-0'
+                          : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                      }
+                    `}
                     onClick={() => setActiveTool(tool.id)}
                     aria-pressed={activeTool === tool.id}
                     title={tool.label}
                   >
-                    <span className="tool-icon">{tool.icon}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="toolbar-separator" />
-
-              <div className="toolbar-group camera-group">
-                {cameraControls.map((control) => (
-                  <button
-                    key={control.id}
-                    type="button"
-                    className={`toolbar-btn ${control.className || ''}`}
-                    onClick={control.action}
-                    title={control.label}
-                    disabled={control.disabled}
-                  >
-                    {control.icon ? (
-                      <span className="tool-icon">{control.icon}</span>
-                    ) : (
-                      <span className="zoom-text">{control.label}</span>
-                    )}
+                    {tool.icon}
                   </button>
                 ))}
               </div>
             </div>
 
-            {isHost && dmToolGroup && (
-              <div className="toolbar-row toolbar-row-secondary">
-                <div className="toolbar-group">
-                  {dmToolGroup.tools.map((tool) => (
-                    <button
-                      key={tool.id}
-                      type="button"
-                      className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
-                      onClick={() => setActiveTool(tool.id)}
-                      aria-pressed={activeTool === tool.id}
-                      title={tool.label}
-                    >
-                      <span className="tool-icon">{tool.icon}</span>
-                    </button>
-                  ))}
-                </div>
+            <div className="flex gap-2">
+              {isHost && dmToolGroup && (
+                <>
+                  <div className="flex gap-1">
+                    {dmToolGroup.tools.map((tool) => (
+                      <button
+                        key={tool.id}
+                        type="button"
+                        className={`
+                          unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                          ${
+                            activeTool === tool.id
+                              ? 'bg-gradient-to-b from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-400/50 translate-y-0'
+                              : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                          }
+                        `}
+                        onClick={() => setActiveTool(tool.id)}
+                        aria-pressed={activeTool === tool.id}
+                        title={tool.label}
+                      >
+                        {tool.icon}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="w-px bg-gray-600" />
+                </>
+              )}
+
+              <div className="flex gap-1">
+                {cameraControls.map((control) => (
+                  <button
+                    key={control.id}
+                    type="button"
+                    className="unstyled px-3 py-2 rounded-lg text-sm transition-all duration-150 bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-gray-200 hover:shadow-lg active:translate-y-0.5 active:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={control.action}
+                    title={control.label}
+                    disabled={control.disabled}
+                  >
+                    {control.icon ? control.icon : control.label}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
           </>
         ) : (
           /* Docked Mode: Two-row layout with tooltips only */
-          <div className="toolbar-docked-layout">
-            {/* First Row - Basic Tools, Shapes, and View */}
-            <div className="toolbar-docked-row">
+          <div className="flex flex-col gap-2">
+            {/* First Row - Basic Tools and Shapes */}
+            <div className="flex gap-2 items-center">
               {toolGroups[0].tools.map((tool) => (
                 <button
                   key={tool.id}
                   type="button"
-                  className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
+                  className={`
+                    unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                    ${
+                      activeTool === tool.id
+                        ? 'bg-gradient-to-b from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/50 translate-y-0'
+                        : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                    }
+                  `}
                   onClick={() => setActiveTool(tool.id)}
                   aria-pressed={activeTool === tool.id}
                   title={tool.label}
                 >
-                  <span className="tool-icon">{tool.icon}</span>
+                  {tool.icon}
                 </button>
               ))}
 
-              <div className="toolbar-separator" />
+              <div className="w-px h-8 bg-gray-600" />
 
               {toolGroups[1].tools.map((tool) => (
                 <button
                   key={tool.id}
                   type="button"
-                  className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
+                  className={`
+                    unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                    ${
+                      activeTool === tool.id
+                        ? 'bg-gradient-to-b from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-400/50 translate-y-0'
+                        : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                    }
+                  `}
                   onClick={() => setActiveTool(tool.id)}
                   aria-pressed={activeTool === tool.id}
                   title={tool.label}
                 >
-                  <span className="tool-icon">{tool.icon}</span>
+                  {tool.icon}
                 </button>
               ))}
+            </div>
 
-              <div className="toolbar-separator" />
+            {/* Second Row - DM Tools (if host) and Camera Controls */}
+            <div className="flex gap-2 items-center">
+              {isHost && dmToolGroup && (
+                <>
+                  {dmToolGroup.tools.map((tool) => (
+                    <button
+                      key={tool.id}
+                      type="button"
+                      className={`
+                        unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                        ${
+                          activeTool === tool.id
+                            ? 'bg-gradient-to-b from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-400/50 translate-y-0'
+                            : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                        }
+                      `}
+                      onClick={() => setActiveTool(tool.id)}
+                      aria-pressed={activeTool === tool.id}
+                      title={tool.label}
+                    >
+                      {tool.icon}
+                    </button>
+                  ))}
+
+                  <div className="w-px h-8 bg-gray-600" />
+                </>
+              )}
 
               {cameraControls.map((control) => (
                 <button
                   key={control.id}
                   type="button"
-                  className={`toolbar-btn ${control.className || ''}`}
+                  className="unstyled px-3 py-2 rounded-lg text-sm transition-all duration-150 bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-gray-200 hover:shadow-lg active:translate-y-0.5 active:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={control.action}
                   title={control.label}
                   disabled={control.disabled}
                 >
-                  {control.icon ? (
-                    <span className="tool-icon">{control.icon}</span>
-                  ) : (
-                    <span className="zoom-text">{control.label}</span>
-                  )}
+                  {control.icon ? control.icon : control.label}
                 </button>
               ))}
             </div>
-
-            {/* Second Row - DM Tools (if host) */}
-            {isHost && dmToolGroup && (
-              <div className="toolbar-docked-row">
-                {dmToolGroup.tools.map((tool) => (
-                  <button
-                    key={tool.id}
-                    type="button"
-                    className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
-                    onClick={() => setActiveTool(tool.id)}
-                    aria-pressed={activeTool === tool.id}
-                    title={tool.label}
-                  >
-                    <span className="tool-icon">{tool.icon}</span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
       </div>
