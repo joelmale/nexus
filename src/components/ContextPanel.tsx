@@ -6,6 +6,7 @@ import { ScenePanel } from './Scene/ScenePanel';
 import { useGameStore } from '@/stores/gameStore';
 import { Settings } from './Settings';
 import { Placeholder } from './Placeholder';
+import { TokenPanel } from './Tokens/TokenPanel';
 
 interface ContextPanelProps {
   activePanel:
@@ -111,7 +112,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
             data-testid="panel-body"
             style={{ overflowY: 'auto' }}
           >
-            {activePanel === 'tokens' && <Placeholder title="Tokens" />}
+            {activePanel === 'tokens' && <TokenPanel />}
             {activePanel === 'scene' && <ScenePanel scene={currentScene} />}
             {activePanel === 'props' && <Placeholder title="Props" />}
             {activePanel === 'initiative' && <InitiativeTracker />}

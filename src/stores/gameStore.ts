@@ -403,7 +403,14 @@ const eventHandlers: Record<string, EventHandler> = {
   },
   'session/reconnected': (state, data) => {
     console.log('Reconnecting to session with data:', data);
-    const eventData = data as any; // We'll type this properly later
+    const eventData = data as {
+      roomCode?: string;
+      hostId?: string;
+      gameState?: {
+        scenes?: Scene[];
+        activeSceneId?: string | null;
+      };
+    };
 
     // Update session data if provided
     if (eventData.roomCode) {
@@ -570,6 +577,86 @@ const eventHandlers: Record<string, EventHandler> = {
           state.sceneState.scenes[sceneIndex].drawings = [];
         }
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+      }
+    }
+  },
+  'token/place': (state, data) => {
+    const eventData = data as TokenPlaceEvent['data'];
+    if (eventData.sceneId && eventData.token) {
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
+      if (sceneIndex >= 0) {
+        state.sceneState.scenes[sceneIndex].placedTokens.push(eventData.token);
+        state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        console.log('Token placed via event:', eventData.token.id);
+      }
+    }
+  },
+  'token/move': (state, data) => {
+    const eventData = data as TokenMoveEvent['data'];
+    if (eventData.sceneId && eventData.tokenId && eventData.position) {
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
+      if (sceneIndex >= 0) {
+        const tokenIndex = state.sceneState.scenes[
+          sceneIndex
+        ].placedTokens.findIndex((t) => t.id === eventData.tokenId);
+        if (tokenIndex >= 0) {
+          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].x =
+            eventData.position.x;
+          state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex].y =
+            eventData.position.y;
+          if (eventData.rotation !== undefined) {
+            state.sceneState.scenes[sceneIndex].placedTokens[
+              tokenIndex
+            ].rotation = eventData.rotation;
+          }
+          state.sceneState.scenes[sceneIndex].placedTokens[
+            tokenIndex
+          ].updatedAt = Date.now();
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        }
+      }
+    }
+  },
+  'token/update': (state, data) => {
+    const eventData = data as TokenUpdateEvent['data'];
+    if (eventData.sceneId && eventData.tokenId && eventData.updates) {
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
+      if (sceneIndex >= 0) {
+        const tokenIndex = state.sceneState.scenes[
+          sceneIndex
+        ].placedTokens.findIndex((t) => t.id === eventData.tokenId);
+        if (tokenIndex >= 0) {
+          Object.assign(
+            state.sceneState.scenes[sceneIndex].placedTokens[tokenIndex],
+            eventData.updates,
+          );
+          state.sceneState.scenes[sceneIndex].placedTokens[
+            tokenIndex
+          ].updatedAt = Date.now();
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        }
+      }
+    }
+  },
+  'token/delete': (state, data) => {
+    const eventData = data as TokenDeleteEvent['data'];
+    if (eventData.sceneId && eventData.tokenId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
+      if (sceneIndex >= 0) {
+        state.sceneState.scenes[sceneIndex].placedTokens =
+          state.sceneState.scenes[sceneIndex].placedTokens.filter(
+            (t) => t.id !== eventData.tokenId,
+          );
+        state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        console.log('Token deleted via event:', eventData.tokenId);
       }
     }
   },

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { useSession, useIsHost } from '@/stores/gameStore';
 import { sceneUtils } from '@/utils/sceneUtils';
@@ -13,9 +13,15 @@ interface SceneTabsProps {
 export const SceneTabs: React.FC<SceneTabsProps> = ({
   scenes,
   activeSceneId,
-  onEditScene
+  onEditScene,
 }) => {
-  const { setActiveScene, createScene, deleteScene, updateScene, reorderScenes } = useGameStore();
+  const {
+    setActiveScene,
+    createScene,
+    deleteScene,
+    updateScene,
+    reorderScenes,
+  } = useGameStore();
   const session = useSession();
   const isHost = useIsHost();
   const [draggedTab, setDraggedTab] = useState<string | null>(null);
@@ -55,10 +61,12 @@ export const SceneTabs: React.FC<SceneTabsProps> = ({
   };
 
   // Filter scenes based on visibility and user permissions
-  const visibleScenes = scenes.filter(scene => {
-    if (isHost) return true; // DM can see all scenes
-    return scene.visibility === 'shared' || scene.visibility === 'public';
-  });
+  const visibleScenes = useMemo(() => {
+    return scenes.filter((scene) => {
+      if (isHost) return true; // DM can see all scenes
+      return scene.visibility === 'shared' || scene.visibility === 'public';
+    });
+  }, [scenes, isHost]);
 
   // Update scroll buttons on mount and when scenes change
   useEffect(() => {
@@ -66,28 +74,24 @@ export const SceneTabs: React.FC<SceneTabsProps> = ({
     const handleResize = () => updateScrollButtons();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [visibleScenes]);
+  }, [visibleScenes.length]); // Only re-run when the number of visible scenes changes
 
   const handleCreateScene = () => {
     const sceneNumber = scenes.length + 1;
     const defaultScene = sceneUtils.createDefaultScene(
       `Scene ${sceneNumber}`,
-      session?.hostId || 'unknown'
+      session?.hostId || 'unknown',
     );
     createScene(defaultScene);
   };
 
   const handleDeleteScene = (sceneId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (scenes.length > 1 && window.confirm('Delete this scene? This cannot be undone.')) {
+    if (
+      scenes.length > 1 &&
+      window.confirm('Delete this scene? This cannot be undone.')
+    ) {
       deleteScene(sceneId);
-    }
-  };
-
-  const handleEditScene = (scene: Scene, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onEditScene) {
-      onEditScene(scene);
     }
   };
 
@@ -162,8 +166,12 @@ export const SceneTabs: React.FC<SceneTabsProps> = ({
       return;
     }
 
-    const fromIndex = visibleScenes.findIndex(scene => scene.id === draggedTab);
-    const toIndex = visibleScenes.findIndex(scene => scene.id === targetSceneId);
+    const fromIndex = visibleScenes.findIndex(
+      (scene) => scene.id === draggedTab,
+    );
+    const toIndex = visibleScenes.findIndex(
+      (scene) => scene.id === targetSceneId,
+    );
 
     if (fromIndex !== -1 && toIndex !== -1) {
       reorderScenes(fromIndex, toIndex);
@@ -180,10 +188,14 @@ export const SceneTabs: React.FC<SceneTabsProps> = ({
 
   const getVisibilityIcon = (scene: Scene) => {
     switch (scene.visibility) {
-      case 'private': return '🔒';
-      case 'shared': return '👥';
-      case 'public': return '🌐';
-      default: return '';
+      case 'private':
+        return '🔒';
+      case 'shared':
+        return '👥';
+      case 'public':
+        return '🌐';
+      default:
+        return '';
     }
   };
 
@@ -219,62 +231,65 @@ export const SceneTabs: React.FC<SceneTabsProps> = ({
         ref={scrollContainerRef}
         onScroll={updateScrollButtons}
       >
-        {visibleScenes.map(scene => (
-        <div
-          key={scene.id}
-          className={getSceneStatusClass(scene)}
-          role="tab"
-          aria-selected={scene.id === activeSceneId}
-          draggable={isHost}
-          onClick={() => setActiveScene(scene.id)}
-          onContextMenu={(e) => handleTabContextMenu(scene, e)}
-          onDoubleClick={(e) => handleTabDoubleClick(scene, e)}
-          onDragStart={(e) => handleDragStart(e, scene.id)}
-          onDragOver={(e) => handleDragOver(e, scene.id)}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, scene.id)}
-          onDragEnd={handleDragEnd}
-        >
-          {/* Scene name and visibility indicator */}
-          {isHost && (
-            <span className="scene-visibility" title={`Visibility: ${scene.visibility}`}>
-              {getVisibilityIcon(scene)}
-            </span>
-          )}
-          {/* Scene name - conditional edit mode */}
-          {editingSceneId === scene.id ? (
-            <input
-              ref={editInputRef}
-              type="text"
-              className="scene-name-input"
-              value={editingName}
-              onChange={(e) => setEditingName(e.target.value)}
-              onKeyDown={(e) => handleRenameKeyDown(e, scene.id)}
-              onBlur={() => handleRenameSubmit(scene.id)}
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <span className="scene-name" title={scene.description}>
-              {scene.name}
-            </span>
-          )}
+        {visibleScenes.map((scene) => (
+          <div
+            key={scene.id}
+            className={getSceneStatusClass(scene)}
+            role="tab"
+            aria-selected={scene.id === activeSceneId}
+            draggable={isHost}
+            onClick={() => setActiveScene(scene.id)}
+            onContextMenu={(e) => handleTabContextMenu(scene, e)}
+            onDoubleClick={(e) => handleTabDoubleClick(scene, e)}
+            onDragStart={(e) => handleDragStart(e, scene.id)}
+            onDragOver={(e) => handleDragOver(e, scene.id)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, scene.id)}
+            onDragEnd={handleDragEnd}
+          >
+            {/* Scene name and visibility indicator */}
+            {isHost && (
+              <span
+                className="scene-visibility"
+                title={`Visibility: ${scene.visibility}`}
+              >
+                {getVisibilityIcon(scene)}
+              </span>
+            )}
+            {/* Scene name - conditional edit mode */}
+            {editingSceneId === scene.id ? (
+              <input
+                ref={editInputRef}
+                type="text"
+                className="scene-name-input"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                onKeyDown={(e) => handleRenameKeyDown(e, scene.id)}
+                onBlur={() => handleRenameSubmit(scene.id)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span className="scene-name" title={scene.description}>
+                {scene.name}
+              </span>
+            )}
 
-          {/* Delete button for DM only */}
-          {isHost && scenes.length > 1 && (
-            <button
-              className="delete-scene"
-              onClick={(e) => handleDeleteScene(scene.id, e)}
-              title="Delete scene"
-              type="button"
-            >
-              ×
-            </button>
-          )}
+            {/* Delete button for DM only */}
+            {isHost && scenes.length > 1 && (
+              <button
+                className="delete-scene"
+                onClick={(e) => handleDeleteScene(scene.id, e)}
+                title="Delete scene"
+                type="button"
+              >
+                ×
+              </button>
+            )}
 
-          {/* Active indicator */}
-          {scene.id === activeSceneId && <div className="active-indicator" />}
-        </div>
-      ))}
+            {/* Active indicator */}
+            {scene.id === activeSceneId && <div className="active-indicator" />}
+          </div>
+        ))}
 
         {/* Add New Scene Tab - DM only */}
         {isHost && (

@@ -11,6 +11,12 @@ interface SelectionOverlayProps {
   onClearSelection?: () => void;
 }
 
+interface ResizingHandle {
+  drawingId: string;
+  handleIndex: number;
+  type: 'corner' | 'radius' | 'endpoint' | 'length' | 'rotation';
+}
+
 export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   selectedDrawings,
   sceneId,
@@ -19,10 +25,12 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 }) => {
   const activeScene = useActiveScene();
   const { updateDrawing } = useDrawingActions();
-  const [resizingHandle, setResizingHandle] = useState<{
-    drawingId: string;
-    handleIndex: number;
-    type: 'corner' | 'radius' | 'endpoint';
+  const [resizingHandle, setResizingHandle] = useState<ResizingHandle | null>(
+    null,
+  );
+  const [draggingSelection, setDraggingSelection] = useState<{
+    startPos: Point;
+    drawingIds: string[];
   } | null>(null);
 
   // Convert screen coordinates to scene coordinates
@@ -41,9 +49,85 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     [camera],
   );
 
-  // Handle mouse move for resizing
+  // Handle mouse move for resizing and dragging
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
+      const svgElement = (e.target as Element).closest('svg');
+      const mousePos = screenToScene(e.clientX, e.clientY, svgElement);
+
+      // Handle dragging selection
+      if (draggingSelection && activeScene) {
+        const dx = mousePos.x - draggingSelection.startPos.x;
+        const dy = mousePos.y - draggingSelection.startPos.y;
+
+        draggingSelection.drawingIds.forEach((drawingId) => {
+          const drawing = activeScene.drawings.find((d) => d.id === drawingId);
+          if (!drawing) return;
+
+          let updates: Partial<Drawing> = {};
+
+          switch (drawing.type) {
+            case 'line':
+              updates = {
+                start: { x: drawing.start.x + dx, y: drawing.start.y + dy },
+                end: { x: drawing.end.x + dx, y: drawing.end.y + dy },
+              };
+              break;
+            case 'rectangle':
+              updates = { x: drawing.x + dx, y: drawing.y + dy };
+              break;
+            case 'circle':
+              updates = {
+                center: { x: drawing.center.x + dx, y: drawing.center.y + dy },
+              };
+              break;
+            case 'polygon':
+              updates = {
+                points: drawing.points.map((p: Point) => ({
+                  x: p.x + dx,
+                  y: p.y + dy,
+                })),
+              };
+              break;
+            case 'pencil':
+              updates = {
+                points: drawing.points.map((p: Point) => ({
+                  x: p.x + dx,
+                  y: p.y + dy,
+                })),
+              };
+              break;
+            case 'cone':
+              updates = {
+                origin: { x: drawing.origin.x + dx, y: drawing.origin.y + dy },
+              };
+              break;
+            case 'text':
+            case 'ping':
+              updates = {
+                position: {
+                  x: drawing.position.x + dx,
+                  y: drawing.position.y + dy,
+                },
+              };
+              break;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            updateDrawing(sceneId, drawingId, updates);
+            webSocketService.sendEvent({
+              type: 'drawing/update',
+              data: { sceneId, drawingId, updates },
+            });
+          }
+        });
+
+        // Update start position for next move
+        setDraggingSelection({ ...draggingSelection, startPos: mousePos });
+        return;
+      }
+
+      // Handle resizing via handles
       if (!resizingHandle || !activeScene) return;
 
       const drawing = activeScene.drawings.find(
@@ -51,13 +135,15 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
       );
       if (!drawing) return;
 
-      const svgElement = (e.target as Element).closest('svg');
-      const mousePos = screenToScene(e.clientX, e.clientY, svgElement);
-
       let updates: Partial<Drawing> = {};
 
       switch (drawing.type) {
         case 'rectangle': {
+          if (resizingHandle.type === 'rotation') {
+            // Rotate rectangle - store rotation in future (not yet supported)
+            // For now, this is a placeholder
+            break;
+          }
           const corners = [
             { x: drawing.x, y: drawing.y }, // top-left
             { x: drawing.x + drawing.width, y: drawing.y }, // top-right
@@ -99,6 +185,10 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
         }
 
         case 'circle': {
+          if (resizingHandle.type === 'rotation') {
+            // Circles don't rotate, skip
+            break;
+          }
           const dx = mousePos.x - drawing.center.x;
           const dy = mousePos.y - drawing.center.y;
           const newRadius = Math.sqrt(dx * dx + dy * dy);
@@ -124,8 +214,19 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
         }
 
         case 'cone': {
-          // Update origin position
-          updates = { origin: mousePos };
+          if (resizingHandle.type === 'length') {
+            // Resize cone length
+            const dx = mousePos.x - drawing.origin.x;
+            const dy = mousePos.y - drawing.origin.y;
+            const newLength = Math.sqrt(dx * dx + dy * dy);
+            updates = { length: Math.max(5, newLength) };
+          } else if (resizingHandle.type === 'rotation') {
+            // Rotate cone direction
+            const dx = mousePos.x - drawing.origin.x;
+            const dy = mousePos.y - drawing.origin.y;
+            const newDirection = (Math.atan2(dy, dx) * 180) / Math.PI;
+            updates = { direction: newDirection };
+          }
           break;
         }
       }
@@ -144,17 +245,25 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
         });
       }
     },
-    [resizingHandle, activeScene, screenToScene, updateDrawing, sceneId],
+    [
+      resizingHandle,
+      draggingSelection,
+      activeScene,
+      screenToScene,
+      updateDrawing,
+      sceneId,
+    ],
   );
 
-  // Handle mouse up to stop resizing
+  // Handle mouse up to stop resizing and dragging
   const handleMouseUp = useCallback(() => {
     setResizingHandle(null);
+    setDraggingSelection(null);
   }, []);
 
   // Set up mouse event listeners
   React.useEffect(() => {
-    if (resizingHandle) {
+    if (resizingHandle || draggingSelection) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       return () => {
@@ -162,7 +271,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [resizingHandle, handleMouseMove, handleMouseUp]);
+  }, [resizingHandle, draggingSelection, handleMouseMove, handleMouseUp]);
 
   // Early return after all hooks
   if (
@@ -188,6 +297,19 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
       opacity: 0.8,
     };
 
+    const handleSelectionMouseDown = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const svgElement = (e.target as Element).closest('svg');
+      const startPos = screenToScene(e.clientX, e.clientY, svgElement);
+      setDraggingSelection({ startPos, drawingIds: selectedDrawings });
+    };
+
+    const interactionProps = {
+      ...selectionProps,
+      style: { cursor: 'move', pointerEvents: 'all' as const },
+      onMouseDown: handleSelectionMouseDown,
+    };
+
     switch (drawing.type) {
       case 'line': {
         return (
@@ -197,7 +319,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             y1={drawing.start.y}
             x2={drawing.end.x}
             y2={drawing.end.y}
-            {...selectionProps}
+            {...interactionProps}
           />
         );
       }
@@ -211,7 +333,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             y={drawing.y - padding}
             width={drawing.width + padding * 2}
             height={drawing.height + padding * 2}
-            {...selectionProps}
+            {...interactionProps}
           />
         );
       }
@@ -224,7 +346,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             cx={drawing.center.x}
             cy={drawing.center.y}
             r={drawing.radius + radiusPadding}
-            {...selectionProps}
+            {...interactionProps}
           />
         );
       }
@@ -236,7 +358,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
           <path
             key={`selection-${drawing.id}`}
             d={pathData}
-            {...selectionProps}
+            {...interactionProps}
           />
         );
       }
@@ -248,7 +370,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
           <path
             key={`selection-${drawing.id}`}
             d={pencilPath}
-            {...selectionProps}
+            {...interactionProps}
           />
         );
       }
@@ -260,7 +382,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             cx={drawing.center.x}
             cy={drawing.center.y}
             r={drawing.radius + 5 / camera.zoom}
-            {...selectionProps}
+            {...interactionProps}
           />
         );
       }
@@ -274,7 +396,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             y={drawing.origin.y - drawing.size / 2 - cubePadding}
             width={drawing.size + cubePadding * 2}
             height={drawing.size + cubePadding * 2}
-            {...selectionProps}
+            {...interactionProps}
           />
         );
       }
@@ -287,7 +409,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
             cx={drawing.origin.x}
             cy={drawing.origin.y}
             r={10 / camera.zoom}
-            {...selectionProps}
+            {...interactionProps}
           />
         );
       }
@@ -330,7 +452,7 @@ const renderSelectionHandles = (
   onHandleMouseDown: (
     drawingId: string,
     handleIndex: number,
-    type: 'corner' | 'radius' | 'endpoint',
+    type: 'corner' | 'radius' | 'endpoint' | 'length' | 'rotation',
   ) => void,
 ) => {
   const handleSize = 8 / camera.zoom;
@@ -370,6 +492,29 @@ const renderSelectionHandles = (
           />,
         );
       });
+
+      // Rotation handle at top-right corner offset
+      const rotationOffset = 20 / camera.zoom;
+      const rotationX = drawing.x + drawing.width + rotationOffset;
+      const rotationY = drawing.y - rotationOffset;
+
+      handles.push(
+        <circle
+          key="handle-rotation"
+          cx={rotationX}
+          cy={rotationY}
+          r={handleSize / 2}
+          fill="#00ff00"
+          stroke="#ffffff"
+          strokeWidth={1 / camera.zoom}
+          className="selection-handle rotation-handle"
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            onHandleMouseDown(drawing.id, 4, 'rotation');
+          }}
+          style={{ cursor: 'grab' }}
+        />,
+      );
       break;
     }
 
@@ -440,18 +585,51 @@ const renderSelectionHandles = (
     }
 
     case 'cone': {
-      // Origin handle for cone
+      // Calculate the end point of the cone based on direction and length
+      const endX =
+        drawing.origin.x +
+        drawing.length * Math.cos((drawing.direction * Math.PI) / 180);
+      const endY =
+        drawing.origin.y +
+        drawing.length * Math.sin((drawing.direction * Math.PI) / 180);
+
+      // Length handle at the end of the cone
       handles.push(
         <rect
-          key="handle-origin"
-          x={drawing.origin.x - handleSize / 2}
-          y={drawing.origin.y - handleSize / 2}
+          key="handle-length"
+          x={endX - handleSize / 2}
+          y={endY - handleSize / 2}
           {...handleProps}
           onMouseDown={(e) => {
             e.stopPropagation();
-            onHandleMouseDown(drawing.id, 0, 'endpoint');
+            onHandleMouseDown(drawing.id, 0, 'length');
           }}
-          style={{ cursor: 'move' }}
+          style={{ cursor: 'ew-resize' }}
+        />,
+      );
+
+      // Rotation handle - a circular handle offset from the end point
+      const rotationOffset = 20 / camera.zoom;
+      const rotationX =
+        endX + rotationOffset * Math.cos((drawing.direction * Math.PI) / 180);
+      const rotationY =
+        endY + rotationOffset * Math.sin((drawing.direction * Math.PI) / 180);
+
+      handles.push(
+        <circle
+          key="handle-rotation"
+          cx={rotationX}
+          cy={rotationY}
+          r={handleSize / 2}
+          fill="#00ff00"
+          stroke="#ffffff"
+          strokeWidth={1 / camera.zoom}
+          className="selection-handle rotation-handle"
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            onHandleMouseDown(drawing.id, 1, 'rotation');
+          }}
+          style={{ cursor: 'grab' }}
         />,
       );
       break;

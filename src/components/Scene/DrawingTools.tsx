@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   type Point,
   type Drawing,
@@ -6,8 +6,14 @@ import {
   type DrawingTool,
 } from '@/types/drawing';
 import type { Camera } from '@/types/game';
-import { useUser, useActiveScene, useDrawingActions } from '@/stores/gameStore';
+import {
+  useUser,
+  useActiveScene,
+  useDrawingActions,
+  useGameStore,
+} from '@/stores/gameStore';
 import { webSocketService } from '@/utils/websocket';
+import { clipboardService } from '@/services/clipboardService';
 import {
   distance,
   isPointNearLine,
@@ -18,7 +24,21 @@ import {
 } from '@/utils/mathUtils';
 
 interface DrawingToolsProps {
-  activeTool: DrawingTool | 'select' | 'pan' | 'measure';
+  activeTool:
+    | DrawingTool
+    | 'select'
+    | 'pan'
+    | 'measure'
+    | 'move'
+    | 'copy'
+    | 'cut'
+    | 'paste'
+    | 'mask-create'
+    | 'mask-toggle'
+    | 'mask-remove'
+    | 'mask-show'
+    | 'mask-hide'
+    | 'grid-align';
   drawingStyle: DrawingStyle;
   camera: Camera;
   _gridSize: number;
@@ -51,7 +71,8 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
   const user = useUser();
   const activeScene = useActiveScene();
-  const { createDrawing, deleteDrawing } = useDrawingActions();
+  const { createDrawing, deleteDrawing, updateDrawing } = useDrawingActions();
+  const { updateScene } = useGameStore();
   const isHost = user.type === 'host';
 
   // Convert screen coordinates to scene coordinates
@@ -121,6 +142,94 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     },
     [activeScene, deleteDrawing],
   );
+
+  // Handle copy/cut/paste operations
+  const handleCopy = useCallback(() => {
+    if (!activeScene || selectedDrawings.length === 0) return;
+
+    const drawingsToCopy = activeScene.drawings.filter((d) =>
+      selectedDrawings.includes(d.id),
+    );
+    clipboardService.copy(drawingsToCopy);
+  }, [activeScene, selectedDrawings]);
+
+  const handleCut = useCallback(() => {
+    if (!activeScene || selectedDrawings.length === 0) return;
+
+    const drawingsToCopy = activeScene.drawings.filter((d) =>
+      selectedDrawings.includes(d.id),
+    );
+    clipboardService.copy(drawingsToCopy);
+
+    // Delete the selected drawings
+    selectedDrawings.forEach((drawingId) => {
+      deleteAndSyncDrawing(drawingId);
+    });
+
+    setSelectedDrawings([]);
+    onSelectionChange?.([]);
+  }, [activeScene, selectedDrawings, deleteAndSyncDrawing, onSelectionChange]);
+
+  const handlePaste = useCallback(() => {
+    if (!activeScene) return;
+
+    const pastedDrawings = clipboardService.paste();
+    pastedDrawings.forEach((drawing) => {
+      createAndSyncDrawing(drawing);
+    });
+
+    // Select the newly pasted drawings
+    const pastedIds = pastedDrawings.map((d) => d.id);
+    setSelectedDrawings(pastedIds);
+    onSelectionChange?.(pastedIds);
+  }, [activeScene, createAndSyncDrawing, onSelectionChange]);
+
+  // Keyboard shortcuts for copy/cut/paste
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if not typing in an input
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        handleCopy();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'x') {
+        e.preventDefault();
+        handleCut();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault();
+        handlePaste();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleCopy, handleCut, handlePaste]);
+
+  // Handle activeTool changes for copy/cut/paste
+  useEffect(() => {
+    if (activeTool === 'copy') {
+      handleCopy();
+      // Switch back to select tool after copying
+      const { setActiveTool } = useGameStore.getState();
+      setActiveTool('select');
+    } else if (activeTool === 'cut') {
+      handleCut();
+      // Switch back to select tool after cutting
+      const { setActiveTool } = useGameStore.getState();
+      setActiveTool('select');
+    } else if (activeTool === 'paste') {
+      handlePaste();
+      // Switch back to select tool after pasting
+      const { setActiveTool } = useGameStore.getState();
+      setActiveTool('select');
+    }
+  }, [activeTool, handleCopy, handleCut, handlePaste]);
 
   // Get drawings that intersect with a point (for eraser and selection)
   const getDrawingsAtPoint = useCallback(
@@ -223,6 +332,12 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
             intersects = isPointInCircle(point, drawing.position, radius + 15);
             break;
           }
+          case 'fog-of-war': {
+            intersects =
+              isPointInPolygon(point, drawing.area) ||
+              drawing.area.some((p) => isPointInCircle(point, p, radius));
+            break;
+          }
           default:
             break;
         }
@@ -316,12 +431,20 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     (e: React.MouseEvent) => {
       if (e.button !== 0) return;
 
+      const point = screenToScene(e.clientX, e.clientY);
+
       // Tools that don't interact with mousedown can be handled with an early return.
-      if (activeTool === 'pan' || activeTool === 'measure') {
+      if (activeTool === 'pan' || activeTool === 'move') {
         return;
       }
 
-      const point = screenToScene(e.clientX, e.clientY);
+      // Measure tool - start measuring
+      if (activeTool === 'measure') {
+        setStartPoint(point);
+        setCurrentPoint(point);
+        setIsDrawing(true);
+        return;
+      }
 
       const defaultHandler = () => {
         setStartPoint(point);
@@ -333,7 +456,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
         [key: string]: (event: React.MouseEvent) => void;
       } = {
         select: (event) => {
-          const drawingsAtPoint = getDrawingsAtPoint(point, 15); // Increased radius for better detection
+          const drawingsAtPoint = getDrawingsAtPoint(point, 25); // Increased radius for better line detection
           console.log(
             `🎯 Click at (${point.x.toFixed(0)}, ${point.y.toFixed(0)}), found ${drawingsAtPoint.length} drawings:`,
             drawingsAtPoint,
@@ -421,6 +544,178 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
           setPencilPath([point]);
           setIsDrawing(true);
         },
+        'mask-create': () => {
+          // Mask-create works like polygon - click to add points, double-click or Escape to finish
+          setPolygonPoints((prev) => [...prev, point]);
+        },
+        'mask-toggle': () => {
+          // Toggle the revealed state of the clicked fog mask
+          const drawingsAtPoint = getDrawingsAtPoint(point, 25);
+          const fogMask = activeScene?.drawings.find(
+            (d) => d.type === 'fog-of-war' && drawingsAtPoint.includes(d.id),
+          );
+
+          if (fogMask && fogMask.type === 'fog-of-war' && activeScene) {
+            const newRevealed = !fogMask.revealed;
+            updateDrawing(activeScene.id, fogMask.id, {
+              revealed: newRevealed,
+            });
+
+            // Sync the update
+            webSocketService.sendEvent({
+              type: 'drawing/update',
+              data: {
+                sceneId: activeScene.id,
+                drawingId: fogMask.id,
+                updates: { revealed: newRevealed },
+              },
+            });
+
+            console.log(
+              `🌫️ Toggled fog mask ${fogMask.id}: revealed=${newRevealed}`,
+            );
+          }
+        },
+        'mask-remove': () => {
+          // Remove the clicked fog mask
+          const drawingsAtPoint = getDrawingsAtPoint(point, 25);
+          const fogMask = activeScene?.drawings.find(
+            (d) => d.type === 'fog-of-war' && drawingsAtPoint.includes(d.id),
+          );
+
+          if (fogMask && activeScene) {
+            if (window.confirm('Remove this fog mask?')) {
+              deleteAndSyncDrawing(fogMask.id);
+              console.log(`🧽 Removed fog mask ${fogMask.id}`);
+            }
+          }
+        },
+        'mask-show': () => {
+          // Reveal all fog masks on the scene
+          if (!activeScene) return;
+
+          const fogMasks = activeScene.drawings.filter(
+            (d) => d.type === 'fog-of-war',
+          );
+
+          if (fogMasks.length === 0) {
+            alert('No fog masks found on this scene.');
+            return;
+          }
+
+          fogMasks.forEach((mask) => {
+            if (mask.type === 'fog-of-war' && !mask.revealed) {
+              updateDrawing(activeScene.id, mask.id, { revealed: true });
+
+              // Sync the update
+              webSocketService.sendEvent({
+                type: 'drawing/update',
+                data: {
+                  sceneId: activeScene.id,
+                  drawingId: mask.id,
+                  updates: { revealed: true },
+                },
+              });
+            }
+          });
+
+          console.log(`👁 Revealed ${fogMasks.length} fog mask(s)`);
+        },
+        'mask-hide': () => {
+          // Hide all fog masks on the scene
+          if (!activeScene) return;
+
+          const fogMasks = activeScene.drawings.filter(
+            (d) => d.type === 'fog-of-war',
+          );
+
+          if (fogMasks.length === 0) {
+            alert('No fog masks found on this scene.');
+            return;
+          }
+
+          fogMasks.forEach((mask) => {
+            if (mask.type === 'fog-of-war' && mask.revealed) {
+              updateDrawing(activeScene.id, mask.id, { revealed: false });
+
+              // Sync the update
+              webSocketService.sendEvent({
+                type: 'drawing/update',
+                data: {
+                  sceneId: activeScene.id,
+                  drawingId: mask.id,
+                  updates: { revealed: false },
+                },
+              });
+            }
+          });
+
+          console.log(`🙈 Hid ${fogMasks.length} fog mask(s)`);
+        },
+        'grid-align': () => {
+          // Set the clicked point as the new grid origin
+          if (!activeScene) return;
+
+          if (!activeScene.gridSettings?.enabled) {
+            alert(
+              'Please enable the grid first in Scene Settings before aligning it.',
+            );
+            return;
+          }
+
+          // Calculate grid offset - we want the clicked point to be a grid intersection
+          // So we find the remainder when dividing by grid size
+          const gridSize = activeScene.gridSettings?.size || 50;
+          const offsetX = point.x % gridSize;
+          const offsetY = point.y % gridSize;
+
+          // Update scene grid settings
+          updateScene(activeScene.id, {
+            gridSettings: {
+              ...activeScene.gridSettings,
+              offsetX,
+              offsetY,
+            },
+          });
+
+          // Sync the update
+          webSocketService.sendEvent({
+            type: 'scene/update',
+            data: {
+              sceneId: activeScene.id,
+              updates: {
+                gridSettings: {
+                  ...activeScene.gridSettings,
+                  offsetX,
+                  offsetY,
+                },
+              },
+            },
+          });
+
+          console.log(
+            `📐 Grid aligned! Click point: (${point.x.toFixed(0)}, ${point.y.toFixed(0)}), Grid offset: (${offsetX.toFixed(1)}, ${offsetY.toFixed(1)})`,
+          );
+
+          // Show visual feedback
+          const notification = document.createElement('div');
+          notification.textContent = '✓ Grid aligned to this point';
+          notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 188, 212, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 10000;
+            pointer-events: none;
+          `;
+          document.body.appendChild(notification);
+          setTimeout(() => notification.remove(), 2000);
+        },
       };
 
       const handler = mouseDownHandlers[activeTool] || defaultHandler;
@@ -442,15 +737,23 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       drawingStyle,
       user.id,
       user.name,
+      updateDrawing,
+      updateScene,
     ],
   );
 
   // Handle mouse move
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (activeTool === 'pan' || activeTool === 'measure') return;
+      if (activeTool === 'pan') return;
 
       const point = screenToScene(e.clientX, e.clientY);
+
+      // Measure tool - update measurement line
+      if (activeTool === 'measure' && isDrawing && startPoint) {
+        setCurrentPoint(point);
+        return;
+      }
 
       const defaultHandler = () => {
         if (isDrawing) {
@@ -479,6 +782,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
         polygon: () => {
           setCurrentPoint(point);
         },
+        'mask-create': () => {
+          setCurrentPoint(point);
+        },
       };
 
       const handler = mouseMoveHandlers[activeTool] || defaultHandler;
@@ -490,6 +796,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       activeTool,
       screenToScene,
       isDrawing,
+      startPoint,
       isErasing,
       selectionBox,
       getDrawingsAtPoint,
@@ -628,29 +935,60 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     ],
   );
 
-  // Handle polygon completion
+  // Handle polygon completion (also used for mask-create)
   const handlePolygonComplete = useCallback(
     (e: React.MouseEvent) => {
-      if (activeTool !== 'polygon' || polygonPoints.length < 3) return;
+      if (
+        (activeTool !== 'polygon' && activeTool !== 'mask-create') ||
+        polygonPoints.length < 3
+      )
+        return;
 
       if (e.type === 'dblclick' || e.button === 2) {
-        const drawing: Drawing = {
-          id: `drawing-${Date.now()}-${user.id}`,
-          type: 'polygon',
-          style: drawingStyle,
-          layer:
-            drawingStyle.dmNotesOnly || !drawingStyle.visibleToPlayers
-              ? 'dm-only'
-              : 'effects',
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          createdBy: user.id,
-          points: polygonPoints,
-        };
+        if (activeTool === 'mask-create') {
+          // Create fog-of-war drawing
+          const drawing: Drawing = {
+            id: `fog-${Date.now()}-${user.id}`,
+            type: 'fog-of-war',
+            style: {
+              ...drawingStyle,
+              fillColor: '#000000',
+              fillOpacity: 0.8,
+              strokeColor: '#666666',
+              strokeWidth: 2,
+            },
+            layer: 'dm-only',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            createdBy: user.id,
+            area: polygonPoints,
+            density: 0.8,
+            revealed: false,
+          };
 
-        createAndSyncDrawing(drawing);
-        setPolygonPoints([]);
-        e.preventDefault();
+          createAndSyncDrawing(drawing);
+          setPolygonPoints([]);
+          e.preventDefault();
+        } else {
+          // Regular polygon
+          const drawing: Drawing = {
+            id: `drawing-${Date.now()}-${user.id}`,
+            type: 'polygon',
+            style: drawingStyle,
+            layer:
+              drawingStyle.dmNotesOnly || !drawingStyle.visibleToPlayers
+                ? 'dm-only'
+                : 'effects',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            createdBy: user.id,
+            points: polygonPoints,
+          };
+
+          createAndSyncDrawing(drawing);
+          setPolygonPoints([]);
+          e.preventDefault();
+        }
       }
     },
     [activeTool, polygonPoints, drawingStyle, user.id, createAndSyncDrawing],
@@ -663,7 +1001,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     onSelectionChange?.([]);
   }, [selectedDrawings, deleteAndSyncDrawing, onSelectionChange]);
 
-  // Handle keyboard events for selection tool
+  // Handle keyboard events for selection tool and polygon/mask tools
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (activeTool === 'select' && selectedDrawings.length > 0) {
@@ -672,13 +1010,73 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
           e.preventDefault();
         }
       }
+
+      // Handle polygon and mask-create keyboard shortcuts
+      if (
+        (activeTool === 'polygon' || activeTool === 'mask-create') &&
+        polygonPoints.length >= 3
+      ) {
+        if (e.key === 'Enter') {
+          // Complete the polygon/mask
+          if (activeTool === 'mask-create') {
+            const drawing: Drawing = {
+              id: `fog-${Date.now()}-${user.id}`,
+              type: 'fog-of-war',
+              style: {
+                ...drawingStyle,
+                fillColor: '#000000',
+                fillOpacity: 0.8,
+                strokeColor: '#666666',
+                strokeWidth: 2,
+              },
+              layer: 'dm-only',
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              createdBy: user.id,
+              area: polygonPoints,
+              density: 0.8,
+              revealed: false,
+            };
+            createAndSyncDrawing(drawing);
+          } else {
+            const drawing: Drawing = {
+              id: `drawing-${Date.now()}-${user.id}`,
+              type: 'polygon',
+              style: drawingStyle,
+              layer:
+                drawingStyle.dmNotesOnly || !drawingStyle.visibleToPlayers
+                  ? 'dm-only'
+                  : 'effects',
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              createdBy: user.id,
+              points: polygonPoints,
+            };
+            createAndSyncDrawing(drawing);
+          }
+          setPolygonPoints([]);
+          e.preventDefault();
+        } else if (e.key === 'Escape') {
+          // Cancel the polygon/mask
+          setPolygonPoints([]);
+          e.preventDefault();
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTool, selectedDrawings, deleteSelectedDrawings]);
+  }, [
+    activeTool,
+    selectedDrawings,
+    deleteSelectedDrawings,
+    polygonPoints,
+    drawingStyle,
+    user.id,
+    createAndSyncDrawing,
+  ]);
 
-  if (activeTool === 'pan' || activeTool === 'measure') {
+  if (activeTool === 'pan') {
     return null;
   }
 
@@ -702,6 +1100,59 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     const midY = (startPoint.y + currentPoint.y) / 2;
 
     switch (activeTool) {
+      case 'measure':
+        return (
+          <>
+            <line
+              x1={startPoint.x}
+              y1={startPoint.y}
+              x2={currentPoint.x}
+              y2={currentPoint.y}
+              stroke="#00bcd4"
+              strokeWidth={3 / camera.zoom}
+              fill="none"
+              pointerEvents="none"
+            />
+            {/* Distance indicator */}
+            <text
+              x={midX}
+              y={midY - 15 / camera.zoom}
+              fill="#00bcd4"
+              fontSize={16 / camera.zoom}
+              fontWeight="bold"
+              textAnchor="middle"
+              pointerEvents="none"
+              style={{
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+              }}
+            >
+              📏 {distanceInFeet.toFixed(1)} ft ({distanceInPixels.toFixed(0)}
+              px)
+            </text>
+            {/* Start point marker */}
+            <circle
+              cx={startPoint.x}
+              cy={startPoint.y}
+              r={5 / camera.zoom}
+              fill="#00ff00"
+              stroke="#ffffff"
+              strokeWidth={2 / camera.zoom}
+              pointerEvents="none"
+            />
+            {/* End point marker */}
+            <circle
+              cx={currentPoint.x}
+              cy={currentPoint.y}
+              r={5 / camera.zoom}
+              fill="#ff0000"
+              stroke="#ffffff"
+              strokeWidth={2 / camera.zoom}
+              pointerEvents="none"
+            />
+          </>
+        );
+
       case 'line':
         return (
           <>
@@ -862,13 +1313,18 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     }
   };
 
-  // Render polygon preview lines
+  // Render polygon preview lines (also used for mask-create)
   const renderPolygonPreview = () => {
-    if (activeTool !== 'polygon' || polygonPoints.length === 0) return null;
+    if (
+      (activeTool !== 'polygon' && activeTool !== 'mask-create') ||
+      polygonPoints.length === 0
+    )
+      return null;
 
+    const isMask = activeTool === 'mask-create';
     const previewStyle = {
-      stroke: drawingStyle.strokeColor,
-      strokeWidth: drawingStyle.strokeWidth / camera.zoom,
+      stroke: isMask ? '#666666' : drawingStyle.strokeColor,
+      strokeWidth: (isMask ? 2 : drawingStyle.strokeWidth) / camera.zoom,
       fill: 'none',
       strokeDasharray: '5,5',
       pointerEvents: 'none' as const,
@@ -910,7 +1366,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
             cx={point.x}
             cy={point.y}
             r={3 / camera.zoom}
-            fill={drawingStyle.strokeColor}
+            fill={isMask ? '#666666' : drawingStyle.strokeColor}
             pointerEvents="none"
           />
         ))}

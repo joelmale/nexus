@@ -8,7 +8,8 @@ interface ScenePanelProps {
 }
 
 export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
-  const { updateScene, createScene, deleteScene } = useGameStore();
+  const { updateScene, createScene, deleteScene, clearDrawings, deleteToken } =
+    useGameStore();
   const isHost = useIsHost();
   const [editingName, setEditingName] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
@@ -17,7 +18,10 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
   // Add debugging for host detection
   React.useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🎪 ScenePanel host check:', { isHost, scene: scene?.id || 'none' });
+      console.log('🎪 ScenePanel host check:', {
+        isHost,
+        scene: scene?.id || 'none',
+      });
     }
   }, [isHost, scene?.id]);
 
@@ -32,39 +36,39 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
   // If in management mode, show the Scene Management component
   if (managementMode) {
     return (
-      <SceneManagement
-        onBackToSettings={() => setManagementMode(false)}
-      />
+      <SceneManagement onBackToSettings={() => setManagementMode(false)} />
     );
   }
 
   // Provide default values for missing properties
-  const safeScene = scene ? {
-    ...scene,
-    description: scene.description || '',
-    visibility: scene.visibility || 'private' as const,
-    isEditable: scene.isEditable ?? true,
-    gridSettings: {
-      ...{
-        enabled: true,
-        size: 50,
-        color: '#ffffff',
-        opacity: 0.3,
-        snapToGrid: true,
-        showToPlayers: true,
-      },
-      ...(scene.gridSettings || {}),
-    },
-    lightingSettings: {
-      ...{
-        enabled: false,
-        globalIllumination: true,
-        ambientLight: 0.5,
-        darkness: 0,
-      },
-      ...(scene.lightingSettings || {}),
-    },
-  } : null;
+  const safeScene = scene
+    ? {
+        ...scene,
+        description: scene.description || '',
+        visibility: scene.visibility || ('private' as const),
+        isEditable: scene.isEditable ?? true,
+        gridSettings: {
+          ...{
+            enabled: true,
+            size: 50,
+            color: '#ffffff',
+            opacity: 0.3,
+            snapToGrid: true,
+            showToPlayers: true,
+          },
+          ...(scene.gridSettings || {}),
+        },
+        lightingSettings: {
+          ...{
+            enabled: false,
+            globalIllumination: true,
+            ambientLight: 0.5,
+            darkness: 0,
+          },
+          ...(scene.lightingSettings || {}),
+        },
+      }
+    : null;
 
   // If no scene selected, show creation prompt
   if (!safeScene) {
@@ -84,7 +88,10 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
         </div>
         <div className="scene-panel-content">
           <div className="no-scene">
-            <p>No scene selected. Create or select a scene to manage its settings.</p>
+            <p>
+              No scene selected. Create or select a scene to manage its
+              settings.
+            </p>
             <button
               onClick={() => {
                 const defaultScene = {
@@ -124,7 +131,10 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
     );
   }
 
-  const handleFieldUpdate = (field: keyof Scene, value: any) => {
+  const handleFieldUpdate = <K extends keyof Scene>(
+    field: K,
+    value: Scene[K],
+  ) => {
     updateScene(safeScene.id, { [field]: value });
   };
 
@@ -144,14 +154,22 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
     handleFieldUpdate('visibility', visibility);
   };
 
-  const handleGridSettingChange = (setting: keyof Scene['gridSettings'], value: any) => {
+  const handleGridSettingChange = <K extends keyof Scene['gridSettings']>(
+    setting: K,
+    value: Scene['gridSettings'][K],
+  ) => {
     handleFieldUpdate('gridSettings', {
       ...safeScene.gridSettings,
       [setting]: value,
     });
   };
 
-  const handleLightingSettingChange = (setting: keyof Scene['lightingSettings'], value: any) => {
+  const handleLightingSettingChange = <
+    K extends keyof Scene['lightingSettings'],
+  >(
+    setting: K,
+    value: Scene['lightingSettings'][K],
+  ) => {
     handleFieldUpdate('lightingSettings', {
       ...safeScene.lightingSettings,
       [setting]: value,
@@ -194,7 +212,8 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                 autoFocus
                 onBlur={(e) => handleNameSubmit(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleNameSubmit(e.currentTarget.value);
+                  if (e.key === 'Enter')
+                    handleNameSubmit(e.currentTarget.value);
                   if (e.key === 'Escape') setEditingName(false);
                 }}
                 className="scene-name-input"
@@ -296,7 +315,9 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
               <input
                 type="checkbox"
                 checked={safeScene.isEditable}
-                onChange={(e) => handleFieldUpdate('isEditable', e.target.checked)}
+                onChange={(e) =>
+                  handleFieldUpdate('isEditable', e.target.checked)
+                }
               />
               Allow editing (tokens, drawings, etc.)
             </label>
@@ -312,7 +333,9 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
               <input
                 type="checkbox"
                 checked={safeScene.gridSettings.enabled}
-                onChange={(e) => handleGridSettingChange('enabled', e.target.checked)}
+                onChange={(e) =>
+                  handleGridSettingChange('enabled', e.target.checked)
+                }
               />
               Enable grid
             </label>
@@ -328,20 +351,30 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                   max="100"
                   step="5"
                   value={safeScene.gridSettings.size}
-                  onChange={(e) => handleGridSettingChange('size', parseInt(e.target.value))}
+                  onChange={(e) =>
+                    handleGridSettingChange('size', parseInt(e.target.value))
+                  }
                   className="range-input"
                 />
               </div>
 
               <div className="scene-field">
-                <label>Grid opacity: {Math.round(safeScene.gridSettings.opacity * 100)}%</label>
+                <label>
+                  Grid opacity:{' '}
+                  {Math.round(safeScene.gridSettings.opacity * 100)}%
+                </label>
                 <input
                   type="range"
                   min="0"
                   max="1"
                   step="0.1"
                   value={safeScene.gridSettings.opacity}
-                  onChange={(e) => handleGridSettingChange('opacity', parseFloat(e.target.value))}
+                  onChange={(e) =>
+                    handleGridSettingChange(
+                      'opacity',
+                      parseFloat(e.target.value),
+                    )
+                  }
                   className="range-input"
                 />
               </div>
@@ -351,7 +384,9 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                 <input
                   type="color"
                   value={safeScene.gridSettings.color}
-                  onChange={(e) => handleGridSettingChange('color', e.target.value)}
+                  onChange={(e) =>
+                    handleGridSettingChange('color', e.target.value)
+                  }
                   className="color-input"
                 />
               </div>
@@ -361,7 +396,9 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                   <input
                     type="checkbox"
                     checked={safeScene.gridSettings.snapToGrid}
-                    onChange={(e) => handleGridSettingChange('snapToGrid', e.target.checked)}
+                    onChange={(e) =>
+                      handleGridSettingChange('snapToGrid', e.target.checked)
+                    }
                   />
                   Snap objects to grid
                 </label>
@@ -372,10 +409,142 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                   <input
                     type="checkbox"
                     checked={safeScene.gridSettings.showToPlayers}
-                    onChange={(e) => handleGridSettingChange('showToPlayers', e.target.checked)}
+                    onChange={(e) =>
+                      handleGridSettingChange('showToPlayers', e.target.checked)
+                    }
                   />
                   Show grid to players
                 </label>
+              </div>
+            </>
+          )}
+        </section>
+
+        {/* Background Image Section */}
+        <section className="scene-section">
+          <h4>Background Image</h4>
+
+          <div className="scene-field">
+            <label>Background Image URL</label>
+            <input
+              type="text"
+              value={safeScene.backgroundImage?.url || ''}
+              onChange={(e) => {
+                const url = e.target.value;
+                if (url) {
+                  handleFieldUpdate('backgroundImage', {
+                    url,
+                    width: 1920,
+                    height: 1080,
+                    offsetX: -960,
+                    offsetY: -540,
+                    scale: 1,
+                  });
+                } else {
+                  handleFieldUpdate('backgroundImage', null);
+                }
+              }}
+              placeholder="https://example.com/map.jpg or paste image URL"
+              className="scene-input"
+            />
+          </div>
+
+          <div className="scene-field">
+            <label>Or upload an image</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  // Convert to base64 data URL
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    const result = event.target?.result;
+                    if (typeof result === 'string') {
+                      // Create an image to get dimensions
+                      const img = new Image();
+                      img.onload = () => {
+                        handleFieldUpdate('backgroundImage', {
+                          url: result,
+                          width: img.width,
+                          height: img.height,
+                          offsetX: -img.width / 2,
+                          offsetY: -img.height / 2,
+                          scale: 1,
+                        });
+                      };
+                      img.src = result;
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+              className="file-input"
+            />
+            <small
+              style={{
+                color: 'var(--glass-text-secondary, #999)',
+                display: 'block',
+                marginTop: '4px',
+              }}
+            >
+              Supported: JPG, PNG, WebP, GIF
+            </small>
+          </div>
+
+          {safeScene.backgroundImage && (
+            <>
+              <div className="scene-field">
+                <label>Background Preview</label>
+                <div
+                  style={{
+                    width: '100%',
+                    height: '150px',
+                    backgroundImage: `url(${safeScene.backgroundImage.url})`,
+                    backgroundSize: 'contain',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'center',
+                    border:
+                      '1px solid var(--glass-border, rgba(255,255,255,0.1))',
+                    borderRadius: '4px',
+                    marginTop: '8px',
+                  }}
+                />
+              </div>
+
+              <div className="scene-field">
+                <label>
+                  Scale:{' '}
+                  {Math.round((safeScene.backgroundImage.scale || 1) * 100)}%
+                </label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="3"
+                  step="0.1"
+                  value={safeScene.backgroundImage.scale || 1}
+                  onChange={(e) =>
+                    handleFieldUpdate('backgroundImage', {
+                      ...safeScene.backgroundImage!,
+                      scale: parseFloat(e.target.value),
+                    })
+                  }
+                  className="range-input"
+                />
+              </div>
+
+              <div className="scene-field">
+                <button
+                  onClick={() => {
+                    if (window.confirm('Remove background image?')) {
+                      handleFieldUpdate('backgroundImage', null);
+                    }
+                  }}
+                  className="danger-outline"
+                >
+                  🗑️ Remove Background
+                </button>
               </div>
             </>
           )}
@@ -390,7 +559,9 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
               <input
                 type="checkbox"
                 checked={safeScene.lightingSettings.enabled}
-                onChange={(e) => handleLightingSettingChange('enabled', e.target.checked)}
+                onChange={(e) =>
+                  handleLightingSettingChange('enabled', e.target.checked)
+                }
               />
               Enable dynamic lighting
             </label>
@@ -399,27 +570,43 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
           {safeScene.lightingSettings.enabled && (
             <>
               <div className="scene-field">
-                <label>Ambient light: {Math.round(safeScene.lightingSettings.ambientLight * 100)}%</label>
+                <label>
+                  Ambient light:{' '}
+                  {Math.round(safeScene.lightingSettings.ambientLight * 100)}%
+                </label>
                 <input
                   type="range"
                   min="0"
                   max="1"
                   step="0.1"
                   value={safeScene.lightingSettings.ambientLight}
-                  onChange={(e) => handleLightingSettingChange('ambientLight', parseFloat(e.target.value))}
+                  onChange={(e) =>
+                    handleLightingSettingChange(
+                      'ambientLight',
+                      parseFloat(e.target.value),
+                    )
+                  }
                   className="range-input"
                 />
               </div>
 
               <div className="scene-field">
-                <label>Darkness: {Math.round(safeScene.lightingSettings.darkness * 100)}%</label>
+                <label>
+                  Darkness:{' '}
+                  {Math.round(safeScene.lightingSettings.darkness * 100)}%
+                </label>
                 <input
                   type="range"
                   min="0"
                   max="1"
                   step="0.1"
                   value={safeScene.lightingSettings.darkness}
-                  onChange={(e) => handleLightingSettingChange('darkness', parseFloat(e.target.value))}
+                  onChange={(e) =>
+                    handleLightingSettingChange(
+                      'darkness',
+                      parseFloat(e.target.value),
+                    )
+                  }
                   className="range-input"
                 />
               </div>
@@ -429,7 +616,12 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                   <input
                     type="checkbox"
                     checked={safeScene.lightingSettings.globalIllumination}
-                    onChange={(e) => handleLightingSettingChange('globalIllumination', e.target.checked)}
+                    onChange={(e) =>
+                      handleLightingSettingChange(
+                        'globalIllumination',
+                        e.target.checked,
+                      )
+                    }
                   />
                   Global illumination
                 </label>
@@ -441,16 +633,52 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
         {/* Danger Zone */}
         <section className="scene-section danger-zone">
           <h4>Danger Zone</h4>
-          <button
-            onClick={() => {
-              if (window.confirm('Delete this scene? This cannot be undone.')) {
-                deleteScene(safeScene.id);
-              }
-            }}
-            className="delete-scene-button"
-          >
-            Delete Scene
-          </button>
+          <div className="flex gap-3 flex-wrap">
+            <button
+              onClick={() => {
+                const drawingCount = safeScene.drawings?.length || 0;
+                const tokenCount = safeScene.placedTokens?.length || 0;
+                const totalObjects = drawingCount + tokenCount;
+
+                if (totalObjects === 0) {
+                  alert('No objects to delete.');
+                  return;
+                }
+
+                const message = `Delete all ${totalObjects} object(s)? This includes:\n- ${drawingCount} drawing(s)\n- ${tokenCount} token(s)\n\nThis cannot be undone.`;
+
+                if (window.confirm(message)) {
+                  // Delete all drawings
+                  clearDrawings(safeScene.id);
+
+                  // Delete all tokens
+                  const tokenIds = [...safeScene.placedTokens];
+                  tokenIds.forEach((token) => {
+                    deleteToken(safeScene.id, token.id);
+                  });
+
+                  console.log(
+                    `🗑️ Deleted all objects from scene ${safeScene.id}`,
+                  );
+                }
+              }}
+              className="danger-outline"
+            >
+              Delete All Objects
+            </button>
+            <button
+              onClick={() => {
+                if (
+                  window.confirm('Delete this scene? This cannot be undone.')
+                ) {
+                  deleteScene(safeScene.id);
+                }
+              }}
+              className="danger"
+            >
+              Delete Scene
+            </button>
+          </div>
         </section>
       </div>
     </div>

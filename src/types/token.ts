@@ -1,5 +1,17 @@
-export type TokenSize = 'tiny' | 'small' | 'medium' | 'large' | 'huge' | 'gargantuan';
-export type TokenCategory = 'pc' | 'npc' | 'monster' | 'object' | 'vehicle' | 'effect';
+export type TokenSize =
+  | 'tiny'
+  | 'small'
+  | 'medium'
+  | 'large'
+  | 'huge'
+  | 'gargantuan';
+export type TokenCategory =
+  | 'pc'
+  | 'npc'
+  | 'monster'
+  | 'object'
+  | 'vehicle'
+  | 'effect';
 export type TokenLayer = 'background' | 'tokens' | 'overlay';
 
 export interface Point {
@@ -26,14 +38,17 @@ export interface TokenCondition {
 export interface Token {
   id: string;
   name: string;
-  image: string;
+  image: string; // Can be URL, base64, or hash checksum for IndexedDB
+  imageChecksum?: string; // SHA-1 hash for IndexedDB lookups
   thumbnailImage?: string;
+  thumbnailChecksum?: string; // SHA-1 hash for thumbnail
   size: TokenSize;
   category: TokenCategory;
   tags?: string[];
   stats?: TokenStats;
   description?: string;
   isCustom?: boolean; // User-uploaded vs system tokens
+  isPublic?: boolean; // Public = available to all players, Private = DM only
   createdAt: number;
   updatedAt: number;
 }
@@ -47,15 +62,15 @@ export interface PlacedToken {
   rotation: number; // In degrees
   scale: number; // Multiplier (1.0 = normal size)
   layer: TokenLayer;
-  
+
   // Visibility and permissions
   visibleToPlayers: boolean;
   dmNotesOnly: boolean;
-  
+
   // Game state
   conditions: TokenCondition[];
   currentStats?: Partial<TokenStats>; // Override base token stats
-  
+
   // Metadata
   placedBy: string; // User ID who placed the token
   createdAt: number;
@@ -74,21 +89,26 @@ export interface TokenLibrary {
 
 // Token size to grid squares mapping (for D&D 5e)
 export const TOKEN_SIZE_GRID_MAPPING: Record<TokenSize, number> = {
-  'tiny': 0.5,
-  'small': 1,
-  'medium': 1,
-  'large': 2,
-  'huge': 3,
-  'gargantuan': 4
+  tiny: 0.5,
+  small: 1,
+  medium: 1,
+  large: 2,
+  huge: 3,
+  gargantuan: 4,
 };
 
 // Token size to pixel dimensions (based on grid size)
-export const getTokenPixelSize = (size: TokenSize, gridSize: number): number => {
+export const getTokenPixelSize = (
+  size: TokenSize,
+  gridSize: number,
+): number => {
   return TOKEN_SIZE_GRID_MAPPING[size] * gridSize;
 };
 
 // Utility functions
-export const createToken = (data: Omit<Token, 'id' | 'createdAt' | 'updatedAt'>): Token => {
+export const createToken = (
+  data: Omit<Token, 'id' | 'createdAt' | 'updatedAt'>,
+): Token => {
   return {
     ...data,
     id: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -102,7 +122,7 @@ export const createPlacedToken = (
   position: Point,
   sceneId: string,
   placedBy: string,
-  options: Partial<PlacedToken> = {}
+  options: Partial<PlacedToken> = {},
 ): PlacedToken => {
   return {
     id: `placed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -124,19 +144,26 @@ export const createPlacedToken = (
 };
 
 // Token filtering and search utilities
-export const filterTokensByCategory = (tokens: Token[], category: TokenCategory): Token[] => {
-  return tokens.filter(token => token.category === category);
+export const filterTokensByCategory = (
+  tokens: Token[],
+  category: TokenCategory,
+): Token[] => {
+  return tokens.filter((token) => token.category === category);
 };
 
 export const searchTokens = (tokens: Token[], query: string): Token[] => {
   const lowerQuery = query.toLowerCase();
-  return tokens.filter(token => 
-    token.name.toLowerCase().includes(lowerQuery) ||
-    token.tags?.some(tag => tag.toLowerCase().includes(lowerQuery)) ||
-    token.description?.toLowerCase().includes(lowerQuery)
+  return tokens.filter(
+    (token) =>
+      token.name.toLowerCase().includes(lowerQuery) ||
+      token.tags?.some((tag) => tag.toLowerCase().includes(lowerQuery)) ||
+      token.description?.toLowerCase().includes(lowerQuery),
   );
 };
 
-export const filterTokensBySize = (tokens: Token[], size: TokenSize): Token[] => {
-  return tokens.filter(token => token.size === size);
+export const filterTokensBySize = (
+  tokens: Token[],
+  size: TokenSize,
+): Token[] => {
+  return tokens.filter((token) => token.size === size);
 };

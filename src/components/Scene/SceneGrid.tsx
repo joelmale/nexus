@@ -7,7 +7,11 @@ interface SceneGridProps {
   camera: Camera;
 }
 
-export const SceneGrid: React.FC<SceneGridProps> = ({ scene, viewportSize, camera }) => {
+export const SceneGrid: React.FC<SceneGridProps> = ({
+  scene,
+  viewportSize,
+  camera,
+}) => {
   // Safe access to scene properties with defaults
   const gridSettings = scene.gridSettings || {
     enabled: true,
@@ -15,7 +19,7 @@ export const SceneGrid: React.FC<SceneGridProps> = ({ scene, viewportSize, camer
     color: '#ffffff',
     opacity: 0.3,
     snapToGrid: true,
-    showToPlayers: true
+    showToPlayers: true,
   };
 
   if (!gridSettings.enabled) return null;
@@ -23,22 +27,29 @@ export const SceneGrid: React.FC<SceneGridProps> = ({ scene, viewportSize, camer
   // Calculate the grid bounds based on camera position and zoom
   const gridSize = gridSettings.size;
   const zoom = camera.zoom;
-  
+  const offsetX = gridSettings.offsetX || 0;
+  const offsetY = gridSettings.offsetY || 0;
+
   // Calculate visible area in world coordinates
   const worldWidth = viewportSize.width / zoom;
   const worldHeight = viewportSize.height / zoom;
-  
+
   const worldLeft = camera.x - worldWidth / 2;
   const worldTop = camera.y - worldHeight / 2;
   const worldRight = camera.x + worldWidth / 2;
   const worldBottom = camera.y + worldHeight / 2;
-  
+
   // Extend the grid slightly beyond visible area for smooth panning
   const padding = gridSize * 2;
-  const gridLeft = Math.floor((worldLeft - padding) / gridSize) * gridSize;
-  const gridTop = Math.floor((worldTop - padding) / gridSize) * gridSize;
-  const gridRight = Math.ceil((worldRight + padding) / gridSize) * gridSize;
-  const gridBottom = Math.ceil((worldBottom + padding) / gridSize) * gridSize;
+  const gridLeft =
+    Math.floor((worldLeft - padding - offsetX) / gridSize) * gridSize + offsetX;
+  const gridTop =
+    Math.floor((worldTop - padding - offsetY) / gridSize) * gridSize + offsetY;
+  const gridRight =
+    Math.ceil((worldRight + padding - offsetX) / gridSize) * gridSize + offsetX;
+  const gridBottom =
+    Math.ceil((worldBottom + padding - offsetY) / gridSize) * gridSize +
+    offsetY;
 
   // Generate grid lines
   const verticalLines = [];
@@ -56,7 +67,7 @@ export const SceneGrid: React.FC<SceneGridProps> = ({ scene, viewportSize, camer
         stroke={gridSettings.color}
         strokeWidth={1 / zoom} // Scale line width with zoom
         opacity={gridSettings.opacity}
-      />
+      />,
     );
   }
 
@@ -72,7 +83,7 @@ export const SceneGrid: React.FC<SceneGridProps> = ({ scene, viewportSize, camer
         stroke={gridSettings.color}
         strokeWidth={1 / zoom} // Scale line width with zoom
         opacity={gridSettings.opacity}
-      />
+      />,
     );
   }
 

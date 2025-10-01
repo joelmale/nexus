@@ -233,6 +233,41 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
         );
       }
 
+      case 'fog-of-war': {
+        if (drawing.area.length < 3) return null;
+        const pathData = `M ${drawing.area.map((p) => `${p.x} ${p.y}`).join(' L ')} Z`;
+
+        // Only show fog if it's not revealed (or if DM wants to see it)
+        const fogOpacity = drawing.revealed ? 0 : drawing.density;
+
+        return (
+          <g key={drawing.id} className="fog-of-war-layer">
+            {/* Fog polygon */}
+            <path
+              d={pathData}
+              fill="#000000"
+              fillOpacity={fogOpacity}
+              stroke="#666666"
+              strokeWidth={strokeWidth}
+              strokeDasharray={isHost && !drawing.revealed ? '5,5' : undefined}
+              className={commonProps.className}
+            />
+            {/* DM-only indicator when revealed */}
+            {isHost && drawing.revealed && (
+              <text
+                x={drawing.area[0].x}
+                y={drawing.area[0].y - 10 / camera.zoom}
+                fill="#00ff00"
+                fontSize={12 / camera.zoom}
+                opacity={0.6}
+              >
+                ✓ Revealed
+              </text>
+            )}
+          </g>
+        );
+      }
+
       default:
         console.warn(`Unknown drawing type: ${(drawing as BaseDrawing).type}`);
         return null;

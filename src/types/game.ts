@@ -132,6 +132,8 @@ export interface Scene {
     opacity: number;
     snapToGrid: boolean;
     showToPlayers: boolean; // Whether players can see the grid
+    offsetX?: number; // Grid offset X for alignment with background images
+    offsetY?: number; // Grid offset Y for alignment with background images
   };
 
   // Lighting and vision
