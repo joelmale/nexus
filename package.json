@@ -79,7 +79,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.0.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "@eslint/config-array": "^0.17.1",
+    "@eslint/config-array": "^0.21.0",
     "@eslint/js": "^9.9.0",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
