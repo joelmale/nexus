@@ -1,27 +1,28 @@
 // Drawing and measurement tool types for Scene Canvas
 
 // Basic drawing tools
-export type DrawingTool = 
-  | 'pencil'      // Freehand drawing
-  | 'line'        // Straight lines
-  | 'rectangle'   // Rectangles/squares
-  | 'circle'      // Circles/ellipses
-  | 'polygon'     // Multi-point polygons
-  | 'text'        // Text annotations
-  | 'eraser'      // Eraser tool
-  
+export type DrawingTool =
+  | 'pencil' // Freehand drawing
+  | 'line' // Straight lines
+  | 'rectangle' // Rectangles/squares
+  | 'circle' // Circles/ellipses
+  | 'polygon' // Multi-point polygons
+  | 'text' // Text annotations
+  | 'eraser' // Eraser tool
+  | 'ping' // Ping location marker
+
   // D&D 5e specific shapes
-  | 'cone'            // Cone of effect (follows 5e rules)
-  | 'aoe-sphere'      // Sphere/radius effects
-  | 'aoe-cube'        // Cube effects
-  | 'aoe-cylinder'    // Cylinder effects  
-  | 'aoe-line'        // Line effects
-  
+  | 'cone' // Cone of effect (follows 5e rules)
+  | 'aoe-sphere' // Sphere/radius effects
+  | 'aoe-cube' // Cube effects
+  | 'aoe-cylinder' // Cylinder effects
+  | 'aoe-line' // Line effects
+
   // DM-only tools
-  | 'fog-of-war'      // Fog of war areas
+  | 'fog-of-war' // Fog of war areas
   | 'dynamic-lighting' // Light sources
-  | 'vision-blocking'  // Vision blocking walls
-  | 'dm-notes';        // DM-only annotations
+  | 'vision-blocking' // Vision blocking walls
+  | 'dm-notes'; // DM-only annotations
 
 // Measurement tools
 export type MeasurementTool = 'measure';
@@ -31,20 +32,20 @@ export interface DrawingStyle {
   // Fill properties
   fillColor: string;
   fillOpacity: number;
-  
+
   // Stroke properties
   strokeColor: string;
   strokeWidth: number;
   strokeDashArray?: string; // CSS dash pattern, e.g., "5,5" for dashed
-  
+
   // D&D specific properties
-  dndSpellLevel?: number;    // 0-9 for cantrip to 9th level
-  aoeRadius?: number;        // Radius in feet for sphere effects
-  coneLength?: number;       // Length in feet for cone effects
-  
+  dndSpellLevel?: number; // 0-9 for cantrip to 9th level
+  aoeRadius?: number; // Radius in feet for sphere effects
+  coneLength?: number; // Length in feet for cone effects
+
   // DM visibility properties
   visibleToPlayers?: boolean; // DM can hide drawings from players
-  dmNotesOnly?: boolean;      // Only visible to DM
+  dmNotesOnly?: boolean; // Only visible to DM
 }
 
 // Default drawing styles
@@ -118,10 +119,10 @@ export interface TextDrawing extends BaseDrawing {
 // D&D 5e specific shapes
 export interface ConeDrawing extends BaseDrawing {
   type: 'cone';
-  origin: Point;      // Point of origin for the cone
-  direction: number;  // Angle in degrees (0 = right, 90 = down, etc.)
-  length: number;     // Length in feet (converted to pixels based on grid)
-  angle: number;      // Cone angle in degrees (typically 90° for most spells)
+  origin: Point; // Point of origin for the cone
+  direction: number; // Angle in degrees (0 = right, 90 = down, etc.)
+  length: number; // Length in feet (converted to pixels based on grid)
+  angle: number; // Cone angle in degrees (typically 90° for most spells)
 }
 
 export interface SphereAoEDrawing extends BaseDrawing {
@@ -132,8 +133,8 @@ export interface SphereAoEDrawing extends BaseDrawing {
 
 export interface CubeAoEDrawing extends BaseDrawing {
   type: 'aoe-cube';
-  origin: Point;  // Corner of the cube
-  size: number;   // Side length in feet
+  origin: Point; // Corner of the cube
+  size: number; // Side length in feet
 }
 
 export interface CylinderAoEDrawing extends BaseDrawing {
@@ -153,25 +154,25 @@ export interface LineAoEDrawing extends BaseDrawing {
 // DM-only drawing types
 export interface FogOfWarDrawing extends BaseDrawing {
   type: 'fog-of-war';
-  area: Point[];      // Polygon defining the fog area
-  density: number;    // 0-1, how opaque the fog is
-  revealed: boolean;  // Whether this area is currently revealed
+  area: Point[]; // Polygon defining the fog area
+  density: number; // 0-1, how opaque the fog is
+  revealed: boolean; // Whether this area is currently revealed
 }
 
 export interface DynamicLightDrawing extends BaseDrawing {
   type: 'dynamic-lighting';
   center: Point;
-  brightRadius: number;   // Bright light radius in feet
-  dimRadius: number;      // Dim light radius in feet
-  color: string;          // Light color
-  flickering: boolean;    // Whether the light flickers
+  brightRadius: number; // Bright light radius in feet
+  dimRadius: number; // Dim light radius in feet
+  color: string; // Light color
+  flickering: boolean; // Whether the light flickers
 }
 
 export interface VisionBlockDrawing extends BaseDrawing {
   type: 'vision-blocking';
-  points: Point[];        // Wall/barrier points
-  height: number;         // Height in feet (affects flying creatures)
-  transparent: boolean;   // Can see through but not move through
+  points: Point[]; // Wall/barrier points
+  height: number; // Height in feet (affects flying creatures)
+  transparent: boolean; // Can see through but not move through
 }
 
 export interface DMNotesDrawing extends BaseDrawing {
@@ -181,8 +182,17 @@ export interface DMNotesDrawing extends BaseDrawing {
   private: boolean; // If true, only DM can see
 }
 
+export interface PingDrawing extends BaseDrawing {
+  type: 'ping';
+  position: Point;
+  playerId: string; // Who created the ping
+  playerName: string; // Display name
+  timestamp: number; // When created (for auto-fade)
+  duration: number; // How long to show in ms (default 3000)
+}
+
 // Union type for all drawing types
-export type Drawing = 
+export type Drawing =
   | LineDrawing
   | RectangleDrawing
   | CircleDrawing
@@ -197,7 +207,8 @@ export type Drawing =
   | FogOfWarDrawing
   | DynamicLightDrawing
   | VisionBlockDrawing
-  | DMNotesDrawing;
+  | DMNotesDrawing
+  | PingDrawing;
 
 // Measurement data
 export interface Measurement {
@@ -215,54 +226,80 @@ export interface Measurement {
 export const dndSpellPresets = {
   // Cantrips
   'acid-splash': { type: 'aoe-sphere' as const, radius: 5, level: 0 },
-  'sacred-flame': { type: 'aoe-cylinder' as const, radius: 2.5, height: 40, level: 0 },
-  
+  'sacred-flame': {
+    type: 'aoe-cylinder' as const,
+    radius: 2.5,
+    height: 40,
+    level: 0,
+  },
+
   // 1st Level
   'burning-hands': { type: 'cone' as const, length: 15, angle: 90, level: 1 },
-  'thunderwave': { type: 'aoe-cube' as const, size: 15, level: 1 },
-  
+  thunderwave: { type: 'aoe-cube' as const, size: 15, level: 1 },
+
   // 2nd Level
-  'shatter': { type: 'aoe-sphere' as const, radius: 10, level: 2 },
-  
+  shatter: { type: 'aoe-sphere' as const, radius: 10, level: 2 },
+
   // 3rd Level
-  'fireball': { type: 'aoe-sphere' as const, radius: 20, level: 3 },
-  'lightning-bolt': { type: 'aoe-line' as const, length: 100, width: 5, level: 3 },
+  fireball: { type: 'aoe-sphere' as const, radius: 20, level: 3 },
+  'lightning-bolt': {
+    type: 'aoe-line' as const,
+    length: 100,
+    width: 5,
+    level: 3,
+  },
   'cone-of-cold': { type: 'cone' as const, length: 60, angle: 90, level: 5 },
-  
+
   // Higher levels
   'meteor-swarm': { type: 'aoe-sphere' as const, radius: 40, level: 9 },
 };
 
-// Utility functions for D&D measurements
+/**
+ * @deprecated Use mathUtils from @/utils/mathUtils instead
+ * These utilities have been moved to provide better organization and testability.
+ * This export is kept for backwards compatibility but will be removed in a future version.
+ */
 export const dndUtils = {
-  // Convert feet to pixels based on grid size
   feetToPixels: (feet: number, gridSize: number): number => {
-    // Assuming 5 feet per grid square (standard D&D)
+    console.warn(
+      'dndUtils.feetToPixels is deprecated. Import from @/utils/mathUtils instead.',
+    );
     return (feet / 5) * gridSize;
   },
-  
-  // Convert pixels to feet based on grid size
+
   pixelsToFeet: (pixels: number, gridSize: number): number => {
+    console.warn(
+      'dndUtils.pixelsToFeet is deprecated. Import from @/utils/mathUtils instead.',
+    );
     return (pixels / gridSize) * 5;
   },
-  
-  // Calculate diagonal distance using D&D 5e rules
-  // (Every second diagonal counts as 10 feet instead of 5)
-  calculateDiagonalDistance: (deltaX: number, deltaY: number, gridSize: number): number => {
+
+  calculateDiagonalDistance: (
+    deltaX: number,
+    deltaY: number,
+    gridSize: number,
+  ): number => {
+    console.warn(
+      'dndUtils.calculateDiagonalDistance is deprecated. Import from @/utils/mathUtils instead.',
+    );
     const xSquares = Math.abs(deltaX / gridSize);
     const ySquares = Math.abs(deltaY / gridSize);
     const minSquares = Math.min(xSquares, ySquares);
     const maxSquares = Math.max(xSquares, ySquares);
-    
-    // First diagonal movement costs 5 feet, second costs 10 feet, alternating
+
     const diagonalCost = Math.floor(minSquares / 2) * 15 + (minSquares % 2) * 5;
     const straightCost = (maxSquares - minSquares) * 5;
-    
+
     return diagonalCost + straightCost;
   },
-  
-  // Get spell area dimensions based on level
-  getSpellDimensions: (spellType: string, _level: number): Partial<DrawingStyle> => {
+
+  getSpellDimensions: (
+    spellType: string,
+    _level: number,
+  ): Partial<DrawingStyle> => {
+    console.warn(
+      'dndUtils.getSpellDimensions is deprecated. Use dndSpellPresets directly or import from @/utils/mathUtils.',
+    );
     const preset = dndSpellPresets[spellType as keyof typeof dndSpellPresets];
     if (preset) {
       return {

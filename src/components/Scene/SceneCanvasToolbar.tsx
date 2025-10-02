@@ -1,10 +1,32 @@
 import React, { useState } from 'react';
 import { useIsHost } from '@/stores/gameStore';
-import type { DrawingTool, DrawingStyle, MeasurementTool } from '@/types/drawing';
+import type {
+  DrawingTool,
+  DrawingStyle,
+  MeasurementTool,
+} from '@/types/drawing';
 
 export interface ToolbarProps {
-  activeTool: DrawingTool | MeasurementTool | 'select' | 'pan';
-  onToolChange: (tool: DrawingTool | MeasurementTool | 'select' | 'pan') => void;
+  activeTool:
+    | DrawingTool
+    | MeasurementTool
+    | 'select'
+    | 'pan'
+    | 'move'
+    | 'copy'
+    | 'cut'
+    | 'paste';
+  onToolChange: (
+    tool:
+      | DrawingTool
+      | MeasurementTool
+      | 'select'
+      | 'pan'
+      | 'move'
+      | 'copy'
+      | 'cut'
+      | 'paste',
+  ) => void;
   drawingStyle: DrawingStyle;
   onStyleChange: (style: Partial<DrawingStyle>) => void;
 }
@@ -13,7 +35,7 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
   activeTool,
   onToolChange,
   drawingStyle,
-  onStyleChange
+  onStyleChange,
 }) => {
   const isHost = useIsHost();
   const [showStylePanel, setShowStylePanel] = useState(false);
@@ -21,6 +43,7 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
 
   const basicTools = [
     { id: 'select', icon: '👆', label: 'Select', shortcut: 'V' },
+    { id: 'move', icon: '✥', label: 'Move', shortcut: 'D' },
     { id: 'pan', icon: '✋', label: 'Pan', shortcut: 'H' },
     { id: 'measure', icon: '📏', label: 'Measure', shortcut: 'M' },
   ];
@@ -43,7 +66,12 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
 
   const dmOnlyTools = [
     { id: 'fog-of-war', icon: '🌫️', label: 'Fog of War', shortcut: 'F' },
-    { id: 'dynamic-lighting', icon: '💡', label: 'Dynamic Light', shortcut: 'D' },
+    {
+      id: 'dynamic-lighting',
+      icon: '💡',
+      label: 'Dynamic Light',
+      shortcut: 'D',
+    },
     { id: 'vision-blocking', icon: '🚫', label: 'Vision Block', shortcut: 'B' },
     { id: 'dm-notes', icon: '📝', label: 'DM Notes', shortcut: 'T' },
   ];
@@ -191,7 +219,9 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
                   max="1"
                   step="0.1"
                   value={drawingStyle.fillOpacity}
-                  onChange={(e) => onStyleChange({ fillOpacity: parseFloat(e.target.value) })}
+                  onChange={(e) =>
+                    onStyleChange({ fillOpacity: parseFloat(e.target.value) })
+                  }
                 />
                 Fill Opacity: {Math.round(drawingStyle.fillOpacity * 100)}%
               </label>
@@ -205,7 +235,9 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
                 <input
                   type="color"
                   value={drawingStyle.strokeColor}
-                  onChange={(e) => onStyleChange({ strokeColor: e.target.value })}
+                  onChange={(e) =>
+                    onStyleChange({ strokeColor: e.target.value })
+                  }
                 />
                 Stroke Color
               </label>
@@ -215,16 +247,19 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
                   min="1"
                   max="10"
                   value={drawingStyle.strokeWidth}
-                  onChange={(e) => onStyleChange({ strokeWidth: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    onStyleChange({ strokeWidth: parseInt(e.target.value) })
+                  }
                 />
                 Width: {drawingStyle.strokeWidth}px
               </label>
               <label>
                 <select
                   value={drawingStyle.strokeDashArray || 'solid'}
-                  onChange={(e) => 
-                    onStyleChange({ 
-                      strokeDashArray: e.target.value === 'solid' ? undefined : e.target.value 
+                  onChange={(e) =>
+                    onStyleChange({
+                      strokeDashArray:
+                        e.target.value === 'solid' ? undefined : e.target.value,
                     })
                   }
                 >
@@ -246,7 +281,9 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
                 <label>
                   <select
                     value={drawingStyle.dndSpellLevel || '1'}
-                    onChange={(e) => onStyleChange({ dndSpellLevel: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      onStyleChange({ dndSpellLevel: parseInt(e.target.value) })
+                    }
                   >
                     <option value="0">Cantrip</option>
                     <option value="1">1st Level</option>
@@ -261,16 +298,18 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
                   </select>
                   Spell Level
                 </label>
-                
+
                 {activeTool === 'cone' && (
                   <div className="dnd-cone-info">
-                    <p>📐 <strong>Cone Rules (5e):</strong></p>
+                    <p>
+                      📐 <strong>Cone Rules (5e):</strong>
+                    </p>
                     <p>• 15-foot cone for most spells</p>
                     <p>• 30-foot cone for higher level spells</p>
                     <p>• Width equals distance at any point</p>
                   </div>
                 )}
-                
+
                 {activeTool === 'aoe-sphere' && (
                   <label>
                     <input
@@ -279,7 +318,9 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
                       max="60"
                       step="5"
                       value={drawingStyle.aoeRadius || 20}
-                      onChange={(e) => onStyleChange({ aoeRadius: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        onStyleChange({ aoeRadius: parseInt(e.target.value) })
+                      }
                     />
                     Radius (feet)
                   </label>
@@ -314,7 +355,9 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
                 <input
                   type="checkbox"
                   checked={drawingStyle.visibleToPlayers !== false}
-                  onChange={(e) => onStyleChange({ visibleToPlayers: e.target.checked })}
+                  onChange={(e) =>
+                    onStyleChange({ visibleToPlayers: e.target.checked })
+                  }
                 />
                 Share New Drawings with Players
               </label>
@@ -322,12 +365,14 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
                 <input
                   type="checkbox"
                   checked={drawingStyle.dmNotesOnly || false}
-                  onChange={(e) => onStyleChange({ dmNotesOnly: e.target.checked })}
+                  onChange={(e) =>
+                    onStyleChange({ dmNotesOnly: e.target.checked })
+                  }
                 />
                 DM Notes Only (Private)
               </label>
               <div className="dm-quick-actions">
-                <button 
+                <button
                   className="btn btn-small"
                   onClick={() => {
                     // TODO: Implement toggle all drawings visibility
@@ -336,11 +381,15 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
                 >
                   Toggle All Visibility
                 </button>
-                <button 
+                <button
                   className="btn btn-small btn-danger"
                   onClick={() => {
-                    if (window.confirm('Clear all drawings? This cannot be undone.')) {
-                      // TODO: Implement clear all drawings  
+                    if (
+                      window.confirm(
+                        'Clear all drawings? This cannot be undone.',
+                      )
+                    ) {
+                      // TODO: Implement clear all drawings
                       console.log('Clear all drawings');
                     }
                   }}

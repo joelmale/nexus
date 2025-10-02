@@ -60,9 +60,12 @@ class SessionPersistenceService {
       const cookies = document.cookie.split(';');
       for (let i = 0; i < cookies.length; i++) {
         let cookie = cookies[i];
-        while (cookie.charAt(0) === ' ') cookie = cookie.substring(1, cookie.length);
+        while (cookie.charAt(0) === ' ')
+          cookie = cookie.substring(1, cookie.length);
         if (cookie.indexOf(nameEQ) === 0) {
-          return decodeURIComponent(cookie.substring(nameEQ.length, cookie.length));
+          return decodeURIComponent(
+            cookie.substring(nameEQ.length, cookie.length),
+          );
         }
       }
     } catch (error) {
@@ -104,9 +107,15 @@ class SessionPersistenceService {
         userName: session.userName,
         timestamp: Date.now(),
       };
-      this.setCookie(this.SESSION_COOKIE_KEY, JSON.stringify(cookieData), 60 * 60); // 1 hour
+      this.setCookie(
+        this.SESSION_COOKIE_KEY,
+        JSON.stringify(cookieData),
+        60 * 60,
+      ); // 1 hour
 
-      console.log(`💾 Session saved: Room ${session.roomCode} (localStorage + cookie)`);
+      console.log(
+        `💾 Session saved: Room ${session.roomCode} (localStorage + cookie)`,
+      );
     } catch (error) {
       console.error('Failed to save session:', error);
     }
@@ -137,7 +146,9 @@ class SessionPersistenceService {
           return null;
         }
 
-        console.log(`📂 Session loaded from localStorage: Room ${session.roomCode}`);
+        console.log(
+          `📂 Session loaded from localStorage: Room ${session.roomCode}`,
+        );
         return session;
       }
 
@@ -185,7 +196,9 @@ class SessionPersistenceService {
   /**
    * Save game state to localStorage
    */
-  saveGameState(gameState: Omit<PersistedGameState, 'lastUpdated' | 'stateVersion'>): void {
+  saveGameState(
+    gameState: Omit<PersistedGameState, 'lastUpdated' | 'stateVersion'>,
+  ): void {
     try {
       const stateData: PersistedGameState = {
         ...gameState,
@@ -323,7 +336,11 @@ class SessionPersistenceService {
   /**
    * Check if there's a pending reconnection from URL parameters
    */
-  checkForReconnection(): { roomCode: string; userId: string; userType: 'host' | 'player' } | null {
+  checkForReconnection(): {
+    roomCode: string;
+    userId: string;
+    userType: 'host' | 'player';
+  } | null {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const roomCode = urlParams.get('reconnect');
@@ -332,7 +349,11 @@ class SessionPersistenceService {
 
       if (roomCode && userId && userType) {
         // Clear URL parameters after extracting
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname,
+        );
 
         return { roomCode, userId, userType };
       }
@@ -383,7 +404,7 @@ class SessionPersistenceService {
         hasSessionCookie = true;
         cookieAge = now - parsed.timestamp;
       }
-    } catch (error) {
+    } catch {
       // Ignore cookie errors for stats
     }
 
@@ -407,12 +428,21 @@ class SessionPersistenceService {
     // Check localStorage
     const localStorageSession = localStorage.getItem(this.SESSION_KEY);
     const localStorageGameState = localStorage.getItem(this.GAME_STATE_KEY);
-    console.log('  localStorage session:', localStorageSession ? JSON.parse(localStorageSession) : null);
-    console.log('  localStorage gameState:', localStorageGameState ? 'exists' : null);
+    console.log(
+      '  localStorage session:',
+      localStorageSession ? JSON.parse(localStorageSession) : null,
+    );
+    console.log(
+      '  localStorage gameState:',
+      localStorageGameState ? 'exists' : null,
+    );
 
     // Check cookie
     const cookieData = this.getCookie(this.SESSION_COOKIE_KEY);
-    console.log('  Cookie session:', cookieData ? JSON.parse(cookieData) : null);
+    console.log(
+      '  Cookie session:',
+      cookieData ? JSON.parse(cookieData) : null,
+    );
 
     // Check recovery data
     const recoveryData = this.getRecoveryData();

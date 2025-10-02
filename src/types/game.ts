@@ -51,11 +51,11 @@ export type TabType = 'lobby' | 'dice' | 'scenes' | 'tokens' | 'settings';
 export interface ColorScheme {
   id: string;
   name: string;
-  primary: string;       // Main accent color
-  secondary: string;     // Secondary accent color  
-  accent: string;        // Highlight color
-  surface: string;       // Surface/background color
-  text: string;         // Text color
+  primary: string; // Main accent color
+  secondary: string; // Secondary accent color
+  accent: string; // Highlight color
+  surface: string; // Surface/background color
+  text: string; // Text color
 }
 
 export interface UserSettings {
@@ -65,30 +65,30 @@ export interface UserSettings {
   enableGlassmorphism: boolean;
   reducedMotion: boolean;
   fontSize: 'small' | 'medium' | 'large';
-  
+
   // Audio Settings
   enableSounds: boolean;
   diceRollSounds: boolean;
   notificationSounds: boolean;
   masterVolume: number; // 0-100
-  
+
   // Gameplay Settings
   autoRollInitiative: boolean;
   showOtherPlayersRolls: boolean;
   highlightActivePlayer: boolean;
   snapToGridByDefault: boolean;
   defaultGridSize: number;
-  
+
   // Privacy Settings
   allowSpectators: boolean;
   shareCharacterSheets: boolean;
   logGameSessions: boolean;
-  
+
   // Performance Settings
   maxTokensPerScene: number;
   imageQuality: 'low' | 'medium' | 'high';
   enableAnimations: boolean;
-  
+
   // Accessibility Settings
   highContrast: boolean;
   screenReaderMode: boolean;
@@ -96,6 +96,9 @@ export interface UserSettings {
 
   // Developer Settings
   useMockData?: boolean;
+
+  // Experimental Settings
+  floatingToolbar?: boolean; // When false (default), toolbar is docked at bottom
 }
 
 // Scene Management Types
@@ -129,6 +132,8 @@ export interface Scene {
     opacity: number;
     snapToGrid: boolean;
     showToPlayers: boolean; // Whether players can see the grid
+    offsetX?: number; // Grid offset X for alignment with background images
+    offsetY?: number; // Grid offset Y for alignment with background images
   };
 
   // Lighting and vision
@@ -159,6 +164,7 @@ export interface SceneState {
   activeSceneId: string | null;
   camera: Camera;
   followDM: boolean; // Whether players follow DM's camera
+  activeTool: string; // Currently selected tool
 }
 
 // WebSocket message types
@@ -195,7 +201,11 @@ export interface ErrorMessage extends BaseMessage {
   };
 }
 
-export type WebSocketMessage = EventMessage | StateMessage | DiceRollMessage | ErrorMessage;
+export type WebSocketMessage =
+  | EventMessage
+  | StateMessage
+  | DiceRollMessage
+  | ErrorMessage;
 
 // Game events
 export interface GameEvent {

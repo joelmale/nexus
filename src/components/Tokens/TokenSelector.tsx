@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useTokenAssets } from '@/services/tokenAssets';
 import { useTokenInterfaceStrategy } from '@/hooks/useDeviceDetection';
 import type { Token, TokenCategory } from '@/types/token';
+import { TokenLibraryManager } from './TokenLibraryManager';
 
 interface TokenSelectorProps {
   isOpen: boolean;
@@ -23,19 +24,20 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
   isOpen,
   onClose,
   onTokenSelect,
-  selectedToken
+  selectedToken,
 }) => {
   const { getTokensByCategory, searchTokens, isLoading } = useTokenAssets();
   const { strategy, interfaceConfig } = useTokenInterfaceStrategy();
-  
+
   const [activeCategory, setActiveCategory] = useState<TokenCategory>('pc');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showLibraryManager, setShowLibraryManager] = useState(false);
 
   const filteredTokens = useMemo(() => {
     if (searchQuery.trim()) {
       return searchTokens(searchQuery);
     }
-    
+
     return getTokensByCategory(activeCategory);
   }, [getTokensByCategory, searchTokens, searchQuery, activeCategory]);
 
@@ -51,7 +53,7 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
   }
 
   const TokenGrid = () => (
-    <div 
+    <div
       className="token-grid"
       style={{
         display: 'grid',
@@ -59,7 +61,7 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
         gap: '8px',
         padding: '16px',
         maxHeight: '60vh',
-        overflowY: 'auto'
+        overflowY: 'auto',
       }}
     >
       {filteredTokens.map((token) => (
@@ -74,7 +76,8 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
             padding: '8px',
             cursor: 'pointer',
             textAlign: 'center',
-            backgroundColor: selectedToken?.id === token.id ? '#e3f2fd' : '#f9f9f9',
+            backgroundColor:
+              selectedToken?.id === token.id ? '#e3f2fd' : '#f9f9f9',
             transition: 'all 0.2s ease',
           }}
           onMouseEnter={(e) => {
@@ -99,7 +102,7 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               borderRadius: '50%',
-              border: '1px solid #ccc'
+              border: '1px solid #ccc',
             }}
           />
           <div
@@ -108,7 +111,7 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
               fontWeight: 'bold',
               color: '#333',
               lineHeight: '1.2',
-              wordBreak: 'break-word'
+              wordBreak: 'break-word',
             }}
           >
             {token.name}
@@ -118,7 +121,7 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
               style={{
                 fontSize: '10px',
                 color: '#666',
-                marginTop: '2px'
+                marginTop: '2px',
               }}
             >
               {token.size}
@@ -130,33 +133,39 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
   );
 
   const CategoryTabs = () => (
-    <div className="category-tabs" style={{ display: 'flex', borderBottom: '1px solid #ddd' }}>
-      {TOKEN_CATEGORIES.slice(0, interfaceConfig.maxVisibleCategories).map((category) => (
-        <button
-          key={category.id}
-          onClick={() => setActiveCategory(category.id)}
-          style={{
-            flex: 1,
-            padding: '12px 8px',
-            border: 'none',
-            backgroundColor: activeCategory === category.id ? '#007bff' : 'transparent',
-            color: activeCategory === category.id ? 'white' : '#333',
-            cursor: 'pointer',
-            fontSize: '12px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-        >
-          <span>{category.icon}</span>
-          <span>{category.label}</span>
-        </button>
-      ))}
+    <div
+      className="category-tabs"
+      style={{ display: 'flex', borderBottom: '1px solid #ddd' }}
+    >
+      {TOKEN_CATEGORIES.slice(0, interfaceConfig.maxVisibleCategories).map(
+        (category) => (
+          <button
+            key={category.id}
+            onClick={() => setActiveCategory(category.id)}
+            style={{
+              flex: 1,
+              padding: '12px 8px',
+              border: 'none',
+              backgroundColor:
+                activeCategory === category.id ? '#007bff' : 'transparent',
+              color: activeCategory === category.id ? 'white' : '#333',
+              cursor: 'pointer',
+              fontSize: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <span>{category.icon}</span>
+            <span>{category.label}</span>
+          </button>
+        ),
+      )}
     </div>
   );
 
-  const SearchBar = () => (
+  const SearchBar = () =>
     interfaceConfig.enableSearch ? (
       <div style={{ padding: '16px' }}>
         <input
@@ -169,12 +178,11 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
             padding: '8px 12px',
             border: '1px solid #ddd',
             borderRadius: '4px',
-            fontSize: '14px'
+            fontSize: '14px',
           }}
         />
       </div>
-    ) : null
-  );
+    ) : null;
 
   // Modal rendering for mobile/tablet
   if (strategy === 'modal') {
@@ -191,7 +199,7 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
         }}
         onClick={onClose}
       >
@@ -205,30 +213,57 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
             maxHeight: '90vh',
             width: '500px',
             overflow: 'hidden',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid #ddd' }}>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>Select Token</h3>
-            <button
-              onClick={onClose}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '24px',
-                cursor: 'pointer',
-                padding: '0',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              ×
-            </button>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '16px',
+              borderBottom: '1px solid #ddd',
+            }}
+          >
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>
+              Select Token
+            </h3>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                onClick={() => setShowLibraryManager(true)}
+                style={{
+                  background: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+              >
+                📚 Libraries
+              </button>
+              <button
+                onClick={onClose}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: '0',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                ×
+              </button>
+            </div>
           </div>
-          
+
           <SearchBar />
           <CategoryTabs />
           <TokenGrid />
@@ -253,24 +288,51 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
           zIndex: 100,
           transition: 'right 0.3s ease',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid #ddd' }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>Tokens</h3>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer'
-            }}
-          >
-            ×
-          </button>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '16px',
+            borderBottom: '1px solid #ddd',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>
+            Tokens
+          </h3>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={() => setShowLibraryManager(true)}
+              style={{
+                background: '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              📚 Libraries
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+              }}
+            >
+              ×
+            </button>
+          </div>
         </div>
-        
+
         <SearchBar />
         <CategoryTabs />
         <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -282,6 +344,20 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
 
   // Floating window placeholder (to be implemented later)
   return (
-    <div>Floating window not yet implemented</div>
+    <>
+      <div>Floating window not yet implemented</div>
+
+      {/* Token Library Manager */}
+      {showLibraryManager && (
+        <TokenLibraryManager
+          isOpen={showLibraryManager}
+          onClose={() => setShowLibraryManager(false)}
+          onTokenSelect={(token) => {
+            onTokenSelect(token);
+            setShowLibraryManager(false);
+          }}
+        />
+      )}
+    </>
   );
 };

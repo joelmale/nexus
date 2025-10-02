@@ -1,306 +1,424 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useGameStore, useIsHost, useCamera } from '@/stores/gameStore';
+import { useDrag } from 'react-dnd';
+import {
+  useGameStore,
+  useIsHost,
+  useCamera,
+  useActiveTool,
+} from '@/stores/gameStore';
 
 interface Position {
   x: number;
   y: number;
 }
 
+const TOOLBAR_TYPE = 'GAME_TOOLBAR';
+
 export const GameToolbar: React.FC = () => {
-  const [activeTool, setActiveTool] = useState('select');
+  const activeTool = useActiveTool();
   const [isCompact, setIsCompact] = useState(false);
   const isHost = useIsHost();
-  const { updateCamera } = useGameStore();
+  const { updateCamera, settings, setActiveTool } = useGameStore();
   const camera = useCamera();
-  
-  // Dragging state
-  const [isPositioned, setIsPositioned] = useState(false);
-  const [translation, setTranslation] = useState<Position>({ x: 0, y: 0 });
+
+  // Check if toolbar is in floating mode (experimental feature)
+  const isFloating = settings.floatingToolbar ?? false;
+
+  // Position state - offset from center
+  const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
+  const positionRef = useRef<Position>({ x: 0, y: 0 });
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const dragHandleRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
-  const dragStartRef = useRef<Position>({ x: 0, y: 0 });
-  const initialTranslationRef = useRef<Position>({ x: 0, y: 0 });
-  const dragOffsetRef = useRef<Position>({ x: 0, y: 0 });
-  
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
+
+  // Set up react-dnd dragging on the drag handle
+  const [{ isDragging }, dragRef, preview] = useDrag({
+    type: TOOLBAR_TYPE,
+    item: () => {
+      return {
+        type: TOOLBAR_TYPE,
+        initialPosition: { ...positionRef.current },
+      };
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+    end: (item, monitor) => {
+      const differenceOffset = monitor.getDifferenceFromInitialOffset();
+
+      if (
+        differenceOffset &&
+        (differenceOffset.x !== 0 || differenceOffset.y !== 0)
+      ) {
+        const newPosition = {
+          x: item.initialPosition.x + differenceOffset.x,
+          y: item.initialPosition.y + differenceOffset.y,
+        };
+        setPosition(newPosition);
+      }
+    },
+  });
+
+  // Connect the actual toolbar element as the drag preview
+  useEffect(() => {
+    const connectPreview = () => {
+      if (toolbarRef.current) {
+        preview(toolbarRef.current, {
+          captureDraggingState: false,
+          anchorX: 0.5,
+          anchorY: 0.1,
+        });
+      }
+    };
+    const timer = setTimeout(connectPreview, 100);
+    return () => clearTimeout(timer);
+  }, [preview]);
+
+  // Just use the saved position - don't try real-time updates
+  const displayPosition = position;
+
   const handleZoomIn = () => {
     const newZoom = Math.min(5.0, camera.zoom * 1.2);
     updateCamera({ zoom: newZoom });
   };
-  
+
   const handleZoomOut = () => {
     const newZoom = Math.max(0.1, camera.zoom / 1.2);
     updateCamera({ zoom: newZoom });
   };
-  
+
   const handleZoomReset = () => {
     updateCamera({ x: 0, y: 0, zoom: 1.0 });
   };
-  
-  // Improved drag handlers
-  useEffect(() => {
-    const dragHandle = dragHandleRef.current;
-    const toolbar = toolbarRef.current;
-    if (!dragHandle || !toolbar) return;
-    
-    const handleMouseDown = (e: MouseEvent) => {
-      // Prevent text selection and default drag behavior
-      e.preventDefault();
-      e.stopPropagation();
 
-      isDraggingRef.current = true;
+  // Double click to reset position
+  const handleDoubleClick = () => {
+    setPosition({ x: 0, y: 0 });
+  };
 
-      // Get toolbar's current position including any existing transform
-      const toolbarRect = toolbar.getBoundingClientRect();
+  // Organize tools into groups with headers
+  const toolGroups = [
+    {
+      id: 'basic',
+      label: 'Basic Tools',
+      tools: [
+        {
+          id: 'select',
+          icon: '👆',
+          label: 'Select / Move',
+          tooltip: 'Hold Shift+drag OR Cmd/Ctrl+click for multi-select',
+        },
+        { id: 'pan', icon: '✋', label: 'Pan' },
+        { id: 'copy', icon: '📋', label: 'Copy' },
+        { id: 'cut', icon: '✂️', label: 'Cut' },
+        { id: 'paste', icon: '📄', label: 'Paste' },
+        { id: 'measure', icon: '📏', label: 'Measure' },
+        { id: 'note', icon: '📝', label: 'Note' },
+        { id: 'ping', icon: '📍', label: 'Ping' },
+      ],
+    },
+    {
+      id: 'shapes',
+      label: 'Drawing Shapes',
+      tools: [
+        { id: 'circle', icon: '⭕', label: 'Circle' },
+        { id: 'rectangle', icon: '⬜', label: 'Rectangle' },
+        { id: 'cone', icon: '🔺', label: 'Cone' },
+        { id: 'polygon', icon: '⬟', label: 'Polygon' },
+        { id: 'line', icon: '➖', label: 'Line' },
+      ],
+    },
+  ];
 
-      // Calculate relative position of mouse within the toolbar
-      // This is the offset from the toolbar's top-left corner to where the mouse clicked
-      dragOffsetRef.current = {
-        x: e.clientX - toolbarRect.left,
-        y: e.clientY - toolbarRect.top
-      };
-
-      // Add dragging class for visual feedback
-      toolbar.classList.add('dragging');
-      document.body.style.cursor = 'grabbing';
-      document.body.style.userSelect = 'none';
-    };
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDraggingRef.current) return;
-
-      // Calculate where the toolbar should be positioned so the mouse stays
-      // at the same relative position within the toolbar as when dragging started
-      const newX = e.clientX - dragOffsetRef.current.x;
-      const newY = e.clientY - dragOffsetRef.current.y;
-
-      requestAnimationFrame(() => {
-        if (toolbarRef.current) {
-          toolbarRef.current.style.setProperty('--tw-translate-x', `${newX}px`);
-          toolbarRef.current.style.setProperty('--tw-translate-y', `${newY}px`);
-        }
-      });
-    };
-    
-    const handleMouseUp = (e: MouseEvent) => {
-      if (!isDraggingRef.current) return;
-      isDraggingRef.current = false;
-
-      // Calculate final position using the same logic as mouse move
-      const newX = e.clientX - dragOffsetRef.current.x;
-      const newY = e.clientY - dragOffsetRef.current.y;
-
-      setTranslation({ x: newX, y: newY });
-      setIsPositioned(true);
-
-      if (toolbar) {
-        toolbar.classList.remove('dragging');
+  const dmToolGroup = isHost
+    ? {
+        id: 'dm',
+        label: 'DM Tools',
+        tools: [
+          { id: 'mask-create', icon: '🌟', label: 'Create Mask' },
+          { id: 'mask-toggle', icon: '✨', label: 'Toggle Mask' },
+          { id: 'mask-remove', icon: '🧽', label: 'Remove Mask' },
+          { id: 'mask-show', icon: '👁', label: 'Reveal Scene' },
+          { id: 'mask-hide', icon: '🙈', label: 'Hide Scene' },
+          { id: 'grid-align', icon: '📐', label: 'Grid Alignment' },
+        ],
       }
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-    
-    // Double click to reset position
-    const handleDoubleClick = (e: MouseEvent) => {
-      e.preventDefault();
-      setTranslation({ x: 0, y: 0 });
-      setIsPositioned(false);
-      toolbar.classList.add('resetting');
-      setTimeout(() => toolbar.classList.remove('resetting'), 300);
-    };
-    
-    // Add event listeners to the drag handle
-    dragHandle.addEventListener('mousedown', handleMouseDown);
-    dragHandle.addEventListener('dblclick', handleDoubleClick);
-    
-    // Add global event listeners for move and up
-    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMove(e);
-    const handleGlobalMouseUp = (e: MouseEvent) => handleMouseUp(e);
-    
-    document.addEventListener('mousemove', handleGlobalMouseMove);
-    document.addEventListener('mouseup', handleGlobalMouseUp);
-    
-    // Touch event support for mobile/tablet
-    const handleTouchStart = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      handleMouseDown(new MouseEvent('mousedown', {
-        clientX: touch.clientX,
-        clientY: touch.clientY
-      }));
-    };
-    
-    const handleTouchMove = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      handleMouseMove(new MouseEvent('mousemove', {
-        clientX: touch.clientX,
-        clientY: touch.clientY
-      }));
-    };
-    
-    const handleTouchEnd = (e: TouchEvent) => {
-      handleMouseUp(new MouseEvent('mouseup', {
-        clientX: e.changedTouches[0].clientX,
-        clientY: e.changedTouches[0].clientY
-      }));
-    };
-    
-    dragHandle.addEventListener('touchstart', handleTouchStart, { passive: false });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd);
-    
-    // Cleanup
-    return () => {
-      dragHandle.removeEventListener('mousedown', handleMouseDown);
-      dragHandle.removeEventListener('dblclick', handleDoubleClick);
-      dragHandle.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('mousemove', handleGlobalMouseMove);
-      document.removeEventListener('mouseup', handleGlobalMouseUp);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [translation]);
-  
-  // Organize tools into two rows for more compact layout
-  const toolsRow1 = [
-    { id: 'select', icon: '👆', label: 'Select' },
-    { id: 'measure', icon: '📏', label: 'Measure' },
-    { id: 'note', icon: '📝', label: 'Note' },
-    { id: 'focus', icon: '📷', label: 'Focus' },
-    '---', // Separator
-    { id: 'circle', icon: '⭕', label: 'Circle' },
-    { id: 'rectangle', icon: '⬜', label: 'Rectangle' },
-    { id: 'cone', icon: '🔺', label: 'Cone' },
-    { id: 'polygon', icon: '⬟', label: 'Polygon' },
-    { id: 'line', icon: '➖', label: 'Line' },
-  ];
-  
-  const toolsRow2 = isHost ? [
-    { id: 'mask-create', icon: '🌟', label: 'Create Mask' },
-    { id: 'mask-toggle', icon: '✨', label: 'Toggle Mask' },
-    { id: 'mask-remove', icon: '🧽', label: 'Remove Mask' },
-    { id: 'mask-show', icon: '👁', label: 'Show All' },
-    { id: 'mask-hide', icon: '🙈', label: 'Hide All' },
-    '---', // Separator
-    { id: 'grid', icon: '⊞', label: 'Grid' },
-  ] : [];
-  
+    : null;
+
   const cameraControls = [
-    { id: 'zoom-out', icon: '➖', label: 'Zoom Out', action: handleZoomOut, disabled: camera.zoom <= 0.1 },
-    { id: 'zoom-reset', label: `${Math.round(camera.zoom * 100)}%`, action: handleZoomReset, className: 'zoom-display' },
-    { id: 'zoom-in', icon: '➕', label: 'Zoom In', action: handleZoomIn, disabled: camera.zoom >= 5.0 },
+    {
+      id: 'zoom-out',
+      icon: '➖',
+      label: 'Zoom Out',
+      action: handleZoomOut,
+      disabled: camera.zoom <= 0.1,
+    },
+    {
+      id: 'zoom-reset',
+      label: `${Math.round(camera.zoom * 100)}%`,
+      action: handleZoomReset,
+      className: 'zoom-display',
+    },
+    {
+      id: 'zoom-in',
+      icon: '➕',
+      label: 'Zoom In',
+      action: handleZoomIn,
+      disabled: camera.zoom >= 5.0,
+    },
   ];
-  
+
   // Keyboard shortcut for compact mode (Ctrl/Cmd + Shift + T)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
         e.preventDefault();
-        setIsCompact(prev => !prev);
+        setIsCompact((prev) => !prev);
       }
     };
-    
+
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   return (
-    <div 
+    <div
       ref={toolbarRef}
-      className={`game-toolbar ${isPositioned ? 'positioned' : ''} ${isCompact ? 'compact' : ''}`} 
+      className={`game-toolbar ${isFloating ? 'floating' : 'docked'} ${position.x !== 0 || position.y !== 0 ? 'positioned' : ''} ${isCompact ? 'compact' : ''} ${isDragging ? 'dragging' : ''}`}
       role="toolbar"
-      style={{
-        '--tw-translate-x': `${translation.x}px`,
-        '--tw-translate-y': `${translation.y}px`,
-      } as React.CSSProperties}
+      style={
+        {
+          '--tw-translate-x': isFloating ? `${displayPosition.x}px` : '0',
+          '--tw-translate-y': isFloating ? `${displayPosition.y}px` : '0',
+          opacity: isDragging ? 0.3 : 1,
+          transition: isDragging ? 'none' : 'all 0.2s ease',
+          pointerEvents: 'auto',
+        } as React.CSSProperties
+      }
     >
-      {/* Drag Handle and Compact Toggle */}
-      <div className="toolbar-controls">
-        <div 
-          ref={dragHandleRef}
-          className="toolbar-drag-handle"
-          title="Drag to move | Double-click: reset position"
-        >
-          <span className="drag-dots">⋮⋮</span>
+      {/* Drag Handle and Compact Toggle - Only show in floating mode */}
+      {isFloating && (
+        <div className="toolbar-controls">
+          <div
+            ref={dragRef}
+            className="toolbar-drag-handle"
+            title="Drag to move | Double-click: reset position"
+            onDoubleClick={handleDoubleClick}
+            style={{
+              cursor: isDragging ? 'grabbing' : 'grab',
+              pointerEvents: 'auto',
+            }}
+          >
+            <span className="drag-dots">⋮⋮</span>
+          </div>
+          <button
+            type="button"
+            className="compact-toggle"
+            onClick={() => setIsCompact(!isCompact)}
+            title={`${isCompact ? 'Expand' : 'Compact'} toolbar (Ctrl+Shift+T)`}
+            aria-label={isCompact ? 'Expand toolbar' : 'Compact toolbar'}
+          >
+            <span className="compact-icon">{isCompact ? '⊞' : '⊟'}</span>
+          </button>
         </div>
-        <button
-          type="button"
-          className="compact-toggle"
-          onClick={() => setIsCompact(!isCompact)}
-          title={`${isCompact ? 'Expand' : 'Compact'} toolbar (Ctrl+Shift+T)`}
-          aria-label={isCompact ? 'Expand toolbar' : 'Compact toolbar'}
-        >
-          <span className="compact-icon">{isCompact ? '⊞' : '⊟'}</span>
-        </button>
-      </div>
-      
+      )}
+
       <div className="toolbar-content">
-        {/* First Row - Main Tools and Camera */}
-        <div className="toolbar-row">
-          <div className="toolbar-group">
-            {toolsRow1.map((tool, index) => { 
-              if (typeof tool === 'string') {
-                return <div key={index} className="toolbar-separator" />;
-              }
-              
-              return (
-                <button
-                  key={tool.id} 
-                  type="button"
-                  className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
-                  onClick={() => setActiveTool(tool.id)}
-                  aria-pressed={activeTool === tool.id}
-                  title={tool.label}
-                >
-                  <span className="tool-icon">{tool.icon}</span>
-                </button>
-              );
-            })}
-          </div>
-          
-          {/* Camera Controls */}
-          <div className="toolbar-separator" />
-          <div className="toolbar-group camera-group">
-            {cameraControls.map((control) => (
-              <button
-                key={control.id}
-                type="button"
-                className={`toolbar-btn ${control.className || ''}`}
-                onClick={control.action}
-                title={control.label}
-                disabled={control.disabled}
-              >
-                {control.icon ? (
-                  <span className="tool-icon">{control.icon}</span>
-                ) : (
-                  <span className="zoom-text">{control.label}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        {/* Second Row - DM Tools (if host) */}
-        {isHost && toolsRow2.length > 0 && (
-          <div className="toolbar-row toolbar-row-secondary">
-            <div className="toolbar-group">
-              {toolsRow2.map((tool, index) => { 
-                if (typeof tool === 'string') {
-                  return <div key={index} className="toolbar-separator" />;
-                }
-                
-                return (
+        {isFloating ? (
+          /* Floating Mode: Compact layout without labels */
+          <>
+            <div className="flex gap-2 mb-2">
+              <div className="flex gap-1">
+                {toolGroups[0].tools.map((tool) => (
                   <button
-                    key={tool.id} 
+                    key={tool.id}
                     type="button"
-                    className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''}`}
+                    className={`
+                      unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                      ${
+                        activeTool === tool.id
+                          ? 'bg-gradient-to-b from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/50 translate-y-0'
+                          : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                      }
+                    `}
+                    onClick={() => setActiveTool(tool.id)}
+                    aria-pressed={activeTool === tool.id}
+                    title={
+                      'tooltip' in tool
+                        ? `${tool.label}\n\n${tool.tooltip}`
+                        : tool.label
+                    }
+                  >
+                    {tool.icon}
+                  </button>
+                ))}
+              </div>
+
+              <div className="w-px bg-gray-600" />
+
+              <div className="flex gap-1">
+                {toolGroups[1].tools.map((tool) => (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    className={`
+                      unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                      ${
+                        activeTool === tool.id
+                          ? 'bg-gradient-to-b from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/50 translate-y-0'
+                          : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                      }
+                    `}
                     onClick={() => setActiveTool(tool.id)}
                     aria-pressed={activeTool === tool.id}
                     title={tool.label}
                   >
-                    <span className="tool-icon">{tool.icon}</span>
+                    {tool.icon}
                   </button>
-                );
-              })}
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              {isHost && dmToolGroup && (
+                <>
+                  <div className="flex gap-1">
+                    {dmToolGroup.tools.map((tool) => (
+                      <button
+                        key={tool.id}
+                        type="button"
+                        className={`
+                          unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                          ${
+                            activeTool === tool.id
+                              ? 'bg-gradient-to-b from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-400/50 translate-y-0'
+                              : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                          }
+                        `}
+                        onClick={() => setActiveTool(tool.id)}
+                        aria-pressed={activeTool === tool.id}
+                        title={tool.label}
+                      >
+                        {tool.icon}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="w-px bg-gray-600" />
+                </>
+              )}
+
+              <div className="flex gap-1">
+                {cameraControls.map((control) => (
+                  <button
+                    key={control.id}
+                    type="button"
+                    className="unstyled px-3 py-2 rounded-lg text-sm transition-all duration-150 bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-gray-200 hover:shadow-lg active:translate-y-0.5 active:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={control.action}
+                    title={control.label}
+                    disabled={control.disabled}
+                  >
+                    {control.icon ? control.icon : control.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Docked Mode: Two-row layout with tooltips only */
+          <div className="flex flex-col gap-2">
+            {/* First Row - Basic Tools and Shapes */}
+            <div className="flex gap-2 items-center">
+              {toolGroups[0].tools.map((tool) => (
+                <button
+                  key={tool.id}
+                  type="button"
+                  className={`
+                    unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                    ${
+                      activeTool === tool.id
+                        ? 'bg-gradient-to-b from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/50 translate-y-0'
+                        : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                    }
+                  `}
+                  onClick={() => setActiveTool(tool.id)}
+                  aria-pressed={activeTool === tool.id}
+                  title={
+                    'tooltip' in tool
+                      ? `${tool.label}\n\n${tool.tooltip}`
+                      : tool.label
+                  }
+                >
+                  {tool.icon}
+                </button>
+              ))}
+
+              <div className="w-px h-8 bg-gray-600" />
+
+              {toolGroups[1].tools.map((tool) => (
+                <button
+                  key={tool.id}
+                  type="button"
+                  className={`
+                    unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                    ${
+                      activeTool === tool.id
+                        ? 'bg-gradient-to-b from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-400/50 translate-y-0'
+                        : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                    }
+                  `}
+                  onClick={() => setActiveTool(tool.id)}
+                  aria-pressed={activeTool === tool.id}
+                  title={tool.label}
+                >
+                  {tool.icon}
+                </button>
+              ))}
+            </div>
+
+            {/* Second Row - DM Tools (if host) and Camera Controls */}
+            <div className="flex gap-2 items-center">
+              {isHost && dmToolGroup && (
+                <>
+                  {dmToolGroup.tools.map((tool) => (
+                    <button
+                      key={tool.id}
+                      type="button"
+                      className={`
+                        unstyled px-3 py-2 rounded-lg text-base transition-all duration-150
+                        ${
+                          activeTool === tool.id
+                            ? 'bg-gradient-to-b from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-400/50 translate-y-0'
+                            : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
+                        }
+                      `}
+                      onClick={() => setActiveTool(tool.id)}
+                      aria-pressed={activeTool === tool.id}
+                      title={tool.label}
+                    >
+                      {tool.icon}
+                    </button>
+                  ))}
+
+                  <div className="w-px h-8 bg-gray-600" />
+                </>
+              )}
+
+              {cameraControls.map((control) => (
+                <button
+                  key={control.id}
+                  type="button"
+                  className="unstyled px-3 py-2 rounded-lg text-sm transition-all duration-150 bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-gray-200 hover:shadow-lg active:translate-y-0.5 active:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={control.action}
+                  title={control.label}
+                  disabled={control.disabled}
+                >
+                  {control.icon ? control.icon : control.label}
+                </button>
+              ))}
             </div>
           </div>
         )}

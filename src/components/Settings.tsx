@@ -4,7 +4,7 @@ import {
   defaultColorSchemes,
   generateRandomColorScheme,
   applyColorScheme,
-  getColorSchemePreview
+  getColorSchemePreview,
 } from '@/utils/colorSchemes';
 import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 import { RefreshIcon, SaveIcon } from './Icons';
@@ -25,15 +25,17 @@ interface SettingsSectionProps {
 /**
  * A reusable component to group related settings under a common heading.
  */
-const SettingsSection: React.FC<SettingsSectionProps> = ({ title, description, children }) => (
+const SettingsSection: React.FC<SettingsSectionProps> = ({
+  title,
+  description,
+  children,
+}) => (
   <div className="settings-section">
     <div className="settings-section-header">
       <h3>{title}</h3>
       {description && <p className="settings-description">{description}</p>}
     </div>
-    <div className="settings-section-content">
-      {children}
-    </div>
+    <div className="settings-section-content">{children}</div>
   </div>
 );
 
@@ -46,15 +48,17 @@ interface SettingItemProps {
 /**
  * A reusable component for a single setting row, providing consistent layout for a label and its control.
  */
-const SettingItem: React.FC<SettingItemProps> = ({ label, description, children }) => (
+const SettingItem: React.FC<SettingItemProps> = ({
+  label,
+  description,
+  children,
+}) => (
   <div className="setting-item">
     <div className="setting-label">
       <span className="setting-name">{label}</span>
       {description && <span className="setting-desc">{description}</span>}
     </div>
-    <div className="setting-control">
-      {children}
-    </div>
+    <div className="setting-control">{children}</div>
   </div>
 );
 
@@ -66,7 +70,10 @@ interface ColorSchemePickerProps {
 /**
  * A sophisticated UI component for selecting, previewing, and generating color schemes.
  */
-const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, onSchemeChange }) => {
+const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
+  currentScheme,
+  onSchemeChange,
+}) => {
   const [customSchemes, setCustomSchemes] = useState<ColorScheme[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -74,7 +81,10 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
   // Effect to close the dropdown when the user clicks outside of it.
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     };
@@ -91,7 +101,7 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
   // Generates a new random color scheme and adds it to the list of custom schemes.
   const handleGenerateRandom = () => {
     const randomScheme = generateRandomColorScheme();
-    setCustomSchemes(prev => [randomScheme, ...prev.slice(0, 4)]); // Keep a history of the last 5 custom schemes
+    setCustomSchemes((prev) => [randomScheme, ...prev.slice(0, 4)]); // Keep a history of the last 5 custom schemes
     onSchemeChange(randomScheme);
     setIsDropdownOpen(false);
   };
@@ -119,7 +129,7 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
             const hexColor = getHexColor(color);
             return (
               <div key={index} className="color-swatch-modern">
-                <div 
+                <div
                   className="swatch-color"
                   style={{ backgroundColor: color }}
                 ></div>
@@ -128,24 +138,24 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
             );
           })}
         </div>
-        
-        <div className="palette-name">
-          {currentScheme.name}
-        </div>
+
+        <div className="palette-name">{currentScheme.name}</div>
       </div>
 
       {/* Scheme Selector Dropdown */}
       <div className="scheme-selector">
         <div className="dropdown-container" ref={dropdownRef}>
-          <button 
+          <button
             className="dropdown-trigger"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             type="button"
           >
             Choose Palette
-            <span className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`}>▼</span>
+            <span className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`}>
+              ▼
+            </span>
           </button>
-          
+
           {isDropdownOpen && (
             <div className="dropdown-menu">
               <div className="dropdown-section">
@@ -169,7 +179,7 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
                   </button>
                 ))}
               </div>
-              
+
               {customSchemes.length > 0 && (
                 <div className="dropdown-section">
                   <span className="section-title">Custom Palettes</span>
@@ -193,7 +203,7 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
                   ))}
                 </div>
               )}
-              
+
               <div className="dropdown-section">
                 <button
                   className="dropdown-item generate-random"
@@ -216,19 +226,27 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({ currentScheme, on
  * state management, saving, and resetting of user preferences.
  */
 export const Settings: React.FC = () => {
-  const { updateSettings, setColorScheme, setEnableGlassmorphism, resetSettings } = useGameStore();
+  const {
+    updateSettings,
+    setColorScheme,
+    setEnableGlassmorphism,
+    resetSettings,
+  } = useGameStore();
   const settings = useSettings();
   const currentColorScheme = useColorScheme();
   // Local state to track if there are unsaved changes, prompting the user to save.
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
+
   // Apply the current color scheme on mount and when it changes
   useEffect(() => {
     applyColorScheme(currentColorScheme);
   }, [currentColorScheme]);
 
   // Generic handler for updating any setting in the global store.
-  const handleSettingChange = (key: keyof UserSettings, value: UserSettings[keyof UserSettings]) => {
+  const handleSettingChange = (
+    key: keyof UserSettings,
+    value: UserSettings[keyof UserSettings],
+  ) => {
     updateSettings({ [key]: value });
     setHasUnsavedChanges(true);
   };
@@ -274,21 +292,21 @@ export const Settings: React.FC = () => {
 
       <div className="settings-content">
         {/* Display Settings */}
-        <SettingsSection 
-          title="Display" 
+        <SettingsSection
+          title="Display"
           description="Customize the appearance and theme of the application"
         >
-          <SettingItem 
+          <SettingItem
             label="Color Scheme"
             description="Choose a color palette that suits your style"
           >
-            <ColorSchemePicker 
+            <ColorSchemePicker
               currentScheme={currentColorScheme}
               onSchemeChange={handleColorSchemeChange}
             />
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Enable Glassmorphism"
             description="Use translucent glass effect (may impact performance)"
           >
@@ -305,13 +323,18 @@ export const Settings: React.FC = () => {
             </label>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Theme Mode"
             description="Set the overall appearance theme"
           >
-            <select 
+            <select
               value={settings.theme}
-              onChange={(e) => handleSettingChange('theme', e.target.value as UserSettings['theme'])}
+              onChange={(e) =>
+                handleSettingChange(
+                  'theme',
+                  e.target.value as UserSettings['theme'],
+                )
+              }
               className="setting-select"
             >
               <option value="auto">Auto (System)</option>
@@ -320,13 +343,18 @@ export const Settings: React.FC = () => {
             </select>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Font Size"
             description="Adjust text size for better readability"
           >
-            <select 
+            <select
               value={settings.fontSize}
-              onChange={(e) => handleSettingChange('fontSize', e.target.value as UserSettings['fontSize'])}
+              onChange={(e) =>
+                handleSettingChange(
+                  'fontSize',
+                  e.target.value as UserSettings['fontSize'],
+                )
+              }
               className="setting-select"
             >
               <option value="small">Small</option>
@@ -335,7 +363,7 @@ export const Settings: React.FC = () => {
             </select>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Reduced Motion"
             description="Minimize animations for better performance or accessibility"
           >
@@ -343,7 +371,9 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.reducedMotion}
-                onChange={(e) => handleSettingChange('reducedMotion', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('reducedMotion', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
@@ -351,11 +381,11 @@ export const Settings: React.FC = () => {
         </SettingsSection>
 
         {/* Audio Settings */}
-        <SettingsSection 
-          title="Audio" 
+        <SettingsSection
+          title="Audio"
           description="Configure sound effects and notifications"
         >
-          <SettingItem 
+          <SettingItem
             label="Enable Sounds"
             description="Master control for all audio effects"
           >
@@ -363,13 +393,15 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.enableSounds}
-                onChange={(e) => handleSettingChange('enableSounds', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('enableSounds', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Dice Roll Sounds"
             description="Play sound effects when dice are rolled"
           >
@@ -377,14 +409,16 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.diceRollSounds}
-                onChange={(e) => handleSettingChange('diceRollSounds', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('diceRollSounds', e.target.checked)
+                }
                 disabled={!settings.enableSounds}
               />
               <span className="toggle-slider"></span>
             </label>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Master Volume"
             description="Overall volume level for all sounds"
           >
@@ -394,7 +428,9 @@ export const Settings: React.FC = () => {
                 min="0"
                 max="100"
                 value={settings.masterVolume}
-                onChange={(e) => handleSettingChange('masterVolume', parseInt(e.target.value))}
+                onChange={(e) =>
+                  handleSettingChange('masterVolume', parseInt(e.target.value))
+                }
                 className="volume-slider"
                 disabled={!settings.enableSounds}
               />
@@ -404,11 +440,11 @@ export const Settings: React.FC = () => {
         </SettingsSection>
 
         {/* Gameplay Settings */}
-        <SettingsSection 
-          title="Gameplay" 
+        <SettingsSection
+          title="Gameplay"
           description="Configure game mechanics and behavior"
         >
-          <SettingItem 
+          <SettingItem
             label="Auto-roll Initiative"
             description="Automatically roll initiative for combat"
           >
@@ -416,13 +452,15 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.autoRollInitiative}
-                onChange={(e) => handleSettingChange('autoRollInitiative', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('autoRollInitiative', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Show Other Players' Rolls"
             description="Display dice roll results from other players"
           >
@@ -430,13 +468,15 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.showOtherPlayersRolls}
-                onChange={(e) => handleSettingChange('showOtherPlayersRolls', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('showOtherPlayersRolls', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Snap to Grid by Default"
             description="Enable grid snapping when creating new scenes"
           >
@@ -444,13 +484,15 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.snapToGridByDefault}
-                onChange={(e) => handleSettingChange('snapToGridByDefault', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('snapToGridByDefault', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Default Grid Size"
             description="Default grid cell size for new scenes (pixels)"
           >
@@ -460,18 +502,20 @@ export const Settings: React.FC = () => {
               max="200"
               step="5"
               value={settings.defaultGridSize}
-              onChange={(e) => handleSettingChange('defaultGridSize', parseInt(e.target.value))}
+              onChange={(e) =>
+                handleSettingChange('defaultGridSize', parseInt(e.target.value))
+              }
               className="setting-input"
             />
           </SettingItem>
         </SettingsSection>
 
         {/* Privacy Settings */}
-        <SettingsSection 
-          title="Privacy & Sharing" 
+        <SettingsSection
+          title="Privacy & Sharing"
           description="Control what information is shared with other players"
         >
-          <SettingItem 
+          <SettingItem
             label="Allow Spectators"
             description="Let non-players observe the game"
           >
@@ -479,13 +523,15 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.allowSpectators}
-                onChange={(e) => handleSettingChange('allowSpectators', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('allowSpectators', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Share Character Sheets"
             description="Allow other players to view your character information"
           >
@@ -493,13 +539,15 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.shareCharacterSheets}
-                onChange={(e) => handleSettingChange('shareCharacterSheets', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('shareCharacterSheets', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Log Game Sessions"
             description="Keep a local record of game events and chat"
           >
@@ -507,7 +555,9 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.logGameSessions}
-                onChange={(e) => handleSettingChange('logGameSessions', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('logGameSessions', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
@@ -515,11 +565,11 @@ export const Settings: React.FC = () => {
         </SettingsSection>
 
         {/* Performance Settings */}
-        <SettingsSection 
-          title="Performance" 
+        <SettingsSection
+          title="Performance"
           description="Optimize the application for your device"
         >
-          <SettingItem 
+          <SettingItem
             label="Max Tokens Per Scene"
             description="Limit tokens to improve performance"
           >
@@ -529,18 +579,28 @@ export const Settings: React.FC = () => {
               max="500"
               step="10"
               value={settings.maxTokensPerScene}
-              onChange={(e) => handleSettingChange('maxTokensPerScene', parseInt(e.target.value))}
+              onChange={(e) =>
+                handleSettingChange(
+                  'maxTokensPerScene',
+                  parseInt(e.target.value),
+                )
+              }
               className="setting-input"
             />
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Image Quality"
             description="Balance between visual quality and performance"
           >
-            <select 
+            <select
               value={settings.imageQuality}
-              onChange={(e) => handleSettingChange('imageQuality', e.target.value as UserSettings['imageQuality'])}
+              onChange={(e) =>
+                handleSettingChange(
+                  'imageQuality',
+                  e.target.value as UserSettings['imageQuality'],
+                )
+              }
               className="setting-select"
             >
               <option value="low">Low (Faster)</option>
@@ -549,7 +609,7 @@ export const Settings: React.FC = () => {
             </select>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Enable Animations"
             description="Show smooth transitions and effects"
           >
@@ -557,7 +617,9 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.enableAnimations}
-                onChange={(e) => handleSettingChange('enableAnimations', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('enableAnimations', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
@@ -565,11 +627,11 @@ export const Settings: React.FC = () => {
         </SettingsSection>
 
         {/* Accessibility Settings */}
-        <SettingsSection 
-          title="Accessibility" 
+        <SettingsSection
+          title="Accessibility"
           description="Make the application more accessible for all users"
         >
-          <SettingItem 
+          <SettingItem
             label="High Contrast Mode"
             description="Increase contrast for better visibility"
           >
@@ -577,13 +639,15 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.highContrast}
-                onChange={(e) => handleSettingChange('highContrast', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('highContrast', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Screen Reader Mode"
             description="Optimize for screen reader compatibility"
           >
@@ -591,13 +655,15 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.screenReaderMode}
-                onChange={(e) => handleSettingChange('screenReaderMode', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('screenReaderMode', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
           </SettingItem>
 
-          <SettingItem 
+          <SettingItem
             label="Keyboard Navigation"
             description="Enable enhanced keyboard shortcuts and navigation"
           >
@@ -605,7 +671,31 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.keyboardNavigation}
-                onChange={(e) => handleSettingChange('keyboardNavigation', e.target.checked)}
+                onChange={(e) =>
+                  handleSettingChange('keyboardNavigation', e.target.checked)
+                }
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+        </SettingsSection>
+
+        {/* Experimental Settings */}
+        <SettingsSection
+          title="Experimental"
+          description="Try out new features that are still in development"
+        >
+          <SettingItem
+            label="Floating Toolbar"
+            description="Make the toolbar draggable and floating. When disabled (default), toolbar is docked at the bottom."
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.floatingToolbar ?? false}
+                onChange={(e) =>
+                  handleSettingChange('floatingToolbar', e.target.checked)
+                }
               />
               <span className="toggle-slider"></span>
             </label>
@@ -626,7 +716,9 @@ export const Settings: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={settings.useMockData ?? false}
-                  onChange={(e) => handleSettingChange('useMockData', e.target.checked)}
+                  onChange={(e) =>
+                    handleSettingChange('useMockData', e.target.checked)
+                  }
                 />
                 <span className="toggle-slider"></span>
               </label>
@@ -703,12 +795,16 @@ const CampaignBackupSection: React.FC = () => {
             <div className="stat-item">
               <span className="stat-label">Last Saved:</span>
               <span className="stat-value">
-                {stats.lastSaved ? new Date(stats.lastSaved).toLocaleString() : 'Never'}
+                {stats.lastSaved
+                  ? new Date(stats.lastSaved).toLocaleString()
+                  : 'Never'}
               </span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Status:</span>
-              <span className={`stat-value ${stats.isDirty ? 'dirty' : 'clean'}`}>
+              <span
+                className={`stat-value ${stats.isDirty ? 'dirty' : 'clean'}`}
+              >
                 {stats.isDirty ? 'Unsaved Changes' : 'Saved'}
               </span>
             </div>
@@ -731,9 +827,7 @@ const CampaignBackupSection: React.FC = () => {
               Exporting...
             </>
           ) : (
-            <>
-              📥 Export Campaign
-            </>
+            <>📥 Export Campaign</>
           )}
         </button>
       </SettingItem>
@@ -753,9 +847,7 @@ const CampaignBackupSection: React.FC = () => {
               Importing...
             </>
           ) : (
-            <>
-              📤 Import Campaign
-            </>
+            <>📤 Import Campaign</>
           )}
         </button>
       </SettingItem>

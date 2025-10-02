@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { useInitiativeStore, useInitiative, useInitiativeActions } from '@/stores/initiativeStore';
+import {
+  useInitiativeStore,
+  useInitiative,
+  useInitiativeActions,
+} from '@/stores/initiativeStore';
 import { STANDARD_CONDITIONS } from '@/types/initiative';
 import type { InitiativeEntry, Condition } from '@/types/initiative';
 
@@ -47,17 +51,21 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
   };
 
   const isDead = entry.currentHP === 0;
-  const isUnconscious = isDead && entry.deathSaves.failures < 3;
+
   const hpPercentage = (entry.currentHP / entry.maxHP) * 100;
 
   return (
-    <div className={`initiative-entry ${isActive ? 'active' : ''} ${isDead ? 'dead' : ''}`}>
+    <div
+      className={`initiative-entry ${isActive ? 'active' : ''} ${isDead ? 'dead' : ''}`}
+    >
       <div className="initiative-entry-header">
         <div className="initiative-value">
           <input
             type="number"
             value={entry.initiative}
-            onChange={(e) => onUpdate({ initiative: parseInt(e.target.value, 10) || 0 })}
+            onChange={(e) =>
+              onUpdate({ initiative: parseInt(e.target.value, 10) || 0 })
+            }
             className="initiative-input"
             min="0"
             max="30"
@@ -73,7 +81,9 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
               className="name-input"
               placeholder="Character name"
             />
-            <span className={`entry-type ${entry.type}`}>{entry.type.toUpperCase()}</span>
+            <span className={`entry-type ${entry.type}`}>
+              {entry.type.toUpperCase()}
+            </span>
           </div>
 
           {showHP && (
@@ -83,7 +93,12 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
                   className="hp-fill"
                   style={{
                     width: `${hpPercentage}%`,
-                    backgroundColor: hpPercentage > 50 ? '#10b981' : hpPercentage > 25 ? '#f59e0b' : '#ef4444'
+                    backgroundColor:
+                      hpPercentage > 50
+                        ? '#10b981'
+                        : hpPercentage > 25
+                          ? '#f59e0b'
+                          : '#ef4444',
                   }}
                 />
               </div>
@@ -91,7 +106,11 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
                 <input
                   type="number"
                   value={entry.currentHP}
-                  onChange={(e) => onUpdate({ currentHP: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                  onChange={(e) =>
+                    onUpdate({
+                      currentHP: Math.max(0, parseInt(e.target.value, 10) || 0),
+                    })
+                  }
                   className="hp-input"
                   min="0"
                 />
@@ -99,11 +118,17 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
                 <input
                   type="number"
                   value={entry.maxHP}
-                  onChange={(e) => onUpdate({ maxHP: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                  onChange={(e) =>
+                    onUpdate({
+                      maxHP: Math.max(1, parseInt(e.target.value, 10) || 1),
+                    })
+                  }
                   className="hp-input"
                   min="1"
                 />
-                {entry.tempHP > 0 && <span className="temp-hp">+{entry.tempHP}</span>}
+                {entry.tempHP > 0 && (
+                  <span className="temp-hp">+{entry.tempHP}</span>
+                )}
               </div>
             </div>
           )}
@@ -113,7 +138,9 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
             <input
               type="number"
               value={entry.armorClass}
-              onChange={(e) => onUpdate({ armorClass: parseInt(e.target.value, 10) || 10 })}
+              onChange={(e) =>
+                onUpdate({ armorClass: parseInt(e.target.value, 10) || 10 })
+              }
               className="ac-input"
               min="0"
               max="30"
@@ -129,7 +156,9 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
           >
             🩹 {entry.conditions.length > 0 && entry.conditions.length}
           </button>
-          <button onClick={onRemove} className="remove-btn" title="Remove">❌</button>
+          <button onClick={onRemove} className="remove-btn" title="Remove">
+            ❌
+          </button>
         </div>
       </div>
 
@@ -144,7 +173,9 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
               className="damage-input"
               min="0"
             />
-            <button onClick={handleDamage} className="damage-btn">⚔️</button>
+            <button onClick={handleDamage} className="damage-btn">
+              ⚔️
+            </button>
           </div>
 
           <div className="healing-control">
@@ -156,7 +187,9 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
               className="healing-input"
               min="0"
             />
-            <button onClick={handleHealing} className="healing-btn">❤️</button>
+            <button onClick={handleHealing} className="healing-btn">
+              ❤️
+            </button>
           </div>
         </div>
       )}
@@ -166,16 +199,18 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
           <div className="death-save-group">
             <label>Successes:</label>
             <div className="death-save-dots">
-              {[1, 2, 3].map(i => (
+              {[1, 2, 3].map((i) => (
                 <span
                   key={i}
                   className={`death-save-dot ${i <= entry.deathSaves.successes ? 'filled' : ''}`}
-                  onClick={() => onUpdate({
-                    deathSaves: {
-                      ...entry.deathSaves,
-                      successes: i <= entry.deathSaves.successes ? i - 1 : i
-                    }
-                  })}
+                  onClick={() =>
+                    onUpdate({
+                      deathSaves: {
+                        ...entry.deathSaves,
+                        successes: i <= entry.deathSaves.successes ? i - 1 : i,
+                      },
+                    })
+                  }
                 >
                   ●
                 </span>
@@ -185,16 +220,18 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
           <div className="death-save-group">
             <label>Failures:</label>
             <div className="death-save-dots">
-              {[1, 2, 3].map(i => (
+              {[1, 2, 3].map((i) => (
                 <span
                   key={i}
                   className={`death-save-dot failure ${i <= entry.deathSaves.failures ? 'filled' : ''}`}
-                  onClick={() => onUpdate({
-                    deathSaves: {
-                      ...entry.deathSaves,
-                      failures: i <= entry.deathSaves.failures ? i - 1 : i
-                    }
-                  })}
+                  onClick={() =>
+                    onUpdate({
+                      deathSaves: {
+                        ...entry.deathSaves,
+                        failures: i <= entry.deathSaves.failures ? i - 1 : i,
+                      },
+                    })
+                  }
                 >
                   ●
                 </span>
@@ -212,7 +249,9 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
                 <span className="condition-icon">{condition.icon}</span>
                 <span className="condition-name">{condition.name}</span>
                 {condition.duration && (
-                  <span className="condition-duration">{condition.duration}r</span>
+                  <span className="condition-duration">
+                    {condition.duration}r
+                  </span>
                 )}
                 <button
                   onClick={() => onRemoveCondition(condition.id)}
@@ -227,7 +266,9 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
           <div className="add-condition">
             <select
               onChange={(e) => {
-                const condition = STANDARD_CONDITIONS.find(c => c.id === e.target.value);
+                const condition = STANDARD_CONDITIONS.find(
+                  (c) => c.id === e.target.value,
+                );
                 if (condition) {
                   onAddCondition(condition);
                   e.target.value = '';
@@ -247,7 +288,9 @@ const InitiativeEntryRow: React.FC<InitiativeEntryRowProps> = ({
       )}
 
       {entry.isReady && <div className="status-indicator ready">Ready</div>}
-      {entry.isDelayed && <div className="status-indicator delayed">Delayed</div>}
+      {entry.isDelayed && (
+        <div className="status-indicator delayed">Delayed</div>
+      )}
     </div>
   );
 };
@@ -269,10 +312,13 @@ export const InitiativeTracker: React.FC = () => {
     rollInitiativeForAll,
   } = useInitiativeActions();
 
-  const { showPlayerHP, sortByInitiative, updateSettings } = useInitiativeStore();
+  const { showPlayerHP, sortByInitiative, updateSettings } =
+    useInitiativeStore();
 
   const [newEntryName, setNewEntryName] = useState('');
-  const [newEntryType, setNewEntryType] = useState<'player' | 'npc' | 'monster'>('player');
+  const [newEntryType, setNewEntryType] = useState<
+    'player' | 'npc' | 'monster'
+  >('player');
   const [newEntryInitiative, setNewEntryInitiative] = useState(10);
 
   const handleAddEntry = () => {
@@ -317,18 +363,30 @@ export const InitiativeTracker: React.FC = () => {
             <div className="active-combat-controls">
               <div className="round-display">Round {round}</div>
 
-              <button onClick={previousTurn} className="prev-turn-btn" title="Previous Turn">
+              <button
+                onClick={previousTurn}
+                className="prev-turn-btn"
+                title="Previous Turn"
+              >
                 ⬅️
               </button>
 
               <button
-                onClick={isPaused ? () => useInitiativeStore.getState().resumeCombat() : () => useInitiativeStore.getState().pauseCombat()}
+                onClick={
+                  isPaused
+                    ? () => useInitiativeStore.getState().resumeCombat()
+                    : () => useInitiativeStore.getState().pauseCombat()
+                }
                 className="pause-btn"
               >
                 {isPaused ? '▶️' : '⏸️'}
               </button>
 
-              <button onClick={nextTurn} className="next-turn-btn" title="Next Turn">
+              <button
+                onClick={nextTurn}
+                className="next-turn-btn"
+                title="Next Turn"
+              >
                 ➡️
               </button>
 
@@ -354,7 +412,9 @@ export const InitiativeTracker: React.FC = () => {
           <input
             type="checkbox"
             checked={sortByInitiative}
-            onChange={(e) => updateSettings({ sortByInitiative: e.target.checked })}
+            onChange={(e) =>
+              updateSettings({ sortByInitiative: e.target.checked })
+            }
           />
           Auto Sort
         </label>
@@ -383,7 +443,9 @@ export const InitiativeTracker: React.FC = () => {
         <div className="add-entry-row">
           <select
             value={newEntryType}
-            onChange={(e) => setNewEntryType(e.target.value as 'player' | 'npc' | 'monster')}
+            onChange={(e) =>
+              setNewEntryType(e.target.value as 'player' | 'npc' | 'monster')
+            }
             className="type-select"
           >
             <option value="player">Player</option>
@@ -394,7 +456,9 @@ export const InitiativeTracker: React.FC = () => {
           <input
             type="number"
             value={newEntryInitiative}
-            onChange={(e) => setNewEntryInitiative(parseInt(e.target.value, 10) || 0)}
+            onChange={(e) =>
+              setNewEntryInitiative(parseInt(e.target.value, 10) || 0)
+            }
             className="initiative-input"
             placeholder="Init"
             min="0"
@@ -424,7 +488,9 @@ export const InitiativeTracker: React.FC = () => {
               onApplyDamage={(damage) => applyDamage(entry.id, damage)}
               onApplyHealing={(healing) => applyHealing(entry.id, healing)}
               onAddCondition={(condition) => addCondition(entry.id, condition)}
-              onRemoveCondition={(conditionId) => removeCondition(entry.id, conditionId)}
+              onRemoveCondition={(conditionId) =>
+                removeCondition(entry.id, conditionId)
+              }
               showHP={showPlayerHP}
             />
           ))

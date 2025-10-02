@@ -9,14 +9,12 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   useHybridGameStore,
   useUser,
-  useSession,
   useSessionMode,
   useMultiplayerSession as useStoreMultiplayerSession,
   useIsHydrated,
-  useGameActions
+  useGameActions,
 } from '@/stores/hybridGameStore';
-import type { GameAction, SessionMode, MultiplayerSession } from '@/types/hybrid';
-import type { Scene, DiceRoll, UserSettings } from '@/types/game';
+import type { SessionMode, MultiplayerSession } from '@/types/hybrid';
 import type { Drawing } from '@/types/drawing';
 import type { PlacedToken } from '@/types/token';
 import { createDiceRoll } from '@/utils/dice';
@@ -47,7 +45,7 @@ export function useHybridGame() {
 
     // Utilities
     forceSave: store.forceSave,
-    reset: store.reset
+    reset: store.reset,
   };
 }
 
@@ -56,13 +54,13 @@ export function useHybridGame() {
  */
 export function useUserState() {
   const user = useUser();
-  const setUser = useHybridGameStore(state => state.setUser);
+  const setUser = useHybridGameStore((state) => state.setUser);
 
   return {
     user,
     updateUser: setUser,
     isHost: user.type === 'host',
-    isConnected: user.connected
+    isConnected: user.connected,
   };
 }
 
@@ -70,18 +68,20 @@ export function useUserState() {
  * Hook for managing application settings
  */
 export function useGameSettings() {
-  const settings = useHybridGameStore(state => state.settings);
-  const updateSettings = useHybridGameStore(state => state.updateSettings);
-  const resetSettings = useHybridGameStore(state => state.resetSettings);
-  const setColorScheme = useHybridGameStore(state => state.setColorScheme);
-  const setEnableGlassmorphism = useHybridGameStore(state => state.setEnableGlassmorphism);
+  const settings = useHybridGameStore((state) => state.settings);
+  const updateSettings = useHybridGameStore((state) => state.updateSettings);
+  const resetSettings = useHybridGameStore((state) => state.resetSettings);
+  const setColorScheme = useHybridGameStore((state) => state.setColorScheme);
+  const setEnableGlassmorphism = useHybridGameStore(
+    (state) => state.setEnableGlassmorphism,
+  );
 
   return {
     settings,
     updateSettings,
     resetSettings,
     setColorScheme,
-    setEnableGlassmorphism
+    setEnableGlassmorphism,
   };
 }
 
@@ -93,45 +93,51 @@ export function useGameSettings() {
  * Hook for managing scenes
  */
 export function useSceneManager() {
-  const scenes = useHybridGameStore(state => state.sceneState.scenes);
-  const activeSceneId = useHybridGameStore(state => state.sceneState.activeSceneId);
-  const createScene = useHybridGameStore(state => state.createScene);
-  const updateScene = useHybridGameStore(state => state.updateScene);
-  const deleteScene = useHybridGameStore(state => state.deleteScene);
-  const setActiveScene = useHybridGameStore(state => state.setActiveScene);
-  const reorderScenes = useHybridGameStore(state => state.reorderScenes);
+  const scenes = useHybridGameStore((state) => state.sceneState.scenes);
+  const activeSceneId = useHybridGameStore(
+    (state) => state.sceneState.activeSceneId,
+  );
+  const createScene = useHybridGameStore((state) => state.createScene);
+  const updateScene = useHybridGameStore((state) => state.updateScene);
+  const deleteScene = useHybridGameStore((state) => state.deleteScene);
+  const setActiveScene = useHybridGameStore((state) => state.setActiveScene);
+  const reorderScenes = useHybridGameStore((state) => state.reorderScenes);
 
-  const activeScene = scenes.find(scene => scene.id === activeSceneId) || null;
+  const activeScene =
+    scenes.find((scene) => scene.id === activeSceneId) || null;
 
-  const createNewScene = useCallback(async (name: string, description?: string) => {
-    const sceneData = {
-      name,
-      description: description || '',
-      visibility: 'public' as const,
-      isEditable: true,
-      createdBy: useHybridGameStore.getState().user.id,
-      gridSettings: {
-        enabled: true,
-        size: 50,
-        color: '#ffffff',
-        opacity: 0.3,
-        snapToGrid: true,
-        showToPlayers: true
-      },
-      lightingSettings: {
-        enabled: false,
-        globalIllumination: true,
-        ambientLight: 0.5,
-        darkness: 0
-      },
-      drawings: [],
-      placedTokens: [],
-      isActive: false,
-      playerCount: 0
-    };
+  const createNewScene = useCallback(
+    async (name: string, description?: string) => {
+      const sceneData = {
+        name,
+        description: description || '',
+        visibility: 'public' as const,
+        isEditable: true,
+        createdBy: useHybridGameStore.getState().user.id,
+        gridSettings: {
+          enabled: true,
+          size: 50,
+          color: '#ffffff',
+          opacity: 0.3,
+          snapToGrid: true,
+          showToPlayers: true,
+        },
+        lightingSettings: {
+          enabled: false,
+          globalIllumination: true,
+          ambientLight: 0.5,
+          darkness: 0,
+        },
+        drawings: [],
+        placedTokens: [],
+        isActive: false,
+        playerCount: 0,
+      };
 
-    return await createScene(sceneData);
-  }, [createScene]);
+      return await createScene(sceneData);
+    },
+    [createScene],
+  );
 
   return {
     scenes,
@@ -141,7 +147,7 @@ export function useSceneManager() {
     updateScene,
     deleteScene,
     setActiveScene,
-    reorderScenes
+    reorderScenes,
   };
 }
 
@@ -149,18 +155,24 @@ export function useSceneManager() {
  * Hook for managing camera and viewport
  */
 export function useCamera() {
-  const camera = useHybridGameStore(state => state.sceneState.camera);
-  const followDM = useHybridGameStore(state => state.sceneState.followDM);
-  const updateCamera = useHybridGameStore(state => state.updateCamera);
-  const setFollowDM = useHybridGameStore(state => state.setFollowDM);
+  const camera = useHybridGameStore((state) => state.sceneState.camera);
+  const followDM = useHybridGameStore((state) => state.sceneState.followDM);
+  const updateCamera = useHybridGameStore((state) => state.updateCamera);
+  const setFollowDM = useHybridGameStore((state) => state.setFollowDM);
 
-  const moveCamera = useCallback((x: number, y: number) => {
-    updateCamera({ x, y });
-  }, [updateCamera]);
+  const moveCamera = useCallback(
+    (x: number, y: number) => {
+      updateCamera({ x, y });
+    },
+    [updateCamera],
+  );
 
-  const zoomCamera = useCallback((zoom: number) => {
-    updateCamera({ zoom: Math.max(0.1, Math.min(5, zoom)) });
-  }, [updateCamera]);
+  const zoomCamera = useCallback(
+    (zoom: number) => {
+      updateCamera({ zoom: Math.max(0.1, Math.min(5, zoom)) });
+    },
+    [updateCamera],
+  );
 
   const resetCamera = useCallback(() => {
     updateCamera({ x: 0, y: 0, zoom: 1 });
@@ -172,7 +184,7 @@ export function useCamera() {
     moveCamera,
     zoomCamera,
     resetCamera,
-    setFollowDM
+    setFollowDM,
   };
 }
 
@@ -184,32 +196,48 @@ export function useCamera() {
  * Hook for managing drawings in a scene
  */
 export function useSceneDrawings(sceneId: string) {
-  const getSceneDrawings = useHybridGameStore(state => state.getSceneDrawings);
-  const getVisibleDrawings = useHybridGameStore(state => state.getVisibleDrawings);
-  const createDrawing = useHybridGameStore(state => state.createDrawing);
-  const updateDrawing = useHybridGameStore(state => state.updateDrawing);
-  const deleteDrawing = useHybridGameStore(state => state.deleteDrawing);
-  const clearDrawings = useHybridGameStore(state => state.clearDrawings);
-  const isHost = useHybridGameStore(state => state.user.type === 'host');
+  const getSceneDrawings = useHybridGameStore(
+    (state) => state.getSceneDrawings,
+  );
+  const getVisibleDrawings = useHybridGameStore(
+    (state) => state.getVisibleDrawings,
+  );
+  const createDrawing = useHybridGameStore((state) => state.createDrawing);
+  const updateDrawing = useHybridGameStore((state) => state.updateDrawing);
+  const deleteDrawing = useHybridGameStore((state) => state.deleteDrawing);
+  const clearDrawings = useHybridGameStore((state) => state.clearDrawings);
+  const isHost = useHybridGameStore((state) => state.user.type === 'host');
 
   const allDrawings = getSceneDrawings(sceneId);
   const visibleDrawings = getVisibleDrawings(sceneId, isHost);
 
-  const addDrawing = useCallback(async (drawing: Drawing) => {
-    await createDrawing(sceneId, drawing);
-  }, [createDrawing, sceneId]);
+  const addDrawing = useCallback(
+    async (drawing: Drawing) => {
+      await createDrawing(sceneId, drawing);
+    },
+    [createDrawing, sceneId],
+  );
 
-  const modifyDrawing = useCallback(async (drawingId: string, updates: Partial<Drawing>) => {
-    await updateDrawing(sceneId, drawingId, updates);
-  }, [updateDrawing, sceneId]);
+  const modifyDrawing = useCallback(
+    async (drawingId: string, updates: Partial<Drawing>) => {
+      await updateDrawing(sceneId, drawingId, updates);
+    },
+    [updateDrawing, sceneId],
+  );
 
-  const removeDrawing = useCallback(async (drawingId: string) => {
-    await deleteDrawing(sceneId, drawingId);
-  }, [deleteDrawing, sceneId]);
+  const removeDrawing = useCallback(
+    async (drawingId: string) => {
+      await deleteDrawing(sceneId, drawingId);
+    },
+    [deleteDrawing, sceneId],
+  );
 
-  const clearAllDrawings = useCallback(async (layer?: string) => {
-    await clearDrawings(sceneId, layer);
-  }, [clearDrawings, sceneId]);
+  const clearAllDrawings = useCallback(
+    async (layer?: string) => {
+      await clearDrawings(sceneId, layer);
+    },
+    [clearDrawings, sceneId],
+  );
 
   return {
     drawings: visibleDrawings,
@@ -217,7 +245,7 @@ export function useSceneDrawings(sceneId: string) {
     addDrawing,
     updateDrawing: modifyDrawing,
     removeDrawing,
-    clearDrawings: clearAllDrawings
+    clearDrawings: clearAllDrawings,
   };
 }
 
@@ -225,32 +253,46 @@ export function useSceneDrawings(sceneId: string) {
  * Hook for managing tokens in a scene
  */
 export function useSceneTokens(sceneId: string) {
-  const getSceneTokens = useHybridGameStore(state => state.getSceneTokens);
-  const getVisibleTokens = useHybridGameStore(state => state.getVisibleTokens);
-  const placeToken = useHybridGameStore(state => state.placeToken);
-  const moveToken = useHybridGameStore(state => state.moveToken);
-  const updateToken = useHybridGameStore(state => state.updateToken);
-  const deleteToken = useHybridGameStore(state => state.deleteToken);
-  const isHost = useHybridGameStore(state => state.user.type === 'host');
+  const getSceneTokens = useHybridGameStore((state) => state.getSceneTokens);
+  const getVisibleTokens = useHybridGameStore(
+    (state) => state.getVisibleTokens,
+  );
+  const placeToken = useHybridGameStore((state) => state.placeToken);
+  const moveToken = useHybridGameStore((state) => state.moveToken);
+  const updateToken = useHybridGameStore((state) => state.updateToken);
+  const deleteToken = useHybridGameStore((state) => state.deleteToken);
+  const isHost = useHybridGameStore((state) => state.user.type === 'host');
 
   const allTokens = getSceneTokens(sceneId);
   const visibleTokens = getVisibleTokens(sceneId, isHost);
 
-  const addToken = useCallback(async (token: PlacedToken) => {
-    await placeToken(sceneId, token);
-  }, [placeToken, sceneId]);
+  const addToken = useCallback(
+    async (token: PlacedToken) => {
+      await placeToken(sceneId, token);
+    },
+    [placeToken, sceneId],
+  );
 
-  const moveTokenTo = useCallback(async (tokenId: string, x: number, y: number, rotation?: number) => {
-    await moveToken(sceneId, tokenId, { x, y }, rotation);
-  }, [moveToken, sceneId]);
+  const moveTokenTo = useCallback(
+    async (tokenId: string, x: number, y: number, rotation?: number) => {
+      await moveToken(sceneId, tokenId, { x, y }, rotation);
+    },
+    [moveToken, sceneId],
+  );
 
-  const modifyToken = useCallback(async (tokenId: string, updates: Partial<PlacedToken>) => {
-    await updateToken(sceneId, tokenId, updates);
-  }, [updateToken, sceneId]);
+  const modifyToken = useCallback(
+    async (tokenId: string, updates: Partial<PlacedToken>) => {
+      await updateToken(sceneId, tokenId, updates);
+    },
+    [updateToken, sceneId],
+  );
 
-  const removeToken = useCallback(async (tokenId: string) => {
-    await deleteToken(sceneId, tokenId);
-  }, [deleteToken, sceneId]);
+  const removeToken = useCallback(
+    async (tokenId: string) => {
+      await deleteToken(sceneId, tokenId);
+    },
+    [deleteToken, sceneId],
+  );
 
   return {
     tokens: visibleTokens,
@@ -258,7 +300,7 @@ export function useSceneTokens(sceneId: string) {
     addToken,
     moveToken: moveTokenTo,
     updateToken: modifyToken,
-    removeToken
+    removeToken,
   };
 }
 
@@ -283,9 +325,9 @@ export function useMultiplayerSession(): {
 } {
   const sessionMode = useSessionMode();
   const session = useStoreMultiplayerSession();
-  const startHosting = useHybridGameStore(state => state.startHosting);
-  const joinSession = useHybridGameStore(state => state.joinSession);
-  const leaveSession = useHybridGameStore(state => state.leaveSession);
+  const startHosting = useHybridGameStore((state) => state.startHosting);
+  const joinSession = useHybridGameStore((state) => state.joinSession);
+  const leaveSession = useHybridGameStore((state) => state.leaveSession);
 
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -301,28 +343,35 @@ export function useMultiplayerSession(): {
       setIsConnecting(false);
       return newSession;
     } catch (error) {
-      setConnectionError(error instanceof Error ? error.message : 'Failed to start hosting');
+      setConnectionError(
+        error instanceof Error ? error.message : 'Failed to start hosting',
+      );
       setIsConnecting(false);
       return null;
     }
   }, [sessionMode, startHosting]);
 
-  const joinExistingSession = useCallback(async (roomCode: string) => {
-    if (sessionMode !== 'local') return null;
+  const joinExistingSession = useCallback(
+    async (roomCode: string) => {
+      if (sessionMode !== 'local') return null;
 
-    setIsConnecting(true);
-    setConnectionError(null);
+      setIsConnecting(true);
+      setConnectionError(null);
 
-    try {
-      const joinedSession = await joinSession(roomCode);
-      setIsConnecting(false);
-      return joinedSession;
-    } catch (error) {
-      setConnectionError(error instanceof Error ? error.message : 'Failed to join session');
-      setIsConnecting(false);
-      return null;
-    }
-  }, [sessionMode, joinSession]);
+      try {
+        const joinedSession = await joinSession(roomCode);
+        setIsConnecting(false);
+        return joinedSession;
+      } catch (error) {
+        setConnectionError(
+          error instanceof Error ? error.message : 'Failed to join session',
+        );
+        setIsConnecting(false);
+        return null;
+      }
+    },
+    [sessionMode, joinSession],
+  );
 
   const leaveCurrentSession = useCallback(async () => {
     if (sessionMode === 'local') return;
@@ -331,7 +380,9 @@ export function useMultiplayerSession(): {
       await leaveSession();
       setConnectionError(null);
     } catch (error) {
-      setConnectionError(error instanceof Error ? error.message : 'Failed to leave session');
+      setConnectionError(
+        error instanceof Error ? error.message : 'Failed to leave session',
+      );
     }
   }, [sessionMode, leaveSession]);
 
@@ -345,7 +396,7 @@ export function useMultiplayerSession(): {
     isJoined: sessionMode === 'joined',
     hostSession: hostNewSession,
     joinSession: joinExistingSession,
-    leaveSession: leaveCurrentSession
+    leaveSession: leaveCurrentSession,
   };
 }
 
@@ -357,31 +408,37 @@ export function useMultiplayerSession(): {
  * Hook for managing dice rolls
  */
 export function useDiceRolls() {
-  const diceRolls = useHybridGameStore(state => state.diceRolls);
-  const addDiceRoll = useHybridGameStore(state => state.addDiceRoll);
+  const diceRolls = useHybridGameStore((state) => state.diceRolls);
+  const addDiceRoll = useHybridGameStore((state) => state.addDiceRoll);
 
-  const rollDice = useCallback((expression: string, options: {
-    isPrivate?: boolean;
-    advantage?: boolean;
-    disadvantage?: boolean;
-  } = {}) => {
-    const user = useHybridGameStore.getState().user;
+  const rollDice = useCallback(
+    (
+      expression: string,
+      options: {
+        isPrivate?: boolean;
+        advantage?: boolean;
+        disadvantage?: boolean;
+      } = {},
+    ) => {
+      const user = useHybridGameStore.getState().user;
 
-    // Use the existing dice utility to create a proper dice roll
-    const roll = createDiceRoll(expression, user.id, user.name, options);
+      // Use the existing dice utility to create a proper dice roll
+      const roll = createDiceRoll(expression, user.id, user.name, options);
 
-    if (!roll) {
-      console.error('Invalid dice expression:', expression);
-      return null;
-    }
+      if (!roll) {
+        console.error('Invalid dice expression:', expression);
+        return null;
+      }
 
-    addDiceRoll(roll);
-    return roll;
-  }, [addDiceRoll]);
+      addDiceRoll(roll);
+      return roll;
+    },
+    [addDiceRoll],
+  );
 
   return {
     diceRolls,
-    rollDice
+    rollDice,
   };
 }
 
@@ -394,7 +451,7 @@ export function useDiceRolls() {
  */
 export function usePersistence() {
   const isHydrated = useIsHydrated();
-  const forceSave = useHybridGameStore(state => state.forceSave);
+  const forceSave = useHybridGameStore((state) => state.forceSave);
   const sessionMode = useSessionMode();
 
   const [isSaving, setIsSaving] = useState(false);
@@ -417,7 +474,7 @@ export function usePersistence() {
     isSaving,
     lastSaved,
     isLocalMode: sessionMode === 'local',
-    saveNow
+    saveNow,
   };
 }
 
@@ -445,7 +502,7 @@ export function useDebugInfo() {
         lastSaved: new Date(state.lastSaved),
         localChanges: state.localChanges.length,
         sessionMode: store.sessionMode,
-        isHydrated: store.isHydrated
+        isHydrated: store.isHydrated,
       });
     };
 
@@ -457,6 +514,6 @@ export function useDebugInfo() {
 
   return {
     debugInfo,
-    stateManager: process.env.NODE_ENV === 'development' ? stateManager : null
+    stateManager: process.env.NODE_ENV === 'development' ? stateManager : null,
   };
 }

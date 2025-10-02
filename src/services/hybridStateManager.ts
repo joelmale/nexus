@@ -14,18 +14,21 @@ import type {
   HybridStoreConfig,
   SyncState,
   SessionMode,
-  MultiplayerSession
+  MultiplayerSession,
 } from '@/types/hybrid';
 import type { GameState } from '@/types/game';
-import { IndexedDBAdapter, createIndexedDBAdapter } from './indexedDBAdapter';
+import { createIndexedDBAdapter } from './indexedDBAdapter';
 import { v4 as uuidv4 } from 'uuid';
 
 export class HybridStateManager {
   private storage: StorageAdapter;
   private config: HybridStoreConfig;
   private saveDebounceTimer: number | null = null;
-  private listeners: Map<string, Set<(state: PersistedGameState) => void>> = new Map();
-  private actionListeners: Set<(action: GameAction, result: ActionResult) => void> = new Set();
+  private listeners: Map<string, Set<(state: PersistedGameState) => void>> =
+    new Map();
+  private actionListeners: Set<
+    (action: GameAction, result: ActionResult) => void
+  > = new Set();
 
   // State
   private currentState: PersistedGameState | null = null;
@@ -45,7 +48,9 @@ export class HybridStateManager {
   // INITIALIZATION AND CONFIGURATION
   // =============================================================================
 
-  private createDefaultConfig(config: Partial<HybridStoreConfig>): HybridStoreConfig {
+  private createDefaultConfig(
+    config: Partial<HybridStoreConfig>,
+  ): HybridStoreConfig {
     return {
       storage: {
         adapter: 'indexeddb',
@@ -54,7 +59,7 @@ export class HybridStateManager {
         autoSave: true,
         saveDebounceMs: 1000,
         compressionEnabled: false,
-        ...config.storage
+        ...config.storage,
       },
       sync: {
         enableRealtime: true,
@@ -63,14 +68,14 @@ export class HybridStateManager {
         retryDelayMs: 1000,
         fullSyncIntervalMs: 30000,
         heartbeatIntervalMs: 5000,
-        ...config.sync
+        ...config.sync,
       },
       performance: {
         maxCachedActions: 1000,
         maxSyncErrors: 100,
         stateCompressionThreshold: 100000,
         optimisticUpdates: true,
-        ...config.performance
+        ...config.performance,
       },
       debug: {
         enableLogging: process.env.NODE_ENV === 'development',
@@ -78,8 +83,8 @@ export class HybridStateManager {
         enableMetrics: false,
         simulateLatency: false,
         simulateErrors: false,
-        ...config.debug
-      }
+        ...config.debug,
+      },
     };
   }
 
@@ -88,10 +93,12 @@ export class HybridStateManager {
       case 'indexeddb':
         return createIndexedDBAdapter({
           dbName: this.config.storage.dbName,
-          version: this.config.storage.version
+          version: this.config.storage.version,
         });
       default:
-        throw new Error(`Unsupported storage adapter: ${this.config.storage.adapter}`);
+        throw new Error(
+          `Unsupported storage adapter: ${this.config.storage.adapter}`,
+        );
     }
   }
 
@@ -105,19 +112,22 @@ export class HybridStateManager {
       remoteVersion: 0,
       hasConflicts: false,
       conflicts: [],
-      resolutionStrategy: this.config.sync.conflictResolution
+      resolutionStrategy: this.config.sync.conflictResolution,
     };
   }
 
   private async initializeState(): Promise<void> {
     try {
       // Try to load existing state from storage
-      const savedState = await this.storage.load<PersistedGameState>('currentState');
+      const savedState =
+        await this.storage.load<PersistedGameState>('currentState');
 
       if (savedState) {
         this.currentState = savedState;
         this.syncState.localVersion = savedState.syncVersion;
-        this.log('info', 'State loaded from storage', { version: savedState.syncVersion });
+        this.log('info', 'State loaded from storage', {
+          version: savedState.syncVersion,
+        });
       } else {
         // Initialize with default state
         this.currentState = this.createInitialGameState();
@@ -149,10 +159,19 @@ export class HybridStateManager {
         activeSceneId: null,
         camera: { x: 0, y: 0, zoom: 1 },
         followDM: true,
+        activeTool: 'select',
       },
       settings: {
         // Your existing default settings
-        colorScheme: { id: 'default', name: 'Default', primary: '#3b82f6', secondary: '#1e40af', accent: '#f59e0b', surface: '#1f2937', text: '#f3f4f6' },
+        colorScheme: {
+          id: 'default',
+          name: 'Default',
+          primary: '#3b82f6',
+          secondary: '#1e40af',
+          accent: '#f59e0b',
+          surface: '#1f2937',
+          text: '#f3f4f6',
+        },
         theme: 'auto',
         enableGlassmorphism: true,
         reducedMotion: false,
@@ -174,8 +193,8 @@ export class HybridStateManager {
         enableAnimations: true,
         highContrast: false,
         screenReaderMode: false,
-        keyboardNavigation: true
-      }
+        keyboardNavigation: true,
+      },
     };
 
     return {
@@ -184,7 +203,7 @@ export class HybridStateManager {
       lastSaved: Date.now(),
       lastModified: Date.now(),
       syncVersion: 1,
-      localChanges: []
+      localChanges: [],
     };
   }
 
@@ -199,7 +218,9 @@ export class HybridStateManager {
     return this.currentState!;
   }
 
-  async setState(updater: (current: PersistedGameState) => PersistedGameState | void): Promise<void> {
+  async setState(
+    updater: (current: PersistedGameState) => PersistedGameState | void,
+  ): Promise<void> {
     const currentState = await this.getState();
     const newState = updater(currentState) || currentState;
 
@@ -214,14 +235,18 @@ export class HybridStateManager {
       type: 'state-update',
       stateUpdate: newState,
       applied: true,
-      synced: false
+      synced: false,
     };
 
     newState.localChanges.push(change);
 
     // Limit local changes history
-    if (newState.localChanges.length > this.config.performance.maxCachedActions) {
-      newState.localChanges = newState.localChanges.slice(-this.config.performance.maxCachedActions);
+    if (
+      newState.localChanges.length > this.config.performance.maxCachedActions
+    ) {
+      newState.localChanges = newState.localChanges.slice(
+        -this.config.performance.maxCachedActions,
+      );
     }
 
     this.currentState = newState;
@@ -248,14 +273,17 @@ export class HybridStateManager {
         return {
           success: false,
           action,
-          error: validation.error
+          error: validation.error,
         };
       }
 
       // Apply action optimistically if enabled
       let rollbackState: PersistedGameState | undefined;
-      if (this.config.performance.optimisticUpdates && this.sessionMode !== 'local') {
-        rollbackState = { ...await this.getState() };
+      if (
+        this.config.performance.optimisticUpdates &&
+        this.sessionMode !== 'local'
+      ) {
+        rollbackState = { ...(await this.getState()) };
       }
 
       // Apply the action
@@ -269,10 +297,10 @@ export class HybridStateManager {
           type: 'action',
           action,
           applied: true,
-          synced: this.sessionMode === 'local' // Local actions are immediately "synced"
+          synced: this.sessionMode === 'local', // Local actions are immediately "synced"
         };
 
-        await this.setState(state => {
+        await this.setState((state) => {
           state.localChanges.push(change);
         });
       }
@@ -281,24 +309,30 @@ export class HybridStateManager {
       this.notifyActionListeners(action, result);
 
       const duration = Date.now() - startTime;
-      this.log('debug', 'Action applied', { type: action.type, success: result.success, duration });
+      this.log('debug', 'Action applied', {
+        type: action.type,
+        success: result.success,
+        duration,
+      });
 
       return {
         ...result,
-        rollback: rollbackState
+        rollback: rollbackState,
       };
-
     } catch (error) {
       this.log('error', 'Action failed', { action: action.type, error });
       return {
         success: false,
         action,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
 
-  private validateAction(action: GameAction): { valid: boolean; error?: string } {
+  private validateAction(action: GameAction): {
+    valid: boolean;
+    error?: string;
+  } {
     // Basic validation
     if (!action.id || !action.type || !action.userId) {
       return { valid: false, error: 'Invalid action: missing required fields' };
@@ -402,7 +436,7 @@ export class HybridStateManager {
         return {
           success: false,
           action,
-          error: `Unknown action type: ${action.type}`
+          error: `Unknown action type: ${action.type}`,
         };
     }
   }
@@ -411,34 +445,43 @@ export class HybridStateManager {
   // USER ACTION HANDLERS
   // =============================================================================
 
-  private async handleUserUpdate(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
-    const payload = action.payload as { updates: Partial<typeof state.user> };
+  private async handleUserUpdate(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
+    const payload = action.payload as { updates: Partial<typeof _state.user> };
 
-    await this.setState(currentState => {
+    await this.setState((currentState) => {
       Object.assign(currentState.user, payload.updates);
     });
 
     return {
       success: true,
       action,
-      newState: { user: (await this.getState()).user }
+      newState: { user: (await this.getState()).user },
     };
   }
 
-  private async handleUserSetName(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleUserSetName(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { name: string };
 
-    await this.setState(currentState => {
+    await this.setState((currentState) => {
       currentState.user.name = payload.name;
     });
 
     return { success: true, action };
   }
 
-  private async handleUserSetColor(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleUserSetColor(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { color: string };
 
-    await this.setState(currentState => {
+    await this.setState((currentState) => {
       currentState.user.color = payload.color;
     });
 
@@ -449,10 +492,13 @@ export class HybridStateManager {
   // SCENE ACTION HANDLERS
   // =============================================================================
 
-  private async handleSceneCreate(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSceneCreate(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { scene: any };
 
-    await this.setState(currentState => {
+    await this.setState((currentState) => {
       currentState.sceneState.scenes.push(payload.scene);
       if (!currentState.sceneState.activeSceneId) {
         currentState.sceneState.activeSceneId = payload.scene.id;
@@ -462,32 +508,46 @@ export class HybridStateManager {
     return {
       success: true,
       action,
-      newState: { sceneState: (await this.getState()).sceneState }
+      newState: { sceneState: (await this.getState()).sceneState },
     };
   }
 
-  private async handleSceneUpdate(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSceneUpdate(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { sceneId: string; updates: any };
 
-    await this.setState(currentState => {
-      const sceneIndex = currentState.sceneState.scenes.findIndex(s => s.id === payload.sceneId);
+    await this.setState((currentState) => {
+      const sceneIndex = currentState.sceneState.scenes.findIndex(
+        (s) => s.id === payload.sceneId,
+      );
       if (sceneIndex >= 0) {
-        Object.assign(currentState.sceneState.scenes[sceneIndex], payload.updates);
+        Object.assign(
+          currentState.sceneState.scenes[sceneIndex],
+          payload.updates,
+        );
       }
     });
 
     return { success: true, action };
   }
 
-  private async handleSceneDelete(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSceneDelete(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { sceneId: string };
 
-    await this.setState(currentState => {
-      const sceneIndex = currentState.sceneState.scenes.findIndex(s => s.id === payload.sceneId);
+    await this.setState((currentState) => {
+      const sceneIndex = currentState.sceneState.scenes.findIndex(
+        (s) => s.id === payload.sceneId,
+      );
       if (sceneIndex >= 0) {
         currentState.sceneState.scenes.splice(sceneIndex, 1);
         if (currentState.sceneState.activeSceneId === payload.sceneId) {
-          currentState.sceneState.activeSceneId = currentState.sceneState.scenes[0]?.id || null;
+          currentState.sceneState.activeSceneId =
+            currentState.sceneState.scenes[0]?.id || null;
         }
       }
     });
@@ -495,10 +555,13 @@ export class HybridStateManager {
     return { success: true, action };
   }
 
-  private async handleSceneReorder(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSceneReorder(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { fromIndex: number; toIndex: number };
 
-    await this.setState(currentState => {
+    await this.setState((currentState) => {
       const scenes = currentState.sceneState.scenes;
       const [moved] = scenes.splice(payload.fromIndex, 1);
       scenes.splice(payload.toIndex, 0, moved);
@@ -507,10 +570,13 @@ export class HybridStateManager {
     return { success: true, action };
   }
 
-  private async handleSceneSetActive(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSceneSetActive(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { sceneId: string };
 
-    await this.setState(currentState => {
+    await this.setState((currentState) => {
       currentState.sceneState.activeSceneId = payload.sceneId;
     });
 
@@ -521,20 +587,28 @@ export class HybridStateManager {
   // CAMERA ACTION HANDLERS
   // =============================================================================
 
-  private async handleCameraUpdate(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
-    const payload = action.payload as { camera: Partial<typeof state.sceneState.camera> };
+  private async handleCameraUpdate(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
+    const payload = action.payload as {
+      camera: Partial<typeof _state.sceneState.camera>;
+    };
 
-    await this.setState(currentState => {
+    await this.setState((currentState) => {
       Object.assign(currentState.sceneState.camera, payload.camera);
     });
 
     return { success: true, action };
   }
 
-  private async handleCameraSetFollowDM(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleCameraSetFollowDM(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { follow: boolean };
 
-    await this.setState(currentState => {
+    await this.setState((currentState) => {
       currentState.sceneState.followDM = payload.follow;
     });
 
@@ -545,11 +619,16 @@ export class HybridStateManager {
   // TOKEN ACTION HANDLERS
   // =============================================================================
 
-  private async handleTokenPlace(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleTokenPlace(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { sceneId: string; token: any };
 
-    await this.setState(currentState => {
-      const scene = currentState.sceneState.scenes.find(s => s.id === payload.sceneId);
+    await this.setState((currentState) => {
+      const scene = currentState.sceneState.scenes.find(
+        (s) => s.id === payload.sceneId,
+      );
       if (scene) {
         scene.placedTokens.push(payload.token);
       }
@@ -558,7 +637,10 @@ export class HybridStateManager {
     return { success: true, action };
   }
 
-  private async handleTokenMove(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleTokenMove(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as {
       sceneId: string;
       tokenId: string;
@@ -566,10 +648,12 @@ export class HybridStateManager {
       rotation?: number;
     };
 
-    await this.setState(currentState => {
-      const scene = currentState.sceneState.scenes.find(s => s.id === payload.sceneId);
+    await this.setState((currentState) => {
+      const scene = currentState.sceneState.scenes.find(
+        (s) => s.id === payload.sceneId,
+      );
       if (scene) {
-        const token = scene.placedTokens.find(t => t.id === payload.tokenId);
+        const token = scene.placedTokens.find((t) => t.id === payload.tokenId);
         if (token) {
           token.x = payload.position.x;
           token.y = payload.position.y;
@@ -583,13 +667,24 @@ export class HybridStateManager {
     return { success: true, action };
   }
 
-  private async handleTokenUpdate(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
-    const payload = action.payload as { sceneId: string; tokenId: string; updates: any };
+  private async handleTokenUpdate(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
+    const payload = action.payload as {
+      sceneId: string;
+      tokenId: string;
+      updates: any;
+    };
 
-    await this.setState(currentState => {
-      const scene = currentState.sceneState.scenes.find(s => s.id === payload.sceneId);
+    await this.setState((currentState) => {
+      const scene = currentState.sceneState.scenes.find(
+        (s) => s.id === payload.sceneId,
+      );
       if (scene) {
-        const tokenIndex = scene.placedTokens.findIndex(t => t.id === payload.tokenId);
+        const tokenIndex = scene.placedTokens.findIndex(
+          (t) => t.id === payload.tokenId,
+        );
         if (tokenIndex >= 0) {
           Object.assign(scene.placedTokens[tokenIndex], payload.updates);
         }
@@ -599,13 +694,20 @@ export class HybridStateManager {
     return { success: true, action };
   }
 
-  private async handleTokenDelete(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleTokenDelete(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { sceneId: string; tokenId: string };
 
-    await this.setState(currentState => {
-      const scene = currentState.sceneState.scenes.find(s => s.id === payload.sceneId);
+    await this.setState((currentState) => {
+      const scene = currentState.sceneState.scenes.find(
+        (s) => s.id === payload.sceneId,
+      );
       if (scene) {
-        const tokenIndex = scene.placedTokens.findIndex(t => t.id === payload.tokenId);
+        const tokenIndex = scene.placedTokens.findIndex(
+          (t) => t.id === payload.tokenId,
+        );
         if (tokenIndex >= 0) {
           scene.placedTokens.splice(tokenIndex, 1);
         }
@@ -619,11 +721,16 @@ export class HybridStateManager {
   // DRAWING ACTION HANDLERS
   // =============================================================================
 
-  private async handleDrawingCreate(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleDrawingCreate(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { sceneId: string; drawing: any };
 
-    await this.setState(currentState => {
-      const scene = currentState.sceneState.scenes.find(s => s.id === payload.sceneId);
+    await this.setState((currentState) => {
+      const scene = currentState.sceneState.scenes.find(
+        (s) => s.id === payload.sceneId,
+      );
       if (scene) {
         scene.drawings.push(payload.drawing);
       }
@@ -632,13 +739,24 @@ export class HybridStateManager {
     return { success: true, action };
   }
 
-  private async handleDrawingUpdate(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
-    const payload = action.payload as { sceneId: string; drawingId: string; updates: any };
+  private async handleDrawingUpdate(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
+    const payload = action.payload as {
+      sceneId: string;
+      drawingId: string;
+      updates: any;
+    };
 
-    await this.setState(currentState => {
-      const scene = currentState.sceneState.scenes.find(s => s.id === payload.sceneId);
+    await this.setState((currentState) => {
+      const scene = currentState.sceneState.scenes.find(
+        (s) => s.id === payload.sceneId,
+      );
       if (scene) {
-        const drawingIndex = scene.drawings.findIndex(d => d.id === payload.drawingId);
+        const drawingIndex = scene.drawings.findIndex(
+          (d) => d.id === payload.drawingId,
+        );
         if (drawingIndex >= 0) {
           Object.assign(scene.drawings[drawingIndex], payload.updates);
         }
@@ -648,13 +766,20 @@ export class HybridStateManager {
     return { success: true, action };
   }
 
-  private async handleDrawingDelete(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleDrawingDelete(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { sceneId: string; drawingId: string };
 
-    await this.setState(currentState => {
-      const scene = currentState.sceneState.scenes.find(s => s.id === payload.sceneId);
+    await this.setState((currentState) => {
+      const scene = currentState.sceneState.scenes.find(
+        (s) => s.id === payload.sceneId,
+      );
       if (scene) {
-        const drawingIndex = scene.drawings.findIndex(d => d.id === payload.drawingId);
+        const drawingIndex = scene.drawings.findIndex(
+          (d) => d.id === payload.drawingId,
+        );
         if (drawingIndex >= 0) {
           scene.drawings.splice(drawingIndex, 1);
         }
@@ -664,14 +789,21 @@ export class HybridStateManager {
     return { success: true, action };
   }
 
-  private async handleDrawingClear(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleDrawingClear(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { sceneId: string; layer?: string };
 
-    await this.setState(currentState => {
-      const scene = currentState.sceneState.scenes.find(s => s.id === payload.sceneId);
+    await this.setState((currentState) => {
+      const scene = currentState.sceneState.scenes.find(
+        (s) => s.id === payload.sceneId,
+      );
       if (scene) {
         if (payload.layer) {
-          scene.drawings = scene.drawings.filter(d => d.layer !== payload.layer);
+          scene.drawings = scene.drawings.filter(
+            (d) => d.layer !== payload.layer,
+          );
         } else {
           scene.drawings = [];
         }
@@ -685,7 +817,10 @@ export class HybridStateManager {
   // DICE ACTION HANDLERS
   // =============================================================================
 
-  private async handleDiceRoll(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleDiceRoll(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { roll: any };
 
     // Validate the dice roll
@@ -693,11 +828,11 @@ export class HybridStateManager {
       return {
         success: false,
         action,
-        error: 'Invalid dice roll data'
+        error: 'Invalid dice roll data',
       };
     }
 
-    await this.setState(currentState => {
+    await this.setState((currentState) => {
       currentState.diceRolls.unshift(payload.roll);
       // Keep only last 100 rolls
       if (currentState.diceRolls.length > 100) {
@@ -708,8 +843,11 @@ export class HybridStateManager {
     return { success: true, action };
   }
 
-  private async handleDiceClearHistory(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
-    await this.setState(currentState => {
+  private async handleDiceClearHistory(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
+    await this.setState((currentState) => {
       currentState.diceRolls = [];
     });
 
@@ -720,18 +858,26 @@ export class HybridStateManager {
   // SETTINGS ACTION HANDLERS
   // =============================================================================
 
-  private async handleSettingsUpdate(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
-    const payload = action.payload as { settings: Partial<typeof state.settings> };
+  private async handleSettingsUpdate(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
+    const payload = action.payload as {
+      settings: Partial<typeof _state.settings>;
+    };
 
-    await this.setState(currentState => {
+    await this.setState((currentState) => {
       Object.assign(currentState.settings, payload.settings);
     });
 
     return { success: true, action };
   }
 
-  private async handleSettingsReset(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
-    await this.setState(currentState => {
+  private async handleSettingsReset(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
+    await this.setState((currentState) => {
       // Reset to default settings from createInitialGameState
       const defaultState = this.createInitialGameState();
       currentState.settings = defaultState.settings;
@@ -744,27 +890,42 @@ export class HybridStateManager {
   // SESSION ACTION HANDLERS
   // =============================================================================
 
-  private async handleSessionCreate(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSessionCreate(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     // This would integrate with the hosting logic
     return { success: true, action };
   }
 
-  private async handleSessionJoin(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSessionJoin(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     // This would integrate with the join logic
     return { success: true, action };
   }
 
-  private async handleSessionLeave(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSessionLeave(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     // This would integrate with the leave logic
     return { success: true, action };
   }
 
-  private async handleSessionKickPlayer(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSessionKickPlayer(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     // This would integrate with multiplayer session management
     return { success: true, action };
   }
 
-  private async handleSessionUpdatePermissions(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSessionUpdatePermissions(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     // This would integrate with multiplayer session management
     return { success: true, action };
   }
@@ -773,7 +934,10 @@ export class HybridStateManager {
   // BATCH AND SYNC ACTION HANDLERS
   // =============================================================================
 
-  private async handleBatchExecute(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleBatchExecute(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     const payload = action.payload as { actions: GameAction[] };
 
     const results: ActionResult[] = [];
@@ -785,7 +949,7 @@ export class HybridStateManager {
           success: false,
           action,
           error: `Batch action failed: ${result.error}`,
-          metadata: { failedAction: batchAction, results }
+          metadata: { failedAction: batchAction, results },
         };
       }
     }
@@ -793,18 +957,24 @@ export class HybridStateManager {
     return {
       success: true,
       action,
-      metadata: { results }
+      metadata: { results },
     };
   }
 
-  private async handleSyncRequestFull(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSyncRequestFull(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     // This would trigger a full state sync in multiplayer mode
     return { success: true, action };
   }
 
-  private async handleSyncHeartbeat(action: GameAction, state: PersistedGameState): Promise<ActionResult> {
+  private async handleSyncHeartbeat(
+    action: GameAction,
+    _state: PersistedGameState,
+  ): Promise<ActionResult> {
     // This would update the last activity timestamp
-    await this.setState(currentState => {
+    await this.setState((currentState) => {
       if (currentState.session && 'lastActivity' in currentState.session) {
         (currentState.session as MultiplayerSession).lastActivity = Date.now();
       }
@@ -870,17 +1040,20 @@ export class HybridStateManager {
       connectionState: 'disconnected',
       connectionAttempts: 0,
       fullSyncRequired: false,
-      pendingActions: []
+      pendingActions: [],
     };
 
     this.multiplayerSession = session;
     this.sessionMode = 'hosting';
 
-    await this.setState(state => {
+    await this.setState((state) => {
       state.session = session;
     });
 
-    this.log('info', 'Started hosting session', { sessionId: session.sessionId, roomCode: session.roomCode });
+    this.log('info', 'Started hosting session', {
+      sessionId: session.sessionId,
+      roomCode: session.roomCode,
+    });
 
     return session;
   }
@@ -904,13 +1077,13 @@ export class HybridStateManager {
       connectionState: 'disconnected',
       connectionAttempts: 0,
       fullSyncRequired: true,
-      pendingActions: []
+      pendingActions: [],
     };
 
     this.multiplayerSession = session;
     this.sessionMode = 'joined';
 
-    await this.setState(state => {
+    await this.setState((state) => {
       state.session = session;
     });
 
@@ -925,7 +1098,7 @@ export class HybridStateManager {
     this.multiplayerSession = null;
     this.sessionMode = 'local';
 
-    await this.setState(state => {
+    await this.setState((state) => {
       state.session = null;
     });
 
@@ -936,7 +1109,10 @@ export class HybridStateManager {
   // EVENT LISTENERS
   // =============================================================================
 
-  subscribe(key: string, listener: (state: PersistedGameState) => void): () => void {
+  subscribe(
+    key: string,
+    listener: (state: PersistedGameState) => void,
+  ): () => void {
     if (!this.listeners.has(key)) {
       this.listeners.set(key, new Set());
     }
@@ -953,7 +1129,9 @@ export class HybridStateManager {
     };
   }
 
-  subscribeToActions(listener: (action: GameAction, result: ActionResult) => void): () => void {
+  subscribeToActions(
+    listener: (action: GameAction, result: ActionResult) => void,
+  ): () => void {
     this.actionListeners.add(listener);
     return () => this.actionListeners.delete(listener);
   }
@@ -972,7 +1150,10 @@ export class HybridStateManager {
     }
   }
 
-  private notifyActionListeners(action: GameAction, result: ActionResult): void {
+  private notifyActionListeners(
+    action: GameAction,
+    result: ActionResult,
+  ): void {
     for (const listener of this.actionListeners) {
       try {
         listener(action, result);
@@ -995,7 +1176,11 @@ export class HybridStateManager {
     return result;
   }
 
-  private log(level: 'error' | 'warn' | 'info' | 'debug', message: string, data?: unknown): void {
+  private log(
+    level: 'error' | 'warn' | 'info' | 'debug',
+    message: string,
+    data?: unknown,
+  ): void {
     if (!this.config.debug.enableLogging) return;
 
     const levels = { error: 0, warn: 1, info: 2, debug: 3 };
@@ -1042,6 +1227,8 @@ export class HybridStateManager {
 // FACTORY FUNCTION
 // =============================================================================
 
-export function createHybridStateManager(config?: Partial<HybridStoreConfig>): HybridStateManager {
+export function createHybridStateManager(
+  config?: Partial<HybridStoreConfig>,
+): HybridStateManager {
   return new HybridStateManager(config);
 }

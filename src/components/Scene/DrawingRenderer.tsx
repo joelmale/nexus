@@ -9,10 +9,10 @@ interface DrawingRendererProps {
   isHost: boolean;
 }
 
-export const DrawingRenderer: React.FC<DrawingRendererProps> = ({ 
-  sceneId, 
-  camera, 
-  isHost 
+export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
+  sceneId,
+  camera,
+  isHost,
 }) => {
   const activeScene = useActiveScene();
 
@@ -24,15 +24,15 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
 
   // Filter drawings based on visibility rules
   const visibleDrawings = useMemo(() => {
-    return drawings.filter(drawing => {
+    return drawings.filter((drawing) => {
       // DMs can see all drawings
       if (isHost) return true;
-      
+
       // Players can only see drawings that are visible to them
       if (drawing.layer === 'dm-only') return false;
       if (drawing.style.dmNotesOnly) return false;
       if (drawing.style.visibleToPlayers === false) return false;
-      
+
       return true;
     });
   }, [drawings, isHost]);
@@ -40,7 +40,7 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
   const renderDrawing = (drawing: Drawing) => {
     const { style } = drawing;
     const strokeWidth = style.strokeWidth / camera.zoom; // Scale stroke width with zoom
-    
+
     const commonProps = {
       fill: style.fillColor,
       fillOpacity: style.fillOpacity,
@@ -89,34 +89,26 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
           />
         );
 
-      case 'polygon':
-        {
-          if (drawing.points.length < 3) return null;
-          const pathData = `M ${drawing.points.map(p => `${p.x} ${p.y}`).join(' L ')} Z`;
-          return (
-            <path
-              key={drawing.id}
-              d={pathData}
-              {...commonProps}
-            />
-          );
-        }
+      case 'polygon': {
+        if (drawing.points.length < 3) return null;
+        const pathData = `M ${drawing.points.map((p) => `${p.x} ${p.y}`).join(' L ')} Z`;
+        return <path key={drawing.id} d={pathData} {...commonProps} />;
+      }
 
-      case 'pencil':
-        {
-          if (drawing.points.length < 2) return null;
-          const pencilPath = `M ${drawing.points.map(p => `${p.x} ${p.y}`).join(' L ')}`;
-          return (
-            <path
-              key={drawing.id}
-              d={pencilPath}
-              {...commonProps}
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          );
-        }
+      case 'pencil': {
+        if (drawing.points.length < 2) return null;
+        const pencilPath = `M ${drawing.points.map((p) => `${p.x} ${p.y}`).join(' L ')}`;
+        return (
+          <path
+            key={drawing.id}
+            d={pencilPath}
+            {...commonProps}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        );
+      }
 
       case 'cone':
         return renderCone(drawing, commonProps);
@@ -173,25 +165,131 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       case 'aoe-line':
         return renderLineAoE(drawing, commonProps);
 
+      case 'text':
+        return (
+          <text
+            key={drawing.id}
+            x={drawing.position.x}
+            y={drawing.position.y}
+            fontSize={drawing.fontSize / camera.zoom}
+            fontFamily={drawing.fontFamily}
+            fill="#ffffff"
+            stroke="#000000"
+            strokeWidth={0.5 / camera.zoom}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            pointerEvents="all"
+            className={commonProps.className}
+            style={{
+              paintOrder: 'stroke fill',
+            }}
+          >
+            {drawing.text}
+          </text>
+        );
+
+      case 'ping': {
+        const elapsed = Date.now() - drawing.timestamp;
+        const progress = Math.min(elapsed / drawing.duration, 1);
+        const opacity = 1 - progress;
+        const scale = 1 + progress * 0.5;
+
+        return (
+          <g key={drawing.id} opacity={opacity}>
+            {/* Ping marker */}
+            <circle
+              cx={drawing.position.x}
+              cy={drawing.position.y}
+              r={(20 / camera.zoom) * scale}
+              fill="none"
+              stroke="#00bcd4"
+              strokeWidth={3 / camera.zoom}
+              className={commonProps.className}
+            />
+            <circle
+              cx={drawing.position.x}
+              cy={drawing.position.y}
+              r={10 / camera.zoom}
+              fill="#00bcd4"
+              opacity={0.6}
+              className={commonProps.className}
+            />
+            {/* Player name label */}
+            <text
+              x={drawing.position.x}
+              y={drawing.position.y - 30 / camera.zoom}
+              fontSize={14 / camera.zoom}
+              fontWeight="bold"
+              fill="#00bcd4"
+              textAnchor="middle"
+              className={commonProps.className}
+              style={{
+                textShadow: '0 0 4px rgba(0,0,0,0.8)',
+              }}
+            >
+              {drawing.playerName}
+            </text>
+          </g>
+        );
+      }
+
+      case 'fog-of-war': {
+        if (drawing.area.length < 3) return null;
+        const pathData = `M ${drawing.area.map((p) => `${p.x} ${p.y}`).join(' L ')} Z`;
+
+        // Only show fog if it's not revealed (or if DM wants to see it)
+        const fogOpacity = drawing.revealed ? 0 : drawing.density;
+
+        return (
+          <g key={drawing.id} className="fog-of-war-layer">
+            {/* Fog polygon */}
+            <path
+              d={pathData}
+              fill="#000000"
+              fillOpacity={fogOpacity}
+              stroke="#666666"
+              strokeWidth={strokeWidth}
+              strokeDasharray={isHost && !drawing.revealed ? '5,5' : undefined}
+              className={commonProps.className}
+            />
+            {/* DM-only indicator when revealed */}
+            {isHost && drawing.revealed && (
+              <text
+                x={drawing.area[0].x}
+                y={drawing.area[0].y - 10 / camera.zoom}
+                fill="#00ff00"
+                fontSize={12 / camera.zoom}
+                opacity={0.6}
+              >
+                ✓ Revealed
+              </text>
+            )}
+          </g>
+        );
+      }
+
       default:
         console.warn(`Unknown drawing type: ${(drawing as BaseDrawing).type}`);
         return null;
     }
   };
 
-  const renderCone = (drawing: Drawing & { type: 'cone' }, props: React.SVGAttributes<SVGPathElement>) => {
+  const renderCone = (
+    drawing: Drawing & { type: 'cone' },
+    props: React.SVGAttributes<SVGPathElement>,
+  ) => {
     const { origin, direction, length, angle } = drawing;
     const angleRad = (direction * Math.PI) / 180;
     const coneAngleRad = (angle * Math.PI) / 180;
-    
+
     const leftX = origin.x + Math.cos(angleRad - coneAngleRad / 2) * length;
     const leftY = origin.y + Math.sin(angleRad - coneAngleRad / 2) * length;
-    
+
     const rightX = origin.x + Math.cos(angleRad + coneAngleRad / 2) * length;
     const rightY = origin.y + Math.sin(angleRad + coneAngleRad / 2) * length;
-    
+
     const pathData = `M ${origin.x} ${origin.y} L ${leftX} ${leftY} A ${length} ${length} 0 0 1 ${rightX} ${rightY} Z`;
-    
+
     return (
       <path
         key={drawing.id}
@@ -202,21 +300,24 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
     );
   };
 
-  const renderLineAoE = (drawing: Drawing & { type: 'aoe-line' }, props: React.SVGAttributes<SVGPathElement>) => {
+  const renderLineAoE = (
+    drawing: Drawing & { type: 'aoe-line' },
+    props: React.SVGAttributes<SVGPathElement>,
+  ) => {
     const { start, end, width } = drawing;
     const angle = Math.atan2(end.y - start.y, end.x - start.x);
-    
+
     const halfWidth = width / 2;
     const cos = Math.cos(angle + Math.PI / 2);
     const sin = Math.sin(angle + Math.PI / 2);
-    
+
     const p1 = { x: start.x + cos * halfWidth, y: start.y + sin * halfWidth };
     const p2 = { x: start.x - cos * halfWidth, y: start.y - sin * halfWidth };
     const p3 = { x: end.x - cos * halfWidth, y: end.y - sin * halfWidth };
     const p4 = { x: end.x + cos * halfWidth, y: end.y + sin * halfWidth };
-    
+
     const pathData = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p3.x} ${p3.y} L ${p4.x} ${p4.y} Z`;
-    
+
     return (
       <path
         key={drawing.id}
@@ -236,28 +337,28 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       {/* Group drawings by layer for proper rendering order */}
       <g className="background-drawings">
         {visibleDrawings
-          .filter(d => d.layer === 'background')
+          .filter((d) => d.layer === 'background')
           .map(renderDrawing)}
       </g>
-      
+
       <g className="effects-drawings">
         {visibleDrawings
-          .filter(d => d.layer === 'effects')
+          .filter((d) => d.layer === 'effects')
           .map(renderDrawing)}
       </g>
-      
+
       {/* DM-only drawings (only visible to DMs) */}
       {isHost && (
         <g className="dm-only-drawings" opacity="0.7">
           {visibleDrawings
-            .filter(d => d.layer === 'dm-only')
+            .filter((d) => d.layer === 'dm-only')
             .map(renderDrawing)}
         </g>
       )}
-      
+
       <g className="overlay-drawings">
         {visibleDrawings
-          .filter(d => d.layer === 'overlay')
+          .filter((d) => d.layer === 'overlay')
           .map(renderDrawing)}
       </g>
     </g>

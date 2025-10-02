@@ -2,7 +2,9 @@ import React, { useState, useRef } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { useSceneImages, sceneUtils } from '@/utils/sceneUtils';
 import { AssetBrowser } from '@/components/AssetBrowser';
+import { BaseMapBrowser } from './BaseMapBrowser';
 import { assetManager, type AssetMetadata } from '@/utils/assetManager';
+import type { BaseMap } from '@/services/baseMapAssets';
 import type { Scene } from '@/types/game';
 
 interface SceneEditorProps {
@@ -20,7 +22,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
     color: '#ffffff',
     opacity: 0.3,
     snapToGrid: true,
-    showToPlayers: true
+    showToPlayers: true,
   };
 
   const [formData, setFormData] = useState({
@@ -36,15 +38,18 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showAssetBrowser, setShowAssetBrowser] = useState(false);
+  const [showBaseMapBrowser, setShowBaseMapBrowser] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
@@ -64,7 +69,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
 
       // Store image and get reference URL
       const imageUrl = await storeImage(file, scene.id);
-      
+
       // Load image to get dimensions
       const img = new Image();
       img.onload = () => {
@@ -78,16 +83,17 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
         });
         setIsUploading(false);
       };
-      
+
       img.onerror = () => {
         setUploadError('Failed to load image');
         setIsUploading(false);
       };
-      
+
       img.src = URL.createObjectURL(file); // Use the original file for immediate preview
-      
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Failed to upload image');
+      setUploadError(
+        error instanceof Error ? error.message : 'Failed to upload image',
+      );
       setIsUploading(false);
     }
   };
@@ -99,11 +105,11 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
   const handleAssetSelect = async (asset: AssetMetadata) => {
     setIsUploading(true);
     setUploadError(null);
-    
+
     try {
       // Load the asset from the asset server
       const assetUrl = await assetManager.loadAsset(asset.id);
-      
+
       setBackgroundImage({
         url: assetUrl,
         width: asset.dimensions.width,
@@ -112,11 +118,47 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
         offsetY: -asset.dimensions.height / 2,
         scale: 1.0,
       });
-      
+
       setShowAssetBrowser(false);
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Failed to load asset');
+      setUploadError(
+        error instanceof Error ? error.message : 'Failed to load asset',
+      );
     } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleBaseMapSelect = (map: BaseMap) => {
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      // Load the image to get dimensions
+      const img = new Image();
+      img.onload = () => {
+        setBackgroundImage({
+          url: map.path,
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+          offsetX: -img.naturalWidth / 2,
+          offsetY: -img.naturalHeight / 2,
+          scale: 1.0,
+        });
+        setIsUploading(false);
+        setShowBaseMapBrowser(false);
+      };
+
+      img.onerror = () => {
+        setUploadError('Failed to load base map');
+        setIsUploading(false);
+      };
+
+      img.src = map.path;
+    } catch (error) {
+      setUploadError(
+        error instanceof Error ? error.message : 'Failed to load base map',
+      );
       setIsUploading(false);
     }
   };
@@ -139,7 +181,9 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
 
     const validation = sceneUtils.validateScene(sceneData);
     if (!validation.valid) {
-      alert('Please fix the following errors:\n' + validation.errors.join('\n'));
+      alert(
+        'Please fix the following errors:\n' + validation.errors.join('\n'),
+      );
       return;
     }
 
@@ -152,14 +196,20 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
     <div className="scene-editor-overlay">
       <div className="scene-editor">
         <div className="scene-editor-header">
-          <h2>{scene.createdAt === scene.updatedAt ? 'Create Scene' : 'Edit Scene'}</h2>
-          <button className="btn btn-small" onClick={onClose}>✕</button>
+          <h2>
+            {scene.createdAt === scene.updatedAt
+              ? 'Create Scene'
+              : 'Edit Scene'}
+          </h2>
+          <button className="btn btn-small" onClick={onClose}>
+            ✕
+          </button>
         </div>
 
         <div className="scene-editor-content">
           <div className="form-section">
             <h3>Basic Information</h3>
-            
+
             <div className="form-field">
               <label htmlFor="scene-name">Scene Name</label>
               <input
@@ -189,17 +239,19 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
 
           <div className="form-section">
             <h3>Background Image</h3>
-            
+
             {backgroundImage ? (
               <div className="background-preview">
-                <img 
-                  src={backgroundImage.url} 
+                <img
+                  src={backgroundImage.url}
                   alt="Scene background"
                   className="background-thumbnail"
                 />
                 <div className="background-info">
-                  <p>Size: {backgroundImage.width} × {backgroundImage.height}px</p>
-                  <button 
+                  <p>
+                    Size: {backgroundImage.width} × {backgroundImage.height}px
+                  </p>
+                  <button
                     className="btn btn-small btn-danger"
                     onClick={handleRemoveBackground}
                     disabled={isUploading}
@@ -219,17 +271,27 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
                     style={{ display: 'none' }}
                     disabled={isUploading}
                   />
-                  <button 
+                  <button
                     className="btn btn-secondary"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
                   >
                     {isUploading ? 'Uploading...' : 'Upload Image'}
                   </button>
-                  
+
                   <span className="or-divider">or</span>
-                  
-                  <button 
+
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setShowBaseMapBrowser(true)}
+                    disabled={isUploading}
+                  >
+                    Browse Base Maps
+                  </button>
+
+                  <span className="or-divider">or</span>
+
+                  <button
                     className="btn btn-primary"
                     onClick={() => setShowAssetBrowser(true)}
                     disabled={isUploading}
@@ -238,20 +300,17 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
                   </button>
                 </div>
                 <p className="upload-hint">
-                  Upload your own image (JPG, PNG, WebP, GIF. Max 5MB) or browse from the asset library.
+                  Upload your own image, browse bundled base maps, or browse
+                  from the asset library.
                 </p>
-                {uploadError && (
-                  <div className="error">
-                    {uploadError}
-                  </div>
-                )}
+                {uploadError && <div className="error">{uploadError}</div>}
               </div>
             )}
           </div>
 
           <div className="form-section">
             <h3>Grid Settings</h3>
-            
+
             <div className="form-field checkbox-field">
               <input
                 id="grid-enabled"
@@ -302,7 +361,9 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
                     max="1"
                     step="0.1"
                   />
-                  <span className="opacity-value">{Math.round(Number(formData.gridOpacity) * 100)}%</span>
+                  <span className="opacity-value">
+                    {Math.round(Number(formData.gridOpacity) * 100)}%
+                  </span>
                 </div>
 
                 <div className="form-field checkbox-field">
@@ -330,13 +391,21 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
         </div>
       </div>
 
+      {/* Base Map Browser Modal */}
+      {showBaseMapBrowser && (
+        <BaseMapBrowser
+          onSelect={handleBaseMapSelect}
+          onClose={() => setShowBaseMapBrowser(false)}
+        />
+      )}
+
       {/* Asset Browser Modal */}
       {showAssetBrowser && (
         <div className="asset-browser-overlay">
           <div className="asset-browser-modal">
             <div className="asset-browser-header">
               <h3>Choose Background Image</h3>
-              <button 
+              <button
                 className="btn btn-small"
                 onClick={() => setShowAssetBrowser(false)}
               >
