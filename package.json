@@ -74,7 +74,7 @@
     "uuid": "^9.0.1",
     "vue-sonner": "^2.0.8",
     "ws": "^8.14.2",
-    "zustand": "^4.4.7"
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.0.0",
