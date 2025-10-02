@@ -43,7 +43,10 @@ interface DrawingToolsProps {
   camera: Camera;
   _gridSize: number;
   svgRef: React.RefObject<SVGSVGElement>;
-  onSelectionChange?: (selectedDrawings: string[]) => void;
+  onSelectionChange?: (
+    selectedDrawings: string[],
+    selectionBox?: { start: Point; end: Point },
+  ) => void;
   snapToGrid?: boolean;
 }
 
@@ -238,14 +241,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
       const intersectedDrawings: string[] = [];
 
-      console.log(
-        `🔍 Checking ${activeScene.drawings.length} drawings at point (${point.x.toFixed(0)}, ${point.y.toFixed(0)}) with radius ${radius}`,
-      );
-
       activeScene.drawings.forEach((drawing) => {
         // Filter: non-hosts can only select their own drawings
         if (!isHost && drawing.createdBy !== user.id) {
-          console.log(`  ⏭️ Skipping ${drawing.type} (not created by user)`);
           return;
         }
 
@@ -253,9 +251,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
         switch (drawing.type) {
           case 'line': {
-            console.log(
-              `  🔎 Line: start=(${drawing.start.x}, ${drawing.start.y}), end=(${drawing.end.x}, ${drawing.end.y})`,
-            );
             intersects = isPointNearLine(
               point,
               drawing.start,
@@ -299,29 +294,17 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
           }
           case 'cone': {
             // Check if point is within the cone's bounding area
-            // The cone extends from origin in a direction with a certain length and angle
-            console.log(
-              `  🔎 Cone: origin=(${drawing.origin.x}, ${drawing.origin.y}), length=${drawing.length}, direction=${drawing.direction}°`,
-            );
             const dx = point.x - drawing.origin.x;
             const dy = point.y - drawing.origin.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            console.log(
-              `  🔎 Cone: distance=${distance.toFixed(1)}, cone length=${drawing.length}`,
-            );
 
-            // Check if click is within a circle around the origin with radius = cone length
-            // This is a simplified check - a proper check would verify the point is within the cone angle
+            // Check if click is within the cone's area
             if (distance <= drawing.length + radius) {
-              // Optional: also check if the point is roughly in the cone's direction
               const clickAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
               const angleDiff = Math.abs(
                 ((clickAngle - drawing.direction + 180) % 360) - 180,
               );
               const halfConeAngle = drawing.angle / 2;
-              console.log(
-                `  🔎 Cone: click angle=${clickAngle.toFixed(1)}°, cone direction=${drawing.direction}°, angle diff=${angleDiff.toFixed(1)}°, half cone angle=${halfConeAngle.toFixed(1)}°`,
-              );
               intersects = angleDiff <= halfConeAngle + 30; // Add 30° tolerance
             }
             break;
@@ -343,14 +326,10 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
         }
 
         if (intersects) {
-          console.log(`  ✅ ${drawing.type} intersects!`);
           intersectedDrawings.push(drawing.id);
-        } else {
-          console.log(`  ❌ ${drawing.type} does not intersect`);
         }
       });
 
-      console.log(`📊 Total intersected: ${intersectedDrawings.length}`);
       return intersectedDrawings;
     },
     [activeScene, isHost, user.id],
@@ -402,13 +381,25 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               return drawing.points.some(
                 (p) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY,
               );
-            case 'cone':
-              return (
+            case 'cone': {
+              // Check if cone origin is in selection box
+              const originInBox =
                 drawing.origin.x >= minX &&
                 drawing.origin.x <= maxX &&
                 drawing.origin.y >= minY &&
-                drawing.origin.y <= maxY
-              );
+                drawing.origin.y <= maxY;
+
+              // Also check if cone's end point is in selection box
+              const directionRad = (drawing.direction * Math.PI) / 180;
+              const endX =
+                drawing.origin.x + Math.cos(directionRad) * drawing.length;
+              const endY =
+                drawing.origin.y + Math.sin(directionRad) * drawing.length;
+              const endInBox =
+                endX >= minX && endX <= maxX && endY >= minY && endY <= maxY;
+
+              return originInBox || endInBox;
+            }
             case 'text':
             case 'ping':
               return (
@@ -456,30 +447,45 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
         [key: string]: (event: React.MouseEvent) => void;
       } = {
         select: (event) => {
-          const drawingsAtPoint = getDrawingsAtPoint(point, 25); // Increased radius for better line detection
-          console.log(
-            `🎯 Click at (${point.x.toFixed(0)}, ${point.y.toFixed(0)}), found ${drawingsAtPoint.length} drawings:`,
-            drawingsAtPoint,
-          );
+          const drawingsAtPoint = getDrawingsAtPoint(point, 25);
+          const isMultiSelectModifier =
+            event.shiftKey || event.metaKey || event.ctrlKey;
 
           const drawingAtPoint = drawingsAtPoint[0];
           if (drawingAtPoint) {
-            if (event.shiftKey) {
+            // Clicking on an object
+            if (isMultiSelectModifier) {
+              // Shift+click or Cmd/Ctrl+click: Add/remove from selection
               const newSelection = selectedDrawings.includes(drawingAtPoint)
                 ? selectedDrawings.filter((id) => id !== drawingAtPoint)
                 : [...selectedDrawings, drawingAtPoint];
               setSelectedDrawings(newSelection);
               onSelectionChange?.(newSelection);
             } else {
-              setSelectedDrawings([drawingAtPoint]);
-              onSelectionChange?.([drawingAtPoint]);
+              // Regular click: Select this object (or keep selection if already selected)
+              // If clicking on an already-selected object, don't change selection
+              // (this allows dragging to work via SelectionOverlay)
+              if (!selectedDrawings.includes(drawingAtPoint)) {
+                setSelectedDrawings([drawingAtPoint]);
+                onSelectionChange?.([drawingAtPoint]);
+              }
+              // Don't call defaultHandler - let SelectionOverlay handle dragging
+              return;
             }
           } else {
-            setSelectionBox({ start: point, end: point });
-            setSelectedDrawings([]);
-            onSelectionChange?.([]);
+            // Clicking on empty space
+            if (event.shiftKey) {
+              // Shift+drag on empty space: Start selection box
+              setSelectionBox({ start: point, end: point });
+              setIsDrawing(true);
+              setStartPoint(point);
+              setCurrentPoint(point);
+            } else {
+              // Regular click on empty space: Clear selection
+              setSelectedDrawings([]);
+              onSelectionChange?.([]);
+            }
           }
-          defaultHandler();
         },
         ping: () => {
           // Create a ping that auto-fades after 3 seconds
@@ -818,9 +824,10 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               selectionBox.end,
             );
             setSelectedDrawings(selectedIds);
-            onSelectionChange?.(selectedIds);
+            onSelectionChange?.(selectedIds, selectionBox);
             setSelectionBox(null);
           }
+          setIsDrawing(false);
           break;
         }
 

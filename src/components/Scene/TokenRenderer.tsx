@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { PlacedToken, Token } from '@/types/token';
 import { getTokenPixelSize } from '@/types/token';
+import { useActiveTool } from '@/stores/gameStore';
 
 interface TokenRendererProps {
   placedToken: PlacedToken;
@@ -25,27 +26,34 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
   onMove,
   canEdit,
 }) => {
+  const activeTool = useActiveTool();
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // Calculate token size in pixels
   const tokenSize = getTokenPixelSize(token.size, gridSize) * placedToken.scale;
 
+  // Only handle interactions when select tool is active
+  const canInteract = canEdit && activeTool === 'select';
+
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!canEdit) return;
+    if (!canInteract) return;
 
     e.stopPropagation();
 
-    // Select this token
-    onSelect(placedToken.id, e.shiftKey);
+    // Select this token (or add to multi-select with Shift/Cmd/Ctrl)
+    const isMultiSelect = e.shiftKey || e.metaKey || e.ctrlKey;
+    onSelect(placedToken.id, isMultiSelect);
 
-    // Start dragging
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    // Start dragging if already selected or just selected
+    if (isSelected || !isMultiSelect) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !canEdit) return;
+    if (!isDragging || !canInteract) return;
 
     e.preventDefault();
     const deltaX = e.clientX - dragStart.x;
@@ -66,7 +74,8 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       style={{
-        cursor: canEdit ? (isDragging ? 'grabbing' : 'grab') : 'default',
+        cursor: canInteract ? (isDragging ? 'grabbing' : 'grab') : 'default',
+        pointerEvents: canInteract ? 'auto' : 'none',
       }}
     >
       {/* Token Image */}
@@ -88,7 +97,7 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
           cy={0}
           r={tokenSize / 2 + 5}
           fill="none"
-          stroke="#007bff"
+          stroke="var(--color-primary)"
           strokeWidth={3}
           strokeDasharray="5,5"
         />

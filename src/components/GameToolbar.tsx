@@ -105,9 +105,13 @@ export const GameToolbar: React.FC = () => {
       id: 'basic',
       label: 'Basic Tools',
       tools: [
-        { id: 'select', icon: '👆', label: 'Select' },
+        {
+          id: 'select',
+          icon: '👆',
+          label: 'Select / Move',
+          tooltip: 'Hold Shift+drag OR Cmd/Ctrl+click for multi-select',
+        },
         { id: 'pan', icon: '✋', label: 'Pan' },
-        { id: 'move', icon: '✥', label: 'Move' },
         { id: 'copy', icon: '📋', label: 'Copy' },
         { id: 'cut', icon: '✂️', label: 'Cut' },
         { id: 'paste', icon: '📄', label: 'Paste' },
@@ -242,7 +246,11 @@ export const GameToolbar: React.FC = () => {
                     `}
                     onClick={() => setActiveTool(tool.id)}
                     aria-pressed={activeTool === tool.id}
-                    title={tool.label}
+                    title={
+                      'tooltip' in tool
+                        ? `${tool.label}\n\n${tool.tooltip}`
+                        : tool.label
+                    }
                   >
                     {tool.icon}
                   </button>
@@ -338,7 +346,11 @@ export const GameToolbar: React.FC = () => {
                   `}
                   onClick={() => setActiveTool(tool.id)}
                   aria-pressed={activeTool === tool.id}
-                  title={tool.label}
+                  title={
+                    'tooltip' in tool
+                      ? `${tool.label}\n\n${tool.tooltip}`
+                      : tool.label
+                  }
                 >
                   {tool.icon}
                 </button>

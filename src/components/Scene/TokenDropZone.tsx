@@ -22,19 +22,15 @@ export const TokenDropZone: React.FC<TokenDropZoneProps> = ({
   onTokenDrop,
   children,
 }) => {
+  const [dropZoneElement, setDropZoneElement] =
+    React.useState<HTMLDivElement | null>(null);
+
   const [{ isOver, canDrop }, drop] = useDrop(
     () => ({
       accept: 'TOKEN',
       drop: (item: { token: Token }, monitor) => {
         const offset = monitor.getClientOffset();
-        if (!offset) return;
-
-        // Get the drop zone element
-        const dropZoneElement = monitor.getTargetMonitor()?.targetId
-          ? document.elementFromPoint(offset.x, offset.y)
-          : null;
-
-        if (!dropZoneElement) return;
+        if (!offset || !dropZoneElement) return;
 
         // Get the bounding rect of the drop zone
         const rect = dropZoneElement.getBoundingClientRect();
@@ -56,6 +52,12 @@ export const TokenDropZone: React.FC<TokenDropZoneProps> = ({
           finalY = Math.round(sceneY / gridSize) * gridSize;
         }
 
+        console.log('Token drop:', {
+          token: item.token.name,
+          screenPos: { x: offset.x, y: offset.y },
+          scenePos: { x: finalX, y: finalY },
+        });
+
         // Call the drop handler
         onTokenDrop(item.token, finalX, finalY);
       },
@@ -64,17 +66,26 @@ export const TokenDropZone: React.FC<TokenDropZoneProps> = ({
         canDrop: monitor.canDrop(),
       }),
     }),
-    [camera, gridSize, snapToGrid, onTokenDrop],
+    [camera, gridSize, snapToGrid, onTokenDrop, dropZoneElement],
+  );
+
+  // Combine refs
+  const setRefs = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      setDropZoneElement(node);
+      drop(node);
+    },
+    [drop],
   );
 
   return (
     <div
-      ref={drop}
+      ref={setRefs}
       style={{
         width: '100%',
         height: '100%',
         position: 'relative',
-        outline: isOver && canDrop ? '3px dashed #007bff' : 'none',
+        outline: isOver && canDrop ? '3px dashed var(--color-primary)' : 'none',
         outlineOffset: '-3px',
         transition: 'outline 0.2s',
       }}
@@ -88,7 +99,7 @@ export const TokenDropZone: React.FC<TokenDropZoneProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            backgroundColor: 'rgba(var(--color-primary-rgb), 0.1)',
             pointerEvents: 'none',
             zIndex: 999,
           }}

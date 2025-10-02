@@ -148,7 +148,6 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       if (activeTool !== 'pan' && activeTool !== 'select') return; // Only zoom when in pan/select mode
       if (!isHost && followDM) return; // Players can't zoom when following DM
 
-      e.preventDefault();
       const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
       const newZoom = Math.max(0.1, Math.min(5.0, camera.zoom * zoomFactor));
 
@@ -228,12 +227,41 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     setIsPanning(false);
   }, []);
 
-  const handleSelectionChange = useCallback((newSelection: string[]) => {
-    setSelectedDrawings(newSelection);
-    console.log(
-      `Selection changed: ${newSelection.length} drawing(s) selected`,
-    );
-  }, []);
+  // Get tokens for this scene - must be defined before callbacks that use it
+  const placedTokens = getSceneTokens(scene.id);
+
+  const handleSelectionChange = useCallback(
+    (
+      newSelection: string[],
+      selectionBox?: {
+        start: { x: number; y: number };
+        end: { x: number; y: number };
+      },
+    ) => {
+      setSelectedDrawings(newSelection);
+
+      // Also select tokens in the selection box if provided
+      if (selectionBox) {
+        const minX = Math.min(selectionBox.start.x, selectionBox.end.x);
+        const maxX = Math.max(selectionBox.start.x, selectionBox.end.x);
+        const minY = Math.min(selectionBox.start.y, selectionBox.end.y);
+        const maxY = Math.max(selectionBox.start.y, selectionBox.end.y);
+
+        const tokensInBox = placedTokens
+          .filter(
+            (token) =>
+              token.x >= minX &&
+              token.x <= maxX &&
+              token.y >= minY &&
+              token.y <= maxY,
+          )
+          .map((token) => token.id);
+
+        setSelectedTokens(tokensInBox);
+      }
+    },
+    [placedTokens],
+  );
 
   const handleClosePropertiesPanel = useCallback(() => {
     setSelectedDrawings([]);
@@ -255,15 +283,12 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       placeToken(scene.id, placedToken);
 
       // Broadcast over WebSocket
-      webSocketService.send({
-        type: 'event',
+      webSocketService.sendEvent({
+        type: 'token/place',
         data: {
-          name: 'token/place',
           sceneId: scene.id,
           token: placedToken,
         },
-        src: user.id,
-        timestamp: Date.now(),
       });
 
       console.log(`Token placed: ${token.name} at (${x}, ${y})`);
@@ -304,26 +329,16 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       moveToken(scene.id, tokenId, { x: finalX, y: finalY });
 
       // Broadcast over WebSocket
-      webSocketService.send({
-        type: 'event',
+      webSocketService.sendEvent({
+        type: 'token/move',
         data: {
-          name: 'token/move',
           sceneId: scene.id,
           tokenId,
           position: { x: finalX, y: finalY },
         },
-        src: user.id,
-        timestamp: Date.now(),
       });
     },
-    [
-      scene.id,
-      camera.zoom,
-      safeGridSettings,
-      getSceneTokens,
-      moveToken,
-      user.id,
-    ],
+    [scene.id, camera.zoom, safeGridSettings, getSceneTokens, moveToken],
   );
 
   // Determine cursor based on active tool and state
@@ -338,13 +353,10 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Calculate transform for the scene content
   const transform = `translate(${viewportSize.width / 2 - camera.x * camera.zoom}, ${viewportSize.height / 2 - camera.y * camera.zoom}) scale(${camera.zoom})`;
 
-  // Get tokens for this scene
-  const placedTokens = getSceneTokens(scene.id);
-
   return (
     <div className="scene-canvas-container">
       {/* Drawing Properties Panel */}
-      {selectedDrawings.length > 0 && activeTool === 'select' && (
+      {selectedDrawings.length > 0 && (
         <DrawingPropertiesPanel
           selectedDrawingIds={selectedDrawings}
           sceneId={scene.id}

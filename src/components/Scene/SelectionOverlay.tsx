@@ -402,13 +402,36 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
       }
 
       case 'cone': {
-        // Simplified cone selection - just show origin point
+        // Draw cone selection outline matching the actual cone shape
+        const directionRad = (drawing.direction * Math.PI) / 180;
+        const halfAngleRad = (drawing.angle / 2) * (Math.PI / 180);
+
+        // Calculate the two edge points of the cone
+        const edge1X =
+          drawing.origin.x +
+          drawing.length * Math.cos(directionRad - halfAngleRad);
+        const edge1Y =
+          drawing.origin.y +
+          drawing.length * Math.sin(directionRad - halfAngleRad);
+        const edge2X =
+          drawing.origin.x +
+          drawing.length * Math.cos(directionRad + halfAngleRad);
+        const edge2Y =
+          drawing.origin.y +
+          drawing.length * Math.sin(directionRad + halfAngleRad);
+
+        // Create path for cone outline
+        const pathData = `
+          M ${drawing.origin.x} ${drawing.origin.y}
+          L ${edge1X} ${edge1Y}
+          A ${drawing.length} ${drawing.length} 0 0 1 ${edge2X} ${edge2Y}
+          Z
+        `;
+
         return (
-          <circle
+          <path
             key={`selection-${drawing.id}`}
-            cx={drawing.origin.x}
-            cy={drawing.origin.y}
-            r={10 / camera.zoom}
+            d={pathData}
             {...interactionProps}
           />
         );
@@ -688,6 +711,37 @@ const renderMultiSelectionBounds = (drawings: Drawing[], camera: Camera) => {
           maxY = Math.max(maxY, point.y);
         });
         break;
+      case 'cone': {
+        // Calculate cone bounds based on origin and all edge points
+        const directionRad = (drawing.direction * Math.PI) / 180;
+        const halfAngleRad = (drawing.angle / 2) * (Math.PI / 180);
+
+        // Origin point
+        minX = Math.min(minX, drawing.origin.x);
+        maxX = Math.max(maxX, drawing.origin.x);
+        minY = Math.min(minY, drawing.origin.y);
+        maxY = Math.max(maxY, drawing.origin.y);
+
+        // Two edge points
+        const edge1X =
+          drawing.origin.x +
+          drawing.length * Math.cos(directionRad - halfAngleRad);
+        const edge1Y =
+          drawing.origin.y +
+          drawing.length * Math.sin(directionRad - halfAngleRad);
+        const edge2X =
+          drawing.origin.x +
+          drawing.length * Math.cos(directionRad + halfAngleRad);
+        const edge2Y =
+          drawing.origin.y +
+          drawing.length * Math.sin(directionRad + halfAngleRad);
+
+        minX = Math.min(minX, edge1X, edge2X);
+        maxX = Math.max(maxX, edge1X, edge2X);
+        minY = Math.min(minY, edge1Y, edge2Y);
+        maxY = Math.max(maxY, edge1Y, edge2Y);
+        break;
+      }
       default:
         break;
     }

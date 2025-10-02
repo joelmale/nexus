@@ -31,6 +31,7 @@
     "docker:setup": "./scripts/docker-setup.sh --full",
     "organize-assets": "chmod +x organize-assets.sh && ./organize-assets.sh",
     "update-assets": "node scripts/update-asset-references.js",
+    "generate-default-manifest": "node scripts/generate-default-manifest.js",
     "check-ports": "chmod +x check-ports.sh && ./check-ports.sh",
     "setup": "node scripts/dev-setup.js",
     "setup:legacy": "chmod +x start-dev.sh && ./start-dev.sh",

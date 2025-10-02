@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTokenAssets } from '@/services/tokenAssets';
 import { TokenLibraryManager } from './TokenLibraryManager';
 import { TokenCreationPanel } from './TokenCreationPanel';
 import { DraggableToken } from './DraggableToken';
+import { TokenCategoryTabs } from './TokenCategoryTabs';
 import type { Token } from '@/types/token';
 
 interface TokenPanelProps {
@@ -10,25 +11,59 @@ interface TokenPanelProps {
 }
 
 export const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenSelect }) => {
-  const { getAllTokens, getLibraries, manager } = useTokenAssets();
+  const { getAllTokens } = useTokenAssets();
   const [showLibraryManager, setShowLibraryManager] = useState(false);
   const [showCreationPanel, setShowCreationPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState<
+    'all' | 'pc' | 'npc' | 'monster'
+  >(() => {
+    const saved = localStorage.getItem('tokenPanel.activeCategory');
+    if (saved && ['all', 'pc', 'npc', 'monster'].includes(saved)) {
+      return saved as 'all' | 'pc' | 'npc' | 'monster';
+    }
+    return 'all';
+  });
 
-  const stats = manager.getCacheStats();
   const allTokens = getAllTokens();
-  const libraries = getLibraries();
 
-  const filteredTokens = searchQuery.trim()
-    ? allTokens.filter(
-        (token) =>
-          token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          token.tags?.some((tag) =>
-            tag.toLowerCase().includes(searchQuery.toLowerCase()),
-          ) ||
-          token.category.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : allTokens;
+  // Save active category to localStorage
+  useEffect(() => {
+    localStorage.setItem('tokenPanel.activeCategory', activeCategory);
+  }, [activeCategory]);
+
+  // Category counts
+  const categoryCounts = useMemo(
+    () => ({
+      all: allTokens.length,
+      pc: allTokens.filter((t) => t.category === 'pc').length,
+      npc: allTokens.filter((t) => t.category === 'npc').length,
+      monster: allTokens.filter((t) => t.category === 'monster').length,
+    }),
+    [allTokens],
+  );
+
+  // Filtered tokens based on active category and search
+  const filteredTokens = useMemo(() => {
+    let tokens = allTokens;
+
+    // Filter by category
+    if (activeCategory !== 'all') {
+      tokens = tokens.filter((t) => t.category === activeCategory);
+    }
+
+    // Filter by search (scoped to active category)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      tokens = tokens.filter(
+        (t) =>
+          t.name.toLowerCase().includes(query) ||
+          t.tags?.some((tag) => tag.toLowerCase().includes(query)),
+      );
+    }
+
+    return tokens;
+  }, [allTokens, activeCategory, searchQuery]);
 
   const handleTokenClick = (token: Token) => {
     if (onTokenSelect) {
@@ -39,228 +74,254 @@ export const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenSelect }) => {
   return (
     <>
       <div
-        className="token-panel"
+        className="token-panel-wrapper"
         style={{
           height: '100%',
           display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: '#f9f9f9',
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px',
-            borderBottom: '1px solid #e0e0e0',
-            backgroundColor: 'white',
-          }}
-        >
-          <h2
-            style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 'bold' }}
-          >
-            Tokens
-          </h2>
-          <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>
-            {stats.totalTokens} tokens across {stats.libraries} libraries
-          </p>
-        </div>
+        {/* Category Tabs */}
+        <TokenCategoryTabs
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+          categoryCounts={categoryCounts}
+        />
 
-        {/* Actions */}
+        {/* Main Panel Content */}
         <div
-          style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid #e0e0e0',
-            backgroundColor: 'white',
-            display: 'flex',
-            gap: '8px',
-          }}
-        >
-          <button
-            onClick={() => setShowLibraryManager(true)}
-            style={{
-              flex: 1,
-              padding: '10px 16px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#0056b3';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#007bff';
-            }}
-          >
-            📚 Manage Libraries
-          </button>
-          <button
-            onClick={() => setShowCreationPanel(true)}
-            style={{
-              flex: 1,
-              padding: '10px 16px',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#1e7e34';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#28a745';
-            }}
-          >
-            + Create Token
-          </button>
-        </div>
-
-        {/* Search */}
-        <div
-          style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid #e0e0e0',
-            backgroundColor: 'white',
-          }}
-        >
-          <input
-            type="text"
-            placeholder="Search tokens by name, tag, or category..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '14px',
-            }}
-          />
-        </div>
-
-        {/* Stats Summary */}
-        <div
-          style={{
-            padding: '12px 16px',
-            backgroundColor: '#e3f2fd',
-            borderBottom: '1px solid #e0e0e0',
-          }}
-        >
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '12px',
-              fontSize: '13px',
-            }}
-          >
-            <div style={{ textAlign: 'center' }}>
-              <div
-                style={{
-                  fontWeight: 'bold',
-                  fontSize: '18px',
-                  color: '#007bff',
-                }}
-              >
-                {stats.totalTokens}
-              </div>
-              <div style={{ color: '#666' }}>Total Tokens</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div
-                style={{
-                  fontWeight: 'bold',
-                  fontSize: '18px',
-                  color: '#28a745',
-                }}
-              >
-                {allTokens.filter((t) => t.isCustom).length}
-              </div>
-              <div style={{ color: '#666' }}>Custom</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div
-                style={{
-                  fontWeight: 'bold',
-                  fontSize: '18px',
-                  color: '#6c757d',
-                }}
-              >
-                {libraries.filter((lib) => !lib.isDefault).length}
-              </div>
-              <div style={{ color: '#666' }}>Libraries</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Token Grid */}
-        <div
+          className="token-panel-main"
           style={{
             flex: 1,
-            padding: '16px',
-            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
           }}
         >
-          {filteredTokens.length === 0 ? (
-            <div
+          {/* Optimized Header */}
+          <div
+            className="token-panel-header"
+            style={{
+              padding: '12px 16px',
+              borderBottom: '1px solid var(--glass-border)',
+              background: 'var(--glass-surface-strong)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <h2
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: '#999',
-                fontSize: '16px',
-                gap: '16px',
+                margin: 0,
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: 'var(--glass-text)',
               }}
             >
-              <p>
-                {searchQuery.trim()
-                  ? 'No tokens match your search'
-                  : 'No tokens available'}
-              </p>
-              {!searchQuery.trim() && (
-                <button
-                  onClick={() => setShowCreationPanel(true)}
-                  style={{
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    backgroundColor: '#28a745',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  + Create Your First Token
-                </button>
-              )}
+              Tokens
+            </h2>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setShowCreationPanel(true)}
+                title="Create Token"
+                className="token-action-btn"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  padding: '0',
+                  background: 'var(--color-primary)',
+                  color: 'var(--glass-text)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '6px',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--color-secondary)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--color-primary)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                +
+              </button>
+              <button
+                onClick={() => setShowLibraryManager(true)}
+                title="Manage Libraries"
+                className="token-action-btn"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  padding: '0',
+                  background: 'var(--color-accent)',
+                  color: 'var(--glass-text)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '6px',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--color-secondary)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--color-accent)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                ⚙️
+              </button>
             </div>
-          ) : (
-            <div
+          </div>
+
+          {/* Search */}
+          <div
+            className="token-search-container"
+            style={{
+              padding: '12px 16px',
+              borderBottom: '1px solid var(--glass-border)',
+              background: 'var(--glass-surface)',
+            }}
+          >
+            <input
+              type="text"
+              placeholder={`Search ${activeCategory === 'all' ? 'all' : activeCategory} tokens...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="token-search-input"
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                gap: '12px',
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                fontSize: '14px',
+                background: 'var(--glass-surface-strong)',
+                color: 'var(--glass-text)',
+                transition: 'all 0.2s',
               }}
-            >
-              {filteredTokens.map((token) => (
-                <DraggableToken
-                  key={token.id}
-                  token={token}
-                  onClick={handleTokenClick}
-                />
-              ))}
-            </div>
-          )}
+            />
+          </div>
+
+          {/* Token Grid */}
+          <div
+            className="token-grid-container"
+            style={{
+              flex: 1,
+              padding: '16px',
+              overflowY: 'auto',
+              background: 'var(--glass-surface)',
+            }}
+          >
+            {filteredTokens.length === 0 ? (
+              <div
+                className="token-empty-state"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  color: 'var(--glass-text-muted)',
+                  fontSize: '16px',
+                  gap: '16px',
+                  textAlign: 'center',
+                  padding: '20px',
+                }}
+              >
+                {searchQuery.trim() ? (
+                  <>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: '18px',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      No matches found
+                    </p>
+                    <p style={{ margin: 0, fontSize: '14px' }}>
+                      Try different keywords
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: '18px',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      No {activeCategory === 'all' ? '' : activeCategory} tokens
+                      yet
+                    </p>
+                    <p style={{ margin: 0, fontSize: '14px' }}>
+                      Create or import{' '}
+                      {activeCategory === 'all' ? '' : activeCategory} tokens to
+                      get started
+                    </p>
+                    <button
+                      onClick={() => setShowCreationPanel(true)}
+                      className="token-create-btn"
+                      style={{
+                        padding: '12px 24px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--glass-border)',
+                        background: 'var(--color-primary)',
+                        color: 'var(--glass-text)',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        marginTop: '8px',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          'var(--color-secondary)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background =
+                          'var(--color-primary)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      + Create{' '}
+                      {activeCategory === 'all'
+                        ? ''
+                        : activeCategory.toUpperCase()}{' '}
+                      Token
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                  gap: '12px',
+                }}
+              >
+                {filteredTokens.map((token) => (
+                  <DraggableToken
+                    key={token.id}
+                    token={token}
+                    onClick={handleTokenClick}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
