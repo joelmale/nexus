@@ -89,7 +89,7 @@
     "@types/transit-js": "^0.8.3",
     "@types/uuid": "^9.0.7",
     "@types/ws": "^8.5.10",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react": "^5.0.4",
     "@vitest/ui": "^3.2.4",
     "concurrently": "^8.2.2",
     "eslint": "^9.9.0",
