@@ -141,6 +141,10 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -156,8 +160,18 @@ jobs:
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
+        continue-on-error: true  # Don't fail if Advanced Security is not enabled
         with:
           sarif_file: 'trivy-results.sarif'
+          category: 'trivy-fs-scan'
+
+      - name: Upload Trivy results as artifact (fallback)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-security-scan
+          path: trivy-results.sarif
+          retention-days: 30
 
   # Dependency audit
   audit:
