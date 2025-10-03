@@ -9,7 +9,6 @@ on:
 
 env:
   NODE_VERSION: '20'
-  PNPM_VERSION: '8'
 
 jobs:
   # Code quality checks
@@ -62,27 +61,18 @@ jobs:
           CI: true
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: matrix.shard == 1
         with:
           name: coverage-${{ matrix.shard }}
           path: coverage/
+          retention-days: 7
 
   # Integration tests
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: lint-and-type
-    services:
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -96,11 +86,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check if integration tests exist
+        id: check-tests
+        run: |
+          if [ -d "tests/integration" ] && [ "$(ls -A tests/integration)" ]; then
+            echo "has_tests=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_tests=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Run integration tests
+        if: steps.check-tests.outputs.has_tests == 'true'
         run: npm run test:integration
         env:
           CI: true
-          REDIS_URL: redis://localhost:6379
+
+      - name: Skip integration tests
+        if: steps.check-tests.outputs.has_tests == 'false'
+        run: echo "No integration tests found, skipping..."
 
   # Build Docker images
   docker-build:
@@ -151,7 +154,7 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'

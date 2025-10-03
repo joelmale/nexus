@@ -48,9 +48,9 @@
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "test:layout": "playwright test -c playwright.config.layout.ts tests/layout.test.ts",
-    "test:layout:quick": "playwright test -c playwright.config.layout.ts tests/layout.test.ts --grep 'Layout panels should not exceed viewport height'",
-    "test:visual": "playwright test -c playwright.config.layout.ts tests/visual-regression.test.ts",
+    "test:layout": "playwright test -c playwright.config.layout.ts tests/e2e/layout.test.ts",
+    "test:layout:quick": "playwright test -c playwright.config.layout.ts tests/e2e/layout.test.ts --grep 'Layout panels should not exceed viewport height'",
+    "test:visual": "playwright test -c playwright.config.layout.ts tests/e2e/visual-regression.test.ts",
     "validate-layout": "node scripts/validate-layout-css.js",
     "validate-env": "node scripts/validate-env.js",
     "prepare": "husky"
