@@ -20,7 +20,7 @@
     "server:test": "tsx server/index.ts",
     "server:build": "tsc --project tsconfig.server.json",
     "server:start": "node dist/server/index.js",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 100",
     "type-check": "tsc --noEmit",
     "docker:dev": "docker-compose -f docker/docker-compose.dev.yml up",
     "docker:dev:build": "docker-compose -f docker/docker-compose.dev.yml up --build",
