@@ -5,13 +5,19 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useIsConnected, useActiveScene, useScenes, useSettings, useColorScheme } from '@/stores/gameStore';
+import {
+  useActiveScene,
+  useScenes,
+  useSettings,
+  useColorScheme,
+} from '@/stores/gameStore';
 import { useAppFlowStore } from '@/stores/appFlowStore';
 import { SceneCanvas } from './Scene/SceneCanvas';
 import { SceneTabs } from './Scene/SceneTabs';
 import { GameToolbar } from './GameToolbar';
 import { PlayerBar } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
+import { GeneratorPanel } from './Generator/GeneratorPanel';
 import { applyColorScheme } from '@/utils/colorSchemes';
 
 export const LinearGameLayout: React.FC = () => {
@@ -28,7 +34,7 @@ export const LinearGameLayout: React.FC = () => {
         user,
         roomCode,
         activeScene: activeScene?.id || 'none',
-        scenesCount: scenes.length
+        scenesCount: scenes.length,
       });
     }
 
@@ -43,9 +49,18 @@ export const LinearGameLayout: React.FC = () => {
   const isHost = user.type === 'dm';
 
   const [panelExpanded, setPanelExpanded] = useState(true);
-  const [activePanel, setActivePanel] = useState<'tokens' | 'scene' | 'props' | 'initiative' | 'dice' | 'chat' | 'sounds' | 'players' | 'settings'>(
-    isHost ? 'scene' : 'players'
-  );
+  const [activePanel, setActivePanel] = useState<
+    | 'tokens'
+    | 'scene'
+    | 'props'
+    | 'generator'
+    | 'initiative'
+    | 'dice'
+    | 'chat'
+    | 'sounds'
+    | 'players'
+    | 'settings'
+  >(isHost ? 'scene' : 'players');
   const [sidebarWidth, setSidebarWidth] = useState(300);
 
   // Apply color scheme on mount and when it changes
@@ -73,68 +88,83 @@ export const LinearGameLayout: React.FC = () => {
   const startMouseX = useRef(0);
   const startWidth = useRef(0);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    const handle = e.currentTarget as HTMLElement;
+      const handle = e.currentTarget as HTMLElement;
 
-    isResizing.current = true;
-    startMouseX.current = e.clientX;
-    startWidth.current = sidebarWidth;
+      isResizing.current = true;
+      startMouseX.current = e.clientX;
+      startWidth.current = sidebarWidth;
 
-    // Add dragging class for visual feedback
-    handle.classList.add('dragging');
+      // Add dragging class for visual feedback
+      handle.classList.add('dragging');
 
-    // Set cursor and prevent text selection globally
-    document.body.style.cursor = 'ew-resize';
-    document.body.style.userSelect = 'none';
-    document.body.style.pointerEvents = 'none';
+      // Set cursor and prevent text selection globally
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+      document.body.style.pointerEvents = 'none';
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing.current) return;
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!isResizing.current) return;
 
-      requestAnimationFrame(() => {
-        const deltaX = startMouseX.current - e.clientX;
-        const newWidth = startWidth.current + deltaX;
+        requestAnimationFrame(() => {
+          const deltaX = startMouseX.current - e.clientX;
+          const newWidth = startWidth.current + deltaX;
 
-        const minWidth = panelExpanded ? 250 : 60;
-        const maxWidth = 500;
+          const minWidth = panelExpanded ? 250 : 60;
+          const maxWidth = 500;
 
-        const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-        setSidebarWidth(constrainedWidth);
+          const constrainedWidth = Math.max(
+            minWidth,
+            Math.min(maxWidth, newWidth),
+          );
+          setSidebarWidth(constrainedWidth);
+        });
+      };
+
+      const handleMouseUp = () => {
+        if (!isResizing.current) return;
+
+        isResizing.current = false;
+
+        handle.classList.remove('dragging');
+
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.body.style.pointerEvents = '';
+
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('mouseleave', handleMouseUp);
+
+        document.removeEventListener('pointermove', handleMouseMove as any);
+        document.removeEventListener('pointerup', handleMouseUp as any);
+        document.removeEventListener('pointercancel', handleMouseUp as any);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove, {
+        passive: false,
       });
-    };
+      document.addEventListener('mouseup', handleMouseUp, { passive: false });
+      document.addEventListener('mouseleave', handleMouseUp, {
+        passive: false,
+      });
 
-    const handleMouseUp = () => {
-      if (!isResizing.current) return;
-
-      isResizing.current = false;
-
-      handle.classList.remove('dragging');
-
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      document.body.style.pointerEvents = '';
-
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mouseleave', handleMouseUp);
-
-      document.removeEventListener('pointermove', handleMouseMove as any);
-      document.removeEventListener('pointerup', handleMouseUp as any);
-      document.removeEventListener('pointercancel', handleMouseUp as any);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove, { passive: false });
-    document.addEventListener('mouseup', handleMouseUp, { passive: false });
-    document.addEventListener('mouseleave', handleMouseUp, { passive: false });
-
-    document.addEventListener('pointermove', handleMouseMove as any, { passive: false });
-    document.addEventListener('pointerup', handleMouseUp as any, { passive: false });
-    document.addEventListener('pointercancel', handleMouseUp as any, { passive: false });
-
-  }, [sidebarWidth, panelExpanded]);
+      document.addEventListener('pointermove', handleMouseMove as any, {
+        passive: false,
+      });
+      document.addEventListener('pointerup', handleMouseUp as any, {
+        passive: false,
+      });
+      document.addEventListener('pointercancel', handleMouseUp as any, {
+        passive: false,
+      });
+    },
+    [sidebarWidth, panelExpanded],
+  );
 
   const handleContentWidthChange = useCallback((width: number) => {
     if (width > 0) {
@@ -145,7 +175,10 @@ export const LinearGameLayout: React.FC = () => {
   const panels = [
     { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
     { id: 'scene' as const, icon: '🖼', label: 'Scene' },
-    ...(isHost ? [ { id: 'props' as const, icon: '📦', label: 'Props' }] : []),
+    ...(isHost ? [{ id: 'props' as const, icon: '📦', label: 'Props' }] : []),
+    ...(isHost
+      ? [{ id: 'generator' as const, icon: '🗺️', label: 'Generator' }]
+      : []),
     { id: 'initiative' as const, icon: '⏱', label: 'Initiative' },
     { id: 'dice' as const, icon: '🎲', label: 'Dice' },
     { id: 'chat' as const, icon: '💬', label: 'Chat' },
@@ -162,14 +195,13 @@ export const LinearGameLayout: React.FC = () => {
           <div className="header-left">
             <div className="room-info">
               <h2>🎲 Game Room: {roomCode}</h2>
-              <p>Welcome, <strong>{user.name}</strong>!</p>
+              <p>
+                Welcome, <strong>{user.name}</strong>!
+              </p>
             </div>
           </div>
           <div className="header-right">
-            <button
-              onClick={leaveRoom}
-              className="glass-button secondary"
-            >
+            <button onClick={leaveRoom} className="glass-button secondary">
               <span>🚪</span>
               Leave Room
             </button>
@@ -204,9 +236,11 @@ export const LinearGameLayout: React.FC = () => {
     <div
       className="game-layout"
       data-panel-expanded={panelExpanded}
-      style={{
-        '--sidebar-width': `${panelExpanded ? sidebarWidth : 60}px`
-      } as React.CSSProperties}
+      style={
+        {
+          '--sidebar-width': `${panelExpanded ? sidebarWidth : 60}px`,
+        } as React.CSSProperties
+      }
     >
       {/* Game Header */}
       <div className="layout-header">
@@ -217,7 +251,7 @@ export const LinearGameLayout: React.FC = () => {
         <div className="header-right">
           {/* Horizontal Panel Tabs */}
           <ul className="horizontal-panel-tabs" role="tablist">
-            {panels.map(panel => (
+            {panels.map((panel) => (
               <li key={panel.id} className="horizontal-panel-tab" role="tab">
                 <label>
                   <input
@@ -240,9 +274,7 @@ export const LinearGameLayout: React.FC = () => {
                 onClick={() => setPanelExpanded(!panelExpanded)}
                 title={panelExpanded ? 'Collapse panel' : 'Expand panel'}
               >
-                <span className="toggle-icon">
-                  {panelExpanded ? '«' : '»'}
-                </span>
+                <span className="toggle-icon">{panelExpanded ? '«' : '»'}</span>
               </button>
             </li>
 
@@ -264,10 +296,7 @@ export const LinearGameLayout: React.FC = () => {
       <div className="layout-scene">
         {/* Browser-Style Scene Tab Bar */}
         <div className="scene-tab-bar">
-          <SceneTabs
-            scenes={scenes}
-            activeSceneId={activeScene?.id || ''}
-          />
+          <SceneTabs scenes={scenes} activeSceneId={activeScene?.id || ''} />
         </div>
 
         {/* Scene Content */}
@@ -278,7 +307,10 @@ export const LinearGameLayout: React.FC = () => {
             <div className="empty-scene-state">
               <div className="empty-scene-content">
                 <h3>🎲 Ready to Create Your First Scene</h3>
-                <p>Use the Scene panel on the right to create and configure your first scene.</p>
+                <p>
+                  Use the Scene panel on the right to create and configure your
+                  first scene.
+                </p>
               </div>
             </div>
           )}
@@ -310,6 +342,31 @@ export const LinearGameLayout: React.FC = () => {
           onContentWidthChange={handleContentWidthChange}
         />
       </div>
+
+      {/* Floating Generator Overlay */}
+      {activePanel === 'generator' && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '75px', // 15px from header (60 + 15)
+            left: '25px',
+            right: '25px',
+            bottom: '25px',
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            borderRadius: '12px',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
+            zIndex: 9999,
+            padding: '40px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <GeneratorPanel onSwitchToScenes={() => setActivePanel('scene')} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

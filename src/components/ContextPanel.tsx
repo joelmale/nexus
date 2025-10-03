@@ -13,6 +13,7 @@ interface ContextPanelProps {
     | 'tokens'
     | 'scene'
     | 'props'
+    | 'generator'
     | 'initiative'
     | 'dice'
     | 'players'
@@ -24,6 +25,7 @@ interface ContextPanelProps {
       | 'tokens'
       | 'scene'
       | 'props'
+      | 'generator'
       | 'initiative'
       | 'dice'
       | 'players'
@@ -81,6 +83,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       tokens: 320,
       scene: 400,
       props: 350,
+      generator: 500, // Wide panel for dungeon generator
       initiative: 450, // Increased for complex combat interface
       dice: 380, // Increased for dice controls and history
       sounds: 320,
@@ -115,6 +118,11 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
             {activePanel === 'tokens' && <TokenPanel />}
             {activePanel === 'scene' && <ScenePanel scene={currentScene} />}
             {activePanel === 'props' && <Placeholder title="Props" />}
+            {activePanel === 'generator' && (
+              <div style={{ padding: '2rem', textAlign: 'center' }}>
+                <p>Generator is now full-screen →</p>
+              </div>
+            )}
             {activePanel === 'initiative' && <InitiativeTracker />}
             {activePanel === 'dice' && <DiceRoller />}
             {activePanel === 'sounds' && <Placeholder title="Sound Effects" />}

@@ -25,16 +25,16 @@ help:
 
 # Development targets
 dev:
-	docker-compose -f docker-compose.dev.yml up
+	docker-compose -f docker/docker-compose.dev.yml up
 
 dev-logs:
-	docker-compose -f docker-compose.dev.yml logs -f
+	docker-compose -f docker/docker-compose.dev.yml logs -f
 
 dev-stop:
-	docker-compose -f docker-compose.dev.yml down
+	docker-compose -f docker/docker-compose.dev.yml down
 
 dev-rebuild:
-	docker-compose -f docker-compose.dev.yml up --build
+	docker-compose -f docker/docker-compose.dev.yml up --build
 
 # Production build
 build:
@@ -47,7 +47,7 @@ build-push: build
 
 # Production deployment
 deploy:
-	docker stack deploy -c docker-compose.yml nexus
+	docker stack deploy -c docker/docker-compose.yml nexus
 
 stack-rm:
 	docker stack rm nexus
@@ -73,21 +73,21 @@ shell-back:
 
 # Testing
 test:
-	docker-compose -f docker-compose.test.yml run --rm test
+	docker-compose -f docker/docker-compose.test.yml run --rm test
 
 test-unit:
-	docker-compose -f docker-compose.test.yml run --rm test npm run test:unit
+	docker-compose -f docker/docker-compose.test.yml run --rm test npm run test:unit
 
 test-integration:
-	docker-compose -f docker-compose.test.yml run --rm test npm run test:integration
+	docker-compose -f docker/docker-compose.test.yml run --rm test npm run test:integration
 
 # Cleanup
 clean:
-	docker-compose -f docker-compose.dev.yml down -v
+	docker-compose -f docker/docker-compose.dev.yml down -v
 	docker system prune -f
 
 clean-all:
-	docker-compose -f docker-compose.dev.yml down -v
+	docker-compose -f docker/docker-compose.dev.yml down -v
 	docker stack rm nexus
 	docker system prune -af
 
