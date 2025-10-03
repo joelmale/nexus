@@ -43,7 +43,7 @@ RUN npm run build
 FROM nginx:alpine AS production
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY docker/nginx.conf /etc/nginx/nginx.conf
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
