@@ -50,6 +50,7 @@ export const CharacterCreationLauncher: React.FC<CharacterCreationLauncherProps>
 /**
  * Hook for triggering character creation from anywhere in the app
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const useCharacterCreationLauncher = () => {
   const [launcher, setLauncher] = useState<{
     playerId: string;

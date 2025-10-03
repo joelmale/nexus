@@ -407,7 +407,6 @@ describe('CharacterSheet', () => {
     it('should support keyboard navigation', () => {
       render(<CharacterSheet character={mockCharacter} />);
 
-      const statsTab = screen.getByText(/Stats/);
       const equipmentTab = screen.getByText(/Equipment/);
 
       // Tab navigation should work

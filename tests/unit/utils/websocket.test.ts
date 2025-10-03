@@ -55,7 +55,7 @@ describe('WebSocketManager', () => {
     // Simulate successful connection
     mockWebSocket.readyState = 1; // OPEN
     if (mockWebSocket.onopen) {
-      mockWebSocket.onopen({} as Event);
+      mockWebSocket.onopen(new Event('open'));
     }
 
     await expect(connectPromise).resolves.toBeUndefined();

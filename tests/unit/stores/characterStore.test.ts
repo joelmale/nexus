@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act } from 'react-dom/test-utils';
 import { useCharacterStore } from '@/stores/characterStore';
-import type { Character, AbilityScores } from '@/types/character';
+import type { Character } from '@/types/character';
 import { createEmptyCharacter, calculateAbilityModifier } from '@/types/character';
 vi.mock('@/services/linearFlowStorage', () => ({
   getLinearFlowStorage: vi.fn(() => ({
@@ -295,7 +295,9 @@ describe('CharacterStore', () => {
         useCharacterStore.getState().addEquipment(characterId, equipment);
       });
       const character = useCharacterStore.getState().getCharacter(characterId);
-      const equipmentId = character?.equipment[0].id!;
+      const equipmentId = character?.equipment[0]?.id;
+
+      if (!equipmentId) throw new Error('Equipment not found');
 
       act(() => {
         useCharacterStore.getState().updateEquipment(characterId, equipmentId, { equipped: true });
@@ -319,7 +321,9 @@ describe('CharacterStore', () => {
         useCharacterStore.getState().addEquipment(characterId, equipment);
       });
       const character = useCharacterStore.getState().getCharacter(characterId);
-      const equipmentId = character?.equipment[0].id!;
+      const equipmentId = character?.equipment[0]?.id;
+
+      if (!equipmentId) throw new Error('Equipment not found');
 
       act(() => {
         useCharacterStore.getState().removeEquipment(characterId, equipmentId);
@@ -343,7 +347,9 @@ describe('CharacterStore', () => {
         useCharacterStore.getState().addEquipment(characterId, equipment);
       });
       const character = useCharacterStore.getState().getCharacter(characterId);
-      const equipmentId = character?.equipment[0].id!;
+      const equipmentId = character?.equipment[0]?.id;
+
+      if (!equipmentId) throw new Error('Equipment not found');
 
       act(() => {
         useCharacterStore.getState().equipItem(characterId, equipmentId);

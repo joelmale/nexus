@@ -6,11 +6,7 @@ import type {
   Mob,
   MobGroup,
   AbilityScores,
-  Skill,
   Equipment,
-  AttackAction,
-  Feature,
-  Spell,
   CharacterImportSource,
   CharacterExportFormat
 } from '@/types/character';
@@ -255,7 +251,7 @@ export const useCharacterStore = create<CharacterStore>()(
       character.proficiencyBonus = proficiencyBonus;
 
       // Recalculate ability modifiers and saving throws
-      Object.entries(character.abilities).forEach(([abilityName, ability]) => {
+      Object.entries(character.abilities).forEach(([_abilityName, ability]) => {
         ability.modifier = calculateAbilityModifier(ability.score);
         ability.savingThrow = ability.modifier + (ability.proficient ? proficiencyBonus : 0);
       });
@@ -343,6 +339,7 @@ export const useCharacterStore = create<CharacterStore>()(
       const character = get().getCharacter(characterId);
       if (character) {
         // Add to initiative tracker
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { addEntry } = require('@/stores/initiativeStore').useInitiativeStore.getState();
         addEntry({
           name: character.name,
@@ -369,6 +366,7 @@ export const useCharacterStore = create<CharacterStore>()(
       const character = get().getCharacter(characterId);
       if (character) {
         // Remove from initiative tracker
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { entries, removeEntry } = require('@/stores/initiativeStore').useInitiativeStore.getState();
         const entry = entries.find((e: any) => e.playerId === character.playerId);
         if (entry) {
@@ -458,6 +456,7 @@ export const useCharacterStore = create<CharacterStore>()(
 
         // Save to IndexedDB
         try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const { getLinearFlowStorage } = require('@/services/linearFlowStorage');
           const storage = getLinearFlowStorage();
 
@@ -574,7 +573,7 @@ export const useCharacterStore = create<CharacterStore>()(
     },
 
     // Import/Export
-    importCharacter: async (source, data) => {
+    importCharacter: async (_source, _data) => {
       // Future implementation
       throw new Error('Import functionality not yet implemented');
     },

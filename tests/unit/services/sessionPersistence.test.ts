@@ -190,6 +190,7 @@ describe('SessionPersistenceService', () => {
 
   describe('Game State Management', () => {
     it('should save game state to localStorage', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { lastUpdated, stateVersion, ...gameStateInput } = mockGameState;
 
       sessionPersistenceService.saveGameState(gameStateInput);

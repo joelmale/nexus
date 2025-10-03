@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useGameLifecycleStore } from '@/stores/gameLifecycleStore';
-import type { GamePhase, LiveGameConfig } from '@/types/gameLifecycle';
+import type { LiveGameConfig } from '@/types/gameLifecycle';
 
 // Mock UUID generation for consistent testing
 vi.mock('uuid', () => ({

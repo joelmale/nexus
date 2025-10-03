@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { ContextPanel } from '../../../src/components/ContextPanel';
-import { Settings } from '../../../src/components/Settings';
 
 // Mock the game store hooks
 vi.mock('../../../src/stores/gameStore', () => ({

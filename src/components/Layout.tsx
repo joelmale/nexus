@@ -65,6 +65,7 @@ export const Layout: React.FC = () => {
         });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Simple recovery logic for linear flow

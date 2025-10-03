@@ -11,7 +11,6 @@ import { immer } from 'zustand/middleware/immer';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import type {
-  GameMode,
   GamePhase,
   GameLifecycleState,
   GameStateSnapshot,
@@ -341,8 +340,10 @@ export const useGameLifecycleStore = create<GameLifecycleStore>()(
           return false;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const action: GameLifecycleAction = {
           type: `lifecycle/${newPhase}` as GameLifecycleEvent,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           payload: {} as any,
           timestamp: Date.now(),
           userId

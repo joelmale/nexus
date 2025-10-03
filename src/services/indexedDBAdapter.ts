@@ -251,7 +251,6 @@ export class IndexedDBAdapter implements StorageAdapter {
 
       const transaction = this.db.transaction(['gameState'], 'readwrite');
       const store = transaction.objectStore('gameState');
-      let completed = 0;
       const total = items.length;
 
       if (total === 0) {

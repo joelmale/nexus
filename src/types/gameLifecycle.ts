@@ -56,6 +56,7 @@ export interface GameLifecycleEvents {
   'lifecycle/startLive': { config: LiveGameConfig; snapshot: GameStateSnapshot };
   'lifecycle/goLive': { roomCode: string; gameState: GameStateSnapshot };
   'lifecycle/pauseGame': { reason?: string };
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   'lifecycle/resumeGame': {};
   'lifecycle/endGame': { reason?: string; saveSnapshot?: boolean };
   'lifecycle/playerJoin': { roomCode: string };

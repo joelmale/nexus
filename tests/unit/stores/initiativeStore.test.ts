@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useInitiativeStore } from '../../../src/stores/initiativeStore';
-import { createInitiativeEntry, STANDARD_CONDITIONS } from '../../../src/types/initiative';
+import { STANDARD_CONDITIONS } from '../../../src/types/initiative';
 
 describe('initiativeStore', () => {
   beforeEach(() => {

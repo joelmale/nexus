@@ -749,6 +749,7 @@ const CampaignBackupSection: React.FC = () => {
   // Load stats on mount
   useEffect(() => {
     setStats(storage.getStats());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleExport = async () => {

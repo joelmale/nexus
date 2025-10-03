@@ -6,7 +6,7 @@ import {
   createEmptyCharacter,
   STANDARD_SKILLS
 } from '@/types/character';
-import type { Character, AbilityScores } from '@/types/character';
+import type { AbilityScores } from '@/types/character';
 
 describe('Character Utility Functions', () => {
   describe('calculateAbilityModifier', () => {

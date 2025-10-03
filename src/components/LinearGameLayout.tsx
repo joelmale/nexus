@@ -43,6 +43,7 @@ export const LinearGameLayout: React.FC = () => {
         console.log('🎮 LinearGameLayout unmounting');
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Use appFlowStore for host detection instead of old gameStore

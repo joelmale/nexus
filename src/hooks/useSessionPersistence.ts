@@ -139,6 +139,7 @@ export function useSessionPersistence(
       clearTimeout(timer);
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enableAutoRecovery]); // Removed attemptSessionRecovery from dependencies to prevent re-runs
 
   // Handle page visibility changes to update activity

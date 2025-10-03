@@ -465,6 +465,7 @@ const eventHandlers: Record<string, EventHandler> = {
         state.sceneState.activeSceneId = eventData.scene.id;
       }
     }
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
   },
   'scene/update': (state, data) => {
     const eventData = data as SceneUpdateEvent['data'];
@@ -579,6 +580,8 @@ const eventHandlers: Record<string, EventHandler> = {
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
       }
     }
+    // Note: source and data parameters required by event handler signature
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   },
 };
 

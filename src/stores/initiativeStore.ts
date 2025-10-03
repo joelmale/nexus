@@ -7,7 +7,7 @@ import type {
   CombatEvent,
   CombatRound
 } from '@/types/initiative';
-import { createInitiativeEntry, STANDARD_CONDITIONS } from '@/types/initiative';
+import { createInitiativeEntry } from '@/types/initiative';
 
 interface InitiativeStore extends InitiativeState {
   // Core Combat Actions
@@ -146,7 +146,7 @@ export const useInitiativeStore = create<InitiativeStore>()(
         ? state.entries.findIndex(e => e.id === state.activeEntryId)
         : -1;
 
-      let nextIndex = (currentIndex + 1) % state.entries.length;
+      const nextIndex = (currentIndex + 1) % state.entries.length;
 
       // If we've wrapped around, increment round
       if (nextIndex === 0) {
