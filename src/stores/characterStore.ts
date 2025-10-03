@@ -89,7 +89,7 @@ interface CharacterStore extends CharacterState {
   getSelectedMobs: () => Mob[];
 
   // Import/Export
-  importCharacter: (source: string, data: any) => Promise<string>;
+  importCharacter: (source: string, data: unknown) => Promise<string>;
   exportCharacter: (characterId: string, format: string) => Promise<string>;
 
   // Utility
@@ -368,7 +368,7 @@ export const useCharacterStore = create<CharacterStore>()(
         // Remove from initiative tracker
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { entries, removeEntry } = require('@/stores/initiativeStore').useInitiativeStore.getState();
-        const entry = entries.find((e: any) => e.playerId === character.playerId);
+        const entry = entries.find((e: { playerId: string }) => e.playerId === character.playerId);
         if (entry) {
           removeEntry(entry.id);
         }

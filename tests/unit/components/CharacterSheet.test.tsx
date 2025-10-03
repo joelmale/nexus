@@ -375,7 +375,7 @@ describe('CharacterSheet', () => {
         },
         skills: [],
         equipment: [],
-      } as any;
+      } as Character;
 
       expect(() => {
         render(<CharacterSheet character={incompleteCharacter} />);

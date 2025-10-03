@@ -8,10 +8,10 @@ const mockWebSocket: {
   send: Mock;
   close: Mock;
   readyState: number;
-  onopen: ((event: any) => void) | null;
-  onmessage: ((event: any) => void) | null;
-  onclose: ((event: any) => void) | null;
-  onerror: ((event: any) => void) | null;
+  onopen: ((event: Event) => void) | null;
+  onmessage: ((event: MessageEvent) => void) | null;
+  onclose: ((event: CloseEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
 } = {
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
@@ -35,7 +35,7 @@ describe('WebSocketManager', () => {
       CLOSING: 2,
       CLOSED: 3,
     });
-    global.WebSocket = mockConstructor as any;
+    global.WebSocket = mockConstructor as typeof WebSocket;
     mockWebSocket.readyState = 0; // CONNECTING
     mockWebSocket.onopen = null;
     mockWebSocket.onmessage = null;

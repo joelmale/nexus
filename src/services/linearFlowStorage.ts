@@ -457,7 +457,7 @@ export class LinearFlowStorage {
   /**
    * Save legacy session persistence data to IndexedDB
    */
-  saveLegacySessionData(sessionData: any, gameState: any): void {
+  saveLegacySessionData(sessionData: unknown, gameState: unknown): void {
     const browserId = this.getBrowserId();
 
     // Save session data
@@ -484,7 +484,7 @@ export class LinearFlowStorage {
   /**
    * Load session state
    */
-  loadSession(): any | null {
+  loadSession(): { user: { name: string; type: string; id: string }; roomCode: string; view: string; isConnected: boolean; browserId: string; lastActivity: number } | null {
     const sessions = this.store.query({
       type: 'session',
       where: { browserId: this.getBrowserId() },
@@ -500,7 +500,7 @@ export class LinearFlowStorage {
   /**
    * Load legacy session data
    */
-  loadLegacySessionData(): { session: any | null; gameState: any | null } {
+  loadLegacySessionData(): { session: unknown | null; gameState: unknown | null } {
     const browserId = this.getBrowserId();
 
     const sessionData = this.store.query({
@@ -611,7 +611,7 @@ export class LinearFlowStorage {
             parsedGameState?.characters &&
             Array.isArray(parsedGameState.characters)
           ) {
-            parsedGameState.characters.forEach((character: any) => {
+            parsedGameState.characters.forEach((character: PlayerCharacter) => {
               this.saveCharacter(character);
               stats.characters++;
             });
@@ -874,7 +874,7 @@ export class LinearFlowStorage {
 
   private getBrowserId(): string {
     // Check IndexedDB first (new system)
-    const browserIdEntity = this.store.get<any>('browser-id');
+    const browserIdEntity = this.store.get<{ value: string }>('browser-id');
 
     if (browserIdEntity) {
       return browserIdEntity.value;
@@ -982,7 +982,7 @@ export function getLinearFlowStorage(): LinearFlowStorage {
 
 // Debug exports for console access
 if (typeof window !== 'undefined') {
-  (window as any).debugStorage = {
+  (window as unknown as { debugStorage: Record<string, unknown> }).debugStorage = {
     resetDatabase: async () => {
       const storage = getLinearFlowStorage();
       await storage.resetDatabase();

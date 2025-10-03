@@ -387,7 +387,7 @@ describe('SessionPersistenceService', () => {
       ];
 
       invalidSessions.forEach(invalidSession => {
-        const isValid = sessionPersistenceService.validateSession(invalidSession as any);
+        const isValid = sessionPersistenceService.validateSession(invalidSession as unknown as PersistedSession);
         expect(isValid).toBe(false);
       });
     });

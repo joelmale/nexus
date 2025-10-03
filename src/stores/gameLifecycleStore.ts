@@ -54,7 +54,7 @@ interface GameLifecycleStore extends GameLifecycleState {
   ) => void;
 
   // Internal state (not managed by Immer)
-  _eventHandlers: Map<GameLifecycleEvent, Array<(payload: any) => void>>;
+  _eventHandlers: Map<GameLifecycleEvent, Array<(payload: unknown) => void>>;
   _transition: (newPhase: GamePhase, userId: string) => boolean;
 }
 
@@ -68,7 +68,7 @@ const VALID_TRANSITIONS: Record<GamePhase, GamePhase[]> = {
 };
 
 // Event handlers stored outside of Immer state to avoid freezing
-export const eventHandlers = new Map<GameLifecycleEvent, Array<(payload: any) => void>>();
+export const eventHandlers = new Map<GameLifecycleEvent, Array<(payload: unknown) => void>>();
 
 export const useGameLifecycleStore = create<GameLifecycleStore>()(
   subscribeWithSelector(
@@ -362,7 +362,7 @@ export const useGameLifecycleStore = create<GameLifecycleStore>()(
 // Hook for event subscription
 export const useGameLifecycleEvents = (
   event: GameLifecycleEvent,
-  handler: (payload: any) => void
+  handler: (payload: unknown) => void
 ) => {
   React.useEffect(() => {
     const handlers = eventHandlers.get(event) || [];

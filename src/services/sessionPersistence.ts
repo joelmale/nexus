@@ -17,11 +17,11 @@ export interface PersistedSession {
 }
 
 export interface PersistedGameState {
-  characters: any[];
-  initiative: any;
-  scenes: any[];
+  characters: unknown[];
+  initiative: unknown;
+  scenes: unknown[];
   activeSceneId: string | null;
-  settings: any;
+  settings: unknown;
   lastUpdated: number;
   stateVersion: number;
 }

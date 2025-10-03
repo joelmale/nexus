@@ -118,7 +118,7 @@ export interface ActionResult {
   newState?: Partial<GameState>;
   error?: string;
   rollback?: PersistedGameState; // State to rollback to if action fails
-  metadata?: any;
+  metadata?: unknown;
 }
 
 // =============================================================================

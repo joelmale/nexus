@@ -203,7 +203,7 @@ export const useAppFlowStore = create<AppFlowStore>()(
           }
 
           // Update character player IDs to current browser
-          const importedCharacters: PlayerCharacter[] = data.characters.map((c: any) => ({
+          const importedCharacters: PlayerCharacter[] = data.characters.map((c: PlayerCharacter) => ({
             ...c,
             id: uuidv4(), // New ID to avoid conflicts
             playerId: get().user.id, // Link to current browser

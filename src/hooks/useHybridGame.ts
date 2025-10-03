@@ -489,7 +489,14 @@ export function useDebugInfo() {
   const store = useHybridGameStore();
   const stateManager = store._stateManager;
 
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<{
+    syncVersion: number;
+    lastModified: Date;
+    lastSaved: Date;
+    localChanges: number;
+    sessionMode: string;
+    isHydrated: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development') return;

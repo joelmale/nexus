@@ -16,7 +16,7 @@ import type {
   SessionMode,
   MultiplayerSession,
 } from '@/types/hybrid';
-import type { GameState } from '@/types/game';
+import type { GameState, Scene, Token, Drawing } from '@/types/game';
 import { createIndexedDBAdapter } from './indexedDBAdapter';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -496,7 +496,7 @@ export class HybridStateManager {
     action: GameAction,
     _state: PersistedGameState,
   ): Promise<ActionResult> {
-    const payload = action.payload as { scene: any };
+    const payload = action.payload as { scene: Scene };
 
     await this.setState((currentState) => {
       currentState.sceneState.scenes.push(payload.scene);
@@ -516,7 +516,7 @@ export class HybridStateManager {
     action: GameAction,
     _state: PersistedGameState,
   ): Promise<ActionResult> {
-    const payload = action.payload as { sceneId: string; updates: any };
+    const payload = action.payload as { sceneId: string; updates: Partial<Scene> };
 
     await this.setState((currentState) => {
       const sceneIndex = currentState.sceneState.scenes.findIndex(
@@ -623,7 +623,7 @@ export class HybridStateManager {
     action: GameAction,
     _state: PersistedGameState,
   ): Promise<ActionResult> {
-    const payload = action.payload as { sceneId: string; token: any };
+    const payload = action.payload as { sceneId: string; token: Token };
 
     await this.setState((currentState) => {
       const scene = currentState.sceneState.scenes.find(
@@ -674,7 +674,7 @@ export class HybridStateManager {
     const payload = action.payload as {
       sceneId: string;
       tokenId: string;
-      updates: any;
+      updates: Partial<Token>;
     };
 
     await this.setState((currentState) => {
@@ -725,7 +725,7 @@ export class HybridStateManager {
     action: GameAction,
     _state: PersistedGameState,
   ): Promise<ActionResult> {
-    const payload = action.payload as { sceneId: string; drawing: any };
+    const payload = action.payload as { sceneId: string; drawing: Drawing };
 
     await this.setState((currentState) => {
       const scene = currentState.sceneState.scenes.find(
@@ -746,7 +746,7 @@ export class HybridStateManager {
     const payload = action.payload as {
       sceneId: string;
       drawingId: string;
-      updates: any;
+      updates: Partial<Drawing>;
     };
 
     await this.setState((currentState) => {
@@ -821,7 +821,7 @@ export class HybridStateManager {
     action: GameAction,
     _state: PersistedGameState,
   ): Promise<ActionResult> {
-    const payload = action.payload as { roll: any };
+    const payload = action.payload as { roll: { id: string; expression: string; [key: string]: unknown } };
 
     // Validate the dice roll
     if (!payload.roll || !payload.roll.id || !payload.roll.expression) {

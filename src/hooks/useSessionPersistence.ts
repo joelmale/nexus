@@ -118,8 +118,8 @@ export function useSessionPersistence(
           if (typeof window !== 'undefined' && 'toast' in window) {
             // Only show toast if available
             try {
-              const toast = (window as any).toast;
-              toast.success('Session restored successfully');
+              const toast = (window as { toast?: { success: (message: string) => void } }).toast;
+              toast?.success('Session restored successfully');
             } catch {
               // Ignore toast errors
             }

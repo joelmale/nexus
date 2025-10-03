@@ -7,6 +7,7 @@
 
 // import * as transit from 'transit-js';
 import { encode, decode } from '@msgpack/msgpack';
+import type { StorageAdapter } from '@/types/hybrid';
 
 // Simplified serialization for now - we'll add Transit.js transforms later
 // const transformMap = new Map([
@@ -15,10 +16,10 @@ import { encode, decode } from '@msgpack/msgpack';
 
 // Placeholder for Transit - we'll use JSON for now
 const transitWrite = {
-  write: (data: any) => JSON.stringify(data)
+  write: (data: unknown) => JSON.stringify(data)
 };
 const transitRead = {
-  read: (str: string) => JSON.parse(str)
+  read: (str: string) => JSON.parse(str) as unknown
 };
 
 /**
@@ -35,7 +36,7 @@ export class SerializationService {
    * Serialize data using Transit.js (preserves complex types)
    * Best for: Game state, scenes, complex objects
    */
-  static serializeTransit(data: any): string {
+  static serializeTransit(data: unknown): string {
     try {
       return transitWrite.write(data);
     } catch (error) {
@@ -47,7 +48,7 @@ export class SerializationService {
   /**
    * Deserialize Transit.js data
    */
-  static deserializeTransit<T = any>(serialized: string): T {
+  static deserializeTransit<T = unknown>(serialized: string): T {
     try {
       return transitRead.read(serialized);
     } catch (error) {
@@ -60,7 +61,7 @@ export class SerializationService {
    * Serialize data using MessagePack (binary efficient)
    * Best for: Large datasets, drawings, binary assets
    */
-  static serializeMessagePack(data: any): Uint8Array {
+  static serializeMessagePack(data: unknown): Uint8Array {
     try {
       return encode(data);
     } catch (error) {
@@ -72,7 +73,7 @@ export class SerializationService {
   /**
    * Deserialize MessagePack data
    */
-  static deserializeMessagePack<T = any>(packed: Uint8Array): T {
+  static deserializeMessagePack<T = unknown>(packed: Uint8Array): T {
     try {
       return decode(packed) as T;
     } catch (error) {
@@ -84,7 +85,7 @@ export class SerializationService {
   /**
    * Smart serialization - chooses best method based on data type
    */
-  static serialize(data: any, format: 'auto' | 'transit' | 'msgpack' | 'json' = 'auto'): string | Uint8Array {
+  static serialize(data: unknown, format: 'auto' | 'transit' | 'msgpack' | 'json' = 'auto'): string | Uint8Array {
     if (format === 'transit') {
       return this.serializeTransit(data);
     }
@@ -115,7 +116,7 @@ export class SerializationService {
   /**
    * Smart deserialization - auto-detects format
    */
-  static deserialize<T = any>(serialized: string | Uint8Array): T {
+  static deserialize<T = unknown>(serialized: string | Uint8Array): T {
     if (serialized instanceof Uint8Array) {
       return this.deserializeMessagePack<T>(serialized);
     }
@@ -140,7 +141,7 @@ export class SerializationService {
   /**
    * Check if data contains complex types that benefit from Transit
    */
-  private static hasComplexTypes(data: any): boolean {
+  private static hasComplexTypes(data: unknown): boolean {
     if (data instanceof Date) return true;
     if (data instanceof Set) return true;
     if (data instanceof Map) return true;
@@ -166,7 +167,7 @@ export class SerializationService {
    * Create a backup-compatible export (like Ogres)
    * Includes metadata and uses MessagePack for efficiency
    */
-  static createBackupData(gameState: any): Uint8Array {
+  static createBackupData(gameState: unknown): Uint8Array {
     const backupData = {
       version: '1.0.0',
       timestamp: Date.now(),
@@ -185,9 +186,9 @@ export class SerializationService {
   /**
    * Parse backup data (like Ogres import)
    */
-  static parseBackupData<T = any>(backupFile: Uint8Array): {
+  static parseBackupData<T = unknown>(backupFile: Uint8Array): {
     data: T;
-    metadata: any;
+    metadata: unknown;
     version: string;
     timestamp: number;
   } {
@@ -204,14 +205,14 @@ export class SerializationService {
 /**
  * Enhanced IndexedDB adapter that uses smart serialization
  */
-export class SerializingIndexedDBAdapter {
-  private baseAdapter: any;
+export class SerializingIndexedDBAdapter implements StorageAdapter {
+  private baseAdapter: StorageAdapter;
 
-  constructor(baseAdapter: any) {
+  constructor(baseAdapter: StorageAdapter) {
     this.baseAdapter = baseAdapter;
   }
 
-  async save(key: string, data: any): Promise<void> {
+  async save(key: string, data: unknown): Promise<void> {
     const serialized = SerializationService.serialize(data, 'transit');
     return this.baseAdapter.save(key, {
       serialized,

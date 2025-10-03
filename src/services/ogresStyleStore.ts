@@ -19,7 +19,7 @@ export interface Entity {
   type: string;
   createdAt: number;
   updatedAt: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Relationship {
@@ -27,12 +27,12 @@ export interface Relationship {
   sourceId: string;
   targetId: string;
   type: string;
-  metadata?: any;
+  metadata?: unknown;
 }
 
 export interface EntityQuery {
   type?: string;
-  where?: Record<string, any>;
+  where?: Record<string, unknown>;
   include?: string[];
   limit?: number;
   offset?: number;
@@ -267,7 +267,7 @@ export class OgresStyleStore {
   /**
    * Create a relationship between entities
    */
-  relate(sourceId: string, targetId: string, type: string, metadata?: any): Relationship {
+  relate(sourceId: string, targetId: string, type: string, metadata?: unknown): Relationship {
     const relationship: Relationship = {
       id: uuidv4(),
       sourceId,
@@ -397,7 +397,13 @@ export class OgresStyleStore {
   private async loadFromStorage(): Promise<void> {
     try {
       console.log('📂 Ogres-style store: Attempting to load from storage...');
-      const saved = await this.storage.load<any>('store-state');
+      const saved = await this.storage.load<{
+        entities?: Array<[string, Entity]>;
+        relationships?: Array<[string, Relationship]>;
+        indexes?: Array<[string, string[]]>;
+        lastSaved?: number;
+        version?: number;
+      }>('store-state');
       if (!saved) {
         console.log('📂 Ogres-style store: No saved data found, starting with empty state');
         return;
@@ -502,21 +508,21 @@ export class OgresStyleStore {
   }
 
   // Event system
-  private emit(event: string, data: any): void {
+  private emit(event: string, data: unknown): void {
     const listeners = this.listeners.get(event);
     if (listeners) {
       listeners.forEach(callback => callback(data));
     }
   }
 
-  public on(event: string, callback: (data: any) => void): void {
+  public on(event: string, callback: (data: unknown) => void): void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
     this.listeners.get(event)!.add(callback);
   }
 
-  public off(event: string, callback: (data: any) => void): void {
+  public off(event: string, callback: (data: unknown) => void): void {
     const listeners = this.listeners.get(event);
     if (listeners) {
       listeners.delete(callback);

@@ -30,11 +30,11 @@ export interface GameStateSnapshot {
   id: string;
   timestamp: number;
   phase: GamePhase;
-  scenes: any[];
+  scenes: unknown[];
   activeSceneId: string | null;
-  characters: any[];
-  initiative: any;
-  settings: any;
+  characters: unknown[];
+  initiative: unknown;
+  settings: unknown;
   metadata: {
     version: number;
     createdBy: string;

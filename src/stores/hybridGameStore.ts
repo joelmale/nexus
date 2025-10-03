@@ -265,7 +265,7 @@ export const useHybridGameStore = create<HybridGameStore>()(
         );
 
         if (result.success && result.newState) {
-          return (result.newState as any).scene;
+          return (result.newState as { scene: Scene }).scene;
         }
         throw new Error(result.error || 'Failed to create scene');
       },
