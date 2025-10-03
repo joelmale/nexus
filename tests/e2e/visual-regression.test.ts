@@ -45,13 +45,17 @@ test.describe('Layout Visual Regression Tests', () => {
     });
   });
 
-  test('Panel scrolling behavior - before and after scroll', async ({ page }) => {
+  test('Panel scrolling behavior - before and after scroll', async ({
+    page,
+  }) => {
     // Open settings panel
     await page.click('[data-testid="settings-tab"]');
     await page.waitForTimeout(500);
 
     // Screenshot before scrolling
-    await expect(page.locator('.layout-panel')).toHaveScreenshot('panel-before-scroll.png');
+    await expect(page.locator('.layout-panel')).toHaveScreenshot(
+      'panel-before-scroll.png',
+    );
 
     // Scroll down in the settings content
     await page.evaluate(() => {
@@ -64,7 +68,9 @@ test.describe('Layout Visual Regression Tests', () => {
     await page.waitForTimeout(300);
 
     // Screenshot after scrolling - toolbar should still be visible
-    await expect(page.locator('.layout-panel')).toHaveScreenshot('panel-after-scroll.png');
+    await expect(page.locator('.layout-panel')).toHaveScreenshot(
+      'panel-after-scroll.png',
+    );
 
     // Toolbar should still be visible after scrolling
     await expect(page.locator('.scene-canvas-toolbar')).toBeVisible();
@@ -106,20 +112,26 @@ test.describe('Layout Visual Regression Tests', () => {
     await expect(resizeHandle).toBeVisible();
 
     // Take screenshot focusing on the resize handle area
-    await expect(page.locator('.layout-panel')).toHaveScreenshot('resize-handle-positioning.png');
+    await expect(page.locator('.layout-panel')).toHaveScreenshot(
+      'resize-handle-positioning.png',
+    );
 
     // Test that resize handle doesn't extend beyond viewport
     const handleBounds = await resizeHandle.boundingBox();
     const viewportSize = page.viewportSize();
 
     if (handleBounds && viewportSize) {
-      expect(handleBounds.y + handleBounds.height).toBeLessThanOrEqual(viewportSize.height);
+      expect(handleBounds.y + handleBounds.height).toBeLessThanOrEqual(
+        viewportSize.height,
+      );
     }
   });
 });
 
 test.describe('Toolbar Positioning Tests', () => {
-  test('Toolbar stays visible when switching between panels', async ({ page }) => {
+  test('Toolbar stays visible when switching between panels', async ({
+    page,
+  }) => {
     await page.goto('/game/TEST-SESSION');
     await page.waitForLoadState('networkidle');
 
@@ -138,10 +150,14 @@ test.describe('Toolbar Positioning Tests', () => {
       await expect(page.locator('.scene-canvas-toolbar')).toBeVisible();
 
       // Take screenshot for comparison
-      await expect(page.locator('.scene-canvas-toolbar')).toHaveScreenshot(`toolbar-in-${panel.name}-panel.png`);
+      await expect(page.locator('.scene-canvas-toolbar')).toHaveScreenshot(
+        `toolbar-in-${panel.name}-panel.png`,
+      );
 
       // Verify toolbar position is consistent
-      const toolbarBounds = await page.locator('.scene-canvas-toolbar').boundingBox();
+      const toolbarBounds = await page
+        .locator('.scene-canvas-toolbar')
+        .boundingBox();
       if (toolbarBounds) {
         // Toolbar should be near top-left (within reasonable bounds)
         expect(toolbarBounds.x).toBeLessThan(50);
@@ -152,7 +168,9 @@ test.describe('Toolbar Positioning Tests', () => {
     }
   });
 
-  test('Toolbar remains visible with long content in panels', async ({ page }) => {
+  test('Toolbar remains visible with long content in panels', async ({
+    page,
+  }) => {
     await page.goto('/game/TEST-SESSION');
     await page.waitForLoadState('networkidle');
 
