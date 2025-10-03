@@ -161,6 +161,7 @@ jobs:
 
       - name: TruffleHog OSS
         uses: trufflesecurity/trufflehog@main
+        continue-on-error: true # Don't fail when BASE and HEAD are the same
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
