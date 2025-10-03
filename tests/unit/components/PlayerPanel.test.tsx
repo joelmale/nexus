@@ -1,12 +1,13 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { within } from '@testing-library/react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { PlayerPanel } from '@/components/PlayerPanel';
 import { useSession, useIsHost } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
 import { useCharacterCreationLauncher } from '@/components/CharacterCreationLauncher';
 import { useInitiativeStore } from '@/stores/initiativeStore';
+import { useAppFlowStore } from '@/stores/appFlowStore';
 import type { Character } from '@/types/character';
 import type { Player, Session } from '@/types/game';
 
@@ -29,9 +30,19 @@ vi.mock('@/stores/initiativeStore', () => ({
   useInitiativeStore: vi.fn(),
 }));
 
+vi.mock('@/stores/appFlowStore', () => ({
+  useAppFlowStore: vi.fn(),
+}));
+
 // Mock the CharacterSheet component
 vi.mock('@/components/CharacterSheet', () => ({
-  CharacterSheet: ({ character, readonly }: any) => (
+  CharacterSheet: ({
+    character,
+    readonly,
+  }: {
+    character: Character;
+    readonly: boolean;
+  }) => (
     <div data-testid="character-sheet">
       Character Sheet for {character.name} (readonly: {readonly.toString()})
     </div>
@@ -123,6 +134,10 @@ describe('PlayerPanel', () => {
     isActive: false,
   };
 
+  const mockAppFlow = {
+    setView: vi.fn(),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -137,6 +152,8 @@ describe('PlayerPanel', () => {
     vi.mocked(useCharacterCreation).mockReturnValue(mockCharacterCreation);
     vi.mocked(useInitiativeStore).mockReturnValue(mockInitiativeActions);
     vi.mocked(useCharacterCreationLauncher).mockReturnValue(mockLauncher);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(useAppFlowStore).mockReturnValue(mockAppFlow as any);
   });
 
   describe('Component Rendering', () => {
@@ -155,12 +172,18 @@ describe('PlayerPanel', () => {
 
       render(<PlayerPanel />);
 
-      const myCharactersSection = screen.getByText('My Characters').closest('.my-characters-section')!;
+      const myCharactersSection = screen
+        .getByText('My Characters')
+        .closest('.my-characters-section')!;
       expect(myCharactersSection).toBeInTheDocument();
-      
+
       // Find character names within the My Characters section
-      expect(within(myCharactersSection).getByText('Alice Fighter')).toBeInTheDocument();
-      expect(within(myCharactersSection).getByText('Alice Wizard')).toBeInTheDocument();
+      expect(
+        within(myCharactersSection).getByText('Alice Fighter'),
+      ).toBeInTheDocument();
+      expect(
+        within(myCharactersSection).getByText('Alice Wizard'),
+      ).toBeInTheDocument();
     });
 
     it('should render all players section', () => {
@@ -193,16 +216,30 @@ describe('PlayerPanel', () => {
     it('should display character information correctly', () => {
       render(<PlayerPanel />);
 
-      const myCharactersSection = screen.getByText('My Characters').closest('.my-characters-section')!;
-      
-      // Find character names within the My Characters section
-      const characterList = within(myCharactersSection).getByText('Alice Fighter').closest('.character-item')!;
-      expect(within(characterList).getByText('Level 5 Human Fighter')).toBeInTheDocument();
-      expect(within(characterList).getByText('HP: 35/47 | AC: 18')).toBeInTheDocument();
+      const myCharactersSection = screen
+        .getByText('My Characters')
+        .closest('.my-characters-section')!;
 
-      const wizardCharacter = within(myCharactersSection).getByText('Alice Wizard').closest('.character-item')!;
-      expect(within(wizardCharacter).getByText('Level 3 Elf Wizard')).toBeInTheDocument();
-      expect(within(wizardCharacter).getByText('HP: 20/20 | AC: 12')).toBeInTheDocument();
+      // Find character names within the My Characters section
+      const characterList = within(myCharactersSection)
+        .getByText('Alice Fighter')
+        .closest('.character-item')!;
+      expect(
+        within(characterList).getByText('Level 5 Human Fighter'),
+      ).toBeInTheDocument();
+      expect(
+        within(characterList).getByText('HP: 35/47 | AC: 18'),
+      ).toBeInTheDocument();
+
+      const wizardCharacter = within(myCharactersSection)
+        .getByText('Alice Wizard')
+        .closest('.character-item')!;
+      expect(
+        within(wizardCharacter).getByText('Level 3 Elf Wizard'),
+      ).toBeInTheDocument();
+      expect(
+        within(wizardCharacter).getByText('HP: 20/20 | AC: 12'),
+      ).toBeInTheDocument();
     });
 
     it('should show create character button', () => {
@@ -217,22 +254,22 @@ describe('PlayerPanel', () => {
       const createButton = screen.getByText('➕ New Character');
       fireEvent.click(createButton);
 
-      expect(mockLauncher.startCharacterCreation).toHaveBeenCalledWith(
-        expect.any(String),
-        'modal',
-        expect.any(Function),
-        expect.any(Function)
-      );
+      expect(mockAppFlow.setView).toHaveBeenCalledWith('player_setup');
     });
 
     it('should handle character view click', () => {
       render(<PlayerPanel />);
 
-      const myCharactersSection = screen.getByText('My Characters').closest('.my-characters-section')!;
-      const characterItem = within(myCharactersSection).getByText('Alice Fighter');
+      const myCharactersSection = screen
+        .getByText('My Characters')
+        .closest('.my-characters-section')!;
+      const characterItem =
+        within(myCharactersSection).getByText('Alice Fighter');
       fireEvent.click(characterItem.closest('.character-item')!);
 
-      expect(mockCharacterActions.setActiveCharacter).toHaveBeenCalledWith('char-1');
+      expect(mockCharacterActions.setActiveCharacter).toHaveBeenCalledWith(
+        'char-1',
+      );
     });
 
     it('should show empty state when no characters', () => {
@@ -244,8 +281,12 @@ describe('PlayerPanel', () => {
 
       render(<PlayerPanel />);
 
-      expect(screen.getByText('No characters created yet.')).toBeInTheDocument();
-      expect(screen.getByText('Create a character to get started!')).toBeInTheDocument();
+      expect(
+        screen.getByText('No characters created yet.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Create a character to get started!'),
+      ).toBeInTheDocument();
     });
   });
 
@@ -256,12 +297,20 @@ describe('PlayerPanel', () => {
       // Since there are multiple online/offline indicators, query for all and check them
       const onlineIndicators = screen.getAllByText('Online');
       const offlineIndicators = screen.getAllByText('Offline');
-      
+
       // Find at least one online player
-      expect(onlineIndicators.some(el => el.closest('.player-card')?.classList.contains('online'))).toBe(true);
-      
+      expect(
+        onlineIndicators.some((el) =>
+          el.closest('.player-card')?.classList.contains('online'),
+        ),
+      ).toBe(true);
+
       // Find at least one offline player
-      expect(offlineIndicators.some(el => el.closest('.player-card')?.classList.contains('offline'))).toBe(true);
+      expect(
+        offlineIndicators.some((el) =>
+          el.closest('.player-card')?.classList.contains('offline'),
+        ),
+      ).toBe(true);
     });
 
     it('should display host badge', () => {
@@ -348,7 +397,9 @@ describe('PlayerPanel', () => {
     it('should render character creation wizard when active', () => {
       const mockLauncher = {
         startCharacterCreation: vi.fn(),
-        LauncherComponent: <div data-testid="wizard">Character Creation Wizard</div>,
+        LauncherComponent: (
+          <div data-testid="wizard">Character Creation Wizard</div>
+        ),
         isActive: true,
       };
       vi.mocked(useCharacterCreationLauncher).mockReturnValue(mockLauncher);
@@ -387,7 +438,9 @@ describe('PlayerPanel', () => {
       fireEvent.click(backButton);
 
       // Should call setActiveCharacter with null to go back
-      expect(mockCharacterActions.setActiveCharacter).toHaveBeenCalledWith(null);
+      expect(mockCharacterActions.setActiveCharacter).toHaveBeenCalledWith(
+        null,
+      );
     });
 
     it('should show readonly character sheet for other players characters', () => {
@@ -404,7 +457,9 @@ describe('PlayerPanel', () => {
 
       render(<PlayerPanel />);
 
-      expect(screen.getByTestId('character-sheet')).toHaveTextContent('readonly: true');
+      expect(screen.getByTestId('character-sheet')).toHaveTextContent(
+        'readonly: true',
+      );
     });
   });
 
@@ -435,8 +490,11 @@ describe('PlayerPanel', () => {
 
       render(<PlayerPanel />);
 
-      const myCharactersSection = screen.getByText('My Characters').closest('.my-characters-section')!;
-      const characterItem = within(myCharactersSection).getByText('Alice Fighter');
+      const myCharactersSection = screen
+        .getByText('My Characters')
+        .closest('.my-characters-section')!;
+      const characterItem =
+        within(myCharactersSection).getByText('Alice Fighter');
 
       expect(() => {
         fireEvent.click(characterItem.closest('.character-item')!);
