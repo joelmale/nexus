@@ -9,10 +9,10 @@ export interface Room {
   status: 'active' | 'hibernating' | 'abandoned';
   hibernationTimer?: NodeJS.Timeout;
   gameState?: {
-    scenes: any[];
+    scenes: unknown[];
     activeSceneId: string | null;
-    characters: any[];
-    initiative: any;
+    characters: unknown[];
+    initiative: unknown;
   };
 }
 

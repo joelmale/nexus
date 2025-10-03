@@ -141,9 +141,9 @@ export const LinearGameLayout: React.FC = () => {
         document.removeEventListener('mouseup', handleMouseUp);
         document.removeEventListener('mouseleave', handleMouseUp);
 
-        document.removeEventListener('pointermove', handleMouseMove as any);
-        document.removeEventListener('pointerup', handleMouseUp as any);
-        document.removeEventListener('pointercancel', handleMouseUp as any);
+        document.removeEventListener('pointermove', handleMouseMove);
+        document.removeEventListener('pointerup', handleMouseUp);
+        document.removeEventListener('pointercancel', handleMouseUp);
       };
 
       document.addEventListener('mousemove', handleMouseMove, {
@@ -154,13 +154,13 @@ export const LinearGameLayout: React.FC = () => {
         passive: false,
       });
 
-      document.addEventListener('pointermove', handleMouseMove as any, {
+      document.addEventListener('pointermove', handleMouseMove, {
         passive: false,
       });
-      document.addEventListener('pointerup', handleMouseUp as any, {
+      document.addEventListener('pointerup', handleMouseUp, {
         passive: false,
       });
-      document.addEventListener('pointercancel', handleMouseUp as any, {
+      document.addEventListener('pointercancel', handleMouseUp, {
         passive: false,
       });
     },

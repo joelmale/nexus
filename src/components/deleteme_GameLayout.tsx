@@ -139,9 +139,9 @@ export const GameLayout: React.FC = () => {
         document.removeEventListener('mouseleave', handleMouseUp);
 
         // Also remove pointer events for better compatibility
-        document.removeEventListener('pointermove', handleMouseMove as any);
-        document.removeEventListener('pointerup', handleMouseUp as any);
-        document.removeEventListener('pointercancel', handleMouseUp as any);
+        document.removeEventListener('pointermove', handleMouseMove);
+        document.removeEventListener('pointerup', handleMouseUp);
+        document.removeEventListener('pointercancel', handleMouseUp);
       };
 
       // Add event listeners immediately
@@ -154,13 +154,13 @@ export const GameLayout: React.FC = () => {
       }); // Handle mouse leaving window
 
       // Also add pointer events for better touch/mouse support
-      document.addEventListener('pointermove', handleMouseMove as any, {
+      document.addEventListener('pointermove', handleMouseMove, {
         passive: false,
       });
-      document.addEventListener('pointerup', handleMouseUp as any, {
+      document.addEventListener('pointerup', handleMouseUp, {
         passive: false,
       });
-      document.addEventListener('pointercancel', handleMouseUp as any, {
+      document.addEventListener('pointercancel', handleMouseUp, {
         passive: false,
       });
     },

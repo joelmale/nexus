@@ -742,7 +742,7 @@ export const Settings: React.FC = () => {
 const CampaignBackupSection: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
 
   const storage = getLinearFlowStorage();
 

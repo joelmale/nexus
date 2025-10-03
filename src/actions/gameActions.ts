@@ -5,7 +5,7 @@
  * These provide a consistent interface for state mutations.
  */
 
-import type { GameAction } from '@/types/hybrid';
+import type { GameAction, PlayerPermissions } from '@/types/hybrid';
 import type { Scene, Camera, DiceRoll, UserSettings, User } from '@/types/game';
 import type { PlacedToken } from '@/types/token';
 import type { Drawing } from '@/types/drawing';
@@ -215,7 +215,7 @@ export function kickPlayer(userId: string, playerId: string): GameAction {
   return createAction('session/kickPlayer', { playerId }, userId, { requiresAuth: true });
 }
 
-export function updatePlayerPermissions(userId: string, playerId: string, permissions: any): GameAction {
+export function updatePlayerPermissions(userId: string, playerId: string, permissions: Partial<PlayerPermissions>): GameAction {
   return createAction('session/updatePermissions', { playerId, permissions }, userId, { requiresAuth: true });
 }
 

@@ -235,7 +235,7 @@ class NexusServer {
     this.handleHostConnection(connection, roomCode);
   }
 
-  private routeMessage(fromUuid: string, message: any) {
+  private routeMessage(fromUuid: string, message: ServerMessage) {
     const connection = this.connections.get(fromUuid);
     if (!connection?.room) return;
 
@@ -271,7 +271,7 @@ class NexusServer {
     }
   }
 
-  private updateRoomGameState(roomCode: string, gameStateUpdate: any) {
+  private updateRoomGameState(roomCode: string, gameStateUpdate: unknown) {
     const room = this.rooms.get(roomCode);
     if (!room) return;
 

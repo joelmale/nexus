@@ -23,7 +23,7 @@ export interface DungeonData {
     pos: { x: number; y: number };
   }>;
   columns: Array<{ x: number; y: number }>;
-  water: Array<any>;
+  water: Array<{ x: number; y: number; width: number; height: number }>;
 }
 
 interface DungeonRendererProps {

@@ -326,7 +326,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
             style={{
               width: '100%',
               textAlign: 'left',
-              padding: '0.75rem 1rem',
+              padding: '0.25rem',
             }}
           >
             Dungeon Generator
@@ -337,7 +337,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
             style={{
               width: '100%',
               textAlign: 'left',
-              padding: '0.75rem 1rem',
+              padding: '0.25rem',
             }}
           >
             Cave Generator
@@ -348,7 +348,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
             style={{
               width: '100%',
               textAlign: 'left',
-              padding: '0.75rem 1rem',
+              padding: '0.25rem',
             }}
           >
             World Map Generator
@@ -359,7 +359,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
             style={{
               width: '100%',
               textAlign: 'left',
-              padding: '0.75rem 1rem',
+              padding: '0.25rem',
             }}
           >
             City Generator
@@ -370,7 +370,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
             style={{
               width: '100%',
               textAlign: 'left',
-              padding: '0.75rem 1rem',
+              padding: '0.25rem',
             }}
           >
             Dwelling Generator
