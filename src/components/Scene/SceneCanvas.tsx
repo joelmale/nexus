@@ -57,6 +57,16 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     | 'mask-hide'
     | 'grid-align';
 
+  // Debug log for background image
+  useEffect(() => {
+    console.log('🎨 SceneCanvas render:', {
+      sceneId: scene.id,
+      sceneName: scene.name,
+      hasBackground: !!scene.backgroundImage,
+      backgroundUrl: scene.backgroundImage?.url?.substring(0, 50),
+    });
+  }, [scene.id, scene.name, scene.backgroundImage]);
+
   // Safe access to scene properties with defaults
   const safeGridSettings = useMemo(
     () =>
@@ -403,12 +413,18 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
           <g className="scene-content" transform={transform}>
             {/* Background layer */}
-            {scene.backgroundImage && (
-              <SceneBackground
-                backgroundImage={scene.backgroundImage}
-                sceneId={scene.id}
-              />
-            )}
+            {(() => {
+              console.log('🎨 SceneCanvas background check:', {
+                hasBackground: !!scene.backgroundImage,
+                backgroundUrl: scene.backgroundImage?.url?.substring(0, 50),
+              });
+              return scene.backgroundImage ? (
+                <SceneBackground
+                  backgroundImage={scene.backgroundImage}
+                  sceneId={scene.id}
+                />
+              ) : null;
+            })()}
 
             {/* Grid layer */}
             {safeGridSettings.enabled && (

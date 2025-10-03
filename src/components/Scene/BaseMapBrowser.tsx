@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { baseMapAssetManager, type BaseMap } from '@/services/baseMapAssets';
+import { dungeonMapService } from '@/services/dungeonMapService';
 import '@/styles/asset-browser.css';
 
 interface BaseMapBrowserProps {
@@ -20,7 +21,9 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
   useEffect(() => {
     const initializeMaps = async () => {
       await baseMapAssetManager.initialize();
-      const allMaps = baseMapAssetManager.getAllMaps();
+      const defaultMaps = baseMapAssetManager.getAllMaps();
+      const generatedMaps = dungeonMapService.getAsBaseMaps();
+      const allMaps = [...generatedMaps, ...defaultMaps];
       setMaps(allMaps);
       setFilteredMaps(allMaps);
       setIsLoading(false);
@@ -31,7 +34,12 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
 
   useEffect(() => {
     if (searchQuery.trim()) {
-      const filtered = baseMapAssetManager.searchMaps(searchQuery);
+      const lowerQuery = searchQuery.toLowerCase();
+      const filtered = maps.filter(
+        (map) =>
+          map.name.toLowerCase().includes(lowerQuery) ||
+          map.tags.some((tag) => tag.toLowerCase().includes(lowerQuery)),
+      );
       setFilteredMaps(filtered);
     } else {
       setFilteredMaps(maps);
@@ -49,8 +57,8 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
   };
 
   return (
-    <div className="asset-browser-overlay">
-      <div className="asset-browser">
+    <div className="asset-browser-overlay" onClick={onClose}>
+      <div className="asset-browser-modal" onClick={(e) => e.stopPropagation()}>
         <div className="asset-browser-header">
           <h2>🗺️ Default Base Maps</h2>
           <button className="btn btn-small" onClick={onClose}>
@@ -68,7 +76,10 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
           />
         </div>
 
-        <div className="asset-browser-content">
+        <div
+          className="asset-browser-content"
+          style={{ overflowY: 'auto', flex: 1 }}
+        >
           {isLoading ? (
             <div className="asset-browser-loading">
               <p>Loading base maps...</p>

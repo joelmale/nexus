@@ -5,15 +5,8 @@
 /* Import design tokens first */
 @import './design-tokens.css';
 
-/* =============================================================================
-   CSS RESET (Critical)
-   ============================================================================= */
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* Import the centralized CSS reset */
+@import './reset.css';
 
 /* =============================================================================
    BASE STYLES (Critical)
@@ -190,41 +183,4 @@ body::before {
 .solid-theme .glass-button {
   backdrop-filter: none;
   box-shadow: var(--shadow-default);
-}
-
-/* =============================================================================
-   ACCESSIBILITY (Critical)
-   ============================================================================= */
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-
-  body::before {
-    animation: none;
-  }
-}
-
-/* Focus styles */
-:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* Screen reader only */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }

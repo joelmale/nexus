@@ -1,353 +1,57 @@
 /* =============================================================================
-   OPTIMIZED MAIN CSS - Performance-First Loading Strategy
+   MAIN CSS - VTT Cascade Layer Entry Point
    ============================================================================= */
+
+/*
+  Define the order of our CSS layers. This gives us full control over the
+  cascade, making styles more predictable and easier to override.
+  1. Reset: Browser normalization.
+  2. Tokens: All CSS variables.
+  3. Base: Base element styles (body, h1, etc).
+  4. Layouts: Major page structure (grids, containers).
+  5. Components: Reusable UI components (buttons, panels, etc).
+  6. Utilities: Helper classes and accessibility.
+  7. Themes: Style overrides for different themes.
+*/
+@layer reset, tokens, base, layouts, components, utilities, themes;
 
 /* =============================================================================
-   CRITICAL PATH - Essential styles loaded immediately
+   LAYER IMPORTS
    ============================================================================= */
 
-/* Design tokens must load first for all other CSS to work */
-@import './design-tokens.css';
+/* 1. RESET & TOKENS */
+@import './reset.css' layer(reset);
+@import './design-tokens.css' layer(tokens);
 
-/* Critical above-the-fold styles */
-@import './critical.css';
+/* 2. BASE STYLES */
+/* critical.css contains base styles for body, root, etc. */
+@import './critical.css' layer(base);
 
-/* Essential utilities for JavaScript-driven components */
-@import './utilities.css';
+/* 3. LAYOUTS */
+@import './layout-consolidated.css' layer(layouts);
 
-/* =============================================================================
-   HIGH PRIORITY - Core layout and navigation
-   ============================================================================= */
+/* 4. COMPONENTS */
+/* High-priority components */
+@import './toolbar-unified.css' layer(components);
+@import './settings-optimized.css' layer(components);
+@import './scenes.css' layer(components);
+@import './character-sheet.css' layer(components);
+@import './dice-roller.css' layer(components);
+@import './player-panel.css' layer(components);
+/* Secondary components */
+@import './character-creation-wizard.css' layer(components);
+@import './character-creation.css' layer(components);
+@import './initiative-tracker.css' layer(components);
+@import './assets.css' layer(components);
+@import './asset-browser.css' layer(components);
+/* Administrative components */
+@import './offline-preparation.css' layer(components);
+@import './welcome-page.css' layer(components);
+@import './linear-flow.css' layer(components);
 
-/* Main layout system - needed for initial render */
-@import './layout-consolidated.css';
+/* 5. UTILITIES */
+@import './utilities.css' layer(utilities);
+@import './accessibility.css' layer(utilities);
 
-/* =============================================================================
-   COMPONENT STYLES - Loaded by priority and usage frequency
-   ============================================================================= */
-
-/* Primary interaction components - loaded early */
-@import './toolbar-unified.css';
-@import './settings-optimized.css';
-
-/* Scene and game components - core functionality */
-@import './scenes.css';
-
-/* Player-facing components - high usage */
-@import './character-sheet.css';
-@import './dice-roller.css';
-@import './player-panel.css';
-
-/* =============================================================================
-   SECONDARY COMPONENTS - Lower priority, can be lazy loaded
-   ============================================================================= */
-
-/* Modal and overlay components */
-@import './character-creation-wizard.css';
-@import './character-creation.css';
-@import './initiative-tracker.css';
-
-/* Asset management - typically used less frequently */
-@import './assets.css';
-@import './asset-browser.css';
-
-/* Administrative and setup components */
-@import './offline-preparation.css';
-@import './welcome-page.css';
-@import './linear-flow.css';
-
-/* =============================================================================
-   THEME OVERRIDES - Must be last to ensure proper cascade
-   ============================================================================= */
-
-/* Theme variations - loaded last to override base styles */
-@import './theme-solid.css';
-
-/* =============================================================================
-   PERFORMANCE OPTIMIZATIONS
-   ============================================================================= */
-
-/* Preload hints for critical resources */
-@supports (font-display: swap) {
-  /* Enable font-display: swap for web fonts */
-  * {
-    font-display: swap;
-  }
-}
-
-/* Container queries for enhanced responsive design */
-@supports (container-type: inline-size) {
-  .responsive-container {
-    container-type: inline-size;
-  }
-}
-
-/* Advanced backdrop-filter support */
-@supports (backdrop-filter: blur(10px)) {
-  .enhanced-glass {
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-  }
-}
-
-/* CSS Grid subgrid support */
-@supports (grid-template-rows: subgrid) {
-  .subgrid-container {
-    display: grid;
-    grid-template-rows: subgrid;
-  }
-}
-
-/* =============================================================================
-   REDUCED MOTION PREFERENCES - Global accessibility
-   ============================================================================= */
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-
-  /* Disable parallax and transform animations */
-  .parallax,
-  .transform-animation {
-    transform: none !important;
-  }
-}
-
-/* =============================================================================
-   HIGH CONTRAST MODE SUPPORT
-   ============================================================================= */
-
-@media (prefers-contrast: high) {
-  :root {
-    /* Increase contrast for better accessibility */
-    --border-primary: #000000;
-    --border-secondary: #333333;
-    --text-primary: #000000;
-    --text-secondary: #333333;
-    --bg-primary: #ffffff;
-    --surface-primary: #ffffff;
-
-    /* Remove glass effects for clarity */
-    --glass-blur: none;
-    --glass-blur-strong: none;
-    --glass-blur-subtle: none;
-  }
-
-  .glass,
-  .glass-strong,
-  .glass-subtle {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-width: 2px;
-  }
-}
-
-/* =============================================================================
-   PRINT STYLES - Optimized for printing
-   ============================================================================= */
-
-@media print {
-  /* Hide interactive elements */
-  .toolbar-unified,
-  .settings-optimized,
-  .no-print {
-    display: none !important;
-  }
-
-  /* Optimize colors for print */
-  * {
-    background: white !important;
-    color: black !important;
-    box-shadow: none !important;
-  }
-
-  /* Ensure readable font sizes */
-  body {
-    font-size: 12pt;
-    line-height: 1.4;
-  }
-
-  h1 { font-size: 18pt; }
-  h2 { font-size: 16pt; }
-  h3 { font-size: 14pt; }
-  h4 { font-size: 12pt; }
-
-  /* Page break handling */
-  .page-break-before {
-    page-break-before: always;
-  }
-
-  .page-break-after {
-    page-break-after: always;
-  }
-
-  .no-page-break {
-    page-break-inside: avoid;
-  }
-}
-
-/* =============================================================================
-   PERFORMANCE HINTS AND OPTIMIZATIONS
-   ============================================================================= */
-
-/* Use contain property for performance isolation */
-.performance-container {
-  contain: layout style paint;
-}
-
-/* Critical rendering path optimization */
-.above-fold {
-  contain: strict;
-  content-visibility: auto;
-}
-
-/* Lazy loading for below-fold content */
-.below-fold {
-  content-visibility: auto;
-  contain-intrinsic-size: 300px;
-}
-
-/* GPU acceleration for smooth animations */
-.gpu-accelerated {
-  transform: translateZ(0);
-  will-change: transform;
-}
-
-/* Optimize repaints */
-.repaint-optimized {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  perspective: 1000px;
-}
-
-/* =============================================================================
-   BROWSER-SPECIFIC OPTIMIZATIONS
-   ============================================================================= */
-
-/* Safari-specific optimizations */
-@supports (-webkit-touch-callout: none) {
-  /* iOS Safari fixes */
-  .ios-scroll-fix {
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .ios-input-fix {
-    -webkit-appearance: none;
-    border-radius: 0;
-  }
-}
-
-/* Firefox-specific optimizations */
-@-moz-document url-prefix() {
-  /* Firefox-specific scrollbar styling */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-primary) transparent;
-  }
-}
-
-/* Chrome/Edge-specific optimizations */
-@supports selector(::-webkit-scrollbar) {
-  /* Webkit scrollbar styling */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: var(--surface-subtle);
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: var(--border-primary);
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--border-secondary);
-  }
-}
-
-/* =============================================================================
-   FUTURE-PROOFING - Modern CSS features
-   ============================================================================= */
-
-/* CSS Nesting support */
-@supports (selector(&)) {
-  .nested-support {
-    color: var(--text-primary);
-
-    &:hover {
-      color: var(--text-secondary);
-    }
-
-    & .child {
-      margin-left: var(--spacing-4);
-    }
-  }
-}
-
-/* CSS Layers for better cascade control */
-@layer reset, base, components, utilities, themes;
-
-/* Modern color functions */
-@supports (color: oklch(0.7 0.15 180)) {
-  :root {
-    /* Future: OKLCH color space support */
-    --color-primary-oklch: oklch(0.6 0.2 250);
-    --color-secondary-oklch: oklch(0.7 0.15 300);
-  }
-}
-
-/* CSS Scope for component isolation */
-@supports (selector(@scope)) {
-  @scope (.component-scope) {
-    .isolated-styles {
-      /* Scoped styles that don't leak */
-      color: var(--text-primary);
-    }
-  }
-}
-
-/* =============================================================================
-   DEBUGGING HELPERS - Development only
-   ============================================================================= */
-
-/* Visual debugging - remove in production */
-@media (max-width: 0) {
-  /* This query will never match, so these styles are effectively commented out */
-  .debug-outline * {
-    outline: 1px solid red;
-  }
-
-  .debug-grid {
-    background-image:
-      linear-gradient(rgba(255, 0, 0, 0.1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 0, 0, 0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
-
-  .debug-spacing * {
-    background-color: rgba(255, 0, 0, 0.1);
-    border: 1px solid rgba(0, 255, 0, 0.5);
-  }
-}
-
-/* Performance monitoring classes */
-.perf-critical {
-  /* Mark critical performance sections */
-  contain: strict;
-  content-visibility: auto;
-}
-
-.perf-lazy {
-  /* Mark sections that can be lazily loaded */
-  content-visibility: auto;
-  contain-intrinsic-size: 200px;
-}
+/* 6. THEMES */
+@import './theme-solid.css' layer(themes);

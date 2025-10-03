@@ -1,0 +1,76 @@
+/* =============================================================================
+   ACCESSIBILITY STYLES
+   ============================================================================= */
+
+/* =============================================================================
+   FOCUS STYLES
+   ============================================================================= */
+
+/* Provide a clear focus indicator for keyboard users */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm); /* Add a slight radius to the outline */
+}
+
+/* =============================================================================
+   SCREEN READER UTILITIES
+   ============================================================================= */
+
+/* Hide element visually but keep it accessible to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+  Use .sr-only-focusable to show the element when it's focused.
+  Useful for "Skip to main content" links.
+*/
+.sr-only-focusable:active,
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* =============================================================================
+   HIGH CONTRAST MODE SUPPORT
+   ============================================================================= */
+
+@media (prefers-contrast: high) {
+  :root {
+    /* Increase contrast for better accessibility */
+    --border-primary: #000000;
+    --border-secondary: #333333;
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --bg-primary: #ffffff;
+    --surface-primary: #ffffff;
+
+    /* Remove glass effects for clarity */
+    --glass-blur: none;
+    --glass-blur-strong: none;
+    --glass-blur-subtle: none;
+  }
+
+  .glass,
+  .glass-strong,
+  .glass-subtle {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-width: 2px;
+  }
+}

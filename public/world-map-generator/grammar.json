@@ -1,0 +1,245 @@
+{
+	"village" : [
+		"#adj# #noun#",
+		"#compound#", 
+		"0.5?-{#comp1#|0.5?-#compound#}#village-suffix#"
+	],
+	"village-suffix" : ["cot", "by", "@common-suffix"],
+
+	"town" : [
+		"0.5?-#adj# #noun#",
+		"#compound#",
+		"{#comp1#|0.5?-#compound#}#town-suffix#"
+	],
+	"town-suffix" : ["ton", "ham", "@common-suffix"],
+
+	"city" : [
+		"#compound#",
+		"#fancy#",
+		"0.5?-{#comp1#|0.5?-#compound#}#city-suffix#"
+	],
+	"city-suffix" : ["caster", "wick", "@common-suffix"],
+
+	"common-suffix" : [
+		"COAST?-port", "COAST?-pool",
+		"RIVER?-{ford|forth}", "RIVER?-bridge",
+		"MOUNT?-hurst", "MOUNT?-berry",
+		"FOREST?-wood",
+		"SWAMP?-moor",
+		"COAST&RIVER?-mouth",
+		"!MOUNT?-field"],
+
+	"dungeon" : [
+		"#dungeon-noun# of #epic-noun#",
+		"#epic-adj# #dungeon-noun#",
+		"#dungeon-noun# of #boss#",
+		"0.05?-the #dungeon-noun#"
+	],
+	"dungeon-noun" : [
+		"dungeon", 
+		"{temple|sanctum|crypt}",
+		"{keep|castle|fort{ress}|hold|citadel}",
+		"{palace|city}",
+		"{tower|ziggurat}",
+		"{archive|library}",
+		"MOUNT?-{cave{s}|caverns}",
+		"MOUNT?-observatory", 
+		"COAST?-lighthouse",
+		"{lair|den}",
+		"{vault|prison}"
+	],
+	"boss" : [
+		"the #boss-adj# #boss-noun#",
+		"#evil#"],
+	"boss-noun" : [
+		"lord", "{king|queen}", "savant", "knight", "beast", 
+		"witch", "oracle", "god", "one"],
+	"boss-adj" : [
+		"serpent", "raven", "spider", "lizard",
+		"vampire", "demon", "undead", "clockwork",
+		"blind", "mad", "leper",
+		"{black|dark}", "{red|scarlet|crimson}", 
+		"evil", "silent", "blasphemous",
+		"RIVER?-river",
+		"COAST?-tide", "COAST?-drowned",
+		"DESERT?-desert",
+		"SWAMP?-swamp",
+		"WOOD?-forest", "WOOD?-green",
+		"MOUNT?-mountain", "MOUNT?-ice"],
+
+	"region" : [
+		"#fancy#{ia|land|0.1?-shire}"
+	],
+	"state" : [
+		"#state_noun# of {#state_adj# }#fancy#",
+		"{#state_adj# }{{#fancy#|#fancy-adj#} #state_noun#|#state_noun# of #fancy#}"],
+	"state_noun" : [
+		"kingdom", "land{s}", "{duchy|barony}", "province", "state", "realm",
+		"LAWFUL?-empire", "CHAOTIC?-marches", "CIVILIZED?-alliance"],
+	"state_adj" : [
+		"great", "old", "{northern|southern|easter|western}", 
+		"!CHAOTIC?-holy", "ancient", "!GOOD?-mighty", "ARCHIPELAGO?-island"],
+
+	"island" : [
+		"#adj# #island-noun#",
+		"#island-noun# of #epic-noun#",
+		"{#island-noun# of #fancy#|#fancy# #island-noun#}",
+		"#region#"],
+	"island-1" : [
+		"island", "isle", "0.1?-land"
+	],
+	"island-n" : [
+		"islands", "isles", "archipelago"
+	],
+
+	"coast" : [
+		"#adj# #coast-noun#",
+		"#coast-noun# of #epic-noun#",
+		"{#coast-noun# of #fancy#|#fancy# #coast-noun#}",
+		"{#region#|#state#}"
+	],
+	"coast-noun" : [
+		"coast", "shore", "0.1?-strand", "0.05?-wash"
+	],
+
+	"bay" : [
+		"#bay-noun# of #epic-noun#",
+		"{#bay-noun# of #fancy#|#fancy# #bay-noun#}",
+		"#adj# #bay-noun#",
+		"#region#"
+	],
+	"bay-noun" : [
+		"bay", "harbour", "gulf", "sea", "CHAOTIC?-fjord", "@coast-noun"
+	],
+
+	"peninsula" : [
+		"#fancy# #peninsula-noun#",
+		"{cape #fancy#|cape of #fancy#}",
+		"{#fancy# point|point #fancy#}",
+		"{#region#|#state#}"
+	],
+	"peninsula-noun" : "peninsula",
+
+	"fjord" : [
+		"#fancy# #fjord-noun#",
+		"{#region#|#state#}"
+	],
+	"fjord-noun" : "fjord",
+
+	"archi" : [
+		"#adj# #archi-noun#",
+		"#compound# #archi-noun#",
+		"#fancy# #archi-noun#",
+		"0.5?-#fancy-adj# #archi-noun#",
+		"0.2?-{the }#word.s#"
+	],
+	"archi-noun" : ["archipelago", "islands", "isles", "0.5?-sea"],
+
+	"lake" : [
+		"#fantasy# #lake-noun#",
+		"#lake-noun# of #epic-noun#",
+		"#adj# #lake-noun#"
+	],
+	"lake-1" : ["lake", "0.2?-water", "0.1?-sea"],
+	"lake-n" : ["lakes"],
+
+	"landlocked" : [
+		"#land-noun# of #epic-noun#",
+		"{#state#|#region#}"
+	],
+	"land-noun" : [
+		"land{s}", "realm"
+	],
+
+	"terrain" : [
+		"{#adj#|0.02?-#epic-adj#} #place#",
+		"#compound# #place#",
+		"#comp-part1##short-place#",
+		"0.2?-{{#fantasy#|#evil#} #place#|#place# of {#fantasy#|#evil#}}",
+		"0.1?-#given.possessive# #place#",
+		"0.1?-#place# of #epic-noun#",
+		"0.01?-the #place#"
+	],
+
+	"mountain-1" : ["mountain", "peak", "summit", "0.5?-mount", "0.1?-pinnacle", "0.1?-hill"],
+	"mountain-n" : ["mountains", "ridge", "range", "0.5?-heights", "0.1?-highland", "0.1?-hills"],
+	"mountain-1-suffix" : ["peak"],
+	"mountain-n-suffix" : ["ridge"],
+
+	"wood-1" : ["wood", "grove", "0.2?-thicket", "0.1?-forest", "GOOD?-garden"],
+	"wood-n" : ["woods", "forest", "woodland", "0.1?-woodland", "0.1?-weald"],
+	"wood-1-suffix" : ["wood"],
+	"wood-n-suffix" : ["wood{s}"],
+
+	"swamp-1" : ["swamp", "bog", "fen", "marsh","{quag}mire", "0.1?-morass"],
+	"swamp-n" : ["swamps", "fens", "marshes", "0.1?-wetland"],
+	"swamp-1-suffix" : ["marsh", "moor"],
+	"swamp-n-suffix" : ["marsh", "marshes"],
+
+	"desert-1" : ["dunes", "sands"],
+	"desert-n" : ["desert", "barrens", "sands", "0.1?-wasteland"],
+	"desert-1-suffix" : ["sand"],
+	"desert-n-suffix" : ["sands"],
+
+	"compound" : "#comp1##comp-part2#",
+	"comp1" : "{#comp-part1#|0.1?-#word#}",
+	"comp-part1" : [
+		"amber", "{azure|blue}", "black", "bright", "cloud", "cold", 
+		"dagger", "dark", "dawn", "deep", "dusk", "ember", "ever",
+		"free", "frost", "gold", "green", "high", "hot", "iron", "light", "low", 
+		"mirk", "pale", "red", "shadow", "silver", "sky", "star", "stone", "storm", 
+		"summer", "sun", "thunder", "timber", "under", "way", "west", "white",
+		"winter", "wyrm",
+		"EVIL?-blood", "EVIL?-dead", "GOOD?-saint", "LAWFUL?-brave", "CHAOTIC?-rage",
+		"RIVER?-river",
+		"WOOD?-arden"
+	],
+	"comp-part2" : [
+		"bloom", "breeze", "brook", "core", "crest", "cross", "fall", 
+		"fell", "fire", "heart", "hill", "moon", 
+		"myst", "pine", "point", "scale", "talon", "wind", "wing",
+		"@!NATURE?-town-comp-part2"
+	],
+
+	"town-comp-part2" : [
+		"court", "field", "forge", "hall", "haven", "mill", "shield"
+	],
+
+	"epic-noun" : [
+		"the ancients", "darkness", "illusions", 
+		"{mystery|mysteries|secrets}", "night", "sorrows", "stars", 
+		"{the storm|storms}", "{wisdom|knowledge}", 
+		"EVIL?-dread", "LAWFUL?-kings", "GOOD?-light{s}",
+		"COAST?-tides", "DESERT?-time"
+	],
+
+	"epic-adj" : [
+		"cursed", "ebon", "eternal", "forbidden", "forgotten", "haunted", "lost", 
+		"ruined", "sacred", "shattered", "sky", "timeless", "{veiled|hidden}",
+		"SWAMP?-sunken"
+	],
+	"fancy-adj" : "#word#{ian|ish|ese|ic}",
+
+	"adj" : [
+		"copper", "{crimson|red}", "dark", "dragon", "eastern", "{emerald|green}", 
+		"far", "new", "northern", "raven", "southern", "twilight", "western",
+		"COAST?-sandy", "COAST?-dolphin", "COAST?-shark", "COAST?-deep",
+		"RIVER?-river", "RIVER?-salmon", "RIVER?-broad", "RIVER?-white", "RIVER?-clear",
+		"MOUNT?-high", "MOUNT?-eagle", "MOUNT?-snow",
+		"WOOD?-forest",
+		"SWAMP?-swamp",
+		"DESERT?-desert",
+		"!EVIL?-bright"
+	],
+	"noun" : [
+		"{chapel|church}", "corner", "farm", "gate", "hill", "mill", "{point|reach}", 
+		"rest", "road", "watch", "well",
+		"COAST?-landing", "COAST?-beach", "COAST?-coast", "COAST?-cove", "COAST?-wharf",
+		"RIVER?-crossing", "RIVER?-bridge", "RIVER?-falls", "RIVER?-ferry",
+		"MOUNT?-pass", "MOUNT?-mine{s}", "MOUNT?-view", "MOUNT?-mine{s}",
+		"DESERT?-oasis",
+		"WOOD?-glade"
+	],
+
+	"fancy" : "{#fantasy#|#evil#|#word#}"
+}

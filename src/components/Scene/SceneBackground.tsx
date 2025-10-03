@@ -6,17 +6,37 @@ interface SceneBackgroundProps {
   sceneId: string;
 }
 
-export const SceneBackground: React.FC<SceneBackgroundProps> = ({ 
-  backgroundImage, 
-  sceneId: _sceneId 
+export const SceneBackground: React.FC<SceneBackgroundProps> = ({
+  backgroundImage,
+  sceneId: _sceneId,
 }) => {
-  const { url, width, height, offsetX = 0, offsetY = 0, scale = 1 } = backgroundImage;
+  const {
+    url,
+    width,
+    height,
+    offsetX = 0,
+    offsetY = 0,
+    scale = 1,
+  } = backgroundImage;
 
   // Set reasonable defaults for background sizing
   const bgWidth = width || 1920;
   const bgHeight = height || 1080;
   const bgOffsetX = offsetX || -(bgWidth * scale) / 2;
   const bgOffsetY = offsetY || -(bgHeight * scale) / 2;
+
+  // Debug log
+  React.useEffect(() => {
+    console.log('🖼️ SceneBackground rendering:', {
+      hasUrl: !!url,
+      urlPrefix: url?.substring(0, 30),
+      width: bgWidth,
+      height: bgHeight,
+      x: bgOffsetX,
+      y: bgOffsetY,
+      scale,
+    });
+  }, [url, bgWidth, bgHeight, bgOffsetX, bgOffsetY, scale]);
 
   return (
     <g className="scene-background">
@@ -28,6 +48,8 @@ export const SceneBackground: React.FC<SceneBackgroundProps> = ({
         height={bgHeight * scale}
         preserveAspectRatio="xMidYMid slice"
         opacity={0.9}
+        onError={(e) => console.error('🖼️ Image load error:', e)}
+        onLoad={() => console.log('🖼️ Image loaded successfully')}
       />
     </g>
   );
