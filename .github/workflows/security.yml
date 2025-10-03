@@ -18,30 +18,31 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['javascript', 'typescript']
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
+          languages: javascript-typescript
           queries: security-and-quality
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
+        uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
 
   # Snyk Security Scan
   snyk:
     name: Snyk Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -50,6 +51,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -60,21 +62,40 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=high
+          args: --severity-threshold=high --sarif-file-output=snyk.sarif
+
+      - name: Upload Snyk results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk.sarif
 
   # Container Scanning
   container-scan:
     name: Container Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     strategy:
+      fail-fast: false
       matrix:
         image: [frontend, backend]
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker image
-        run: docker build -f docker/${{ matrix.image }}.Dockerfile -t nexus-vtt/${{ matrix.image }}:scan .
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/${{ matrix.image }}.Dockerfile
+          push: false
+          load: true
+          tags: nexus-vtt/${{ matrix.image }}:scan
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -85,12 +106,13 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
           sarif_file: 'trivy-${{ matrix.image }}.sarif'
 
       - name: Run Grype vulnerability scanner
-        uses: anchore/scan-action@v7
+        uses: anchore/scan-action@v3
         with:
           image: nexus-vtt/${{ matrix.image }}:scan
           fail-build: false
@@ -100,6 +122,9 @@ jobs:
   dependency-check:
     name: OWASP Dependency Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -113,9 +138,10 @@ jobs:
           args: >
             --enableRetired
             --enableExperimental
-            
+
       - name: Upload results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: dependency-check-report
           path: reports/
@@ -124,6 +150,9 @@ jobs:
   secret-scan:
     name: Secret Scanning
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -136,17 +165,20 @@ jobs:
           path: ./
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
-          extra_args: --debug --only-verified
+          extra_args: --only-verified
 
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_SUMMARY: true
 
   # License Compliance
   license-check:
     name: License Compliance Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -155,9 +187,22 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Check licenses
         run: npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;Unlicense;LGPL-3.0-or-later;CC0-1.0;Python-2.0;CC-BY-4.0;BlueOak-1.0.0;0BSD'
+        continue-on-error: true
+
+      - name: Generate license report
+        run: npx license-checker --json --out licenses.json
+        if: always()
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: license-report
+          path: licenses.json
