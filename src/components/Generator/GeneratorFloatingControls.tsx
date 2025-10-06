@@ -91,88 +91,7 @@ export const GeneratorFloatingControls: React.FC<GeneratorFloatingControlsProps>
         transition: 'max-width 0.3s ease',
       }}
     >
-      {/* Keyboard Shortcuts Panel (collapsible) */}
-      {isExpanded && showShortcuts && shortcuts[activeGenerator].length > 0 && (
-        <div
-          style={{
-            background: 'rgba(0, 0, 0, 0.85)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: '12px',
-            padding: '1rem',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-            maxHeight: '400px',
-            overflowY: 'auto',
-            animation: 'slideIn 0.2s ease-out',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '0.75rem',
-            }}
-          >
-            <h4
-              style={{
-                margin: 0,
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                color: '#fff',
-              }}
-            >
-              ⌨️ Keyboard Shortcuts
-            </h4>
-            <button
-              onClick={() => setShowShortcuts(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#888',
-                cursor: 'pointer',
-                fontSize: '1.25rem',
-                padding: 0,
-                lineHeight: 1,
-              }}
-              title="Hide shortcuts"
-            >
-              ✕
-            </button>
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'auto 1fr',
-              gap: '0.5rem',
-              fontSize: '0.75rem',
-            }}
-          >
-            {shortcuts[activeGenerator].map((shortcut, index) => (
-              <React.Fragment key={index}>
-                <kbd
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    fontSize: '0.7rem',
-                    fontFamily: 'monospace',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {shortcut.key}
-                </kbd>
-                <span style={{ color: '#ccc', alignSelf: 'center' }}>
-                  {shortcut.desc}
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Main Control Panel */}
+      {/* Main Control Panel - Render first so it appears at the top */}
       <div
         style={{
           background: 'rgba(0, 0, 0, 0.85)',
@@ -367,6 +286,87 @@ export const GeneratorFloatingControls: React.FC<GeneratorFloatingControlsProps>
           </div>
         )}
       </div>
+
+      {/* Keyboard Shortcuts Panel (collapsible) - Render second so it appears below */}
+      {isExpanded && showShortcuts && shortcuts[activeGenerator].length > 0 && (
+        <div
+          style={{
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '12px',
+            padding: '1rem',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+            maxHeight: '400px',
+            overflowY: 'auto',
+            animation: 'slideIn 0.2s ease-out',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '0.75rem',
+            }}
+          >
+            <h4
+              style={{
+                margin: 0,
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: '#fff',
+              }}
+            >
+              ⌨️ Keyboard Shortcuts
+            </h4>
+            <button
+              onClick={() => setShowShortcuts(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#888',
+                cursor: 'pointer',
+                fontSize: '1.25rem',
+                padding: 0,
+                lineHeight: 1,
+              }}
+              title="Hide shortcuts"
+            >
+              ✕
+            </button>
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'auto 1fr',
+              gap: '0.5rem',
+              fontSize: '0.75rem',
+            }}
+          >
+            {shortcuts[activeGenerator].map((shortcut, index) => (
+              <React.Fragment key={index}>
+                <kbd
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '4px',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    fontSize: '0.7rem',
+                    fontFamily: 'monospace',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {shortcut.key}
+                </kbd>
+                <span style={{ color: '#ccc', alignSelf: 'center' }}>
+                  {shortcut.desc}
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes slideIn {
