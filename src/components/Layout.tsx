@@ -129,7 +129,7 @@ export const Layout: React.FC = () => {
         console.log('🔗 URL indicates game session, updating app state:', params.sessionId);
       }
       // Also set the roomCode to match the URL sessionId
-      useAppFlowStore.getState().setRoomCode(params.sessionId);
+      useAppFlowStore.setState({ roomCode: params.sessionId });
       setView('game');
       // Optionally: Load session data based on sessionId
       // const storage = getLinearFlowStorage();

@@ -233,12 +233,9 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
               width: '200px',
               height: '200px',
               margin: '0 auto',
-              backgroundImage: `url(${processedImage || token.image})`,
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
               border: '2px solid var(--glass-border)',
               borderRadius: '8px',
+              backgroundRepeat: 'no-repeat',
               // Checkered background to show transparency
               backgroundImage: processedImage
                 ? `linear-gradient(45deg, #ccc 25%, transparent 25%),
