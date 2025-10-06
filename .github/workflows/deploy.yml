@@ -58,7 +58,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push frontend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/frontend.Dockerfile
@@ -73,7 +73,7 @@ jobs:
             COMMIT_SHA=${{ github.sha }}
 
       - name: Build and push backend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/backend.Dockerfile
