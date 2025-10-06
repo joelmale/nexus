@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { LinearLayout } from './LinearLayout';
@@ -7,7 +8,9 @@ import { useGameStore } from '@/stores/gameStore';
 import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 
 export const Layout: React.FC = () => {
-  const { view, user, roomCode, isConnectedToRoom, gameConfig } =
+  const params = useParams<{ sessionId?: string }>();
+  const navigate = useNavigate();
+  const { view, user, roomCode, isConnectedToRoom, gameConfig, setView } =
     useAppFlowStore();
 
   // Add initial state logging, sync gameStore, and handle migration
@@ -116,6 +119,47 @@ export const Layout: React.FC = () => {
       }
     }
   }, [view, user.name, user.type, roomCode, isConnectedToRoom]);
+
+  // React Router Integration: Sync URL params with app state
+  // URL is source of truth on initial load, app state updates URL during runtime
+  useEffect(() => {
+    // URL → App State: If URL has sessionId but app isn't in game mode
+    if (params.sessionId && view !== 'game') {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔗 URL indicates game session, updating app state:', params.sessionId);
+      }
+      // Also set the roomCode to match the URL sessionId
+      useAppFlowStore.getState().setRoomCode(params.sessionId);
+      setView('game');
+      // Optionally: Load session data based on sessionId
+      // const storage = getLinearFlowStorage();
+      // storage.loadSessionByCode(params.sessionId);
+    }
+  }, [params.sessionId, view, setView]);
+
+  // App State → URL: Keep URL in sync with app state
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+
+    if (view === 'game' && roomCode) {
+      // In game mode with room code - ensure URL matches
+      const expectedPath = `/game/${roomCode}`;
+      if (currentPath !== expectedPath) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔗 Updating URL to match game state:', expectedPath);
+        }
+        navigate(expectedPath, { replace: true });
+      }
+    } else if (view !== 'game') {
+      // Not in game mode - ensure we're on /lobby
+      if (currentPath !== '/lobby' && !currentPath.startsWith('/game/')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔗 Updating URL to lobby view');
+        }
+        navigate('/lobby', { replace: true });
+      }
+    }
+  }, [view, roomCode, navigate]);
 
   return (
     <DndProvider backend={HTML5Backend}>

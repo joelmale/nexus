@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Layout Visual Regression Tests', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/game/TEST-SESSION');
+    await page.goto('/game/TEST-SESSION', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
     // Wait for any animations to complete
     await page.waitForTimeout(1000);
@@ -132,7 +132,7 @@ test.describe('Toolbar Positioning Tests', () => {
   test('Toolbar stays visible when switching between panels', async ({
     page,
   }) => {
-    await page.goto('/game/TEST-SESSION');
+    await page.goto('/game/TEST-SESSION', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     const panels = [
@@ -171,7 +171,7 @@ test.describe('Toolbar Positioning Tests', () => {
   test('Toolbar remains visible with long content in panels', async ({
     page,
   }) => {
-    await page.goto('/game/TEST-SESSION');
+    await page.goto('/game/TEST-SESSION', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     // Inject extra content to force overflow

@@ -58,7 +58,7 @@ async function hasScrollbar(
 test.describe('Panel Layout Constraints', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the game with a session (adjust URL as needed)
-    await page.goto('/game/TEST-SESSION');
+    await page.goto('/game/TEST-SESSION', { waitUntil: 'domcontentloaded' });
     // Wait for layout to stabilize
     await page.waitForLoadState('networkidle');
   });
