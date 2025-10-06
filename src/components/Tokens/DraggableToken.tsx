@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDrag } from 'react-dnd';
 import type { Token } from '@/types/token';
 
 interface DraggableTokenProps {
   token: Token;
   onClick?: (token: Token) => void;
+  onConfigure?: (token: Token) => void;
 }
 
 // Category color mapping to CSS variables
@@ -22,7 +23,10 @@ const categoryColors = {
 export const DraggableToken: React.FC<DraggableTokenProps> = ({
   token,
   onClick,
+  onConfigure,
 }) => {
+  const [showConfigButton, setShowConfigButton] = useState(false);
+
   const [{ isDragging }, drag] = useDrag(
     () => ({
       type: 'TOKEN',
@@ -40,10 +44,18 @@ export const DraggableToken: React.FC<DraggableTokenProps> = ({
     categoryColors.default;
   const categoryColor = `var(${categoryColorVar})`;
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onConfigure) {
+      onConfigure(token);
+    }
+  };
+
   return (
     <div
       ref={drag}
       onClick={() => onClick?.(token)}
+      onContextMenu={handleContextMenu}
       className="draggable-token"
       style={{
         border: '1px solid var(--glass-border)',
@@ -60,6 +72,7 @@ export const DraggableToken: React.FC<DraggableTokenProps> = ({
         overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
+        setShowConfigButton(true);
         if (!isDragging) {
           e.currentTarget.style.borderColor = categoryColor;
           e.currentTarget.style.boxShadow = `0 4px 12px rgba(var(${categoryColorVar}-rgb), 0.3)`;
@@ -67,6 +80,7 @@ export const DraggableToken: React.FC<DraggableTokenProps> = ({
         }
       }}
       onMouseLeave={(e) => {
+        setShowConfigButton(false);
         if (!isDragging) {
           e.currentTarget.style.borderColor = 'var(--glass-border)';
           e.currentTarget.style.boxShadow = 'none';
@@ -74,6 +88,36 @@ export const DraggableToken: React.FC<DraggableTokenProps> = ({
         }
       }}
     >
+      {/* Config button */}
+      {showConfigButton && onConfigure && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onConfigure(token);
+          }}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            border: '1px solid var(--glass-border)',
+            background: 'var(--glass-surface-strong)',
+            color: 'var(--glass-text)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            zIndex: 10,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          }}
+          title="Configure token (or right-click)"
+        >
+          ⚙️
+        </button>
+      )}
       <div
         style={{
           width: '100%',

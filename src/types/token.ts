@@ -49,6 +49,7 @@ export interface Token {
   description?: string;
   isCustom?: boolean; // User-uploaded vs system tokens
   isPublic?: boolean; // Public = available to all players, Private = DM only
+  exclusive?: boolean; // Only one instance can exist on the board at a time
   createdAt: number;
   updatedAt: number;
 }

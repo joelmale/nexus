@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useTokenAssets } from '@/services/tokenAssets';
 import { TokenLibraryManager } from './TokenLibraryManager';
 import { TokenCreationPanel } from './TokenCreationPanel';
+import { TokenConfigPanel } from './TokenConfigPanel';
 import { DraggableToken } from './DraggableToken';
 import { TokenCategoryTabs } from './TokenCategoryTabs';
 import type { Token } from '@/types/token';
@@ -11,9 +12,11 @@ interface TokenPanelProps {
 }
 
 export const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenSelect }) => {
-  const { getAllTokens } = useTokenAssets();
+  const { getAllTokens, updateToken } = useTokenAssets();
   const [showLibraryManager, setShowLibraryManager] = useState(false);
   const [showCreationPanel, setShowCreationPanel] = useState(false);
+  const [showConfigPanel, setShowConfigPanel] = useState(false);
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<
     'all' | 'pc' | 'npc' | 'monster'
@@ -68,6 +71,24 @@ export const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenSelect }) => {
   const handleTokenClick = (token: Token) => {
     if (onTokenSelect) {
       onTokenSelect(token);
+    }
+  };
+
+  const handleTokenConfigure = (token: Token) => {
+    setSelectedToken(token);
+    setShowConfigPanel(true);
+  };
+
+  const handleTokenConfigSave = async (updates: Partial<Token>) => {
+    if (!selectedToken) return;
+
+    try {
+      await updateToken(selectedToken.id, updates);
+      setShowConfigPanel(false);
+      setSelectedToken(null);
+    } catch (error) {
+      console.error('Failed to update token:', error);
+      alert('Failed to save token configuration');
     }
   };
 
@@ -317,6 +338,7 @@ export const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenSelect }) => {
                     key={token.id}
                     token={token}
                     onClick={handleTokenClick}
+                    onConfigure={handleTokenConfigure}
                   />
                 ))}
               </div>
@@ -344,6 +366,18 @@ export const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenSelect }) => {
           onTokenCreated={() => {
             setShowCreationPanel(false);
           }}
+        />
+      )}
+
+      {showConfigPanel && selectedToken && (
+        <TokenConfigPanel
+          token={selectedToken}
+          isOpen={showConfigPanel}
+          onClose={() => {
+            setShowConfigPanel(false);
+            setSelectedToken(null);
+          }}
+          onSave={handleTokenConfigSave}
         />
       )}
     </>
