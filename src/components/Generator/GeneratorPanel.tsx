@@ -375,20 +375,19 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       )}
 
       {activeGenerator === 'city' && (
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <p>City Generator requires external resources and cannot run locally.</p>
-          <p>
-            Visit:{' '}
-            <a
-              href="https://watabou.github.io/city-generator/"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#6366f1' }}
-            >
-              https://watabou.github.io/city-generator/
-            </a>
-          </p>
-        </div>
+        <iframe
+          src="/city-generator/index.html"
+          className="generator-iframe"
+          sandbox="allow-scripts allow-same-origin allow-forms"
+          allow="cross-origin-isolated"
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            flex: 1,
+          }}
+          title="City Generator"
+        />
       )}
 
       {activeGenerator === 'dwelling' && (
