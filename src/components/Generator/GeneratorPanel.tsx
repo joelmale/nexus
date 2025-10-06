@@ -378,6 +378,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         <iframe
           src="/city-generator/index.html"
           className="generator-iframe"
+          sandbox="allow-scripts allow-same-origin allow-forms"
           style={{
             width: '100%',
             height: '100%',
@@ -392,6 +393,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         <iframe
           src="/dwellings-generator/index.html"
           className="generator-iframe"
+          sandbox="allow-scripts allow-same-origin allow-forms"
           style={{
             width: '100%',
             height: '100%',
