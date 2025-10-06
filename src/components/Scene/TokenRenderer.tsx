@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { PlacedToken, Token } from '@/types/token';
 import { getTokenPixelSize } from '@/types/token';
 import { useActiveTool } from '@/stores/gameStore';
@@ -28,13 +28,39 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
 }) => {
   const activeTool = useActiveTool();
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragStartRef = useRef({ x: 0, y: 0 });
 
   // Calculate token size in pixels
   const tokenSize = getTokenPixelSize(token.size, gridSize) * placedToken.scale;
 
   // Only handle interactions when select tool is active
   const canInteract = canEdit && activeTool === 'select';
+
+  // Global mouse handlers for dragging
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault();
+      const deltaX = e.clientX - dragStartRef.current.x;
+      const deltaY = e.clientY - dragStartRef.current.y;
+
+      onMove(placedToken.id, deltaX, deltaY);
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, onMove, placedToken.id]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!canInteract) return;
@@ -48,31 +74,14 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
     // Start dragging if already selected or just selected
     if (isSelected || !isMultiSelect) {
       setIsDragging(true);
-      setDragStart({ x: e.clientX, y: e.clientY });
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
     }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !canInteract) return;
-
-    e.preventDefault();
-    const deltaX = e.clientX - dragStart.x;
-    const deltaY = e.clientY - dragStart.y;
-
-    onMove(placedToken.id, deltaX, deltaY);
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
   };
 
   return (
     <g
       transform={`translate(${placedToken.x}, ${placedToken.y}) rotate(${placedToken.rotation})`}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
       style={{
         cursor: canInteract ? (isDragging ? 'grabbing' : 'grab') : 'default',
         pointerEvents: canInteract ? 'auto' : 'none',
