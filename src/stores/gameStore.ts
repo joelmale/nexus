@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { immer } from 'zustand/middleware/immer';
 import type {
   GameState,
@@ -1408,9 +1409,11 @@ export const useVisibleDrawings = (sceneId: string) =>
   });
 
 export const useDrawingActions = () =>
-  useGameStore((state) => ({
-    createDrawing: state.createDrawing,
-    updateDrawing: state.updateDrawing,
-    deleteDrawing: state.deleteDrawing,
-    clearDrawings: state.clearDrawings,
-  }));
+  useGameStore(
+    useShallow((state) => ({
+      createDrawing: state.createDrawing,
+      updateDrawing: state.updateDrawing,
+      deleteDrawing: state.deleteDrawing,
+      clearDrawings: state.clearDrawings,
+    })),
+  );
