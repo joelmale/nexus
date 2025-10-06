@@ -1,6 +1,6 @@
 import type { WebSocketMessage, GameEvent, DiceRoll, DrawingCreateEvent, DrawingUpdateEvent, DrawingDeleteEvent } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
-import { toast } from 'vue-sonner';
+import { toast } from 'sonner';
 
 class WebSocketService extends EventTarget {
   private ws: WebSocket | null = null;

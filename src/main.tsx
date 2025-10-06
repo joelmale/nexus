@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { Layout } from './components/Layout';
 import './styles/main.css';
 import './styles/assets.css';
@@ -14,6 +15,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Route path="/lobby" element={<Layout />} />
         <Route path="/game/:sessionId" element={<Layout />} />
       </Routes>
+      <Toaster />
     </BrowserRouter>
   </React.StrictMode>,
 );
