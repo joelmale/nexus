@@ -211,7 +211,7 @@ export class LinearFlowStorage {
    * Get all scenes
    */
   getScenes(): Scene[] {
-    return this.store.getByType<Scene>('scene');
+    return this.store.getByType('scene') as unknown as Scene[];
   }
 
   /**
@@ -229,7 +229,7 @@ export class LinearFlowStorage {
    * Update scene
    */
   updateScene(sceneId: string, updates: Partial<Scene>): Scene | null {
-    return this.store.update<Scene>(sceneId, updates);
+    return this.store.update(sceneId, updates) as Scene | null;
   }
 
   /**
@@ -247,18 +247,18 @@ export class LinearFlowStorage {
     const plainScene = JSON.parse(JSON.stringify(scene));
 
     // Check if scene exists
-    const existingScene = this.store.get<Scene>(plainScene.id);
+    const existingScene = this.store.get(plainScene.id) as Scene | null;
 
     if (existingScene) {
       // Update existing
-      this.store.update<Scene>(plainScene.id, {
+      this.store.update(plainScene.id, {
         ...plainScene,
         updatedAt: Date.now(),
       });
       console.log('🎬 Updated scene in entity store:', plainScene.name);
     } else {
       // Create new
-      this.store.create<Scene>('scene', {
+      this.store.create('scene', {
         ...plainScene,
         createdAt: plainScene.createdAt || Date.now(),
         updatedAt: Date.now(),
@@ -280,7 +280,7 @@ export class LinearFlowStorage {
 
     // Create new drawing entities
     for (const drawing of drawings) {
-      this.store.create<Drawing & { sceneId: string }>('drawing', {
+      this.store.create('drawing', {
         ...drawing,
         sceneId,
         createdAt: drawing.createdAt || Date.now(),
@@ -295,10 +295,10 @@ export class LinearFlowStorage {
    * Get all drawings for a scene
    */
   getDrawings(sceneId: string): Drawing[] {
-    return this.store.query<Drawing>({
+    return this.store.query({
       type: 'drawing',
       where: { sceneId },
-    });
+    }) as unknown as Drawing[];
   }
 
   /**
@@ -316,7 +316,7 @@ export class LinearFlowStorage {
    * Add a single drawing to a scene
    */
   addDrawing(sceneId: string, drawing: Drawing): Drawing {
-    const drawingEntity = this.store.create<Drawing & { sceneId: string }>(
+    const drawingEntity = this.store.create(
       'drawing',
       {
         ...drawing,
@@ -327,17 +327,17 @@ export class LinearFlowStorage {
     );
 
     console.log(`🎨 Added drawing to scene ${sceneId}:`, drawing.id);
-    return drawingEntity;
+    return drawingEntity as unknown as Drawing;
   }
 
   /**
    * Update a specific drawing
    */
   updateDrawing(drawingId: string, updates: Partial<Drawing>): Drawing | null {
-    const updated = this.store.update<Drawing>(drawingId, {
-      ...updates,
+    const updated = this.store.update(drawingId, {
+      ...(updates as Record<string, unknown>),
       updatedAt: Date.now(),
-    });
+    }) as unknown as Drawing | null;
 
     if (updated) {
       console.log(`🎨 Updated drawing:`, drawingId);
@@ -366,15 +366,13 @@ export class LinearFlowStorage {
    */
   saveCharacter(character: PlayerCharacter): PlayerCharacter {
     // Convert to entity format
-    const characterEntity = this.store.create<
-      PlayerCharacter & { type: 'character' }
-    >('character', {
+    const characterEntity = this.store.create('character', {
       ...character,
       browserId: this.getBrowserId(),
     });
 
     console.log('👤 Saved character to entity store:', character.name);
-    return characterEntity;
+    return characterEntity as unknown as PlayerCharacter;
   }
 
   /**
@@ -382,10 +380,10 @@ export class LinearFlowStorage {
    */
   getCharacters(): PlayerCharacter[] {
     const browserId = this.getBrowserId();
-    return this.store.query<PlayerCharacter>({
+    return this.store.query({
       type: 'character',
       where: { browserId },
-    });
+    }) as unknown as PlayerCharacter[];
   }
 
   /**
@@ -418,7 +416,7 @@ export class LinearFlowStorage {
       where: { roomCode },
     });
 
-    return configs.length > 0 ? (configs[0] as GameConfig) : null;
+    return configs.length > 0 ? (configs[0] as unknown as GameConfig) : null;
   }
 
   // =============================================================================
@@ -494,7 +492,7 @@ export class LinearFlowStorage {
 
     const session = sessions[0];
     console.log('📂 Loaded session from entity store');
-    return session;
+    return session as unknown as { user: { name: string; type: string; id: string }; roomCode: string; view: string; isConnected: boolean; browserId: string; lastActivity: number };
   }
 
   /**
@@ -820,7 +818,7 @@ export class LinearFlowStorage {
    */
   downloadBackup(filename?: string): void {
     this.exportCampaign().then((backupData) => {
-      const blob = new Blob([backupData], { type: 'application/octet-stream' });
+      const blob = new Blob([backupData as BlobPart], { type: 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement('a');
@@ -874,7 +872,7 @@ export class LinearFlowStorage {
 
   private getBrowserId(): string {
     // Check IndexedDB first (new system)
-    const browserIdEntity = this.store.get<{ value: string }>('browser-id');
+    const browserIdEntity = this.store.get('browser-id') as { value: string } | null;
 
     if (browserIdEntity) {
       return browserIdEntity.value;

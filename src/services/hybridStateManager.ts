@@ -16,7 +16,7 @@ import type {
   SessionMode,
   MultiplayerSession,
 } from '@/types/hybrid';
-import type { GameState, Scene, Token, Drawing } from '@/types/game';
+import type { GameState, Scene, Token, Drawing, PlacedToken, DiceRoll } from '@/types/game';
 import { createIndexedDBAdapter } from './indexedDBAdapter';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -630,7 +630,7 @@ export class HybridStateManager {
         (s) => s.id === payload.sceneId,
       );
       if (scene) {
-        scene.placedTokens.push(payload.token);
+        scene.placedTokens.push(payload.token as unknown as PlacedToken);
       }
     });
 
@@ -833,7 +833,7 @@ export class HybridStateManager {
     }
 
     await this.setState((currentState) => {
-      currentState.diceRolls.unshift(payload.roll);
+      currentState.diceRolls.unshift(payload.roll as unknown as DiceRoll);
       // Keep only last 100 rolls
       if (currentState.diceRolls.length > 100) {
         currentState.diceRolls = currentState.diceRolls.slice(0, 100);

@@ -323,7 +323,12 @@ const eventHandlers: Record<string, EventHandler> = {
           ...eventData.user,
         };
       } else {
-        state.session.players.push(eventData.user);
+        // Convert User to Player by adding canEditScenes property
+        const player: Player = {
+          ...eventData.user,
+          canEditScenes: eventData.user.type === 'host',
+        };
+        state.session.players.push(player);
       }
     }
   },
@@ -1205,7 +1210,7 @@ export const useGameStore = create<GameStore>()(
         set((state) => {
           // Restore scenes and active scene (always restore, even if empty)
           if (recoveryData.gameState) {
-            state.sceneState.scenes = recoveryData.gameState.scenes || [];
+            state.sceneState.scenes = (recoveryData.gameState.scenes || []) as Scene[];
             state.sceneState.activeSceneId =
               recoveryData.gameState.activeSceneId;
             console.log(

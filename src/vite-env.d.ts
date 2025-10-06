@@ -8,3 +8,13 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+interface Window {
+  __gameStore?: {
+    getState: () => {
+      sceneState: {
+        scenes: unknown[];
+      };
+    };
+  };
+}

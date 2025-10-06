@@ -30,62 +30,123 @@ class ClipboardService {
     }
 
     // Create new drawings with new IDs and slight offset
-    const pastedDrawings = this.clipboard.map((drawing) => {
-      const newDrawing = { ...drawing };
-
-      // Generate new ID
-      newDrawing.id = `${drawing.type}-${Date.now()}-${Math.random()}`;
-      newDrawing.createdAt = Date.now();
-
+    const pastedDrawings = this.clipboard.map((drawing): Drawing => {
       // Offset position by 20 pixels to make it visible
       const offset = 20;
+      const newId = `${drawing.type}-${Date.now()}-${Math.random()}`;
+      const newCreatedAt = Date.now();
 
       switch (drawing.type) {
         case 'line':
-          newDrawing.start = {
-            x: drawing.start.x + offset,
-            y: drawing.start.y + offset,
+          return {
+            ...drawing,
+            id: newId,
+            createdAt: newCreatedAt,
+            start: {
+              x: drawing.start.x + offset,
+              y: drawing.start.y + offset,
+            },
+            end: {
+              x: drawing.end.x + offset,
+              y: drawing.end.y + offset,
+            },
           };
-          newDrawing.end = {
-            x: drawing.end.x + offset,
-            y: drawing.end.y + offset,
-          };
-          break;
         case 'rectangle':
-          newDrawing.x = drawing.x + offset;
-          newDrawing.y = drawing.y + offset;
-          break;
+          return {
+            ...drawing,
+            id: newId,
+            createdAt: newCreatedAt,
+            x: drawing.x + offset,
+            y: drawing.y + offset,
+          };
         case 'circle':
+          return {
+            ...drawing,
+            id: newId,
+            createdAt: newCreatedAt,
+            center: {
+              x: drawing.center.x + offset,
+              y: drawing.center.y + offset,
+            },
+          };
         case 'aoe-sphere':
-          newDrawing.center = {
-            x: drawing.center.x + offset,
-            y: drawing.center.y + offset,
+          return {
+            ...drawing,
+            id: newId,
+            createdAt: newCreatedAt,
+            center: {
+              x: drawing.center.x + offset,
+              y: drawing.center.y + offset,
+            },
           };
-          break;
         case 'polygon':
+          return {
+            ...drawing,
+            id: newId,
+            createdAt: newCreatedAt,
+            points: drawing.points.map((p) => ({
+              x: p.x + offset,
+              y: p.y + offset,
+            })),
+          };
         case 'pencil':
-          newDrawing.points = drawing.points.map((p) => ({
-            x: p.x + offset,
-            y: p.y + offset,
-          }));
-          break;
+          return {
+            ...drawing,
+            id: newId,
+            createdAt: newCreatedAt,
+            points: drawing.points.map((p) => ({
+              x: p.x + offset,
+              y: p.y + offset,
+            })),
+          };
         case 'cone':
+          return {
+            ...drawing,
+            id: newId,
+            createdAt: newCreatedAt,
+            origin: {
+              x: drawing.origin.x + offset,
+              y: drawing.origin.y + offset,
+            },
+          };
         case 'aoe-cube':
-          newDrawing.origin = {
-            x: drawing.origin.x + offset,
-            y: drawing.origin.y + offset,
+          return {
+            ...drawing,
+            id: newId,
+            createdAt: newCreatedAt,
+            origin: {
+              x: drawing.origin.x + offset,
+              y: drawing.origin.y + offset,
+            },
           };
-          break;
         case 'text':
-        case 'ping':
-          newDrawing.position = {
-            x: drawing.position.x + offset,
-            y: drawing.position.y + offset,
+          return {
+            ...drawing,
+            id: newId,
+            createdAt: newCreatedAt,
+            position: {
+              x: drawing.position.x + offset,
+              y: drawing.position.y + offset,
+            },
           };
-          break;
+        case 'ping':
+          return {
+            ...drawing,
+            id: newId,
+            createdAt: newCreatedAt,
+            position: {
+              x: drawing.position.x + offset,
+              y: drawing.position.y + offset,
+            },
+          };
+        default:
+          // For any other types, just return with updated id/timestamp
+          return {
+            ...drawing,
+            id: newId,
+            createdAt: newCreatedAt,
+          };
       }
-
-      return newDrawing;
     });
 
     console.log(`📌 Pasted ${pastedDrawings.length} drawing(s) from clipboard`);

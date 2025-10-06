@@ -489,22 +489,25 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
         },
         ping: () => {
           // Create a ping that auto-fades after 3 seconds
+          const now = Date.now();
           const ping: Drawing = {
-            id: `ping-${Date.now()}-${Math.random()}`,
+            id: `ping-${now}-${Math.random()}`,
             type: 'ping',
             position: point,
             playerId: user.id,
             playerName: user.name,
-            timestamp: Date.now(),
+            timestamp: now,
             duration: 3000,
             style: drawingStyle,
-            createdAt: Date.now(),
+            layer: 'overlay',
+            createdAt: now,
+            updatedAt: now,
             createdBy: user.id,
           };
 
           createAndSyncDrawing(ping);
 
-          // Auto-remove after duration
+          // Auto-remove after duration (3000ms)
           setTimeout(() => {
             if (activeScene) {
               deleteDrawing(activeScene.id, ping.id);
@@ -517,21 +520,24 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
                 },
               });
             }
-          }, ping.duration);
+          }, 3000);
         },
         note: () => {
           // For now, create a text drawing prompt
           const noteText = prompt('Enter note text:');
           if (noteText && noteText.trim()) {
+            const now = Date.now();
             const note: Drawing = {
-              id: `note-${Date.now()}-${Math.random()}`,
+              id: `note-${now}-${Math.random()}`,
               type: 'text',
               position: point,
               text: noteText.trim(),
               fontSize: 16,
               fontFamily: 'Arial, sans-serif',
               style: drawingStyle,
-              createdAt: Date.now(),
+              layer: 'overlay',
+              createdAt: now,
+              updatedAt: now,
               createdBy: user.id,
             };
             createAndSyncDrawing(note);

@@ -118,16 +118,17 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
       {placedToken.conditions.length > 0 && (
         <g transform={`translate(${tokenSize / 2}, ${-tokenSize / 2})`}>
           {placedToken.conditions.slice(0, 3).map((condition, index) => (
-            <circle
-              key={condition.id}
-              cx={-10 * index}
-              cy={0}
-              r={8}
-              fill={condition.color || '#ffc107'}
-              stroke="#000"
-              strokeWidth={1}
-              title={condition.name}
-            />
+            <g key={condition.id}>
+              <circle
+                cx={-10 * index}
+                cy={0}
+                r={8}
+                fill={condition.color || '#ffc107'}
+                stroke="#000"
+                strokeWidth={1}
+              />
+              <title>{condition.name}</title>
+            </g>
           ))}
         </g>
       )}

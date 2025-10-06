@@ -119,7 +119,7 @@ const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({
           />
           <select
             value={newItemType}
-            onChange={(e) => setNewItemType(e.target.value as 'weapon' | 'armor' | 'gear' | 'tool' | 'consumable')}
+            onChange={(e) => setNewItemType(e.target.value as 'weapon' | 'armor' | 'tool' | 'consumable' | 'treasure' | 'other')}
             className="equipment-type-select"
           >
             <option value="weapon">Weapon</option>
@@ -182,7 +182,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
   const { updateCharacter, updateCharacterHP } = useCharacterStore();
   const [activeTab, setActiveTab] = useState<'stats' | 'equipment' | 'spells' | 'notes'>('stats');
 
-  const handleBasicInfoChange = (field: keyof Character, value: string | number) => {
+  const handleBasicInfoChange = (field: keyof Character, value: unknown) => {
     if (!readonly) {
       try {
         updateCharacter(character.id, { [field]: value });

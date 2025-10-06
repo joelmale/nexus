@@ -1,0 +1,23 @@
+{
+  "colorWindows": "#F8F8F8",
+  "colorFloor": "#F8F8F8",
+  "colorPaper": "#E8E8E4",
+  "hatching": "false",
+  "fontRoom": {
+    "italic": false,
+    "size": 28,
+    "face": null,
+    "bold": false,
+    "embedded": "ui_font"
+  },
+  "colorLabels": "#828998",
+  "alphaLights": "0.0",
+  "colorInk": "#303238",
+  "alphaAO": "0.0",
+  "alphaGrid": "0.5",
+  "colorProps": "#E5E5E5",
+  "colorStairs": "#F8F8F8",
+  "strGrid10": "0.15",
+  "colorWalls": "#303238",
+  "strNormal10": "0.25"
+}

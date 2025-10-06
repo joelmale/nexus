@@ -226,7 +226,7 @@ class DrawingPersistenceServiceV2 {
       const existingDrawings = await this.loadDrawings(sceneId);
       const updatedDrawings = existingDrawings.map(drawing =>
         drawing.id === drawingId ? { ...drawing, ...updates } : drawing
-      );
+      ) as Drawing[];
       await this.saveDrawings(sceneId, updatedDrawings);
     } catch (error) {
       console.error('❌ Failed to update drawing:', error);

@@ -39,7 +39,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections((prev) => {
+    setExpandedSections((prev: typeof expandedSections) => {
       const newState = {
         ...prev,
         [section]: !prev[section],

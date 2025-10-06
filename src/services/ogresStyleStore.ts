@@ -208,14 +208,15 @@ export class OgresStyleStore {
 
           if (typeof value === 'object' && value !== null) {
             // Handle complex queries like { level: { $gte: 5 } }
-            if (value.$eq !== undefined) return entityValue === value.$eq;
-            if (value.$ne !== undefined) return entityValue !== value.$ne;
-            if (value.$gt !== undefined) return entityValue > value.$gt;
-            if (value.$gte !== undefined) return entityValue >= value.$gte;
-            if (value.$lt !== undefined) return entityValue < value.$lt;
-            if (value.$lte !== undefined) return entityValue <= value.$lte;
-            if (value.$in !== undefined) return value.$in.includes(entityValue);
-            if (value.$nin !== undefined) return !value.$nin.includes(entityValue);
+            const queryOp = value as Record<string, unknown>;
+            if (queryOp.$eq !== undefined) return entityValue === queryOp.$eq;
+            if (queryOp.$ne !== undefined) return entityValue !== queryOp.$ne;
+            if (queryOp.$gt !== undefined) return (entityValue as number) > (queryOp.$gt as number);
+            if (queryOp.$gte !== undefined) return (entityValue as number) >= (queryOp.$gte as number);
+            if (queryOp.$lt !== undefined) return (entityValue as number) < (queryOp.$lt as number);
+            if (queryOp.$lte !== undefined) return (entityValue as number) <= (queryOp.$lte as number);
+            if (queryOp.$in !== undefined) return (queryOp.$in as unknown[]).includes(entityValue);
+            if (queryOp.$nin !== undefined) return !(queryOp.$nin as unknown[]).includes(entityValue);
           }
 
           return entityValue === value;
@@ -309,13 +310,15 @@ export class OgresStyleStore {
   /**
    * Create a scene with proper relationships
    */
-  createScene(sceneData: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>): Scene {
-    const scene = this.create<Scene>('scene', sceneData);
+  createScene(sceneData: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>): Scene & Entity {
+    const scene = this.create<Scene & Entity>('scene', sceneData);
 
     // Create relationships for tokens if provided
     if (sceneData.placedTokens) {
       sceneData.placedTokens.forEach(token => {
-        const tokenEntity = this.create('token', token);
+        // Convert token to Entity-compatible format
+        const tokenData = { ...token } as Omit<Entity, 'id' | 'type' | 'createdAt' | 'updatedAt'>;
+        const tokenEntity = this.create<Entity>('token', tokenData);
         this.relate(scene.id, tokenEntity.id, 'contains');
       });
     }
@@ -323,7 +326,9 @@ export class OgresStyleStore {
     // Create relationships for drawings if provided
     if (sceneData.drawings) {
       sceneData.drawings.forEach(drawing => {
-        const drawingEntity = this.create('drawing', drawing);
+        // Convert drawing to Entity-compatible format
+        const drawingData = { ...drawing } as Omit<Entity, 'id' | 'type' | 'createdAt' | 'updatedAt'>;
+        const drawingEntity = this.create<Entity>('drawing', drawingData);
         this.relate(scene.id, drawingEntity.id, 'contains');
       });
     }
@@ -335,20 +340,22 @@ export class OgresStyleStore {
    * Get scene with all related entities
    */
   getSceneWithRelations(sceneId: string): {
-    scene: Scene | null;
-    tokens: Token[];
-    drawings: Drawing[];
+    scene: (Scene & Entity) | null;
+    tokens: (Token & Entity)[];
+    drawings: (Drawing & Entity)[];
   } {
-    const scene = this.get<Scene>(sceneId);
+    const scene = this.get<Scene & Entity>(sceneId);
     if (!scene) {
       return { scene: null, tokens: [], drawings: [] };
     }
 
-    const tokens = this.getRelated<Token>(sceneId, 'contains')
-      .filter(entity => entity.type === 'token');
+    const relatedEntities = this.getRelated<Entity>(sceneId, 'contains');
 
-    const drawings = this.getRelated<Drawing>(sceneId, 'contains')
-      .filter(entity => entity.type === 'drawing');
+    const tokens = relatedEntities
+      .filter(entity => entity.type === 'token') as (Token & Entity)[];
+
+    const drawings = relatedEntities
+      .filter(entity => entity.type === 'drawing') as (Drawing & Entity)[];
 
     return { scene, tokens, drawings };
   }
@@ -462,9 +469,10 @@ export class OgresStyleStore {
       this.state.relationships.clear();
       this.state.indexes.clear();
 
-      // Load backup data
-      this.state.entities = new Map(data.entities || []);
-      this.state.relationships = new Map(data.relationships || []);
+      // Load backup data with proper type assertion
+      const backupData = data as { entities?: Array<[string, Entity]>; relationships?: Array<[string, Relationship]> };
+      this.state.entities = new Map(backupData.entities || []);
+      this.state.relationships = new Map(backupData.relationships || []);
 
       // Rebuild indexes
       this.rebuildIndexes();
@@ -508,7 +516,7 @@ export class OgresStyleStore {
   }
 
   // Event system
-  private emit(event: string, data: unknown): void {
+  private emit(event: string, data: Entity): void {
     const listeners = this.listeners.get(event);
     if (listeners) {
       listeners.forEach(callback => callback(data));

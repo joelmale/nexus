@@ -50,7 +50,7 @@ export class SerializationService {
    */
   static deserializeTransit<T = unknown>(serialized: string): T {
     try {
-      return transitRead.read(serialized);
+      return transitRead.read(serialized) as T;
     } catch (error) {
       console.error('Transit deserialization failed:', error);
       throw new Error(`Failed to deserialize with Transit: ${error}`);
@@ -154,8 +154,9 @@ export class SerializationService {
 
     if (data && typeof data === 'object') {
       // Check for common VTT complex types
-      if (data.x !== undefined && data.y !== undefined) return true; // Vector-like
-      if (data.r !== undefined && data.g !== undefined && data.b !== undefined) return true; // Color-like
+      const obj = data as Record<string, unknown>;
+      if (obj.x !== undefined && obj.y !== undefined) return true; // Vector-like
+      if (obj.r !== undefined && obj.g !== undefined && obj.b !== undefined) return true; // Color-like
 
       return Object.values(data).some(value => this.hasComplexTypes(value));
     }
@@ -168,15 +169,20 @@ export class SerializationService {
    * Includes metadata and uses MessagePack for efficiency
    */
   static createBackupData(gameState: unknown): Uint8Array {
+    const state = gameState as Record<string, unknown>;
+    const sceneState = state.sceneState as { scenes?: unknown[] } | undefined;
+    const characterStore = state.characterStore as { characters?: unknown[] } | undefined;
+    const assetStore = state.assetStore as { assets?: Record<string, unknown> } | undefined;
+
     const backupData = {
       version: '1.0.0',
       timestamp: Date.now(),
       exportedBy: 'Nexus VTT',
       data: gameState,
       metadata: {
-        scenes: gameState.sceneState?.scenes?.length || 0,
-        characters: gameState.characterStore?.characters?.length || 0,
-        assets: Object.keys(gameState.assetStore?.assets || {}).length,
+        scenes: sceneState?.scenes?.length || 0,
+        characters: characterStore?.characters?.length || 0,
+        assets: Object.keys(assetStore?.assets || {}).length,
       }
     };
 
@@ -192,13 +198,23 @@ export class SerializationService {
     version: string;
     timestamp: number;
   } {
-    const backup = this.deserializeMessagePack(backupFile);
+    const backup = this.deserializeMessagePack<{
+      version?: string;
+      timestamp?: number;
+      data?: T;
+      metadata?: unknown;
+    }>(backupFile);
 
     if (!backup.version || !backup.data) {
       throw new Error('Invalid backup file format');
     }
 
-    return backup;
+    return {
+      data: backup.data,
+      metadata: backup.metadata,
+      version: backup.version,
+      timestamp: backup.timestamp || Date.now(),
+    };
   }
 }
 
@@ -222,7 +238,11 @@ export class SerializingIndexedDBAdapter implements StorageAdapter {
   }
 
   async load<T>(key: string): Promise<T | null> {
-    const stored = await this.baseAdapter.load(key);
+    const stored = await this.baseAdapter.load<{
+      serialized?: string | Uint8Array;
+      format?: string;
+      timestamp?: number;
+    }>(key);
     if (!stored) return null;
 
     if (stored.serialized) {
@@ -242,13 +262,41 @@ export class SerializingIndexedDBAdapter implements StorageAdapter {
     return this.baseAdapter.clear();
   }
 
-  async exportData(): Promise<Uint8Array> {
-    const data = await this.baseAdapter.exportData();
-    return SerializationService.createBackupData(data);
+  async saveBatch(items: Array<{ key: string; data: unknown }>): Promise<void> {
+    return this.baseAdapter.saveBatch(items);
   }
 
-  async importData(backupFile: Uint8Array): Promise<void> {
-    const { data } = SerializationService.parseBackupData(backupFile);
-    return this.baseAdapter.importData(data);
+  async loadBatch<T>(keys: string[]): Promise<Array<T | null>> {
+    return this.baseAdapter.loadBatch<T>(keys);
+  }
+
+  async exists(key: string): Promise<boolean> {
+    return this.baseAdapter.exists(key);
+  }
+
+  async size(): Promise<number> {
+    return this.baseAdapter.size();
+  }
+
+  async keys(): Promise<string[]> {
+    return this.baseAdapter.keys();
+  }
+
+  // These methods are not part of the StorageAdapter interface but are provided
+  // by the IndexedDBAdapter implementation for backup/restore functionality
+  async exportData?(): Promise<Uint8Array> {
+    if ('exportData' in this.baseAdapter && typeof this.baseAdapter.exportData === 'function') {
+      const data = await (this.baseAdapter.exportData as () => Promise<Record<string, unknown>>)();
+      return SerializationService.createBackupData(data);
+    }
+    throw new Error('Base adapter does not support exportData');
+  }
+
+  async importData?(backupFile: Uint8Array): Promise<void> {
+    if ('importData' in this.baseAdapter && typeof this.baseAdapter.importData === 'function') {
+      const { data } = SerializationService.parseBackupData(backupFile);
+      return (this.baseAdapter.importData as (data: unknown) => Promise<void>)(data);
+    }
+    throw new Error('Base adapter does not support importData');
   }
 }

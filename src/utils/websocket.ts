@@ -216,11 +216,11 @@ class WebSocketService extends EventTarget {
   }
 
   // Send game state update to server for persistence
-  sendGameStateUpdate(partialState: Partial<{ sceneState?: unknown, characters?: unknown[], initiative?: unknown }>) {
+  sendGameStateUpdate(partialState: { sceneState?: unknown, characters?: unknown[], initiative?: unknown }) {
     console.log('📤 Sending game state update to server:', partialState);
     this.sendMessage({
       type: 'state',
-      data: partialState,
+      data: partialState as Partial<import('@/types/game').GameState>,
       timestamp: Date.now(),
       src: useGameStore.getState().user.id,
     });

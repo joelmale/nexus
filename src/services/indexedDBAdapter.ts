@@ -251,9 +251,8 @@ export class IndexedDBAdapter implements StorageAdapter {
 
       const transaction = this.db.transaction(['gameState'], 'readwrite');
       const store = transaction.objectStore('gameState');
-      const total = items.length;
 
-      if (total === 0) {
+      if (items.length === 0) {
         resolve();
         return;
       }
@@ -272,8 +271,7 @@ export class IndexedDBAdapter implements StorageAdapter {
         const request = store.put(saveData);
 
         request.onsuccess = () => {
-          completed++;
-          // All individual operations completed - transaction.oncomplete will handle the resolution
+          // Individual operation completed - transaction.oncomplete will handle the resolution
         };
 
         request.onerror = () => {

@@ -787,16 +787,16 @@ const CampaignBackupSection: React.FC = () => {
           <div className="backup-stats">
             <div className="stat-item">
               <span className="stat-label">Entities:</span>
-              <span className="stat-value">{stats.entities}</span>
+              <span className="stat-value">{String(stats.entities ?? 0)}</span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Relationships:</span>
-              <span className="stat-value">{stats.relationships}</span>
+              <span className="stat-value">{String(stats.relationships ?? 0)}</span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Last Saved:</span>
               <span className="stat-value">
-                {stats.lastSaved
+                {stats.lastSaved && (typeof stats.lastSaved === 'string' || typeof stats.lastSaved === 'number')
                   ? new Date(stats.lastSaved).toLocaleString()
                   : 'Never'}
               </span>
