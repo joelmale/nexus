@@ -375,19 +375,17 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       )}
 
       {activeGenerator === 'city' && (
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <p>City Generator temporarily disabled due to performance issues.</p>
-          <p>
-            Visit:{' '}
-            <a
-              href="https://watabou.github.io/city-generator/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              https://watabou.github.io/city-generator/
-            </a>
-          </p>
-        </div>
+        <iframe
+          src="/city-generator/index.html"
+          className="generator-iframe"
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            flex: 1,
+          }}
+          title="City Generator"
+        />
       )}
 
       {activeGenerator === 'dwelling' && (
