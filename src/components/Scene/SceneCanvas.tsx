@@ -326,17 +326,8 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       const newX = token.x + deltaX / camera.zoom;
       const newY = token.y + deltaY / camera.zoom;
 
-      // Apply grid snapping if enabled
-      let finalX = newX;
-      let finalY = newY;
-      if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
-        finalX =
-          Math.round(newX / safeGridSettings.size) * safeGridSettings.size;
-        finalY =
-          Math.round(newY / safeGridSettings.size) * safeGridSettings.size;
-      }
-
-      moveToken(scene.id, tokenId, { x: finalX, y: finalY });
+      // Don't snap during drag - just move freely
+      moveToken(scene.id, tokenId, { x: newX, y: newY });
 
       // Broadcast over WebSocket
       webSocketService.sendEvent({
@@ -344,11 +335,43 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         data: {
           sceneId: scene.id,
           tokenId,
-          position: { x: finalX, y: finalY },
+          position: { x: newX, y: newY },
         },
       });
     },
-    [scene.id, camera.zoom, safeGridSettings, getSceneTokens, moveToken],
+    [scene.id, camera.zoom, getSceneTokens, moveToken],
+  );
+
+  const handleTokenMoveEnd = useCallback(
+    (tokenId: string) => {
+      // Apply grid snapping when drag ends
+      if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
+        const tokens = getSceneTokens(scene.id);
+        const token = tokens.find((t) => t.id === tokenId);
+        if (!token) return;
+
+        const snappedX =
+          Math.round(token.x / safeGridSettings.size) * safeGridSettings.size;
+        const snappedY =
+          Math.round(token.y / safeGridSettings.size) * safeGridSettings.size;
+
+        // Only update if position changed after snapping
+        if (snappedX !== token.x || snappedY !== token.y) {
+          moveToken(scene.id, tokenId, { x: snappedX, y: snappedY });
+
+          // Broadcast the final snapped position
+          webSocketService.sendEvent({
+            type: 'token/move',
+            data: {
+              sceneId: scene.id,
+              tokenId,
+              position: { x: snappedX, y: snappedY },
+            },
+          });
+        }
+      }
+    },
+    [scene.id, safeGridSettings, getSceneTokens, moveToken],
   );
 
   // Determine cursor based on active tool and state
@@ -413,18 +436,12 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
           <g className="scene-content" transform={transform}>
             {/* Background layer */}
-            {(() => {
-              console.log('🎨 SceneCanvas background check:', {
-                hasBackground: !!scene.backgroundImage,
-                backgroundUrl: scene.backgroundImage?.url?.substring(0, 50),
-              });
-              return scene.backgroundImage ? (
-                <SceneBackground
-                  backgroundImage={scene.backgroundImage}
-                  sceneId={scene.id}
-                />
-              ) : null;
-            })()}
+            {scene.backgroundImage && (
+              <SceneBackground
+                backgroundImage={scene.backgroundImage}
+                sceneId={scene.id}
+              />
+            )}
 
             {/* Grid layer */}
             {safeGridSettings.enabled && (
@@ -462,6 +479,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
                     isSelected={selectedTokens.includes(placedToken.id)}
                     onSelect={handleTokenSelect}
                     onMove={handleTokenMove}
+                    onMoveEnd={handleTokenMoveEnd}
                     canEdit={isHost || placedToken.placedBy === user.id}
                   />
                 );

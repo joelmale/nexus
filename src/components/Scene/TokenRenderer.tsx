@@ -10,6 +10,7 @@ interface TokenRendererProps {
   isSelected: boolean;
   onSelect: (id: string, multi: boolean) => void;
   onMove: (id: string, deltaX: number, deltaY: number) => void;
+  onMoveEnd?: (id: string) => void;
   onRotate?: (id: string, rotation: number) => void;
   canEdit: boolean;
 }
@@ -24,6 +25,7 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
   isSelected,
   onSelect,
   onMove,
+  onMoveEnd,
   canEdit,
 }) => {
   const activeTool = useActiveTool();
@@ -35,16 +37,6 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
 
   // Only handle interactions when select tool is active (select tool combines select + move)
   const canInteract = canEdit && activeTool === 'select';
-
-  // Debug logging
-  console.log('🎭 TokenRenderer render:', {
-    tokenId: placedToken.id,
-    tokenName: token.name,
-    canEdit,
-    activeTool,
-    canInteract,
-    pointerEvents: canInteract ? 'auto' : 'none',
-  });
 
   // Global mouse handlers for dragging
   useEffect(() => {
@@ -61,6 +53,10 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
 
     const handleMouseUp = () => {
       setIsDragging(false);
+      // Apply grid snapping when drag ends
+      if (onMoveEnd) {
+        onMoveEnd(placedToken.id);
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -73,30 +69,16 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
   }, [isDragging, onMove, placedToken.id]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    console.log('🖱️ Token mouseDown:', {
-      tokenId: placedToken.id,
-      tokenName: token.name,
-      canInteract,
-      canEdit,
-      activeTool,
-      isSelected,
-    });
-
-    if (!canInteract) {
-      console.log('❌ Cannot interact - canEdit:', canEdit, 'activeTool:', activeTool);
-      return;
-    }
+    if (!canInteract) return;
 
     e.stopPropagation();
 
     // Select this token (or add to multi-select with Shift/Cmd/Ctrl)
     const isMultiSelect = e.shiftKey || e.metaKey || e.ctrlKey;
-    console.log('✅ Selecting token:', placedToken.id, 'multi:', isMultiSelect);
     onSelect(placedToken.id, isMultiSelect);
 
     // Start dragging if already selected or just selected
     if (isSelected || !isMultiSelect) {
-      console.log('🎯 Starting drag');
       setIsDragging(true);
       dragStartRef.current = { x: e.clientX, y: e.clientY };
     }
