@@ -33,8 +33,8 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
   // Calculate token size in pixels
   const tokenSize = getTokenPixelSize(token.size, gridSize) * placedToken.scale;
 
-  // Only handle interactions when select or move tool is active
-  const canInteract = canEdit && (activeTool === 'select' || activeTool === 'move');
+  // Only handle interactions when select tool is active (select tool combines select + move)
+  const canInteract = canEdit && activeTool === 'select';
 
   // Global mouse handlers for dragging
   useEffect(() => {
@@ -63,16 +63,30 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
   }, [isDragging, onMove, placedToken.id]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!canInteract) return;
+    console.log('🖱️ Token mouseDown:', {
+      tokenId: placedToken.id,
+      tokenName: token.name,
+      canInteract,
+      canEdit,
+      activeTool,
+      isSelected,
+    });
+
+    if (!canInteract) {
+      console.log('❌ Cannot interact - canEdit:', canEdit, 'activeTool:', activeTool);
+      return;
+    }
 
     e.stopPropagation();
 
     // Select this token (or add to multi-select with Shift/Cmd/Ctrl)
     const isMultiSelect = e.shiftKey || e.metaKey || e.ctrlKey;
+    console.log('✅ Selecting token:', placedToken.id, 'multi:', isMultiSelect);
     onSelect(placedToken.id, isMultiSelect);
 
     // Start dragging if already selected or just selected
     if (isSelected || !isMultiSelect) {
+      console.log('🎯 Starting drag');
       setIsDragging(true);
       dragStartRef.current = { x: e.clientX, y: e.clientY };
     }

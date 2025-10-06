@@ -42,8 +42,7 @@ export const SceneCanvasToolbar: React.FC<ToolbarProps> = ({
   const [showDMPanel, setShowDMPanel] = useState(false);
 
   const basicTools = [
-    { id: 'select', icon: '👆', label: 'Select', shortcut: 'V' },
-    { id: 'move', icon: '✥', label: 'Move', shortcut: 'D' },
+    { id: 'select', icon: '👆', label: 'Select/Move', shortcut: 'V' },
     { id: 'pan', icon: '✋', label: 'Pan', shortcut: 'H' },
     { id: 'measure', icon: '📏', label: 'Measure', shortcut: 'M' },
   ];
