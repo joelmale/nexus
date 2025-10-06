@@ -33,8 +33,8 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
   // Calculate token size in pixels
   const tokenSize = getTokenPixelSize(token.size, gridSize) * placedToken.scale;
 
-  // Only handle interactions when select tool is active
-  const canInteract = canEdit && activeTool === 'select';
+  // Only handle interactions when select or move tool is active
+  const canInteract = canEdit && (activeTool === 'select' || activeTool === 'move');
 
   // Global mouse handlers for dragging
   useEffect(() => {
