@@ -354,6 +354,29 @@ class TokenAssetManager {
   }
 
   /**
+   * Update an existing token
+   */
+  updateToken(tokenId: string, updates: Partial<Token>): Token {
+    for (const library of this.tokenLibraries) {
+      const tokenIndex = library.tokens.findIndex((t) => t.id === tokenId);
+      if (tokenIndex >= 0) {
+        const updatedToken = {
+          ...library.tokens[tokenIndex],
+          ...updates,
+          updatedAt: Date.now(),
+        };
+        library.tokens[tokenIndex] = updatedToken;
+        library.updatedAt = Date.now();
+
+        console.log(`Updated token "${updatedToken.name}"`);
+        return updatedToken;
+      }
+    }
+
+    throw new Error(`Token not found: ${tokenId}`);
+  }
+
+  /**
    * Add custom token to a library
    */
   addCustomToken(
@@ -454,5 +477,7 @@ export const useTokenAssets = () => {
       tokenAssetManager.getTokensByCategory(category),
     searchTokens: (query: string) => tokenAssetManager.searchTokens(query),
     getLibraries: () => tokenAssetManager.getLibraries(),
+    updateToken: (tokenId: string, updates: Partial<Token>) =>
+      tokenAssetManager.updateToken(tokenId, updates),
   };
 };
