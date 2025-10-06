@@ -80,12 +80,12 @@ export const GeneratorFloatingControls: React.FC<GeneratorFloatingControlsProps>
     <div
       style={{
         position: 'fixed',
-        bottom: '1rem',
-        right: '1rem',
+        top: '1rem',
+        left: '1rem',
         zIndex: 1000,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'flex-end',
+        alignItems: 'flex-start',
         gap: '0.5rem',
         maxWidth: isExpanded ? '350px' : '60px',
         transition: 'max-width 0.3s ease',
