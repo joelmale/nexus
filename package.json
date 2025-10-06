@@ -4,6 +4,10 @@
   "description": "A lightweight virtual tabletop for modern web browsers",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "dev:3000": "PORT=3000 vite",
