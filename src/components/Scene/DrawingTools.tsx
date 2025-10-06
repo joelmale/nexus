@@ -75,7 +75,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   const user = useUser();
   const activeScene = useActiveScene();
   const { createDrawing, deleteDrawing, updateDrawing } = useDrawingActions();
-  const { updateScene } = useGameStore();
+  const updateScene = useGameStore((state) => state.updateScene);
   const isHost = user.type === 'host';
 
   // Convert screen coordinates to scene coordinates
