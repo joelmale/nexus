@@ -36,6 +36,16 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
   // Only handle interactions when select tool is active (select tool combines select + move)
   const canInteract = canEdit && activeTool === 'select';
 
+  // Debug logging
+  console.log('🎭 TokenRenderer render:', {
+    tokenId: placedToken.id,
+    tokenName: token.name,
+    canEdit,
+    activeTool,
+    canInteract,
+    pointerEvents: canInteract ? 'auto' : 'none',
+  });
+
   // Global mouse handlers for dragging
   useEffect(() => {
     if (!isDragging) return;

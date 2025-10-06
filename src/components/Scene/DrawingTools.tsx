@@ -1432,6 +1432,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               : activeTool === 'eraser'
                 ? 'crosshair'
                 : 'crosshair',
+          pointerEvents: activeTool === 'select' ? 'none' : 'auto',
         }}
       />
 
