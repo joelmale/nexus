@@ -391,21 +391,17 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       )}
 
       {activeGenerator === 'dwelling' && (
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <p>
-            Dwelling Generator temporarily disabled due to performance issues.
-          </p>
-          <p>
-            Visit:{' '}
-            <a
-              href="https://watabou.github.io/dwellings/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              https://watabou.github.io/dwellings/
-            </a>
-          </p>
-        </div>
+        <iframe
+          src="/dwellings-generator/index.html"
+          className="generator-iframe"
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            flex: 1,
+          }}
+          title="Dwelling Generator"
+        />
       )}
     </div>
   );
