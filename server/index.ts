@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import { IncomingMessage } from 'http';
+import { createServer, IncomingMessage } from 'http';
 import type { Room, Connection, ServerMessage, GameState } from './types.js';
 
 class NexusServer {
@@ -8,6 +8,7 @@ class NexusServer {
   private connections = new Map<string, Connection>();
   private wss: WebSocketServer;
   private port: number;
+  private httpServer: ReturnType<typeof createServer>;
 
   // Session recovery settings
   private readonly HIBERNATION_TIMEOUT = 10 * 60 * 1000; // 10 minutes
@@ -15,18 +16,38 @@ class NexusServer {
 
   constructor(port: number) {
     this.port = port;
-    
-    this.wss = new WebSocketServer({ 
-      port,
-      perMessageDeflate: false 
+
+    // Create HTTP server for health checks
+    this.httpServer = createServer((req, res) => {
+      if (req.url === '/health' || req.url === '/') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          status: 'ok',
+          rooms: this.rooms.size,
+          connections: this.connections.size
+        }));
+      } else {
+        res.writeHead(404);
+        res.end('Not Found');
+      }
+    });
+
+    // Attach WebSocket server to HTTP server
+    this.wss = new WebSocketServer({
+      server: this.httpServer,
+      perMessageDeflate: false
     });
 
     this.wss.on('connection', (ws, req) => {
       this.handleConnection(ws, req);
     });
 
-    console.log(`🚀 Nexus WebSocket server running on port ${port}`);
-    console.log(`🌐 Connect to: ws://localhost:${port}/ws`);
+    // Listen on 0.0.0.0 for Railway
+    this.httpServer.listen(port, '0.0.0.0', () => {
+      console.log(`🚀 Nexus server running on port ${port}`);
+      console.log(`🌐 HTTP health: http://0.0.0.0:${port}/health`);
+      console.log(`🌐 WebSocket: ws://0.0.0.0:${port}`);
+    });
   }
 
   private handleConnection(ws: WebSocket, req: IncomingMessage) {
@@ -494,6 +515,12 @@ class NexusServer {
 
     // Close the WebSocket server
     this.wss.close(() => {
+      console.log('✅ WebSocket server closed');
+    });
+
+    // Close the HTTP server
+    this.httpServer.close(() => {
+      console.log('✅ HTTP server closed');
       console.log('✅ Server shutdown complete');
     });
   }
