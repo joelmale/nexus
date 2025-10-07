@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Nexus VTT Frontend
 
 # Stage 1: Development
-FROM node:24-alpine AS development
+FROM node:20-alpine AS development
 
 WORKDIR /app
 
@@ -22,15 +22,15 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 
 # Stage 2: Builder
-FROM node:24-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies
-RUN npm ci --only=production
+# Install all dependencies (needed for build)
+RUN npm ci
 
 # Copy source code
 COPY . .
