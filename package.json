@@ -57,7 +57,9 @@
     "test:visual": "playwright test -c playwright.config.layout.ts tests/e2e/visual-regression.test.ts",
     "validate-layout": "node scripts/validate-layout-css.js",
     "validate-env": "node scripts/validate-env.js",
-    "prepare": "husky"
+    "prepare": "husky",
+    "generate-thumbnails": "node scripts/generate-thumbnails.js",
+    "generate-assets": "npm run generate-thumbnails && npm run generate-default-manifest"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
