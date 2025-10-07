@@ -66,7 +66,7 @@ export const TokenRenderer: React.FC<TokenRendererProps> = ({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, onMove, placedToken.id]);
+  }, [isDragging, onMove, placedToken.id, onMoveEnd]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!canInteract) return;

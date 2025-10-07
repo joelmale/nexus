@@ -5,8 +5,9 @@ import type { Scene } from '@/types/game';
 // Re-export types for use in components
 export type { AssetMetadata, AssetManifest, AssetSearchResult, AssetCategoryResult };
 
-// Asset server configuration - using Vite environment variables
-const ASSET_SERVER_URL = import.meta.env.VITE_ASSET_SERVER_URL || 'http://localhost:8080';
+// Asset server configuration - uses main server port
+// Default to localhost:5000 for development, can be overridden with env var
+const ASSET_SERVER_URL = import.meta.env.VITE_ASSET_SERVER_URL || 'http://localhost:5000';
 
 /**
  * Asset Manager for handling external map assets efficiently

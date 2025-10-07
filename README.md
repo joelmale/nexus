@@ -57,8 +57,7 @@ npm run start:all
 
 The setup will start:
 - ✅ **Frontend** on http://localhost:5173
-- ✅ **WebSocket Server** on ws://localhost:5000/ws  
-- ✅ **Asset Server** on http://localhost:8080
+- ✅ **Backend Server** on http://localhost:5000 (WebSocket + Assets)
 
 ### Alternative Setup Methods
 
@@ -68,8 +67,7 @@ npm run setup
 
 # Start individual services
 npm run dev          # Frontend only
-npm run server:dev   # WebSocket only
-cd asset-server && npm run dev  # Assets only
+npm run server:dev   # Backend server (WebSocket + Assets)
 ```
 
 ## 🎯 Usage

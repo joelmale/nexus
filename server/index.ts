@@ -1,14 +1,42 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import { createServer, IncomingMessage } from 'http';
+import { IncomingMessage } from 'http';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import type { Room, Connection, ServerMessage, GameState } from './types.js';
+import type { AssetManifest } from '../shared/types.js';
+import { createServerDiceRoll, validateDiceRollRequest } from './diceRoller.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Asset categories for directory structure
+const ASSET_CATEGORIES = {
+  'Maps': 'Maps',
+  'Tokens': 'Tokens',
+  'Art': 'Art',
+  'Handouts': 'Handouts',
+  'Reference': 'Reference'
+};
 
 class NexusServer {
   private rooms = new Map<string, Room>();
   private connections = new Map<string, Connection>();
   private wss: WebSocketServer;
   private port: number;
-  private httpServer: ReturnType<typeof createServer>;
+  private app: express.Application;
+  private httpServer: ReturnType<typeof express.application.listen>;
+  private manifest: AssetManifest | null = null;
+
+  // Configuration
+  private readonly ASSETS_PATH = process.env.ASSETS_PATH || path.join(__dirname, '../asset-server/assets');
+  private readonly CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+  private readonly CACHE_MAX_AGE = parseInt(process.env.CACHE_MAX_AGE || '86400');
 
   // Session recovery settings
   private readonly HIBERNATION_TIMEOUT = 10 * 60 * 1000; // 10 minutes
@@ -17,19 +45,30 @@ class NexusServer {
   constructor(port: number) {
     this.port = port;
 
-    // Create HTTP server for health checks
-    this.httpServer = createServer((req, res) => {
-      if (req.url === '/health' || req.url === '/') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          status: 'ok',
-          rooms: this.rooms.size,
-          connections: this.connections.size
-        }));
-      } else {
-        res.writeHead(404);
-        res.end('Not Found');
-      }
+    // Create Express app
+    this.app = express();
+
+    // Middleware
+    this.app.use(helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" }
+    }));
+    this.app.use(compression());
+    this.app.use(cors({
+      origin: this.CORS_ORIGIN,
+      credentials: false
+    }));
+    this.app.use(express.json());
+
+    // Setup routes
+    this.setupAssetRoutes();
+    this.setupHealthRoutes();
+
+    // Create HTTP server from Express app
+    this.httpServer = this.app.listen(port, '0.0.0.0', () => {
+      console.log(`🚀 Nexus server running on port ${port}`);
+      console.log(`🌐 HTTP health: http://0.0.0.0:${port}/health`);
+      console.log(`🌐 WebSocket: ws://0.0.0.0:${port}`);
+      console.log(`📁 Assets: http://0.0.0.0:${port}/assets/`);
     });
 
     // Attach WebSocket server to HTTP server
@@ -42,12 +81,203 @@ class NexusServer {
       this.handleConnection(ws, req);
     });
 
-    // Listen on 0.0.0.0 for Railway
-    this.httpServer.listen(port, '0.0.0.0', () => {
-      console.log(`🚀 Nexus server running on port ${port}`);
-      console.log(`🌐 HTTP health: http://0.0.0.0:${port}/health`);
-      console.log(`🌐 WebSocket: ws://0.0.0.0:${port}`);
+    // Load asset manifest
+    this.loadManifest();
+  }
+
+  private setupHealthRoutes() {
+    this.app.get('/health', (req, res) => {
+      res.json({
+        status: 'ok',
+        version: '1.0.0',
+        rooms: this.rooms.size,
+        connections: this.connections.size,
+        assetsLoaded: this.manifest?.totalAssets || 0,
+        uptime: process.uptime()
+      });
     });
+
+    this.app.get('/', (req, res) => {
+      res.json({
+        status: 'ok',
+        rooms: this.rooms.size,
+        connections: this.connections.size
+      });
+    });
+  }
+
+  private setupAssetRoutes() {
+    // Cache headers helper
+    const setCacheHeaders = (res: express.Response, maxAge: number = this.CACHE_MAX_AGE) => {
+      res.set({
+        'Cache-Control': `public, max-age=${maxAge}`,
+        'ETag': `"${Date.now()}"`,
+        'Vary': 'Accept-Encoding'
+      });
+    };
+
+    // Manifest endpoint
+    this.app.get('/manifest.json', (req, res) => {
+      if (!this.manifest) {
+        return res.status(503).json({ error: 'Manifest not loaded' });
+      }
+
+      setCacheHeaders(res, 300); // Cache manifest for 5 minutes
+      res.json(this.manifest);
+    });
+
+    // Asset search
+    this.app.get('/search', (req, res) => {
+      if (!this.manifest) {
+        return res.status(503).json({ error: 'Manifest not loaded' });
+      }
+
+      const query = req.query.q as string;
+      if (!query || query.length < 2) {
+        return res.status(400).json({ error: 'Query must be at least 2 characters' });
+      }
+
+      const lowercaseQuery = query.toLowerCase();
+      const results = this.manifest.assets.filter(asset =>
+        asset.name.toLowerCase().includes(lowercaseQuery) ||
+        asset.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery))
+      );
+
+      setCacheHeaders(res, 60); // Cache search results for 1 minute
+      res.json({
+        query,
+        results,
+        total: results.length
+      });
+    });
+
+    // Category filter
+    this.app.get('/category/:category', (req, res) => {
+      if (!this.manifest) {
+        return res.status(503).json({ error: 'Manifest not loaded' });
+      }
+
+      const category = req.params.category;
+      const page = parseInt(req.query.page as string) || 0;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+
+      let filteredAssets = this.manifest.assets;
+      if (category !== 'all') {
+        filteredAssets = this.manifest.assets.filter(asset => asset.category === category);
+      }
+
+      const start = page * limit;
+      const end = start + limit;
+      const assets = filteredAssets.slice(start, end);
+
+      setCacheHeaders(res, 300);
+      res.json({
+        category,
+        page,
+        limit,
+        assets,
+        hasMore: end < filteredAssets.length,
+        total: filteredAssets.length
+      });
+    });
+
+    // Asset info endpoint
+    this.app.get('/asset/:id', (req, res) => {
+      if (!this.manifest) {
+        return res.status(503).json({ error: 'Manifest not loaded' });
+      }
+
+      const asset = this.manifest.assets.find(a => a.id === req.params.id);
+      if (!asset) {
+        return res.status(404).json({ error: 'Asset not found' });
+      }
+
+      setCacheHeaders(res, 86400);
+      res.json(asset);
+    });
+
+    // Serve static assets with caching (new structure)
+    Object.values(ASSET_CATEGORIES).forEach(categoryName => {
+      this.app.use(`/${categoryName}/assets`, (req, res, next) => {
+        setCacheHeaders(res);
+        next();
+      }, express.static(path.join(this.ASSETS_PATH, categoryName, 'assets')));
+
+      this.app.use(`/${categoryName}/thumbnails`, (req, res, next) => {
+        setCacheHeaders(res);
+        next();
+      }, express.static(path.join(this.ASSETS_PATH, categoryName, 'thumbnails')));
+    });
+
+    // Legacy support for old structure
+    this.app.use('/assets', (req, res, next) => {
+      setCacheHeaders(res);
+      next();
+    }, express.static(path.join(this.ASSETS_PATH, 'assets')));
+
+    this.app.use('/thumbnails', (req, res, next) => {
+      setCacheHeaders(res);
+      next();
+    }, express.static(path.join(this.ASSETS_PATH, 'thumbnails')));
+
+    // 404 handler for API routes
+    this.app.use((req, res, next) => {
+      if (req.path.startsWith('/api') || req.path.startsWith('/manifest') || req.path.startsWith('/search') || req.path.startsWith('/category') || req.path.startsWith('/asset/')) {
+        res.status(404).json({
+          error: 'Not found',
+          availableEndpoints: [
+            '/health',
+            '/manifest.json',
+            '/search?q=term',
+            '/category/:name',
+            '/asset/:id',
+            '/assets/:filename',
+            '/thumbnails/:filename'
+          ]
+        });
+      } else {
+        next();
+      }
+    });
+  }
+
+  private loadManifest() {
+    try {
+      const manifestPath = path.join(this.ASSETS_PATH, 'manifest.json');
+      if (fs.existsSync(manifestPath)) {
+        this.manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        console.log(`📋 Loaded manifest: ${this.manifest?.totalAssets} assets in ${this.manifest?.categories.length} categories`);
+      } else {
+        console.warn('⚠️  No manifest.json found at', manifestPath);
+        this.manifest = {
+          version: '1.0.0',
+          generatedAt: new Date().toISOString(),
+          totalAssets: 0,
+          categories: [],
+          assets: []
+        };
+      }
+    } catch (error) {
+      console.error('❌ Failed to load manifest:', error);
+      this.manifest = {
+        version: '1.0.0',
+        generatedAt: new Date().toISOString(),
+        totalAssets: 0,
+        categories: [],
+        assets: []
+      };
+    }
+
+    // Watch for manifest changes in development
+    if (process.env.NODE_ENV !== 'production') {
+      const manifestPath = path.join(this.ASSETS_PATH, 'manifest.json');
+      if (fs.existsSync(manifestPath)) {
+        fs.watchFile(manifestPath, () => {
+          console.log('📋 Manifest changed, reloading...');
+          this.loadManifest();
+        });
+      }
+    }
   }
 
   private handleConnection(ws: WebSocket, req: IncomingMessage) {
@@ -59,7 +289,7 @@ class NexusServer {
 
     const connection: Connection = {
       id: uuid,
-      ws: ws as any,
+      ws: ws,
     };
 
     this.connections.set(uuid, connection);
@@ -269,6 +499,12 @@ class NexusServer {
 
     console.log(`📨 Message from ${fromUuid} in room ${connection.room}: ${message.type}`);
 
+    // Handle dice roll requests (server-authoritative)
+    if (message.type === 'event' && message.data?.name === 'dice/roll-request') {
+      this.handleDiceRollRequest(fromUuid, connection, message.data);
+      return;
+    }
+
     // Handle game state updates
     if (message.type === 'game-state-update' && message.data) {
       this.updateRoomGameState(connection.room, message.data);
@@ -291,6 +527,57 @@ class NexusServer {
         timestamp: Date.now(),
       }, fromUuid);
     }
+  }
+
+  private handleDiceRollRequest(fromUuid: string, connection: Connection, data: DiceRollRequest) {
+    console.log(`🎲 Dice roll request from ${fromUuid}:`, data);
+
+    // Validate the request
+    const validation = validateDiceRollRequest(data);
+    if (!validation.valid) {
+      this.sendError(connection, validation.error || 'Invalid dice roll request');
+      return;
+    }
+
+    // Get user info
+    const userName = connection.user?.name || 'Unknown Player';
+    const isHost = connection.user?.type === 'host';
+
+    // Generate the dice roll on the server (cryptographically secure)
+    const roll = createServerDiceRoll(
+      data.expression,
+      fromUuid,
+      userName,
+      {
+        isPrivate: isHost && data.isPrivate,
+        advantage: data.advantage,
+        disadvantage: data.disadvantage,
+      }
+    );
+
+    if (!roll) {
+      this.sendError(connection, 'Failed to create dice roll');
+      return;
+    }
+
+    console.log(`🎲 Dice roll generated:`, {
+      id: roll.id,
+      expression: roll.expression,
+      total: roll.total,
+      crit: roll.crit,
+    });
+
+    
+// Broadcast the result to all clients in the room
+    this.broadcastToRoom(connection.room!, {
+      type: 'event',
+      data: {
+        name: 'dice/roll-result',
+        roll,
+      } as ServerDiceRollResultMessage['data'],
+      src: fromUuid,
+      timestamp: Date.now(),
+    });
   }
 
   private updateRoomGameState(roomCode: string, gameStateUpdate: Partial<GameState>) {

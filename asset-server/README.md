@@ -1,67 +1,46 @@
-# Asset Server
+# Asset Server (Merged)
 
-A lightweight HTTP server for serving map assets to Nexus VTT.
+⚠️ **This standalone asset server has been merged into the main Nexus server.**
 
-## Features
+The asset serving functionality is now integrated into `server/index.ts` and runs on the same port as the WebSocket server (default: 5000).
 
-- **Static asset serving** with efficient caching headers
-- **Manifest API** for asset metadata and search
-- **Thumbnail generation** for fast browsing
-- **Category filtering** and search functionality
-- **CORS support** for cross-origin requests
-- **Docker-ready** with volume mounting
+## Migration Notes
 
-## Quick Start
-
-```bash
-# Development
-cd asset-server
-npm install
-npm run dev
-
-# Production
-npm run build
-npm start
-```
-
-## API Endpoints
-
+The asset server is now part of the main server with these endpoints:
 - `GET /manifest.json` - Asset metadata and categories
 - `GET /assets/:filename` - Full resolution images
 - `GET /thumbnails/:filename` - Thumbnail images (300x300)
 - `GET /search?q=term` - Search assets by name/tags
 - `GET /category/:name` - Get assets by category
 
+## Configuration
+
+Set these environment variables in the root `.env` file:
+- `ASSETS_PATH` - Path to processed assets (default: ./asset-server/assets)
+- `CACHE_MAX_AGE` - Cache header value in seconds (default: 86400)
+- `CORS_ORIGIN` - Allowed CORS origin (default: *)
+
 ## Asset Processing
 
 Process your map assets before starting the server:
 
 ```bash
-# Process assets from your external drive
-node ../scripts/process-assets.js /Volumes/PS2000w/DnD_Assets/maps ./assets
-
-# This creates:
-# - assets/ (optimized full images)  
-# - thumbnails/ (300x300 previews)
-# - manifest.json (metadata)
+# From project root
+node scripts/process-assets.js /path/to/source/maps ./asset-server/assets
 ```
 
-## Docker Usage
+This creates:
+- `assets/` - Optimized full images
+- `thumbnails/` - 300x300 previews
+- `manifest.json` - Metadata
 
+## Usage
+
+The assets are served automatically when you run:
 ```bash
-# Build and run with docker-compose (from project root)
-docker-compose up asset-server
-
-# Or standalone
-docker build -f docker/assets.Dockerfile -t nexus-assets .
-docker run -p 8080:8080 -v /path/to/your/maps:/app/source-assets nexus-assets
+npm run server:dev
+# or
+npm run start:all
 ```
 
-## Configuration
-
-Environment variables:
-
-- `PORT` - Server port (default: 8080)
-- `ASSETS_PATH` - Path to processed assets (default: ./assets)
-- `CORS_ORIGIN` - Allowed CORS origin (default: *)
-- `CACHE_MAX_AGE` - Cache header value (default: 86400)
+Assets will be available at `http://localhost:5000/assets/`

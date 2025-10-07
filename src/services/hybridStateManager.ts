@@ -160,6 +160,7 @@ export class HybridStateManager {
         camera: { x: 0, y: 0, zoom: 1 },
         followDM: true,
         activeTool: 'select',
+        selectedObjectIds: [],
       },
       settings: {
         // Your existing default settings

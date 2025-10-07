@@ -1,28 +1,74 @@
-import type { DiceRoll } from '@/types/game';
+import type { DiceRoll, DicePool } from '@/types/game';
 import { v4 as uuidv4 } from 'uuid';
 
-// Parse dice expressions like "2d6+3", "1d20", "d4"
-export function parseDiceExpression(expression: string): {
+interface ParsedDiceExpression {
+  pools: Array<{ count: number; sides: number }>;
+  modifier: number;
+}
+
+/**
+ * Parse complex dice expressions like:
+ * - "2d6+3" (single die type with modifier)
+ * - "3d4, 6d20" (multiple die types)
+ * - "2d6+3d8+5" (multiple die types with modifier)
+ * - "1d20, 2d6, 1d4+2" (mixed format)
+ */
+export function parseDiceExpression(expression: string): ParsedDiceExpression | null {
+  const cleaned = expression.toLowerCase().replace(/\s/g, '');
+
+  const pools: Array<{ count: number; sides: number }> = [];
+  let modifier = 0;
+
+  // Split by comma or plus/minus (but keep the sign)
+  // Match patterns: XdY where X is optional count, Y is sides
+  const dicePattern = /(\d*)d(\d+)/g;
+  const matches = [...cleaned.matchAll(dicePattern)];
+
+  if (matches.length === 0) return null;
+
+  // Extract all dice pools
+  for (const match of matches) {
+    const count = match[1] ? parseInt(match[1]) : 1;
+    const sides = parseInt(match[2]);
+
+    if (count < 1 || count > 100 || sides < 2 || sides > 1000) {
+      return null;
+    }
+
+    pools.push({ count, sides });
+  }
+
+  // Extract modifier (any number not part of a dice expression)
+  // Remove all dice expressions first, then look for remaining numbers with +/-
+  let withoutDice = cleaned.replace(/\d*d\d+/g, '');
+  // Also remove commas
+  withoutDice = withoutDice.replace(/,/g, '');
+
+  // Now extract any remaining number with sign
+  const modifierMatch = withoutDice.match(/([+-]\d+)/);
+  if (modifierMatch) {
+    modifier = parseInt(modifierMatch[1]);
+  }
+
+  return { pools, modifier };
+}
+
+/**
+ * Legacy function for backwards compatibility
+ */
+export function parseDiceExpressionLegacy(expression: string): {
   count: number;
   sides: number;
   modifier: number;
 } | null {
-  const cleaned = expression.toLowerCase().replace(/\s/g, '');
-  
-  // Match patterns like "2d6+3", "d20", "1d4-1"
-  const match = cleaned.match(/^(\d*)d(\d+)([+-]\d+)?$/);
-  
-  if (!match) return null;
-  
-  const count = match[1] ? parseInt(match[1]) : 1;
-  const sides = parseInt(match[2]);
-  const modifier = match[3] ? parseInt(match[3]) : 0;
-  
-  if (count < 1 || count > 100 || sides < 2 || sides > 1000) {
-    return null;
-  }
-  
-  return { count, sides, modifier };
+  const result = parseDiceExpression(expression);
+  if (!result || result.pools.length !== 1) return null;
+
+  return {
+    count: result.pools[0].count,
+    sides: result.pools[0].sides,
+    modifier: result.modifier,
+  };
 }
 
 export function rollDice(count: number, sides: number): number[] {
@@ -45,41 +91,71 @@ export function createDiceRoll(
 ): DiceRoll | null {
   const parsed = parseDiceExpression(expression);
   if (!parsed) return null;
-  
-  const results = rollDice(parsed.count, parsed.sides);
-  let advResults: number[] | undefined = undefined;
-  let total: number;
 
   const rollSum = (rolls: number[]) => rolls.reduce((sum, r) => sum + r, 0);
 
-  if ((options.advantage || options.disadvantage) && parsed.count > 0) {
-    advResults = rollDice(parsed.count, parsed.sides);
-    const sum1 = rollSum(results);
-    const sum2 = rollSum(advResults);
+  // Roll all dice pools
+  const dicePools: DicePool[] = [];
+  let allResults: number[] = [];
+  let allAdvResults: number[] | undefined = undefined;
+
+  const hasAdvantageDisadvantage = options.advantage || options.disadvantage;
+
+  for (const poolDef of parsed.pools) {
+    const results = rollDice(poolDef.count, poolDef.sides);
+    let advResults: number[] | undefined = undefined;
+
+    if (hasAdvantageDisadvantage) {
+      advResults = rollDice(poolDef.count, poolDef.sides);
+    }
+
+    dicePools.push({
+      count: poolDef.count,
+      sides: poolDef.sides,
+      results,
+      advResults,
+    });
+
+    allResults = allResults.concat(results);
+    if (advResults) {
+      if (!allAdvResults) allAdvResults = [];
+      allAdvResults = allAdvResults.concat(advResults);
+    }
+  }
+
+  // Calculate total
+  let total: number;
+
+  if (hasAdvantageDisadvantage && allAdvResults) {
+    const sum1 = rollSum(allResults);
+    const sum2 = rollSum(allAdvResults);
 
     if (options.advantage) {
       total = Math.max(sum1, sum2) + parsed.modifier;
-    } else { // Disadvantage
+    } else {
+      // Disadvantage
       total = Math.min(sum1, sum2) + parsed.modifier;
     }
   } else {
-    total = rollSum(results) + parsed.modifier;
+    total = rollSum(allResults) + parsed.modifier;
   }
-  
+
+  // Check for critical success/failure (single d20 only)
   let crit: 'success' | 'failure' | undefined = undefined;
-  // Check for critical success/failure on a single d20 roll
-  if (parsed.count === 1 && parsed.sides === 20) {
-    if (results[0] === 20) crit = 'success';
-    if (results[0] === 1) crit = 'failure';
+  if (dicePools.length === 1 && dicePools[0].count === 1 && dicePools[0].sides === 20) {
+    if (dicePools[0].results[0] === 20) crit = 'success';
+    if (dicePools[0].results[0] === 1) crit = 'failure';
   }
-  
+
   return {
     id: uuidv4(),
     userId,
     userName,
     expression,
-    results,
-    advResults,
+    pools: dicePools,
+    modifier: parsed.modifier,
+    results: allResults,
+    advResults: allAdvResults,
     total,
     crit,
     timestamp: Date.now(),
@@ -88,40 +164,52 @@ export function createDiceRoll(
 }
 
 export function formatDiceRoll(roll: DiceRoll): string {
-  const { expression, results, total, advResults, crit } = roll;
-  const parsed = parseDiceExpression(expression);
-  
-  if (!parsed) return `${expression} = ${total}`;
-  
+  const { expression, pools, modifier, total, crit } = roll;
+
+  if (pools.length === 0) return `${expression} = ${total}`;
+
   let resultText = '';
   const critClass = crit === 'success' ? 'crit-success' : crit === 'failure' ? 'crit-failure' : '';
 
-  if (advResults) {
-    const sum1 = results.reduce((s, r) => s + r, 0);
-    const sum2 = advResults.reduce((s, r) => s + r, 0);
-    const isAdvantage = (sum1 + parsed.modifier) === roll.total || (sum2 + parsed.modifier) === roll.total ? Math.max(sum1, sum2) === roll.total - parsed.modifier : false;
+  // Handle advantage/disadvantage
+  if (roll.advResults && roll.advResults.length > 0) {
+    const sum1 = roll.results.reduce((s, r) => s + r, 0);
+    const sum2 = roll.advResults.reduce((s, r) => s + r, 0);
 
-    const firstRollKept = isAdvantage ? sum1 >= sum2 : sum1 <= sum2;
+    // Determine which set was kept (higher for advantage, lower for disadvantage)
+    const firstRollKept = sum1 >= sum2; // This will be correct for both adv/dis based on which was used
 
-    const formatRollSet = (rolls: number[], kept: boolean) => 
+    const formatRollSet = (rolls: number[], kept: boolean) =>
       `<span class="${kept ? 'kept-roll' : 'discarded-roll'}">[${rolls.join(', ')}]</span>`;
 
-    resultText = `${expression}: ${formatRollSet(results, firstRollKept)} | ${formatRollSet(advResults, !firstRollKept)}`;
+    resultText = `${expression}: ${formatRollSet(roll.results, firstRollKept)} | ${formatRollSet(roll.advResults, !firstRollKept)}`;
   } else {
-    resultText = `${expression}: <span class="${critClass}">[${results.join(', ')}]</span>`;
+    // Normal rolls - show each pool separately
+    resultText = `${expression}: `;
+
+    const poolTexts: string[] = [];
+    for (const pool of pools) {
+      const poolLabel = `${pool.count}d${pool.sides}`;
+      const poolResults = `[${pool.results.join(', ')}]`;
+      poolTexts.push(`<span class="dice-pool"><span class="pool-label">${poolLabel}</span><span class="${critClass}">${poolResults}</span></span>`);
+    }
+
+    resultText += poolTexts.join(' + ');
   }
-  
-  if (parsed.modifier !== 0) {
-    resultText += ` ${parsed.modifier >= 0 ? '+' : ''}${parsed.modifier}`;
+
+  if (modifier !== 0) {
+    resultText += ` ${modifier >= 0 ? '+' : ''}${modifier}`;
   }
-  
+
   resultText += ` = <strong class="roll-total ${critClass}">${total}</strong>`;
-  
+
   return resultText;
 }
 
 // Common dice expressions for quick access
 export const COMMON_DICE = [
   'd4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100',
-  '2d6', '3d6', '4d6'
+  '2d6', '3d6', '4d6',
+  // Complex formulas
+  '1d20+1d6', '2d6+1d4', '3d4+2d6'
 ];

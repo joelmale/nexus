@@ -51,7 +51,7 @@ export const DungeonGenerator: React.FC<DungeonGeneratorProps> = ({
         className="generator-iframe"
         title="Dungeon Generator"
         onLoad={handleIframeLoad}
-        sandbox="allow-scripts allow-same-origin"
+        sandbox="allow-scripts allow-same-origin allow-downloads"
       />
     </div>
   );

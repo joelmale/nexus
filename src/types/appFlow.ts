@@ -12,11 +12,13 @@ export interface AppState {
     name: string;
     type: 'player' | 'dm' | null;
     id: string; // Generated browser ID for character linking
+    color: string;
   };
   roomCode?: string;
   isConnectedToRoom: boolean;
   gameConfig?: GameConfig;
   selectedCharacter?: PlayerCharacter;
+  hasLeftRoom?: boolean;
 }
 
 export interface PlayerCharacter {

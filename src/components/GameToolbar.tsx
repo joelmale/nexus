@@ -109,7 +109,8 @@ export const GameToolbar: React.FC = () => {
           id: 'select',
           icon: '👆',
           label: 'Select / Move',
-          tooltip: 'Hold Shift+drag OR Cmd/Ctrl+click for multi-select',
+          tooltip:
+            'Select and move objects. Hold Shift+drag OR Cmd/Ctrl+click for multi-select',
         },
         { id: 'pan', icon: '✋', label: 'Pan' },
         { id: 'copy', icon: '📋', label: 'Copy' },

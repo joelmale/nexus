@@ -9,11 +9,13 @@ class WebSocketService extends EventTarget {
   private reconnectDelay = 1000;
   private messageQueue: string[] = [];
   private connectionPromise: Promise<void> | null = null;
+  private lastSessionCreatedEvent: SessionCreatedEvent['data'] | null = null;
+  private lastSessionJoinedEvent: SessionJoinedEvent['data'] | null = null;
 
   // Get WebSocket URL dynamically from environment
   private getWebSocketUrl(roomCode?: string, userType?: 'host' | 'player'): string {
     const wsPort = import.meta.env.VITE_WS_PORT || '5000';
-    const wsUrl = `ws://localhost:${wsPort}/ws`;
+    const wsUrl = `ws://localhost:${wsPort}`;
     if (roomCode) {
       return userType === 'host' ? `${wsUrl}?reconnect=${roomCode}` : `${wsUrl}?join=${roomCode}`;
     }
@@ -110,6 +112,12 @@ class WebSocketService extends EventTarget {
         console.log('🎯 Processing event:', message.data.name, message.data);
 
         // Session events will be handled by the gameStore's applyEvent method
+
+        if (message.data.name === 'session/created') {
+          this.lastSessionCreatedEvent = message.data;
+        } else if (message.data.name === 'session/joined') {
+          this.lastSessionJoinedEvent = message.data;
+        }
 
         const gameEvent: GameEvent = {
           type: message.data.name,
@@ -216,7 +224,7 @@ class WebSocketService extends EventTarget {
   }
 
   // Send game state update to server for persistence
-  sendGameStateUpdate(partialState: { sceneState?: unknown, characters?: unknown[], initiative?: unknown }) {
+  sendGameStateUpdate(partialState: Partial<import('@/types/game').GameState>) {
     console.log('📤 Sending game state update to server:', partialState);
     this.sendMessage({
       type: 'state',
@@ -233,6 +241,50 @@ class WebSocketService extends EventTarget {
       data: data,
     };
     this.sendEvent(drawingEvent);
+  }
+
+  waitForSessionCreated(): Promise<SessionCreatedEvent['data']> {
+    return new Promise((resolve, reject) => {
+      if (this.lastSessionCreatedEvent) {
+        resolve(this.lastSessionCreatedEvent);
+        return;
+      }
+
+      const timeout = setTimeout(() => reject(new Error('Room creation timeout')), 10000);
+
+      const handler = (event: Event) => {
+        const customEvent = event as CustomEvent;
+        if (customEvent.detail?.data?.name === 'session/created') {
+          clearTimeout(timeout);
+          this.removeEventListener('message', handler);
+          resolve(customEvent.detail.data);
+        }
+      };
+
+      this.addEventListener('message', handler);
+    });
+  }
+
+  waitForSessionJoined(): Promise<SessionJoinedEvent['data']> {
+    return new Promise((resolve, reject) => {
+      if (this.lastSessionJoinedEvent) {
+        resolve(this.lastSessionJoinedEvent);
+        return;
+      }
+
+      const timeout = setTimeout(() => reject(new Error('Room join timeout')), 10000);
+
+      const handler = (event: Event) => {
+        const customEvent = event as CustomEvent;
+        if (customEvent.detail?.data?.name === 'session/joined') {
+          clearTimeout(timeout);
+          this.removeEventListener('message', handler);
+          resolve(customEvent.detail.data);
+        }
+      };
+
+      this.addEventListener('message', handler);
+    });
   }
 
   private sendMessage(message: Omit<WebSocketMessage, 'src'> & { src: string }) {
@@ -271,7 +323,7 @@ class WebSocketService extends EventTarget {
 
   getConnectionState(): string {
     if (!this.ws) return 'disconnected';
-    
+
     switch (this.ws.readyState) {
       case WebSocket.CONNECTING: return 'connecting';
       case WebSocket.OPEN: return 'connected';
@@ -279,6 +331,25 @@ class WebSocketService extends EventTarget {
       case WebSocket.CLOSED: return 'closed';
       default: return 'unknown';
     }
+  }
+
+  /**
+   * Subscribe to WebSocket messages
+   * Returns an unsubscribe function
+   */
+  subscribe(callback: (event: WebSocketMessage['data']) => void): () => void {
+    const handler = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.type === 'event') {
+        callback(customEvent.detail.data as WebSocketMessage['data']);
+      }
+    };
+
+    this.addEventListener('message', handler);
+
+    return () => {
+      this.removeEventListener('message', handler);
+    };
   }
 }
 

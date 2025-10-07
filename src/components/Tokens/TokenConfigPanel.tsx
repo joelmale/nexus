@@ -105,9 +105,7 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
 }) => {
   const [name, setName] = useState(token.name);
   const [size, setSize] = useState(token.size);
-  const [exclusive, setExclusive] = useState(
-    (token as any).exclusive || false,
-  );
+  const [exclusive, setExclusive] = useState(token.exclusive || false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
@@ -120,7 +118,7 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
       // Reset state when panel opens
       setName(token.name);
       setSize(token.size);
-      setExclusive((token as any).exclusive || false);
+      setExclusive(token.exclusive || false);
       setBackgroundRemoved(false);
       setProcessedImage(null);
     }

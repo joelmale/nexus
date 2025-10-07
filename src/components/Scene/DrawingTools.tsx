@@ -5,7 +5,7 @@ import {
   type DrawingStyle,
   type DrawingTool,
 } from '@/types/drawing';
-import type { Camera } from '@/types/game';
+import type { Camera, PlacedToken } from '@/types/game';
 import {
   useUser,
   useActiveScene,
@@ -43,11 +43,11 @@ interface DrawingToolsProps {
   camera: Camera;
   _gridSize: number;
   svgRef: React.RefObject<SVGSVGElement>;
-  onSelectionChange?: (
-    selectedDrawings: string[],
-    selectionBox?: { start: Point; end: Point },
-  ) => void;
   snapToGrid?: boolean;
+  selectedObjectIds: string[];
+  setSelection: (ids: string[]) => void;
+  clearSelection: () => void;
+  placedTokens: PlacedToken[];
 }
 
 export const DrawingTools: React.FC<DrawingToolsProps> = ({
@@ -56,15 +56,18 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   camera,
   _gridSize,
   svgRef,
-  onSelectionChange,
   snapToGrid: shouldSnapToGrid = false,
+  selectedObjectIds,
+  setSelection,
+  clearSelection,
+  placedTokens,
 }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
   const [polygonPoints, setPolygonPoints] = useState<Point[]>([]);
   const [pencilPath, setPencilPath] = useState<Point[]>([]);
-  const [selectedDrawings, setSelectedDrawings] = useState<string[]>([]);
+
   const [isErasing, setIsErasing] = useState(false);
   const eraserRadius = 20;
   const [selectionBox, setSelectionBox] = useState<{
@@ -148,30 +151,29 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
   // Handle copy/cut/paste operations
   const handleCopy = useCallback(() => {
-    if (!activeScene || selectedDrawings.length === 0) return;
+    if (!activeScene || selectedObjectIds.length === 0) return;
 
     const drawingsToCopy = activeScene.drawings.filter((d) =>
-      selectedDrawings.includes(d.id),
+      selectedObjectIds.includes(d.id),
     );
     clipboardService.copy(drawingsToCopy);
-  }, [activeScene, selectedDrawings]);
+  }, [activeScene, selectedObjectIds]);
 
   const handleCut = useCallback(() => {
-    if (!activeScene || selectedDrawings.length === 0) return;
+    if (!activeScene || selectedObjectIds.length === 0) return;
 
     const drawingsToCopy = activeScene.drawings.filter((d) =>
-      selectedDrawings.includes(d.id),
+      selectedObjectIds.includes(d.id),
     );
     clipboardService.copy(drawingsToCopy);
 
     // Delete the selected drawings
-    selectedDrawings.forEach((drawingId) => {
+    selectedObjectIds.forEach((drawingId) => {
       deleteAndSyncDrawing(drawingId);
     });
 
-    setSelectedDrawings([]);
-    onSelectionChange?.([]);
-  }, [activeScene, selectedDrawings, deleteAndSyncDrawing, onSelectionChange]);
+    clearSelection();
+  }, [activeScene, selectedObjectIds, deleteAndSyncDrawing, clearSelection]);
 
   const handlePaste = useCallback(() => {
     if (!activeScene) return;
@@ -183,9 +185,8 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
     // Select the newly pasted drawings
     const pastedIds = pastedDrawings.map((d) => d.id);
-    setSelectedDrawings(pastedIds);
-    onSelectionChange?.(pastedIds);
-  }, [activeScene, createAndSyncDrawing, onSelectionChange]);
+    setSelection(pastedIds);
+  }, [activeScene, createAndSyncDrawing, setSelection]);
 
   // Keyboard shortcuts for copy/cut/paste
   useEffect(() => {
@@ -456,18 +457,16 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
             // Clicking on an object
             if (isMultiSelectModifier) {
               // Shift+click or Cmd/Ctrl+click: Add/remove from selection
-              const newSelection = selectedDrawings.includes(drawingAtPoint)
-                ? selectedDrawings.filter((id) => id !== drawingAtPoint)
-                : [...selectedDrawings, drawingAtPoint];
-              setSelectedDrawings(newSelection);
-              onSelectionChange?.(newSelection);
+              const newSelection = selectedObjectIds.includes(drawingAtPoint)
+                ? selectedObjectIds.filter((id) => id !== drawingAtPoint)
+                : [...selectedObjectIds, drawingAtPoint];
+              setSelection(newSelection);
             } else {
               // Regular click: Select this object (or keep selection if already selected)
               // If clicking on an already-selected object, don't change selection
               // (this allows dragging to work via SelectionOverlay)
-              if (!selectedDrawings.includes(drawingAtPoint)) {
-                setSelectedDrawings([drawingAtPoint]);
-                onSelectionChange?.([drawingAtPoint]);
+              if (!selectedObjectIds.includes(drawingAtPoint)) {
+                setSelection([drawingAtPoint]);
               }
               // Don't call defaultHandler - let SelectionOverlay handle dragging
               return;
@@ -482,8 +481,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               setCurrentPoint(point);
             } else {
               // Regular click on empty space: Clear selection
-              setSelectedDrawings([]);
-              onSelectionChange?.([]);
+              clearSelection();
             }
           }
         },
@@ -738,8 +736,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     [
       activeTool,
       screenToScene,
-      selectedDrawings,
-      onSelectionChange,
+      selectedObjectIds,
+      setSelection,
+      clearSelection,
       getDrawingsAtPoint,
       deleteAndSyncDrawing,
       eraserRadius,
@@ -825,12 +824,27 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       switch (activeTool) {
         case 'select': {
           if (selectionBox) {
-            const selectedIds = getDrawingsInSelection(
+            const drawingIds = getDrawingsInSelection(
               selectionBox.start,
               selectionBox.end,
             );
-            setSelectedDrawings(selectedIds);
-            onSelectionChange?.(selectedIds, selectionBox);
+
+            const minX = Math.min(selectionBox.start.x, selectionBox.end.x);
+            const maxX = Math.max(selectionBox.start.x, selectionBox.end.x);
+            const minY = Math.min(selectionBox.start.y, selectionBox.end.y);
+            const maxY = Math.max(selectionBox.start.y, selectionBox.end.y);
+
+            const tokenIds = placedTokens
+              .filter(
+                (token) =>
+                  token.x >= minX &&
+                  token.x <= maxX &&
+                  token.y >= minY &&
+                  token.y <= maxY,
+              )
+              .map((token) => token.id);
+
+            setSelection([...drawingIds, ...tokenIds]);
             setSelectionBox(null);
           }
           setIsDrawing(false);
@@ -939,8 +953,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       startPoint,
       selectionBox,
       getDrawingsInSelection,
-      onSelectionChange,
+      setSelection,
       drawingStyle,
+      placedTokens,
       user.id,
       createAndSyncDrawing,
       pencilPath,
@@ -1008,18 +1023,17 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   );
 
   // Delete selected drawings
-  const deleteSelectedDrawings = useCallback(() => {
-    selectedDrawings.forEach((id) => deleteAndSyncDrawing(id));
-    setSelectedDrawings([]);
-    onSelectionChange?.([]);
-  }, [selectedDrawings, deleteAndSyncDrawing, onSelectionChange]);
+  const deleteSelection = useCallback(() => {
+    selectedObjectIds.forEach((id) => deleteAndSyncDrawing(id));
+    clearSelection();
+  }, [selectedObjectIds, deleteAndSyncDrawing, clearSelection]);
 
   // Handle keyboard events for selection tool and polygon/mask tools
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (activeTool === 'select' && selectedDrawings.length > 0) {
+      if (activeTool === 'select' && selectedObjectIds.length > 0) {
         if (e.key === 'Delete' || e.key === 'Backspace') {
-          deleteSelectedDrawings();
+          deleteSelection();
           e.preventDefault();
         }
       }
@@ -1081,8 +1095,8 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     activeTool,
-    selectedDrawings,
-    deleteSelectedDrawings,
+    selectedObjectIds,
+    deleteSelection,
     polygonPoints,
     drawingStyle,
     user.id,
@@ -1432,7 +1446,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               : activeTool === 'eraser'
                 ? 'crosshair'
                 : 'crosshair',
-          pointerEvents: activeTool === 'select' ? 'none' : 'auto',
+          pointerEvents: 'auto',
         }}
       />
 

@@ -145,49 +145,160 @@ input:checked + .toggle-slider:before {
   transform: translateX(20px);
 }
 
-.quick-dice h3 {
-  margin: 2rem 0 1.5rem 0;
+/* Dice Builder Section */
+.dice-builder {
+  margin-top: 2rem;
+}
+
+.dice-builder h3 {
   font-size: 1.2rem;
   color: var(--glass-text-muted);
   font-weight: 600;
 }
 
-.dice-buttons {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px; /* Reduced gap for a tighter grid */
+/* Clear Button */
+.clear-queue-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.6);
+  transform: scale(1.05);
 }
 
-.dice-btn {
-  padding: 3px 6px; /* Smaller padding */
+.clear-queue-btn:active {
+  transform: scale(0.95);
+}
+
+/* Die Type Buttons Grid */
+.die-type-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 0.75rem;
+}
+
+/* Individual Die Button */
+.die-type-btn {
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 2px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 0.5rem 0.25rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  position: relative;
+  overflow: hidden;
+  min-height: 60px;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.die-type-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+}
+
+.die-type-btn:hover {
+  background: var(--glass-surface-hover);
+  border-color: rgba(99, 102, 241, 0.6);
+  transform: translateY(-4px);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 8px 16px rgba(99, 102, 241, 0.3),
+    0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.die-type-btn:active {
+  transform: translateY(-2px) scale(0.98);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 4px 8px rgba(99, 102, 241, 0.2);
+}
+
+/* Die Icon (d6, d20, etc.) */
+.die-icon {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* +1 Label */
+.die-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--glass-text-muted);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+/* Modifiers Section */
+.modifiers-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.modifiers-section h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: var(--glass-text-muted);
+  font-weight: 600;
+}
+
+.modifier-controls {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.modifier-btn {
   background: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  border-radius: 4px; /* Smaller radius */
-  font-size: 10px; /* Smaller font size */
+  border-radius: var(--border-radius);
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
   font-family: 'JetBrains Mono', monospace;
   font-weight: 600;
-  width: auto;
-  transition: all 0.3s ease;
-  box-shadow: 
-    inset 0 1px 1px rgba(255, 255, 255, 0.2),
-    0 2px 3px rgba(0, 0, 0, 0.2);
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+  font-size: 0.9rem;
+  color: var(--glass-text);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.dice-btn:hover {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+.modifier-btn:hover {
+  background: var(--glass-surface-hover);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
-  box-shadow: 
-    inset 0 1px 1px rgba(255, 255, 255, 0.3),
-    0 4px 8px rgba(99, 102, 241, 0.3);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.dice-btn:active {
-  transform: translateY(1px);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+.modifier-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .rolls-list {
@@ -341,4 +452,68 @@ input:checked + .toggle-slider:before {
 
 .roll-total.crit-success, .roll-total.crit-failure {
   background: rgba(0,0,0,0.2);
+}
+
+/* Multiple Dice Pool Styles */
+.dice-pool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0.15rem;
+}
+
+.pool-label {
+  font-weight: 700;
+  color: var(--color-primary);
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+/* Dice Panel Control Buttons */
+.theme-toggle-btn,
+.sound-toggle-btn {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--glass-text);
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-toggle-btn:before,
+.sound-toggle-btn:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+
+.theme-toggle-btn:hover,
+.sound-toggle-btn:hover {
+  background: var(--glass-surface-hover);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.theme-toggle-btn:active,
+.sound-toggle-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }

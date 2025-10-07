@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useGameStore, useDiceRolls, useUser, useIsHost } from '@/stores/gameStore';
-import { createDiceRoll, formatDiceRoll, COMMON_DICE } from '@/utils/dice';
+import { useDiceRolls, useIsHost } from '@/stores/gameStore';
+import { formatDiceRoll } from '@/utils/dice';
 import { webSocketService } from '@/utils/websocket';
+import { DiceBox3D } from './DiceBox3D';
+import { diceSounds } from '@/utils/diceSounds';
 
 /**
  * @file DiceRoller.tsx
@@ -14,10 +16,8 @@ import { webSocketService } from '@/utils/websocket';
  * updates the global state, and broadcasts the roll to other players via WebSocket.
  */
 export const DiceRoller: React.FC = () => {
-  const { addDiceRoll } = useGameStore();
   const diceRolls = useDiceRolls();
   const isHost = useIsHost();
-  const user = useUser();
   // Local state for the dice expression input field.
   const [expression, setExpression] = useState('');
   // Local state for displaying validation errors.
@@ -29,6 +29,27 @@ export const DiceRoller: React.FC = () => {
   const rollsListRef = useRef<HTMLDivElement>(null);
   const prevRollsCount = useRef(diceRolls.length);
 
+  // State for sound mute
+  const [isSoundMuted, setIsSoundMuted] = useState(diceSounds.isSoundMuted());
+  // State for dice theme (load from localStorage or default)
+  const [diceTheme, setDiceTheme] = useState<string>(() => {
+    try {
+      return localStorage.getItem('nexus_dice_theme') || 'default';
+    } catch {
+      return 'default';
+    }
+  });
+
+  // Available dice themes
+  const DICE_THEMES = [
+    { id: 'default', name: 'Default' },
+    { id: 'smooth', name: 'Smooth' },
+    { id: 'gemstone', name: 'Gemstone' },
+    { id: 'rock', name: 'Rock' },
+    { id: 'metal', name: 'Metal' },
+    { id: 'wooden', name: 'Wooden' },
+  ];
+
   // Effect to scroll to the top when a new roll is added.
   useEffect(() => {
     if (diceRolls.length > prevRollsCount.current && rollsListRef.current) {
@@ -37,10 +58,11 @@ export const DiceRoller: React.FC = () => {
     prevRollsCount.current = diceRolls.length;
   }, [diceRolls]);
 
+
+
   /**
    * Handles the primary roll action triggered by the "Roll" button or Enter key.
-   * It validates the expression, creates a roll object, updates the local state for
-   * instant feedback, and sends the roll to the server to be broadcasted.
+   * Sends a request to the server to generate the roll (server-authoritative).
    */
   const handleRoll = () => {
     if (!expression.trim()) {
@@ -48,50 +70,121 @@ export const DiceRoller: React.FC = () => {
       return;
     }
 
-    const roll = createDiceRoll(expression.trim(), user.id, user.name, {
-      isPrivate: isHost && isPrivate,
-      advantage: rollMode === 'advantage',
-      disadvantage: rollMode === 'disadvantage',
-    });
-    if (!roll) {
-      setError('Invalid dice expression. Use format like "2d6+3"');
-      return;
-    }
-
-    // Clear any previous errors.
+    // Clear any previous errors
     setError('');
-    // Add the roll to the local state immediately for a responsive UI.
-    // The server will broadcast it back to us, but adding it here makes it feel instant.
-    if (!diceRolls.some(r => r.id === roll.id)) {
-      addDiceRoll(roll);
-    }
-    
-    // Broadcast the roll to all other players in the session.
-    webSocketService.sendEvent({ type: 'dice/roll', data: { roll } });
+
+    console.log('🎲 Requesting dice roll from server:', expression.trim());
+
+    // Send dice roll request to server (server will generate the random numbers)
+    webSocketService.sendEvent({
+      type: 'dice/roll-request',
+      data: {
+        expression: expression.trim(),
+        isPrivate: isHost && isPrivate,
+        advantage: rollMode === 'advantage',
+        disadvantage: rollMode === 'disadvantage',
+      }
+    });
+
+    // The server will broadcast the result back to all clients
   };
 
   /**
-   * Handles rolls from the "Quick Roll" buttons (e.g., d20, d6).
-   * This function bypasses the input field for a faster user experience.
+   * Add a die to the roll queue (expression input)
+   * If the same die type exists, increment its count (e.g., 1d20 -> 2d20)
+   * Otherwise, add it to the expression
    */
-  const handleQuickRoll = (expr: string) => {
+  const addDieToQueue = (dieType: string) => {
     setError('');
-    
-    const roll = createDiceRoll(expr, user.id, user.name, {
-      isPrivate: isHost && isPrivate,
-      advantage: rollMode === 'advantage',
-      disadvantage: rollMode === 'disadvantage',
-    });
-    if (roll) {
-      if (!diceRolls.some(r => r.id === roll.id)) {
-        addDiceRoll(roll);
+
+    const currentExpr = expression.trim();
+
+    if (!currentExpr) {
+      // First die
+      setExpression(`1${dieType}`);
+      console.log('🎲 Added first die:', `1${dieType}`);
+      return;
+    }
+
+    // Parse the expression to find if this die type already exists
+    // Match pattern like "3d20" or "1d6"
+    const diePattern = new RegExp(`(\\d+)(${dieType.replace('+', '\\+')})`, 'gi');
+    const match = currentExpr.match(diePattern);
+
+    if (match) {
+      // Die type already exists, increment its count
+      const newExpr = currentExpr.replace(diePattern, (fullMatch, count) => {
+        const newCount = parseInt(count) + 1;
+        return `${newCount}${dieType}`;
+      });
+      setExpression(newExpr);
+      console.log('🎲 Incremented die count:', dieType);
+    } else {
+      // Die type doesn't exist, add it
+      // Check if we need a separator
+      const lastChar = currentExpr[currentExpr.length - 1];
+      if (/[0-9)]/.test(lastChar)) {
+        setExpression(`${currentExpr}+1${dieType}`);
+      } else {
+        setExpression(`${currentExpr}1${dieType}`);
       }
-      webSocketService.sendEvent({ type: 'dice/roll', data: { roll } });
-      // Do not clear the main expression input, as the user might be building a complex roll.
-      // Or, uncomment the line below if you prefer the quick roll to populate the input.
-      // setExpression(expr);
+      console.log('🎲 Added new die type:', dieType);
     }
   };
+
+  /**
+   * Clear the roll queue
+   */
+  const clearQueue = () => {
+    setExpression('');
+    setError('');
+    console.log('🎲 Cleared roll queue');
+  };
+
+  /**
+   * Add a modifier to the expression
+   */
+  const addModifier = (amount: number) => {
+    setError('');
+
+    const currentExpr = expression.trim();
+
+    if (!currentExpr) {
+      // No dice yet, just add the modifier
+      if (amount >= 0) {
+        setExpression(`+${amount}`);
+      } else {
+        setExpression(`${amount}`);
+      }
+      return;
+    }
+
+    // Check if there's already a modifier at the end
+    const modifierPattern = /([+-]\d+)$/;
+    const match = currentExpr.match(modifierPattern);
+
+    if (match) {
+      // Update existing modifier
+      const currentModifier = parseInt(match[1]);
+      const newModifier = currentModifier + amount;
+
+      if (newModifier === 0) {
+        // Remove modifier if it's zero
+        setExpression(currentExpr.replace(modifierPattern, ''));
+      } else {
+        const sign = newModifier >= 0 ? '+' : '';
+        setExpression(currentExpr.replace(modifierPattern, `${sign}${newModifier}`));
+      }
+    } else {
+      // Add new modifier
+      const sign = amount >= 0 ? '+' : '';
+      setExpression(`${currentExpr}${sign}${amount}`);
+    }
+
+    console.log('🎲 Added modifier:', amount);
+  };
+
+
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -99,14 +192,56 @@ export const DiceRoller: React.FC = () => {
     }
   };
 
+  const toggleSound = () => {
+    const newMutedState = diceSounds.toggleMute();
+    setIsSoundMuted(newMutedState);
+  };
+
+  const cycleDiceTheme = () => {
+    const currentIndex = DICE_THEMES.findIndex(t => t.id === diceTheme);
+    const nextIndex = (currentIndex + 1) % DICE_THEMES.length;
+    const newTheme = DICE_THEMES[nextIndex].id;
+    const newThemeName = DICE_THEMES[nextIndex].name;
+    setDiceTheme(newTheme);
+
+    // Persist to localStorage
+    try {
+      localStorage.setItem('nexus_dice_theme', newTheme);
+    } catch (e) {
+      console.warn('Failed to save dice theme to localStorage:', e);
+    }
+
+    console.log('🎲 Changed dice theme to:', newThemeName);
+  };
+
   // Filter rolls for display. Hosts see all rolls, players only see public ones.
   const visibleRolls = isHost ? diceRolls : diceRolls.filter(roll => !roll.isPrivate);
 
   return (
     <div className="dice-roller">
+      <DiceBox3D />
+
       {/* Section for user input and quick roll buttons */}
       <div className="dice-input">
-        <h2>Dice Roller</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 style={{ margin: 0 }}>Dice Roller</h2>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={cycleDiceTheme}
+              className="theme-toggle-btn"
+              title={`Dice Theme: ${DICE_THEMES.find(t => t.id === diceTheme)?.name || 'Default'}`}
+            >
+              🎲
+            </button>
+            <button
+              onClick={toggleSound}
+              className="sound-toggle-btn"
+              title={isSoundMuted ? 'Unmute dice sounds' : 'Mute dice sounds'}
+            >
+              {isSoundMuted ? '🔇' : '🔊'}
+            </button>
+          </div>
+        </div>
         
         <div className="roll-controls">
           <input
@@ -114,7 +249,7 @@ export const DiceRoller: React.FC = () => {
             value={expression}
             onChange={(e) => setExpression(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Enter dice expression (e.g., 2d6+3)"
+            placeholder="Click dice below to build your roll..."
             className="dice-expression"
           />
           <button onClick={handleRoll} className="roll-btn">
@@ -153,18 +288,76 @@ export const DiceRoller: React.FC = () => {
           )}
         </div>
 
-        <div className="quick-dice">
-          <h3>Quick Roll</h3>
-          <div className="dice-buttons">
-            {COMMON_DICE.map(dice => (
+        <div className="dice-builder">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h3 style={{ margin: 0 }}>Build Your Roll</h3>
+            <button
+              onClick={clearQueue}
+              className="clear-queue-btn"
+              title="Clear roll queue"
+              style={{
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                borderRadius: '6px',
+                padding: '0.25rem 0.75rem',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                color: '#ef4444',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Clear
+            </button>
+          </div>
+          <div className="die-type-buttons">
+            {['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'].map(die => (
               <button
-                key={dice}
-                onClick={() => handleQuickRoll(dice)}
-                className="dice-btn"
+                key={die}
+                onClick={() => addDieToQueue(die)}
+                className="die-type-btn"
+                title={`Add ${die} to roll`}
               >
-                {dice}
+                <div className="die-icon">{die.toUpperCase()}</div>
               </button>
             ))}
+          </div>
+
+          <div className="modifiers-section">
+            <h4>Modifiers</h4>
+            <div className="modifier-controls">
+              <button
+                onClick={() => addModifier(-5)}
+                className="modifier-btn"
+                title="Add -5 modifier"
+              >
+                -5
+              </button>
+              <button
+                onClick={() => addModifier(-1)}
+                className="modifier-btn"
+                title="Add -1 modifier"
+              >
+                -1
+              </button>
+              <button
+                onClick={() => addModifier(1)}
+                className="modifier-btn"
+                title="Add +1 modifier"
+              >
+                +1
+              </button>
+              <button
+                onClick={() => addModifier(5)}
+                className="modifier-btn"
+                title="Add +5 modifier"
+              >
+                +5
+              </button>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--glass-text-muted)' }}>
+            Click dice to add/increment • Click modifiers to adjust total
           </div>
         </div>
       </div>

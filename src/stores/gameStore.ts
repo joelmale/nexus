@@ -66,6 +66,12 @@ interface GameStore extends GameState {
   ) => void;
   duplicateScene: (sceneId: string) => Scene | null;
 
+  // Selection Actions
+  setSelection: (objectIds: string[]) => void;
+  addToSelection: (objectIds: string[]) => void;
+  removeFromSelection: (objectIds: string[]) => void;
+  clearSelection: () => void;
+
   // Drawing Actions
   createDrawing: (sceneId: string, drawing: Drawing) => void;
   updateDrawing: (
@@ -136,6 +142,7 @@ const initialState: GameState = {
     },
     followDM: true,
     activeTool: 'select' as const,
+    selectedObjectIds: [],
   },
   settings: {
     // Display Settings
@@ -755,6 +762,39 @@ export const useGameStore = create<GameStore>()(
     setActiveTool: (tool) => {
       set((state) => {
         state.sceneState.activeTool = tool;
+      });
+    },
+
+    // Selection Actions
+    setSelection: (objectIds) => {
+      set((state) => {
+        state.sceneState.selectedObjectIds = objectIds;
+      });
+    },
+
+    addToSelection: (objectIds) => {
+      set((state) => {
+        const newIds = objectIds.filter(
+          (id) => !state.sceneState.selectedObjectIds.includes(id),
+        );
+        if (newIds.length > 0) {
+          state.sceneState.selectedObjectIds.push(...newIds);
+        }
+      });
+    },
+
+    removeFromSelection: (objectIds) => {
+      set((state) => {
+        state.sceneState.selectedObjectIds =
+          state.sceneState.selectedObjectIds.filter(
+            (id) => !objectIds.includes(id),
+          );
+      });
+    },
+
+    clearSelection: () => {
+      set((state) => {
+        state.sceneState.selectedObjectIds = [];
       });
     },
 
