@@ -1,3 +1,12 @@
+import type { WebSocket } from 'ws';
+
+export interface GameState {
+  scenes: unknown[];
+  activeSceneId: string | null;
+  characters: unknown[];
+  initiative: unknown;
+}
+
 // Server-side types
 export interface Room {
   code: string;
@@ -8,12 +17,7 @@ export interface Room {
   lastActivity: number;
   status: 'active' | 'hibernating' | 'abandoned';
   hibernationTimer?: NodeJS.Timeout;
-  gameState?: {
-    scenes: unknown[];
-    activeSceneId: string | null;
-    characters: unknown[];
-    initiative: unknown;
-  };
+  gameState?: GameState;
 }
 
 export interface Connection {

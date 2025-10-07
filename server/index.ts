@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import type { Room, Connection, ServerMessage } from './types.js';
+import { IncomingMessage } from 'http';
+import type { Room, Connection, ServerMessage, GameState } from './types.js';
 
 class NexusServer {
   private rooms = new Map<string, Room>();
@@ -28,7 +29,7 @@ class NexusServer {
     console.log(`🌐 Connect to: ws://localhost:${port}/ws`);
   }
 
-  private handleConnection(ws: WebSocket, req: unknown) {
+  private handleConnection(ws: WebSocket, req: IncomingMessage) {
     const uuid = uuidv4();
     const url = new URL(req.url!, 'ws://localhost');
     const params = url.searchParams;
@@ -37,7 +38,7 @@ class NexusServer {
 
     const connection: Connection = {
       id: uuid,
-      ws,
+      ws: ws as any,
     };
 
     this.connections.set(uuid, connection);
@@ -271,7 +272,7 @@ class NexusServer {
     }
   }
 
-  private updateRoomGameState(roomCode: string, gameStateUpdate: unknown) {
+  private updateRoomGameState(roomCode: string, gameStateUpdate: Partial<GameState>) {
     const room = this.rooms.get(roomCode);
     if (!room) return;
 
