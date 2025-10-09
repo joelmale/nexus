@@ -31,6 +31,7 @@ import type {
   DrawingDeleteEvent,
   DrawingClearEvent,
   DiceRollEvent,
+  DiceRollResultEvent,
 } from '@/types/game';
 import type { Drawing } from '@/types/drawing';
 import type { PlacedToken } from '@/types/token';
@@ -238,6 +239,14 @@ const eventHandlers: Record<string, EventHandler> = {
     const eventData = data as DiceRollEvent['data'];
     if (eventData.roll) {
       state.diceRolls.unshift(eventData.roll);
+    }
+  },
+  'dice/roll-result': (state, data) => {
+    // Handle server-authoritative dice roll results
+    const eventData = data as DiceRollResultEvent['data'];
+    if (eventData.roll) {
+      state.diceRolls.unshift(eventData.roll);
+      console.log('🎲 Added dice roll to history:', eventData.roll);
     }
   },
   'token/place': (state, data) => {

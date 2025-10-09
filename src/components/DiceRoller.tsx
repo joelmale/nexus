@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDiceRolls, useIsHost } from '@/stores/gameStore';
-import { formatDiceRoll } from '@/utils/dice';
+import { formatDiceRoll, createDiceRoll } from '@/utils/dice';
 import { webSocketService } from '@/utils/websocket';
-import { DiceBox3D } from './DiceBox3D';
 import { diceSounds } from '@/utils/diceSounds';
+import { useGameStore } from '@/stores/gameStore';
+import { useAppFlowStore } from '@/stores/appFlowStore';
 
 /**
  * @file DiceRoller.tsx
@@ -18,6 +19,7 @@ import { diceSounds } from '@/utils/diceSounds';
 export const DiceRoller: React.FC = () => {
   const diceRolls = useDiceRolls();
   const isHost = useIsHost();
+  const { user } = useAppFlowStore();
   // Local state for the dice expression input field.
   const [expression, setExpression] = useState('');
   // Local state for displaying validation errors.
@@ -28,6 +30,22 @@ export const DiceRoller: React.FC = () => {
   const [rollMode, setRollMode] = useState<'none' | 'advantage' | 'disadvantage'>('none');
   const rollsListRef = useRef<HTMLDivElement>(null);
   const prevRollsCount = useRef(diceRolls.length);
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Check WebSocket connection status
+  useEffect(() => {
+    const checkConnection = () => {
+      setIsConnected(webSocketService.isConnected());
+    };
+
+    // Check immediately
+    checkConnection();
+
+    // Check periodically
+    const interval = setInterval(checkConnection, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // State for sound mute
   const [isSoundMuted, setIsSoundMuted] = useState(diceSounds.isSoundMuted());
@@ -43,10 +61,13 @@ export const DiceRoller: React.FC = () => {
   // Available dice themes
   const DICE_THEMES = [
     { id: 'default', name: 'Default' },
+    { id: 'diceOfRolling', name: 'Dice of Rolling' },
     { id: 'smooth', name: 'Smooth' },
     { id: 'gemstone', name: 'Gemstone' },
+    { id: 'gemstoneMarble', name: 'Gemstone Marble' },
     { id: 'rock', name: 'Rock' },
-    { id: 'metal', name: 'Metal' },
+    { id: 'blueGreenMetal', name: 'Blue Metal' },
+    { id: 'rust', name: 'Rust' },
     { id: 'wooden', name: 'Wooden' },
   ];
 
@@ -62,7 +83,7 @@ export const DiceRoller: React.FC = () => {
 
   /**
    * Handles the primary roll action triggered by the "Roll" button or Enter key.
-   * Sends a request to the server to generate the roll (server-authoritative).
+   * Generates the roll on the client and broadcasts to other players.
    */
   const handleRoll = () => {
     if (!expression.trim()) {
@@ -73,20 +94,42 @@ export const DiceRoller: React.FC = () => {
     // Clear any previous errors
     setError('');
 
-    console.log('🎲 Requesting dice roll from server:', expression.trim());
+    console.log('🎲 Rolling dice (client-side):', expression.trim());
 
-    // Send dice roll request to server (server will generate the random numbers)
-    webSocketService.sendEvent({
-      type: 'dice/roll-request',
-      data: {
-        expression: expression.trim(),
+    // Generate the roll on the client
+    const roll = createDiceRoll(
+      expression.trim(),
+      user.id || 'unknown',
+      user.name || 'Player',
+      {
         isPrivate: isHost && isPrivate,
         advantage: rollMode === 'advantage',
         disadvantage: rollMode === 'disadvantage',
       }
-    });
+    );
 
-    // The server will broadcast the result back to all clients
+    if (!roll) {
+      setError('Invalid dice expression');
+      return;
+    }
+
+    // Add to local state immediately
+    useGameStore.getState().addDiceRoll(roll);
+    console.log('🎲 Roll added to history:', roll);
+
+    // Broadcast to other players (if connected)
+    if (webSocketService.isConnected()) {
+      webSocketService.sendEvent({
+        type: 'dice/roll-result',
+        data: { roll }
+      });
+      console.log('📡 Roll broadcast to other players');
+    } else {
+      console.log('⚠️  Roll not broadcast (offline mode)');
+    }
+
+    // Clear expression after successful roll
+    setExpression('');
   };
 
   /**
@@ -219,13 +262,23 @@ export const DiceRoller: React.FC = () => {
 
   return (
     <div className="dice-roller">
-      <DiceBox3D />
-
       {/* Section for user input and quick roll buttons */}
       <div className="dice-input">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h2 style={{ margin: 0 }}>Dice Roller</h2>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {!isConnected && (
+              <span style={{
+                fontSize: '0.8rem',
+                color: '#f59e0b',
+                background: 'rgba(245, 158, 11, 0.1)',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '4px',
+                border: '1px solid rgba(245, 158, 11, 0.3)'
+              }} title="Rolls work offline, but won't sync to other players">
+                Offline
+              </span>
+            )}
             <button
               onClick={cycleDiceTheme}
               className="theme-toggle-btn"

@@ -18,6 +18,7 @@ import { GameToolbar } from './GameToolbar';
 import { PlayerBar } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
 import { GeneratorPanel } from './Generator/GeneratorPanel';
+import { DiceBox3D } from './DiceBox3D';
 import { applyColorScheme } from '@/utils/colorSchemes';
 
 export const LinearGameLayout: React.FC = () => {
@@ -27,7 +28,7 @@ export const LinearGameLayout: React.FC = () => {
   const colorScheme = useColorScheme();
   const { user, roomCode, leaveRoom } = useAppFlowStore();
 
-  // Add debugging for game layout mounting
+  // Add debugging for game layout mounting and auto-reconnect WebSocket
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.log('🎮 LinearGameLayout mounted with:', {
@@ -37,6 +38,26 @@ export const LinearGameLayout: React.FC = () => {
         scenesCount: scenes.length,
       });
     }
+
+    // Auto-reconnect WebSocket if we have a room code but no connection
+    const reconnectIfNeeded = async () => {
+      if (roomCode && user.type) {
+        const { webSocketService } = await import('@/utils/websocket');
+
+        if (!webSocketService.isConnected()) {
+          console.log('🔌 Auto-reconnecting to room:', roomCode, 'as', user.type);
+          try {
+            const userType = user.type === 'dm' ? 'host' : 'player';
+            await webSocketService.connect(roomCode, userType);
+            console.log('✅ Auto-reconnection successful');
+          } catch (error) {
+            console.error('❌ Auto-reconnection failed:', error);
+          }
+        }
+      }
+    };
+
+    reconnectIfNeeded();
 
     return () => {
       if (process.env.NODE_ENV === 'development') {
@@ -301,7 +322,7 @@ export const LinearGameLayout: React.FC = () => {
         </div>
 
         {/* Scene Content */}
-        <div className="scene-content">
+        <div className="scene-content" style={{ position: 'relative' }}>
           {activeScene ? (
             <SceneCanvas scene={activeScene} />
           ) : (
@@ -315,6 +336,9 @@ export const LinearGameLayout: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* 3D Dice Box - positioned top-right of scene */}
+          <DiceBox3D />
         </div>
 
         {/* Floating Toolbar */}

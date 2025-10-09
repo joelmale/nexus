@@ -37,6 +37,7 @@
 @import './scenes.css' layer(components);
 @import './character-sheet.css' layer(components);
 @import './dice-roller.css' layer(components);
+@import './dice-box-3d.css' layer(components);
 @import './player-panel.css' layer(components);
 /* Secondary components */
 @import './character-creation-wizard.css' layer(components);

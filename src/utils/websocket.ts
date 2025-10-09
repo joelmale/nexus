@@ -14,12 +14,99 @@ class WebSocketService extends EventTarget {
 
   // Get WebSocket URL dynamically from environment
   private getWebSocketUrl(roomCode?: string, userType?: 'host' | 'player'): string {
+    // In Docker/K8s, use environment variable or default to 5000
+    // In dev, we'll try multiple ports via fallback logic in connect()
     const wsPort = import.meta.env.VITE_WS_PORT || '5000';
-    const wsUrl = `ws://localhost:${wsPort}`;
+    const wsHost = import.meta.env.VITE_WS_HOST || 'localhost';
+    const wsUrl = `ws://${wsHost}:${wsPort}`;
     if (roomCode) {
       return userType === 'host' ? `${wsUrl}?reconnect=${roomCode}` : `${wsUrl}?join=${roomCode}`;
     }
     return wsUrl;
+  }
+
+  // Try connecting to multiple ports (for dev environment)
+  private async tryConnectWithFallback(
+    roomCode?: string,
+    userType?: 'host' | 'player'
+  ): Promise<WebSocket> {
+    const isDev = import.meta.env.DEV;
+    const basePorts = [
+      import.meta.env.VITE_WS_PORT || '5000',
+      '5001',
+      '5002',
+      '5003'
+    ];
+
+    // In production/docker, only try the configured port
+    let portsToTry = isDev ? basePorts : [basePorts[0]];
+
+    // In dev, try the last working port first (from localStorage)
+    if (isDev) {
+      try {
+        const lastWorkingPort = localStorage.getItem('nexus_ws_port');
+        if (lastWorkingPort && basePorts.includes(lastWorkingPort)) {
+          // Move last working port to the front
+          portsToTry = [
+            lastWorkingPort,
+            ...basePorts.filter(p => p !== lastWorkingPort)
+          ];
+        }
+      } catch {
+        // localStorage might not be available
+      }
+    }
+
+    const wsHost = import.meta.env.VITE_WS_HOST || 'localhost';
+
+    for (const port of portsToTry) {
+      try {
+        const wsUrl = `ws://${wsHost}:${port}`;
+        const url = roomCode
+          ? (userType === 'host' ? `${wsUrl}?reconnect=${roomCode}` : `${wsUrl}?join=${roomCode}`)
+          : wsUrl;
+
+        console.log(`🔌 Attempting WebSocket connection to ${wsUrl}...`);
+
+        const ws = await this.attemptConnection(url, port);
+        console.log(`✅ Connected to WebSocket on port ${port}`);
+
+        // Save the working port to localStorage for faster next connection
+        if (isDev) {
+          localStorage.setItem('nexus_ws_port', port);
+        }
+
+        return ws;
+      } catch (error) {
+        console.log(`❌ Failed to connect on port ${port}`);
+        if (!isDev || port === portsToTry[portsToTry.length - 1]) {
+          throw error;
+        }
+        // Continue to next port
+      }
+    }
+
+    throw new Error('Failed to connect to WebSocket on any available port');
+  }
+
+  private attemptConnection(url: string, port: string): Promise<WebSocket> {
+    return new Promise((resolve, reject) => {
+      const ws = new WebSocket(url);
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject(new Error(`Connection timeout on port ${port}`));
+      }, 3000);
+
+      ws.onopen = () => {
+        clearTimeout(timeout);
+        resolve(ws);
+      };
+
+      ws.onerror = (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      };
+    });
   }
 
   connect(roomCode?: string, userType?: 'host' | 'player'): Promise<void> {
@@ -28,38 +115,23 @@ class WebSocketService extends EventTarget {
       return this.connectionPromise;
     }
 
-    this.connectionPromise = new Promise((resolve, reject) => {
+    this.connectionPromise = (async () => {
       try {
-        const url = this.getWebSocketUrl(roomCode, userType);
-        
-        console.log('Attempting to connect to:', url);
-        this.ws = new WebSocket(url);
+        // Try connecting with fallback to multiple ports in dev
+        this.ws = await this.tryConnectWithFallback(roomCode, userType);
 
-        // Set a connection timeout
-        const timeout = setTimeout(() => {
-          if (this.ws?.readyState === WebSocket.CONNECTING) {
-            this.ws.close();
-            reject(new Error('Connection timeout'));
+        console.log('WebSocket connected successfully');
+        this.reconnectAttempts = 0;
+
+        // Send queued messages
+        while (this.messageQueue.length > 0) {
+          const message = this.messageQueue.shift();
+          if (message && this.ws?.readyState === WebSocket.OPEN) {
+            this.ws.send(message);
           }
-        }, 10000); // 10 second timeout
+        }
 
-        this.ws.onopen = () => {
-          clearTimeout(timeout);
-          console.log('WebSocket connected successfully');
-          this.reconnectAttempts = 0;
-          this.connectionPromise = null;
-          
-          // Send queued messages
-          while (this.messageQueue.length > 0) {
-            const message = this.messageQueue.shift();
-            if (message && this.ws?.readyState === WebSocket.OPEN) {
-              this.ws.send(message);
-            }
-          }
-          
-          resolve();
-        };
-
+        // Set up message handlers
         this.ws.onmessage = (event) => {
           try {
             const message: WebSocketMessage = JSON.parse(event.data);
@@ -71,31 +143,25 @@ class WebSocketService extends EventTarget {
         };
 
         this.ws.onclose = (event) => {
-          clearTimeout(timeout);
           console.log('WebSocket disconnected:', event.code, event.reason);
           this.connectionPromise = null;
-          
+
           if (event.code !== 1000) { // Not a normal closure
             this.handleReconnect();
           }
         };
 
         this.ws.onerror = (error) => {
-          clearTimeout(timeout);
           console.error('WebSocket error:', error);
           this.connectionPromise = null;
-          
-          // Only reject if we haven't connected yet
-          if (this.ws?.readyState === WebSocket.CONNECTING) {
-            reject(new Error('WebSocket connection failed'));
-          }
         };
 
+        this.connectionPromise = null;
       } catch (error) {
         this.connectionPromise = null;
-        reject(error);
+        throw error;
       }
-    });
+    })();
 
     return this.connectionPromise;
   }

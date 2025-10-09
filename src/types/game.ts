@@ -230,6 +230,13 @@ export interface DiceRollEvent extends GameEvent {
   };
 }
 
+export interface DiceRollResultEvent extends GameEvent {
+  type: 'dice/roll-result';
+  data: {
+    roll: DiceRoll;
+  };
+}
+
 export interface UserJoinEvent extends GameEvent {
   type: 'user/join';
   data: {

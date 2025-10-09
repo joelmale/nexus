@@ -9,6 +9,7 @@ import {
 import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 import { RefreshIcon, SaveIcon } from './Icons';
 import type { ColorScheme, UserSettings } from '@/types/game';
+import { useAppFlowStore } from '@/stores/appFlowStore';
 
 /**
  * @file Settings.tsx
@@ -722,6 +723,55 @@ export const Settings: React.FC = () => {
                 />
                 <span className="toggle-slider"></span>
               </label>
+            </SettingItem>
+
+            <SettingItem
+              label="Clear & Reset All"
+              description="Clear game store, disconnect from room, and reset to welcome page"
+            >
+              <button
+                onClick={() => {
+                  if (confirm('⚠️  This will:\n• Clear all game data\n• Disconnect from room\n• Reset to welcome page\n\nContinue?')) {
+                    // Clear gameStore
+                    useGameStore.getState().reset();
+
+                    // Clear appFlowStore and disconnect
+                    const appFlow = useAppFlowStore.getState();
+                    appFlow.leaveRoom();
+
+                    // Clear localStorage
+                    try {
+                      localStorage.removeItem('nexus_ws_port');
+                      localStorage.removeItem('nexus_dice_theme');
+                    } catch (e) {
+                      console.warn('Failed to clear localStorage:', e);
+                    }
+
+                    console.log('🧹 Full reset completed');
+                  }
+                }}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  borderRadius: '6px',
+                  padding: '0.5rem 1rem',
+                  color: '#ef4444',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                🧹 Clear & Reset
+              </button>
             </SettingItem>
           </SettingsSection>
         )}
