@@ -1,17 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { webSocketService } from '../../../src/utils/websocket';
 
-// Mock fetch to prevent HTTP health checks
+// Mock fetch to prevent HTTP health checks in tests
 global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-// Mock import.meta.env to disable server discovery in tests
-vi.mock('import.meta', () => ({
-  env: {
-    DEV: false, // Disable dev mode to skip server discovery
-    VITE_WS_PORT: '5000',
-    VITE_WS_HOST: 'localhost',
-  },
-}));
+// Set environment to production mode to disable server discovery
+vi.stubEnv('DEV', false);
+vi.stubEnv('VITE_WS_PORT', '5000');
+vi.stubEnv('VITE_WS_HOST', 'localhost');
 
 // Mock WebSocket
 const mockWebSocket: {
