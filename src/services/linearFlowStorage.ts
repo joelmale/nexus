@@ -546,6 +546,47 @@ export class LinearFlowStorage {
     console.log('🗑️ Cleared session data from IndexedDB');
   }
 
+  /**
+   * Clear all game data (scenes and sessions) but keep characters
+   * Use this when starting a fresh new game
+   */
+  async clearGameData(): Promise<void> {
+    console.log('🗑️ Clearing game data (keeping characters)...');
+
+    // Get all entities first (before deleting anything to avoid query issues)
+    // Filter out undefined values in case of corrupted data
+    const allDrawings = (this.store.getByType('drawing') as unknown as Drawing[]).filter(d => d != null);
+    const allScenes = (this.store.getByType('scene') as unknown as Scene[]).filter(s => s != null);
+
+    // Delete all drawings first
+    allDrawings.forEach((drawing) => {
+      if (drawing?.id) {
+        this.store.delete(drawing.id);
+      }
+    });
+    console.log(`🗑️ Deleted ${allDrawings.length} drawings`);
+
+    // Delete all scenes
+    allScenes.forEach((scene) => {
+      if (scene?.id) {
+        this.store.delete(scene.id);
+      }
+    });
+    console.log(`🗑️ Deleted ${allScenes.length} scenes`);
+
+    // Clear sessions
+    this.clearSession();
+
+    // Clear gameStore in-memory state
+    const { useGameStore } = await import('@/stores/gameStore');
+    useGameStore.getState().reset();
+
+    // Force save to persist the cleared state
+    await this.forceSave();
+
+    console.log('✅ Game data cleared - ready for new game');
+  }
+
   // =============================================================================
   // MIGRATION FROM LOCALSTORAGE
   // =============================================================================
@@ -984,6 +1025,10 @@ if (typeof window !== 'undefined') {
     resetDatabase: async () => {
       const storage = getLinearFlowStorage();
       await storage.resetDatabase();
+    },
+    clearGameData: async () => {
+      const storage = getLinearFlowStorage();
+      await storage.clearGameData();
     },
     getStats: () => {
       const storage = getLinearFlowStorage();

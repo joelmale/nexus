@@ -66,8 +66,8 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ steps.meta.outputs.version }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=frontend-v2
+          cache-to: type=gha,mode=max,scope=frontend-v2
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
             COMMIT_SHA=${{ github.sha }}
@@ -81,8 +81,8 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ steps.meta.outputs.version }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=backend-v2
+          cache-to: type=gha,mode=max,scope=backend-v2
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
             COMMIT_SHA=${{ github.sha }}

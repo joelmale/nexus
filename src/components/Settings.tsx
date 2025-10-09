@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGameStore, useSettings, useColorScheme } from '@/stores/gameStore';
 import {
   defaultColorSchemes,
@@ -9,6 +10,7 @@ import {
 import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 import { RefreshIcon, SaveIcon } from './Icons';
 import type { ColorScheme, UserSettings } from '@/types/game';
+import { useAppFlowStore } from '@/stores/appFlowStore';
 
 /**
  * @file Settings.tsx
@@ -226,6 +228,7 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
  * state management, saving, and resetting of user preferences.
  */
 export const Settings: React.FC = () => {
+  const navigate = useNavigate();
   const {
     updateSettings,
     setColorScheme,
@@ -709,19 +712,56 @@ export const Settings: React.FC = () => {
             description="Settings for development and testing purposes"
           >
             <SettingItem
-              label="Use Mock Data"
-              description="Populate the lobby with mock players for testing"
+              label="Clear & Reset All"
+              description="Clear game store, disconnect from room, and reset to welcome page"
             >
-              <label className="setting-toggle">
-                <input
-                  type="checkbox"
-                  checked={settings.useMockData ?? false}
-                  onChange={(e) =>
-                    handleSettingChange('useMockData', e.target.checked)
+              <button
+                onClick={async () => {
+                  if (confirm('⚠️  This will:\n• Clear all game data\n• Disconnect from room\n• Reset to lobby\n\nContinue?')) {
+                    // Clear gameStore
+                    useGameStore.getState().reset();
+
+                    // Clear appFlowStore and disconnect
+                    const appFlow = useAppFlowStore.getState();
+                    await appFlow.leaveRoom();
+
+                    // Clear localStorage
+                    try {
+                      localStorage.removeItem('nexus_ws_port');
+                      localStorage.removeItem('nexus_dice_theme');
+                      localStorage.removeItem('nexus-active-session');
+                    } catch (e) {
+                      console.warn('Failed to clear localStorage:', e);
+                    }
+
+                    console.log('🧹 Full reset completed - navigating to lobby');
+
+                    // Navigate to lobby
+                    navigate('/lobby');
                   }
-                />
-                <span className="toggle-slider"></span>
-              </label>
+                }}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  borderRadius: '6px',
+                  padding: '0.5rem 1rem',
+                  color: '#ef4444',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                🧹 Clear & Reset
+              </button>
             </SettingItem>
           </SettingsSection>
         )}

@@ -14,6 +14,8 @@ export interface BaseMap {
   tags: string[];
   format: string;
   isDefault: boolean;
+  category?: string;
+  thumbnail?: string;
 }
 
 export interface BaseMapCategory {

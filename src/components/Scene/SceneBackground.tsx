@@ -38,18 +38,60 @@ export const SceneBackground: React.FC<SceneBackgroundProps> = ({
     });
   }, [url, bgWidth, bgHeight, bgOffsetX, bgOffsetY, scale]);
 
+  // Handle error state
+  const [imageError, setImageError] = React.useState(false);
+
+  const handleImageError = (e: React.SyntheticEvent<SVGImageElement, Event>) => {
+    console.error('🖼️ Image load error:', {
+      url: url.substring(0, 100) + '...',
+      error: e,
+    });
+    setImageError(true);
+  };
+
+  const handleImageLoad = () => {
+    console.log('🖼️ Image loaded successfully:', url.substring(0, 50));
+    setImageError(false);
+  };
+
+  if (imageError) {
+    return (
+      <g className="scene-background">
+        <rect
+          x={bgOffsetX}
+          y={bgOffsetY}
+          width={bgWidth * scale}
+          height={bgHeight * scale}
+          fill="#1a1a2e"
+          opacity={0.8}
+        />
+        <text
+          x={0}
+          y={0}
+          fill="#ff6b6b"
+          fontSize="24"
+          textAnchor="middle"
+        >
+          ⚠️ Failed to load background image
+        </text>
+      </g>
+    );
+  }
+
   return (
     <g className="scene-background">
       <image
         href={url}
+        xlinkHref={url}
         x={bgOffsetX}
         y={bgOffsetY}
         width={bgWidth * scale}
         height={bgHeight * scale}
         preserveAspectRatio="xMidYMid slice"
         opacity={0.9}
-        onError={(e) => console.error('🖼️ Image load error:', e)}
-        onLoad={() => console.log('🖼️ Image loaded successfully')}
+        onError={handleImageError}
+        onLoad={handleImageLoad}
+        crossOrigin="anonymous"
       />
     </g>
   );

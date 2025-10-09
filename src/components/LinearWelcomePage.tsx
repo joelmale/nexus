@@ -12,6 +12,7 @@ import { useAppFlowStore } from '@/stores/appFlowStore';
 import { NexusLogo } from './Assets';
 import { useAssetExists } from '@/utils/assets';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.png';
+import { applyMockDataToStorage, clearMockDataFromStorage } from '@/utils/mockDataGenerator';
 
 export const LinearWelcomePage: React.FC = () => {
   const { setUser, joinRoomWithCode, dev_quickDM, dev_quickPlayer, dev_skipToGame } = useAppFlowStore();
@@ -20,7 +21,29 @@ export const LinearWelcomePage: React.FC = () => {
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [useMockData, setUseMockData] = useState(false);
+  const [mockDataLoading, setMockDataLoading] = useState(false);
   const hasCustomLogo = useAssetExists('/assets/logos/nexus-logo.svg');
+
+  // Handle mock data toggle
+  const handleMockDataToggle = async (enabled: boolean) => {
+    setMockDataLoading(true);
+    try {
+      if (enabled) {
+        await applyMockDataToStorage({
+          userId: 'mock-dm-user',
+          userName: 'Mock DM',
+        });
+      } else {
+        await clearMockDataFromStorage();
+      }
+      setUseMockData(enabled);
+    } catch (error) {
+      console.error('Failed to toggle mock data:', error);
+    } finally {
+      setMockDataLoading(false);
+    }
+  };
 
   const handlePlayerSetup = () => {
     if (!playerName.trim()) {
@@ -68,6 +91,78 @@ export const LinearWelcomePage: React.FC = () => {
 
   return (
     <div className="welcome-page">
+      {/* Mock Data Toggle - Development Only */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '10px 16px',
+          borderRadius: '8px',
+          background: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        }}>
+          <span style={{
+            fontSize: '12px',
+            color: '#ffffff',
+            opacity: 0.7,
+            fontWeight: 500,
+          }}>
+            Mock Data
+          </span>
+          <label style={{
+            position: 'relative',
+            display: 'inline-block',
+            width: '44px',
+            height: '24px',
+            cursor: mockDataLoading ? 'wait' : 'pointer',
+            opacity: mockDataLoading ? 0.5 : 1,
+          }}>
+            <input
+              type="checkbox"
+              checked={useMockData}
+              onChange={(e) => handleMockDataToggle(e.target.checked)}
+              disabled={mockDataLoading}
+              style={{ opacity: 0, width: 0, height: 0 }}
+            />
+            <span style={{
+              position: 'absolute',
+              cursor: 'pointer',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: useMockData ? '#4ade80' : '#374151',
+              transition: 'background-color 0.3s',
+              borderRadius: '24px',
+            }}>
+              <span style={{
+                position: 'absolute',
+                content: '""',
+                height: '18px',
+                width: '18px',
+                left: useMockData ? '23px' : '3px',
+                bottom: '3px',
+                backgroundColor: 'white',
+                transition: 'left 0.3s',
+                borderRadius: '50%',
+              }} />
+            </span>
+          </label>
+          {mockDataLoading && (
+            <span style={{
+              fontSize: '20px',
+              animation: 'spin 1s linear infinite',
+            }}>⏳</span>
+          )}
+        </div>
+      )}
+
       <div className="welcome-background">
         <img src={DnDTeamBackground} alt="D&D Adventure Party" />
         <div className="background-overlay"></div>
@@ -241,6 +336,16 @@ export const LinearWelcomePage: React.FC = () => {
               <hr className="dev-divider" />
               <h4 className="dev-title">⚡ Development Tools</h4>
               <div className="dev-buttons">
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('nexus-active-session');
+                    window.location.href = '/lobby?new=true';
+                  }}
+                  className="dev-btn glass-button secondary small"
+                  title="Clear session and start fresh"
+                >
+                  🔄 Force New Session
+                </button>
                 <button
                   onClick={() => dev_quickDM()}
                   className="dev-btn glass-button secondary small"

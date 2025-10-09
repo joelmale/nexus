@@ -111,7 +111,21 @@ class DungeonMapService {
   /**
    * Save maps to localStorage
    */
-  private saveToStorage(): void {
+  private saveToStorage(recursionDepth = 0): void {
+    // Prevent infinite recursion
+    if (recursionDepth > 10) {
+      console.error('❌ Failed to save after removing 10 maps. Clearing all generated maps.');
+      this.generatedMaps = [];
+      localStorage.removeItem(this.STORAGE_KEY);
+      return;
+    }
+
+    // Limit to only keep last 5 maps to prevent storage overflow
+    const MAX_STORED_MAPS = 5;
+    if (this.generatedMaps.length > MAX_STORED_MAPS) {
+      this.generatedMaps = this.generatedMaps.slice(-MAX_STORED_MAPS);
+    }
+
     try {
       localStorage.setItem(
         this.STORAGE_KEY,
@@ -125,8 +139,11 @@ class DungeonMapService {
         error.name === 'QuotaExceededError'
       ) {
         if (this.generatedMaps.length > 0) {
+          console.warn(`⚠️ Storage full. Removing oldest map (${this.generatedMaps.length} total)`);
           this.generatedMaps.shift(); // Remove oldest
-          this.saveToStorage(); // Try again
+          this.saveToStorage(recursionDepth + 1); // Try again with depth tracking
+        } else {
+          console.error('❌ Storage quota exceeded with no maps to remove');
         }
       }
     }
@@ -146,6 +163,18 @@ class DungeonMapService {
    */
   clearAllNow(): void {
     this.clearAll();
+  }
+
+  /**
+   * Keep only the N most recent maps
+   */
+  keepRecentMaps(count: number): void {
+    if (this.generatedMaps.length > count) {
+      const removed = this.generatedMaps.length - count;
+      this.generatedMaps = this.generatedMaps.slice(-count);
+      this.saveToStorage();
+      console.log(`🗑️ Removed ${removed} old dungeon maps, kept ${count} most recent`);
+    }
   }
 
   /**

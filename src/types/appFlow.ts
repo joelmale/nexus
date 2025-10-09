@@ -12,11 +12,13 @@ export interface AppState {
     name: string;
     type: 'player' | 'dm' | null;
     id: string; // Generated browser ID for character linking
+    color: string;
   };
   roomCode?: string;
   isConnectedToRoom: boolean;
   gameConfig?: GameConfig;
   selectedCharacter?: PlayerCharacter;
+  hasLeftRoom?: boolean;
 }
 
 export interface PlayerCharacter {
@@ -59,7 +61,7 @@ export interface AppFlowActions {
   selectCharacter: (characterId: string) => void;
 
   // DM flow
-  createGameRoom: (config: GameConfig) => Promise<string>; // Returns room code
+  createGameRoom: (config: GameConfig, clearExistingData?: boolean) => Promise<string>; // Returns room code
 
   // Character persistence
   saveCharacter: (character: PlayerCharacter) => void;

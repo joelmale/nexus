@@ -11,6 +11,8 @@ import {
   useFollowDM,
   useIsHost,
   useActiveTool,
+  useSceneState,
+  useSceneDrawings,
 } from '@/stores/gameStore';
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
@@ -36,8 +38,17 @@ interface SceneCanvasProps {
 }
 
 export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
-  const { updateCamera, placeToken, moveToken, getSceneTokens, user } =
-    useGameStore();
+  const {
+    updateCamera,
+    placeToken,
+    moveToken,
+    getSceneTokens,
+    user,
+    setSelection,
+    addToSelection,
+    clearSelection,
+  } = useGameStore();
+  const { selectedObjectIds } = useSceneState();
   const camera = useCamera();
   const followDM = useFollowDM();
   const isHost = useIsHost();
@@ -96,8 +107,14 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     coneLength: 15,
     dndSpellLevel: 1,
   });
-  const [selectedDrawings, setSelectedDrawings] = useState<string[]>([]);
-  const [selectedTokens, setSelectedTokens] = useState<string[]>([]);
+
+
+  const drawings = useSceneDrawings(scene.id);
+
+  const selectedDrawingIds = useMemo(() => {
+    const drawingIds = new Set(drawings.map((d) => d.id));
+    return selectedObjectIds.filter((id) => drawingIds.has(id));
+  }, [selectedObjectIds, drawings]);
 
   // Update viewport size when container resizes
   useEffect(() => {
@@ -240,42 +257,11 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Get tokens for this scene - must be defined before callbacks that use it
   const placedTokens = getSceneTokens(scene.id);
 
-  const handleSelectionChange = useCallback(
-    (
-      newSelection: string[],
-      selectionBox?: {
-        start: { x: number; y: number };
-        end: { x: number; y: number };
-      },
-    ) => {
-      setSelectedDrawings(newSelection);
 
-      // Also select tokens in the selection box if provided
-      if (selectionBox) {
-        const minX = Math.min(selectionBox.start.x, selectionBox.end.x);
-        const maxX = Math.max(selectionBox.start.x, selectionBox.end.x);
-        const minY = Math.min(selectionBox.start.y, selectionBox.end.y);
-        const maxY = Math.max(selectionBox.start.y, selectionBox.end.y);
-
-        const tokensInBox = placedTokens
-          .filter(
-            (token) =>
-              token.x >= minX &&
-              token.x <= maxX &&
-              token.y >= minY &&
-              token.y <= maxY,
-          )
-          .map((token) => token.id);
-
-        setSelectedTokens(tokensInBox);
-      }
-    },
-    [placedTokens],
-  );
 
   const handleClosePropertiesPanel = useCallback(() => {
-    setSelectedDrawings([]);
-  }, []);
+    clearSelection();
+  }, [clearSelection]);
 
   // Token handlers
   const handleTokenDrop = useCallback(
@@ -307,15 +293,12 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   );
 
   const handleTokenSelect = useCallback((tokenId: string, multi: boolean) => {
-    setSelectedTokens((prev) => {
-      if (multi) {
-        return prev.includes(tokenId)
-          ? prev.filter((id) => id !== tokenId)
-          : [...prev, tokenId];
-      }
-      return [tokenId];
-    });
-  }, []);
+    if (multi) {
+      addToSelection([tokenId]);
+    } else {
+      setSelection([tokenId]);
+    }
+  }, [addToSelection, setSelection]);
 
   const handleTokenMove = useCallback(
     (tokenId: string, deltaX: number, deltaY: number) => {
@@ -389,9 +372,9 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   return (
     <div className="scene-canvas-container">
       {/* Drawing Properties Panel */}
-      {selectedDrawings.length > 0 && (
+      {selectedDrawingIds.length > 0 && (
         <DrawingPropertiesPanel
-          selectedDrawingIds={selectedDrawings}
+          selectedDrawingIds={selectedDrawingIds}
           sceneId={scene.id}
           onClose={handleClosePropertiesPanel}
         />
@@ -476,7 +459,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
                     placedToken={placedToken}
                     token={token}
                     gridSize={safeGridSettings.size}
-                    isSelected={selectedTokens.includes(placedToken.id)}
+                    isSelected={selectedObjectIds.includes(placedToken.id)}
                     onSelect={handleTokenSelect}
                     onMove={handleTokenMove}
                     onMoveEnd={handleTokenMoveEnd}
@@ -492,17 +475,20 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
               drawingStyle={drawingStyle}
               camera={camera}
               _gridSize={safeGridSettings.size}
-              svgRef={svgRef}
-              onSelectionChange={handleSelectionChange}
+              svgRef={svgRef as React.RefObject<SVGSVGElement>}
               snapToGrid={safeGridSettings.snapToGrid}
+              selectedObjectIds={selectedObjectIds}
+              setSelection={setSelection}
+              clearSelection={clearSelection}
+              placedTokens={placedTokens}
             />
 
             {/* Selection overlay */}
             <SelectionOverlay
-              selectedDrawings={selectedDrawings}
+              selectedDrawings={selectedObjectIds}
               sceneId={scene.id}
               camera={camera}
-              onClearSelection={() => setSelectedDrawings([])}
+              onClearSelection={clearSelection}
             />
 
             {/* Content layers will be added here (tokens, etc.) */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { baseMapAssetManager, type BaseMap } from '@/services/baseMapAssets';
 import { dungeonMapService } from '@/services/dungeonMapService';
+import { assetFavoritesManager } from '@/services/assetFavorites';
 import '@/styles/asset-browser.css';
 
 interface BaseMapBrowserProps {
@@ -15,6 +16,7 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
   const [maps, setMaps] = useState<BaseMap[]>([]);
   const [filteredMaps, setFilteredMaps] = useState<BaseMap[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedMap, setSelectedMap] = useState<BaseMap | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,18 +35,28 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
   }, []);
 
   useEffect(() => {
+    let filtered = maps;
+
+    // Filter by category
+    if (selectedCategory === 'favorites') {
+      const favorites = assetFavoritesManager.getFavorites();
+      filtered = filtered.filter((map) => favorites.includes(map.id));
+    } else if (selectedCategory !== 'all') {
+      filtered = filtered.filter((map) => map.category === selectedCategory);
+    }
+
+    // Filter by search query
     if (searchQuery.trim()) {
       const lowerQuery = searchQuery.toLowerCase();
-      const filtered = maps.filter(
+      filtered = filtered.filter(
         (map) =>
           map.name.toLowerCase().includes(lowerQuery) ||
           map.tags.some((tag) => tag.toLowerCase().includes(lowerQuery)),
       );
-      setFilteredMaps(filtered);
-    } else {
-      setFilteredMaps(maps);
     }
-  }, [searchQuery, maps]);
+
+    setFilteredMaps(filtered);
+  }, [searchQuery, selectedCategory, maps]);
 
   const handleMapClick = (map: BaseMap) => {
     setSelectedMap(map);
@@ -52,8 +64,16 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
 
   const handleSelect = () => {
     if (selectedMap) {
+      assetFavoritesManager.addToRecent(selectedMap.id, 'map');
       onSelect(selectedMap);
     }
+  };
+
+  const toggleFavorite = (e: React.MouseEvent, mapId: string) => {
+    e.stopPropagation();
+    assetFavoritesManager.toggleFavorite(mapId);
+    // Force re-render
+    setFilteredMaps([...filteredMaps]);
   };
 
   return (
@@ -74,6 +94,24 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
           />
+        </div>
+
+        <div className="asset-browser-filters" style={{
+          padding: '8px 16px',
+          display: 'flex',
+          gap: '8px',
+          borderBottom: '1px solid var(--border-color)'
+        }}>
+          {['all', 'favorites', 'outdoor', 'indoor', 'dungeon', 'urban'].map((category) => (
+            <button
+              key={category}
+              className={`btn btn-small ${selectedCategory === category ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setSelectedCategory(category)}
+              style={{ textTransform: 'capitalize' }}
+            >
+              {category === 'all' ? 'All Maps' : category === 'favorites' ? '⭐ Favorites' : category}
+            </button>
+          ))}
         </div>
 
         <div
@@ -103,9 +141,62 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
                   key={map.id}
                   className={`asset-browser-item ${selectedMap?.id === map.id ? 'selected' : ''}`}
                   onClick={() => handleMapClick(map)}
+                  style={{
+                    border: selectedMap?.id === map.id ? '3px solid var(--primary-color)' : '2px solid var(--border-color)',
+                    boxShadow: selectedMap?.id === map.id ? '0 0 12px var(--primary-color)' : 'none',
+                    transform: selectedMap?.id === map.id ? 'scale(1.02)' : 'scale(1)',
+                    transition: 'all 0.2s ease'
+                  }}
                 >
                   <div className="asset-thumbnail">
-                    <img src={map.path} alt={map.name} loading="lazy" />
+                    <img
+                      src={map.thumbnail || map.path}
+                      alt={map.name}
+                      loading="lazy"
+                      onError={(e) => {
+                        // Fallback to full image if thumbnail fails
+                        e.currentTarget.src = map.path;
+                      }}
+                    />
+                    <button
+                      onClick={(e) => toggleFavorite(e, map.id)}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        left: '8px',
+                        background: 'rgba(0,0,0,0.6)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '32px',
+                        height: '32px',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'transform 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                      {assetFavoritesManager.isFavorite(map.id) ? '⭐' : '☆'}
+                    </button>
+                    {map.category && (
+                      <span style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        padding: '4px 8px',
+                        background: 'var(--primary-color)',
+                        color: 'white',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        textTransform: 'capitalize'
+                      }}>
+                        {map.category}
+                      </span>
+                    )}
                   </div>
                   <div className="asset-info">
                     <h4>{map.name}</h4>

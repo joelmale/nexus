@@ -33,6 +33,13 @@ const SIZE_PATTERNS = {
   gargantuan: /(gargantuan|dragon|colossal)/i,
 };
 
+const MAP_CATEGORY_PATTERNS = {
+  dungeon: /(dungeon|cave|crypt|tomb|ruins|ancient|den|lair|underground)/i,
+  indoor: /(tavern|inn|house|castle|temple|shop|interior|room|hall)/i,
+  outdoor: /(forest|field|camp|wilderness|road|path|clearing|hillside|lakeside|seaside|beach|shore|ocean|sea|river|swamp|jungle|woodland|astral)/i,
+  urban: /(city|town|street|alley|square|marketplace|dock)/i,
+};
+
 /**
  * Extract token metadata from filename
  */
@@ -87,6 +94,15 @@ function parseMapName(filename) {
       }
     : null;
 
+  // Determine category
+  let category = 'outdoor'; // default
+  for (const [cat, pattern] of Object.entries(MAP_CATEGORY_PATTERNS)) {
+    if (pattern.test(nameWithoutExt)) {
+      category = cat;
+      break;
+    }
+  }
+
   // Extract tags
   const tags = nameWithoutExt
     .toLowerCase()
@@ -95,6 +111,7 @@ function parseMapName(filename) {
 
   return {
     name: nameWithoutExt.replace(/_/g, ' ').replace(/ - /g, ' - '),
+    category,
     gridSize,
     tags: [...new Set(tags)],
   };
@@ -109,6 +126,9 @@ function scanDirectory(dir, baseDir, type) {
 
   for (const file of files) {
     if (file.startsWith('.')) continue;
+
+    // Skip thumbnails directory and thumbnail files
+    if (file === 'thumbnails' || file.includes('.thumb.')) continue;
 
     const fullPath = path.join(dir, file);
     const stat = fs.statSync(fullPath);
@@ -126,11 +146,20 @@ function scanDirectory(dir, baseDir, type) {
         metadata = parseMapName(file);
       }
 
+      // Check for thumbnail
+      const thumbnailFilename = file.replace(/\.(png|jpg|jpeg|webp)$/i, '.thumb.jpg');
+      const thumbnailPath = path.join(path.dirname(fullPath), 'thumbnails', thumbnailFilename);
+      const hasThumbnail = fs.existsSync(thumbnailPath);
+      const thumbnailRelativePath = hasThumbnail
+        ? path.relative(baseDir, thumbnailPath).replace(/\\/g, '/')
+        : null;
+
       items.push({
         id: `default-${type}-${items.length + 1}`,
         type,
         ...metadata,
         path: `/assets/defaults/${relativePath}`,
+        thumbnail: thumbnailRelativePath ? `/assets/defaults/${thumbnailRelativePath}` : undefined,
         format: ext,
         isDefault: true,
       });

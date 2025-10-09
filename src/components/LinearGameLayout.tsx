@@ -18,6 +18,7 @@ import { GameToolbar } from './GameToolbar';
 import { PlayerBar } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
 import { GeneratorPanel } from './Generator/GeneratorPanel';
+import { DiceBox3D } from './DiceBox3D';
 import { applyColorScheme } from '@/utils/colorSchemes';
 
 export const LinearGameLayout: React.FC = () => {
@@ -27,7 +28,7 @@ export const LinearGameLayout: React.FC = () => {
   const colorScheme = useColorScheme();
   const { user, roomCode, leaveRoom } = useAppFlowStore();
 
-  // Add debugging for game layout mounting
+  // Add debugging for game layout mounting and auto-reconnect WebSocket
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.log('🎮 LinearGameLayout mounted with:', {
@@ -37,6 +38,45 @@ export const LinearGameLayout: React.FC = () => {
         scenesCount: scenes.length,
       });
     }
+
+    // Auto-reconnect WebSocket if we have a room code but no connection
+    const reconnectIfNeeded = async () => {
+      if (roomCode && user.type) {
+        const { webSocketService: wsService } = await import('@/utils/websocket');
+
+        if (!wsService.isConnected()) {
+          console.log('🔌 Auto-reconnecting to room:', roomCode, 'as', user.type);
+          try {
+            const userType = user.type === 'dm' ? 'host' : 'player';
+            await wsService.connect(roomCode, userType);
+            console.log('✅ Auto-reconnection successful');
+          } catch (error) {
+            console.error('❌ Auto-reconnection failed:', error);
+          }
+        }
+
+        // Listen for WebSocket messages to handle "Room not found" error
+        const handleWebSocketMessage = (event: Event) => {
+          const customEvent = event as CustomEvent;
+          const message = customEvent.detail;
+
+          if (message.type === 'error' && message.data?.message === 'Room not found') {
+            console.log('🔄 Room expired - navigating back to welcome screen');
+            // Navigate back to welcome screen
+            const { resetToWelcome } = useAppFlowStore.getState();
+            resetToWelcome();
+          }
+        };
+
+        wsService.addEventListener('message', handleWebSocketMessage);
+
+        return () => {
+          wsService.removeEventListener('message', handleWebSocketMessage);
+        };
+      }
+    };
+
+    reconnectIfNeeded();
 
     return () => {
       if (process.env.NODE_ENV === 'development') {
@@ -48,6 +88,18 @@ export const LinearGameLayout: React.FC = () => {
 
   // Use appFlowStore for host detection instead of old gameStore
   const isHost = user.type === 'dm';
+
+  // Debug logging for host status
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('👑 Host status check:', {
+        userType: user.type,
+        isHost,
+        userName: user.name,
+        roomCode,
+      });
+    }
+  }, [user.type, isHost, user.name, roomCode]);
 
   const [panelExpanded, setPanelExpanded] = useState(true);
   const [activePanel, setActivePanel] = useState<
@@ -301,7 +353,7 @@ export const LinearGameLayout: React.FC = () => {
         </div>
 
         {/* Scene Content */}
-        <div className="scene-content">
+        <div className="scene-content" style={{ position: 'relative' }}>
           {activeScene ? (
             <SceneCanvas scene={activeScene} />
           ) : (
@@ -315,6 +367,9 @@ export const LinearGameLayout: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* 3D Dice Box - positioned top-right of scene */}
+          <DiceBox3D />
         </div>
 
         {/* Floating Toolbar */}

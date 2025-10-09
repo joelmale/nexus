@@ -23,12 +23,21 @@ export interface Session {
   status: 'connecting' | 'connected' | 'disconnected';
 }
 
+export interface DicePool {
+  count: number;
+  sides: number;
+  results: number[];
+  advResults?: number[]; // For advantage/disadvantage
+}
+
 export interface DiceRoll {
   id: string;
   userId: string;
   userName: string;
-  expression: string; // e.g., "2d6+3"
-  results: number[];
+  expression: string; // e.g., "2d6+3" or "3d4, 6d20+2"
+  pools: DicePool[]; // Array of dice pools (e.g., [{count:3, sides:4, results:[1,3,2]}, {count:6, sides:20, results:[...]}])
+  modifier: number; // Static modifier (e.g., +3)
+  results: number[]; // Flattened results from all pools (for backwards compatibility)
   advResults?: number[]; // Second set of results for advantage/disadvantage
   total: number;
   timestamp: number;
@@ -165,6 +174,7 @@ export interface SceneState {
   camera: Camera;
   followDM: boolean; // Whether players follow DM's camera
   activeTool: string; // Currently selected tool
+  selectedObjectIds: string[]; // IDs of selected objects (tokens, drawings, etc.)
 }
 
 // WebSocket message types
@@ -215,6 +225,13 @@ export interface GameEvent {
 
 export interface DiceRollEvent extends GameEvent {
   type: 'dice/roll';
+  data: {
+    roll: DiceRoll;
+  };
+}
+
+export interface DiceRollResultEvent extends GameEvent {
+  type: 'dice/roll-result';
   data: {
     roll: DiceRoll;
   };

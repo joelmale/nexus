@@ -165,8 +165,9 @@ export const applyColorScheme = (colorScheme: ColorScheme): void => {
   root.style.setProperty('--solid-border', adjustBrightness(colorScheme.surface, 30));
   root.style.setProperty('--solid-border-light', adjustBrightness(colorScheme.surface, 40));
   root.style.setProperty('--solid-text', colorScheme.text);
-  root.style.setProperty('--solid-text-muted', adjustBrightness(colorScheme.text, -20));
-  root.style.setProperty('--solid-text-light', adjustBrightness(colorScheme.text, -40));
+  // Use semi-transparent versions of the main text color for better contrast on solid backgrounds
+  root.style.setProperty('--solid-text-muted', `rgba(${hexToRgb(colorScheme.text)}, 0.7)`);
+  root.style.setProperty('--solid-text-light', `rgba(${hexToRgb(colorScheme.text)}, 0.5)`);
   
   // Update glass surface colors for glassmorphism theme
   const surfaceRgb = hexToRgb(colorScheme.surface);
@@ -176,8 +177,9 @@ export const applyColorScheme = (colorScheme: ColorScheme): void => {
   root.style.setProperty('--glass-surface-strong', `rgba(${surfaceRgb}, 0.2)`);
   root.style.setProperty('--glass-border', `rgba(${textRgb}, 0.2)`);
   root.style.setProperty('--glass-text', colorScheme.text);
-  root.style.setProperty('--glass-text-muted', adjustBrightness(colorScheme.text, -15));
-  root.style.setProperty('--glass-text-light', adjustBrightness(colorScheme.text, -30));
+  // Use semi-transparent white for muted/light text in glass theme for better readability
+  root.style.setProperty('--glass-text-muted', 'rgba(255, 255, 255, 0.7)');
+  root.style.setProperty('--glass-text-light', 'rgba(255, 255, 255, 0.5)');
   
   // Update gradients with scheme colors
   root.style.setProperty('--gradient-primary', 

@@ -31,6 +31,7 @@ import type {
   DrawingDeleteEvent,
   DrawingClearEvent,
   DiceRollEvent,
+  DiceRollResultEvent,
 } from '@/types/game';
 import type { Drawing } from '@/types/drawing';
 import type { PlacedToken } from '@/types/token';
@@ -65,6 +66,12 @@ interface GameStore extends GameState {
     visibility: Scene['visibility'],
   ) => void;
   duplicateScene: (sceneId: string) => Scene | null;
+
+  // Selection Actions
+  setSelection: (objectIds: string[]) => void;
+  addToSelection: (objectIds: string[]) => void;
+  removeFromSelection: (objectIds: string[]) => void;
+  clearSelection: () => void;
 
   // Drawing Actions
   createDrawing: (sceneId: string, drawing: Drawing) => void;
@@ -136,6 +143,7 @@ const initialState: GameState = {
     },
     followDM: true,
     activeTool: 'select' as const,
+    selectedObjectIds: [],
   },
   settings: {
     // Display Settings
@@ -231,6 +239,14 @@ const eventHandlers: Record<string, EventHandler> = {
     const eventData = data as DiceRollEvent['data'];
     if (eventData.roll) {
       state.diceRolls.unshift(eventData.roll);
+    }
+  },
+  'dice/roll-result': (state, data) => {
+    // Handle server-authoritative dice roll results
+    const eventData = data as DiceRollResultEvent['data'];
+    if (eventData.roll) {
+      state.diceRolls.unshift(eventData.roll);
+      console.log('🎲 Added dice roll to history:', eventData.roll);
     }
   },
   'token/place': (state, data) => {
@@ -758,6 +774,39 @@ export const useGameStore = create<GameStore>()(
       });
     },
 
+    // Selection Actions
+    setSelection: (objectIds) => {
+      set((state) => {
+        state.sceneState.selectedObjectIds = objectIds;
+      });
+    },
+
+    addToSelection: (objectIds) => {
+      set((state) => {
+        const newIds = objectIds.filter(
+          (id) => !state.sceneState.selectedObjectIds.includes(id),
+        );
+        if (newIds.length > 0) {
+          state.sceneState.selectedObjectIds.push(...newIds);
+        }
+      });
+    },
+
+    removeFromSelection: (objectIds) => {
+      set((state) => {
+        state.sceneState.selectedObjectIds =
+          state.sceneState.selectedObjectIds.filter(
+            (id) => !objectIds.includes(id),
+          );
+      });
+    },
+
+    clearSelection: () => {
+      set((state) => {
+        state.sceneState.selectedObjectIds = [];
+      });
+    },
+
     // Bulk Scene Operations
     deleteScenesById: (sceneIds) => {
       set((state) => {
@@ -1189,10 +1238,7 @@ export const useGameStore = create<GameStore>()(
           import('@/utils/websocket').then(({ webSocketService }) => {
             if (webSocketService.isConnected()) {
               webSocketService.sendGameStateUpdate({
-                sceneState: {
-                  scenes: state.sceneState.scenes,
-                  activeSceneId: state.sceneState.activeSceneId,
-                },
+                sceneState: state.sceneState,
                 characters: [], // TODO: Get from character store when integrated
                 initiative: {}, // TODO: Get from initiative store when integrated
               });
@@ -1315,11 +1361,15 @@ export const useGameStore = create<GameStore>()(
           console.log('📤 Sending restored game state to server');
           webSocketService.sendGameStateUpdate({
             sceneState: {
-              scenes: recoveryData.gameState.scenes,
+              scenes: recoveryData.gameState.scenes as Scene[],
               activeSceneId: recoveryData.gameState.activeSceneId,
+              camera: get().sceneState.camera,
+              followDM: get().sceneState.followDM,
+              activeTool: get().sceneState.activeTool,
+              selectedObjectIds: get().sceneState.selectedObjectIds,
             },
-            characters: recoveryData.gameState.characters || [],
-            initiative: recoveryData.gameState.initiative || {},
+            characters: (recoveryData.gameState.characters || []) as unknown[],
+            initiative: (recoveryData.gameState.initiative || {}) as Record<string, unknown>,
           });
         }
 

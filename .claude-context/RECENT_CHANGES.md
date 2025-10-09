@@ -14,6 +14,63 @@
 
 ## Latest Updates (Update this when making changes)
 
+### 2025-10-08 - 3D Dice Box Integration (In Progress)
+- **Feature**: Integrated @3d-dice/dice-box library (v1.1.4) for 3D animated dice rolls
+  - ✅ **Positioning Fix**: Moved DiceBox3D component from DiceRoller to LinearGameLayout
+    - Previously positioned with `position: fixed` relative to viewport (overlapped panel)
+    - **Successful approach**: Positioned within `.scene-content` container using `position: absolute`
+    - Container placed at `top: 10px, right: 10px` relative to scene area
+    - Size: 500x400px with `zIndex: 1000` to stay above scene canvas
+  - ✅ **Client-side Roll Generation**: Simplified architecture by moving roll logic to frontend
+    - Uses `createDiceRoll()` from `utils/dice.ts` for local generation
+    - Broadcasts to other players via WebSocket if connected, but works offline
+    - Event type: `'dice/roll-result'` with full roll data
+  - ✅ **WebSocket Port Fallback**: Smart port detection for development
+    - Tries ports 5000, 5001, 5002, 5003 automatically (macOS ControlCenter blocks 5000)
+    - Caches working port in localStorage for faster reconnection
+    - Auto-reconnection in LinearGameLayout when loading with saved room code
+  - ✅ **API Fix (v1.1.x)**: Corrected DiceBox initialization to match latest documentation
+    - Was using old v1.0.x API: `new DiceBox('#dice-box', config)`
+    - Fixed to v1.1.x API: `new DiceBox({ container: '#dice-box', ...config })`
+    - Single config object argument with `container` property
+    - Updated TypeScript definitions for v1.1.x callbacks and options
+  - ✅ **3D Dice Rendering Successfully Working!**
+    - **Root Cause**: Multiple z-index and CSS stacking issues
+    - **Key Fixes that made it work**:
+      1. **High z-index (10000)**: Positioned dice canvas above all other UI elements
+      2. **CSS Overrides**: Created `dice-box-3d.css` with `!important` rules to force canvas display
+      3. **Proper Container Positioning**: `position: absolute` within `scene-content` (which has `position: relative`)
+      4. **Canvas Interaction**: `pointerEvents: 'auto'` to allow BabylonJS to interact with canvas
+      5. **Correct v1.1.x Config**: Single config object with all required properties
+    - **Verified Working**: BabylonJS v5.57.1 successfully initializes, canvas renders, dice roll and animate
+    - **Console Confirms**: Canvas found (496x396), proper visibility, opacity: 1, display: block
+  - ✅ **UI Refinements**: Reduced dice roller controls to 50% vertical height for better space usage
+- **Key Files Touched**:
+  - `src/components/DiceBox3D.tsx` - Main 3D dice component with v1.1.x API
+  - `src/components/LinearGameLayout.tsx` - Added DiceBox3D to scene-content container
+  - `src/components/DiceRoller.tsx` - Client-side roll generation, removed DiceBox3D, reduced control heights
+  - `src/styles/dice-box-3d.css` - **NEW**: Critical CSS overrides for canvas visibility
+  - `src/styles/dice-roller.css` - Reduced control heights by 50%
+  - `src/styles/main.css` - Added dice-box-3d.css import
+  - `src/types/dice-box.d.ts` - TypeScript definitions for v1.1.x API
+  - `src/stores/gameStore.ts` - Added 'dice/roll-result' event handler
+  - `src/utils/websocket.ts` - Port fallback and reconnection logic
+- **Architectural Decisions**:
+  - **3D Engine**: BabylonJS v5.57.1 with physics simulation (not Cannon.js as originally thought)
+  - **API Design**: v1.1.x single config object with `container` selector property
+  - **Positioning Strategy**: Absolute positioning within `scene-content` (relative container)
+  - **Z-index Management**: High z-index (10000) to float above all game UI elements
+  - **Canvas Control**: CSS `!important` overrides to ensure BabylonJS canvas always displays correctly
+  - **Roll Generation**: Client-side using `createDiceRoll()`, with optional WebSocket sync
+  - **Event Handling**: `pointerEvents: 'auto'` to allow BabylonJS canvas interaction
+- **Implementation Success**:
+  - ✅ 3D dice successfully render and animate in top-right of scene
+  - ✅ Physics simulation working (dice tumble, settle, report correct values)
+  - ✅ Audio feedback on roll completion
+  - ✅ Theme switching functional (tested with Rock theme)
+  - ✅ Roll history displays correctly
+  - ✅ Offline mode works (no WebSocket required for rolling)
+
 ### 2025-09-28 - Complete CSS Architecture Migration ✅
 - ✅ **CSS Architecture Overhaul**: Revolutionary 4-week migration to modern, performance-first CSS system
   - **Design Token System**: Unified 500+ CSS custom properties in `design-tokens.css`

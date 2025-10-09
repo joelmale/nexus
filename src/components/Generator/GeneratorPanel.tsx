@@ -56,15 +56,22 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     try {
       setGeneratedMap(imageData);
 
-      // Save to dungeon map service
-      const mapId = await dungeonMapService.saveGeneratedMap(imageData);
+      // Verify image data is valid
+      const isDataURL = imageData.startsWith('data:image/');
+      const imageSize = imageData.length;
+      const imageSizeKB = (imageSize / 1024).toFixed(2);
 
-      console.log('Dungeon map saved to library:', mapId);
+      console.log('✅ Dungeon map generated:', {
+        isValidDataURL: isDataURL,
+        sizeKB: imageSizeKB,
+        sizeBytes: imageSize,
+        preview: imageData.substring(0, 50) + '...'
+      });
 
-      // Show success notification
-      showToast('✅ Saved to library!', 'success');
+      // Don't automatically save - only save when user clicks "Add to Scene"
+      // This prevents filling up localStorage with unwanted maps
     } catch (error) {
-      console.error('Failed to save dungeon map:', error);
+      console.error('Failed to handle generated map:', error);
     }
   };
 
@@ -154,39 +161,50 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         dungeonTitle = `Dungeon ${new Date().toLocaleString()}`;
       }
 
-      // Save to dungeon map service with custom name
-      const mapId = await dungeonMapService.saveGeneratedMap(
-        imageData,
-        dungeonTitle,
-      );
-      console.log('Saved to library:', mapId, 'with name:', dungeonTitle);
+      // Try to save to dungeon map service with custom name
+      try {
+        const mapId = await dungeonMapService.saveGeneratedMap(
+          imageData,
+          dungeonTitle,
+        );
+        console.log('Saved to library:', mapId, 'with name:', dungeonTitle);
+      } catch (saveError) {
+        console.warn('Could not save to library (storage may be full):', saveError);
+        // Continue anyway - the map will still be added to the scene
+      }
 
       // Create image to get dimensions
       const img = new Image();
       img.onload = () => {
-        console.log('Image loaded:', img.width, 'x', img.height);
-
-        // Update the active scene with the background image
-        updateScene(activeScene.id, {
-          backgroundImage: {
-            url: imageData,
-            width: img.width,
-            height: img.height,
-            offsetX: -(img.width / 2),
-            offsetY: -(img.height / 2),
-            scale: 1,
-          },
+        console.log('✅ Image loaded successfully:', {
+          width: img.width,
+          height: img.height,
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
         });
 
-        console.log('Scene updated with background');
-        console.log('Updated scene backgroundImage:', {
-          url: imageData.substring(0, 50) + '...',
+        const backgroundData = {
+          url: imageData,
           width: img.width,
           height: img.height,
           offsetX: -(img.width / 2),
           offsetY: -(img.height / 2),
           scale: 1,
+        };
+
+        // Update the active scene with the background image
+        console.log('📝 Updating scene with background:', {
+          sceneId: activeScene.id,
+          sceneName: activeScene.name,
+          imageUrl: imageData.substring(0, 50) + '...',
+          dimensions: `${img.width}x${img.height}`,
         });
+
+        updateScene(activeScene.id, {
+          backgroundImage: backgroundData,
+        });
+
+        console.log('✅ Scene updated with background');
 
         // Verify the update
         setTimeout(() => {
@@ -332,6 +350,34 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         }
         hasActiveScene={!!activeScene}
       />
+
+      {/* Debug: Show generated map preview */}
+      {generatedMap && process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'absolute',
+          bottom: '10px',
+          right: '10px',
+          zIndex: 1000,
+          background: 'rgba(0,0,0,0.8)',
+          padding: '10px',
+          borderRadius: '8px',
+          border: '2px solid #4ade80',
+        }}>
+          <div style={{ color: '#4ade80', fontSize: '12px', marginBottom: '5px' }}>
+            ✅ Map Generated ({(generatedMap.length / 1024).toFixed(0)} KB)
+          </div>
+          <img
+            src={generatedMap}
+            alt="Generated preview"
+            style={{
+              width: '150px',
+              height: 'auto',
+              border: '1px solid #4ade80',
+              borderRadius: '4px',
+            }}
+          />
+        </div>
+      )}
 
       {/* Toast notifications */}
       <div className="toast-container">

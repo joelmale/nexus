@@ -317,6 +317,8 @@ describe('gameStore direct actions', () => {
     const initialRolls: DiceRoll[] = Array.from({ length: 50 }, (_, i) => ({
       id: `roll-${i}`,
       expression: '1d20',
+      pools: [],
+      modifier: 0,
       results: [i + 1],
       total: i + 1,
       timestamp: Date.now(),
@@ -326,7 +328,7 @@ describe('gameStore direct actions', () => {
     useGameStore.setState({ diceRolls: initialRolls });
 
     // Act: Add one more roll
-    const newRoll: DiceRoll = { id: 'new-roll', expression: '1d4', results: [4], total: 4, timestamp: Date.now(), userId: 'user-1', userName: 'Tester' };
+    const newRoll: DiceRoll = { id: 'new-roll', expression: '1d4', pools: [], modifier: 0, results: [4], total: 4, timestamp: Date.now(), userId: 'user-1', userName: 'Tester' };
     useGameStore.getState().addDiceRoll(newRoll);
 
     // Assert: Check that the new roll is at the start and the length is still 50

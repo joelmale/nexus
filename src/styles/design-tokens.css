@@ -361,6 +361,10 @@
   --z-modal: var(--z-50);
   --z-popover: var(--z-50);
   --z-tooltip: var(--z-50);
+  --z-toolbar: var(--z-30);
+  --z-panel: var(--z-20);
+  --z-overlay: var(--z-40);
+  --z-base: var(--z-0);
 
   /* =============================================================================
      ANIMATION TOKENS

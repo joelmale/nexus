@@ -167,6 +167,7 @@ export const useHybridGameStore = create<HybridGameStore>()(
         camera: { x: 0, y: 0, zoom: 1 },
         followDM: true,
         activeTool: 'select',
+        selectedObjectIds: [],
       },
       settings: {
         colorScheme: {
@@ -247,6 +248,7 @@ export const useHybridGameStore = create<HybridGameStore>()(
               camera: { x: 0, y: 0, zoom: 1 },
               followDM: true,
               activeTool: 'select',
+              selectedObjectIds: [],
             },
             settings: currentState.settings, // Keep current settings
           };

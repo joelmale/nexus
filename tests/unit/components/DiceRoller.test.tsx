@@ -12,6 +12,13 @@ vi.mock('@/stores/gameStore', () => ({
   useIsHost: vi.fn(),
 }));
 
+// Mock the app flow store
+vi.mock('@/stores/appFlowStore', () => ({
+  useAppFlowStore: vi.fn(() => ({
+    user: { id: '1', name: 'Test User' }
+  }))
+}));
+
 describe('DiceRoller', () => {
   it('renders the dice roller component', () => {
     // Arrange
@@ -30,7 +37,7 @@ describe('DiceRoller', () => {
 
     // Assert
     expect(screen.getByText('Dice Roller')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Enter dice expression (e.g., 2d6+3)')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Click dice below to build your roll...')).toBeInTheDocument();
     expect(screen.getByText('Roll')).toBeInTheDocument();
   });
 });
