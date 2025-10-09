@@ -477,8 +477,14 @@ class WebSocketService extends EventTarget {
 export const webSocketService = new WebSocketService();
 
 // Expose to window for debugging
+declare global {
+  interface Window {
+    webSocketService?: WebSocketService;
+  }
+}
+
 if (import.meta.env.DEV) {
-  (window as any).webSocketService = webSocketService;
+  window.webSocketService = webSocketService;
   console.log('🔧 Debug: webSocketService available at window.webSocketService');
   console.log('   - window.webSocketService.clearCachedPort() to clear port cache');
 }
