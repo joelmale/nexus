@@ -29,6 +29,72 @@ const getBrowserId = (): string => {
   return newId;
 };
 
+// Session persistence helpers
+const SESSION_STORAGE_KEY = 'nexus-active-session';
+
+interface PersistedSession {
+  userName: string;
+  userType: 'player' | 'dm';
+  roomCode: string;
+  gameConfig?: GameConfig;
+  timestamp: number;
+}
+
+const saveSessionToStorage = (state: AppState): void => {
+  if (state.user.name && state.user.type && state.roomCode) {
+    const session: PersistedSession = {
+      userName: state.user.name,
+      userType: state.user.type,
+      roomCode: state.roomCode,
+      gameConfig: state.gameConfig,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    console.log('💾 Saved session to localStorage:', session);
+  }
+};
+
+const loadSessionFromStorage = (): Partial<AppState> | null => {
+  try {
+    const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!stored) return null;
+
+    const session: PersistedSession = JSON.parse(stored);
+
+    // Check if session is less than 24 hours old
+    const age = Date.now() - session.timestamp;
+    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+
+    if (age > maxAge) {
+      console.log('⏰ Session expired (older than 24 hours)');
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+
+    console.log('📂 Loaded session from localStorage:', session);
+
+    return {
+      user: {
+        name: session.userName,
+        type: session.userType,
+        id: getBrowserId(),
+        color: 'blue',
+      },
+      roomCode: session.roomCode,
+      gameConfig: session.gameConfig,
+      // Don't set isConnectedToRoom - let WebSocket reconnection handle that
+    };
+  } catch (error) {
+    console.error('Failed to load session from storage:', error);
+    return null;
+  }
+};
+
+const clearSessionFromStorage = (): void => {
+  localStorage.removeItem(SESSION_STORAGE_KEY);
+  console.log('🗑️ Cleared session from localStorage');
+};
+
 const initialState: AppState = {
   view: 'welcome',
   user: {
@@ -41,6 +107,13 @@ const initialState: AppState = {
   gameConfig: undefined,
   selectedCharacter: undefined
 };
+
+// Try to restore session from localStorage
+const restoredSession = loadSessionFromStorage();
+if (restoredSession) {
+  Object.assign(initialState, restoredSession);
+  console.log('✅ Restored session on app load');
+}
 
 export const useAppFlowStore = create<AppFlowStore>()(
   immer((set, get) => ({
@@ -66,6 +139,12 @@ export const useAppFlowStore = create<AppFlowStore>()(
         // Auto-navigate to setup
         state.view = type === 'player' ? 'player_setup' : 'dm_setup';
       });
+
+      // Save session if we have a room code
+      const currentState = get();
+      if (currentState.roomCode) {
+        saveSessionToStorage(currentState);
+      }
 
       // Sync with gameStore (convert 'dm' to 'host' for compatibility)
       const gameStore = useGameStore.getState();
@@ -104,6 +183,9 @@ export const useAppFlowStore = create<AppFlowStore>()(
             state.selectedCharacter = character;
           }
         });
+
+        // Save session to localStorage for refresh recovery
+        saveSessionToStorage(get());
 
         // Update gameStore session
         const { user } = get();
@@ -158,8 +240,19 @@ export const useAppFlowStore = create<AppFlowStore>()(
 
 
     // DM flow
-    createGameRoom: async (config: GameConfig) => {
+    createGameRoom: async (config: GameConfig, clearExistingData: boolean = true) => {
       try {
+        // Clear previous game data to start fresh (unless preserving for dev/mock data)
+        const { getLinearFlowStorage } = await import('@/services/linearFlowStorage');
+        const storage = getLinearFlowStorage();
+
+        if (clearExistingData) {
+          await storage.clearGameData();
+        } else if (process.env.NODE_ENV === 'development') {
+          const existingScenes = storage.getScenes();
+          console.log(`🎮 Preserving ${existingScenes.length} existing scenes`);
+        }
+
         // Import webSocketService
         const { webSocketService } = await import('@/utils/websocket');
 
@@ -182,6 +275,9 @@ export const useAppFlowStore = create<AppFlowStore>()(
           state.view = 'game';
         });
 
+        // Save session to localStorage for refresh recovery
+        saveSessionToStorage(get());
+
         // Update gameStore session
         const { user } = get();
         useGameStore.getState().setSession({
@@ -190,6 +286,9 @@ export const useAppFlowStore = create<AppFlowStore>()(
           players: [{ ...user, id: user.id || '', canEditScenes: true, connected: true, type: 'host', color: user.color || 'blue' }],
           status: 'connected',
         });
+
+        // Sync scenes from entity store to gameStore (in case mock data exists)
+        await storage.syncScenesWithGameStore();
 
         return roomCode;
       } catch (error) {
@@ -256,6 +355,14 @@ export const useAppFlowStore = create<AppFlowStore>()(
     // Room management
     leaveRoom: async () => {
       try {
+        const currentState = get();
+        console.log('🚪 Leaving room:', {
+          roomCode: currentState.roomCode,
+          userName: currentState.user.name,
+          userType: currentState.user.type,
+          isConnected: currentState.isConnectedToRoom,
+        });
+
         // Import webSocketService
         const { webSocketService } = await import('@/utils/websocket');
 
@@ -265,12 +372,15 @@ export const useAppFlowStore = create<AppFlowStore>()(
         // Reset the in-memory state
         get().resetToWelcome();
 
+        console.log('✅ Successfully left room and reset to welcome');
       } catch (error) {
         console.error('Failed to leave room:', error);
       }
     },
 
     resetToWelcome: () => {
+      console.log('🔄 Resetting app flow to welcome screen');
+
       set((state) => {
         state.view = 'welcome';
         state.user.name = '';
@@ -278,15 +388,35 @@ export const useAppFlowStore = create<AppFlowStore>()(
         state.roomCode = undefined;
         state.isConnectedToRoom = false;
       });
+
+      // Clear persisted session
+      clearSessionFromStorage();
+
       useGameStore.getState().reset();
+
+      console.log('✅ Reset complete - cleared user, room, and connection state');
     },
 
     // Development helpers
-    dev_quickDM: (name: string = 'Test DM') => {
+    dev_quickDM: async (name: string = 'Test DM') => {
+      // Check if mock data exists (scenes from mock data toggle)
+      const { getLinearFlowStorage } = await import('@/services/linearFlowStorage');
+      const storage = getLinearFlowStorage();
+      const existingScenes = storage.getScenes();
+      const hasMockData = existingScenes.length > 0;
+
+      // Only clear if no mock data exists
+      if (!hasMockData) {
+        await storage.clearGameData();
+      } else {
+        console.log(`🎮 Found ${existingScenes.length} existing scenes - preserving for game`);
+      }
+
+      // Set user first
       set((state) => {
         state.user.name = name;
         state.user.type = 'dm';
-        state.user.id = `dm-${Date.now()}`;
+        state.user.id = getBrowserId();
       });
 
       // Sync with gameStore
@@ -296,8 +426,7 @@ export const useAppFlowStore = create<AppFlowStore>()(
         type: 'host'
       });
 
-      // Create a room with test config
-      const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+      // Create a REAL room via WebSocket (same as production flow)
       const config = {
         name: 'Test Campaign',
         description: 'Development test session',
@@ -306,23 +435,32 @@ export const useAppFlowStore = create<AppFlowStore>()(
         maxPlayers: 4
       };
 
-      set((state) => {
-        state.roomCode = roomCode;
-        state.gameConfig = config;
-        state.isConnectedToRoom = true;
-        state.view = 'game';
-      });
+      try {
+        // Don't clear existing data (we already handled it above)
+        const roomCode = await get().createGameRoom(config, false);
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🎮 DEV: Quick DM setup complete:', {
-          roomCode,
-          config,
-          finalState: {
-            view: 'game',
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🎮 DEV: Quick DM setup complete:', {
             roomCode,
-            isConnected: true
-          }
+            config,
+            finalState: {
+              view: 'game',
+              roomCode,
+              isConnected: true
+            }
+          });
+        }
+      } catch (error) {
+        console.error('❌ DEV: Failed to create room:', error);
+        // Fallback to offline mode if WebSocket not available
+        const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+        set((state) => {
+          state.roomCode = roomCode;
+          state.gameConfig = config;
+          state.isConnectedToRoom = false; // ❌ Not connected since we failed
+          state.view = 'game';
         });
+        console.log('⚠️ DEV: Running in offline mode (no WebSocket)');
       }
     },
 

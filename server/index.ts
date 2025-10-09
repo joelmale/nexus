@@ -90,6 +90,8 @@ class NexusServer {
       res.json({
         status: 'ok',
         version: '1.0.0',
+        port: this.port,  // ✅ Broadcast server port for discovery
+        wsUrl: `ws://localhost:${this.port}`,
         rooms: this.rooms.size,
         connections: this.connections.size,
         assetsLoaded: this.manifest?.totalAssets || 0,
@@ -100,6 +102,8 @@ class NexusServer {
     this.app.get('/', (req, res) => {
       res.json({
         status: 'ok',
+        port: this.port,  // ✅ Include port in root endpoint too
+        wsUrl: `ws://localhost:${this.port}`,
         rooms: this.rooms.size,
         connections: this.connections.size
       });

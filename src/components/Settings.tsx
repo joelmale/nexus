@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGameStore, useSettings, useColorScheme } from '@/stores/gameStore';
 import {
   defaultColorSchemes,
@@ -227,6 +228,7 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
  * state management, saving, and resetting of user preferences.
  */
 export const Settings: React.FC = () => {
+  const navigate = useNavigate();
   const {
     updateSettings,
     setColorScheme,
@@ -710,44 +712,32 @@ export const Settings: React.FC = () => {
             description="Settings for development and testing purposes"
           >
             <SettingItem
-              label="Use Mock Data"
-              description="Populate the lobby with mock players for testing"
-            >
-              <label className="setting-toggle">
-                <input
-                  type="checkbox"
-                  checked={settings.useMockData ?? false}
-                  onChange={(e) =>
-                    handleSettingChange('useMockData', e.target.checked)
-                  }
-                />
-                <span className="toggle-slider"></span>
-              </label>
-            </SettingItem>
-
-            <SettingItem
               label="Clear & Reset All"
               description="Clear game store, disconnect from room, and reset to welcome page"
             >
               <button
-                onClick={() => {
-                  if (confirm('⚠️  This will:\n• Clear all game data\n• Disconnect from room\n• Reset to welcome page\n\nContinue?')) {
+                onClick={async () => {
+                  if (confirm('⚠️  This will:\n• Clear all game data\n• Disconnect from room\n• Reset to lobby\n\nContinue?')) {
                     // Clear gameStore
                     useGameStore.getState().reset();
 
                     // Clear appFlowStore and disconnect
                     const appFlow = useAppFlowStore.getState();
-                    appFlow.leaveRoom();
+                    await appFlow.leaveRoom();
 
                     // Clear localStorage
                     try {
                       localStorage.removeItem('nexus_ws_port');
                       localStorage.removeItem('nexus_dice_theme');
+                      localStorage.removeItem('nexus-active-session');
                     } catch (e) {
                       console.warn('Failed to clear localStorage:', e);
                     }
 
-                    console.log('🧹 Full reset completed');
+                    console.log('🧹 Full reset completed - navigating to lobby');
+
+                    // Navigate to lobby
+                    navigate('/lobby');
                   }
                 }}
                 style={{

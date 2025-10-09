@@ -42,18 +42,37 @@ export const LinearGameLayout: React.FC = () => {
     // Auto-reconnect WebSocket if we have a room code but no connection
     const reconnectIfNeeded = async () => {
       if (roomCode && user.type) {
-        const { webSocketService } = await import('@/utils/websocket');
+        const { webSocketService: wsService } = await import('@/utils/websocket');
 
-        if (!webSocketService.isConnected()) {
+        if (!wsService.isConnected()) {
           console.log('🔌 Auto-reconnecting to room:', roomCode, 'as', user.type);
           try {
             const userType = user.type === 'dm' ? 'host' : 'player';
-            await webSocketService.connect(roomCode, userType);
+            await wsService.connect(roomCode, userType);
             console.log('✅ Auto-reconnection successful');
           } catch (error) {
             console.error('❌ Auto-reconnection failed:', error);
           }
         }
+
+        // Listen for WebSocket messages to handle "Room not found" error
+        const handleWebSocketMessage = (event: Event) => {
+          const customEvent = event as CustomEvent;
+          const message = customEvent.detail;
+
+          if (message.type === 'error' && message.data?.message === 'Room not found') {
+            console.log('🔄 Room expired - navigating back to welcome screen');
+            // Navigate back to welcome screen
+            const { resetToWelcome } = useAppFlowStore.getState();
+            resetToWelcome();
+          }
+        };
+
+        wsService.addEventListener('message', handleWebSocketMessage);
+
+        return () => {
+          wsService.removeEventListener('message', handleWebSocketMessage);
+        };
       }
     };
 
@@ -69,6 +88,18 @@ export const LinearGameLayout: React.FC = () => {
 
   // Use appFlowStore for host detection instead of old gameStore
   const isHost = user.type === 'dm';
+
+  // Debug logging for host status
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('👑 Host status check:', {
+        userType: user.type,
+        isHost,
+        userName: user.name,
+        roomCode,
+      });
+    }
+  }, [user.type, isHost, user.name, roomCode]);
 
   const [panelExpanded, setPanelExpanded] = useState(true);
   const [activePanel, setActivePanel] = useState<

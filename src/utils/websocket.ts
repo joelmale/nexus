@@ -1,4 +1,5 @@
 import type { WebSocketMessage, GameEvent, DiceRoll, DrawingCreateEvent, DrawingUpdateEvent, DrawingDeleteEvent, SessionCreatedEvent, SessionJoinedEvent } from '@/types/game';
+import type { WebSocketCustomEvent } from '@/types/events';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
 
@@ -25,6 +26,37 @@ class WebSocketService extends EventTarget {
     return wsUrl;
   }
 
+  // 🔍 Discover which port the server is running on via HTTP health check
+  private async discoverServerPort(): Promise<string | null> {
+    const isDev = import.meta.env.DEV;
+    if (!isDev) return null; // Only do discovery in development
+
+    const basePorts = ['5000', '5001', '5002', '5003'];
+    const wsHost = import.meta.env.VITE_WS_HOST || 'localhost';
+
+    console.log('🔍 Discovering server via HTTP health checks...');
+
+    for (const port of basePorts) {
+      try {
+        const response = await fetch(`http://${wsHost}:${port}/health`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(1000), // 1 second timeout
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`✅ Found server on port ${port}:`, data);
+          return data.port?.toString() || port;
+        }
+      } catch {
+        // Server not on this port, continue trying
+      }
+    }
+
+    console.log('❌ No server found via HTTP discovery');
+    return null;
+  }
+
   // Try connecting to multiple ports (for dev environment)
   private async tryConnectWithFallback(
     roomCode?: string,
@@ -41,19 +73,30 @@ class WebSocketService extends EventTarget {
     // In production/docker, only try the configured port
     let portsToTry = isDev ? basePorts : [basePorts[0]];
 
-    // In dev, try the last working port first (from localStorage)
+    // In dev, try server discovery first (HTTP health check)
     if (isDev) {
-      try {
-        const lastWorkingPort = localStorage.getItem('nexus_ws_port');
-        if (lastWorkingPort && basePorts.includes(lastWorkingPort)) {
-          // Move last working port to the front
-          portsToTry = [
-            lastWorkingPort,
-            ...basePorts.filter(p => p !== lastWorkingPort)
-          ];
+      const discoveredPort = await this.discoverServerPort();
+      if (discoveredPort) {
+        console.log(`🎯 Using discovered port: ${discoveredPort}`);
+        // Move discovered port to front
+        portsToTry = [
+          discoveredPort,
+          ...basePorts.filter(p => p !== discoveredPort)
+        ];
+      } else {
+        // Fallback to checking cached port
+        try {
+          const lastWorkingPort = localStorage.getItem('nexus_ws_port');
+          if (lastWorkingPort && basePorts.includes(lastWorkingPort)) {
+            // Move last working port to the front
+            portsToTry = [
+              lastWorkingPort,
+              ...basePorts.filter(p => p !== lastWorkingPort)
+            ];
+          }
+        } catch {
+          // localStorage might not be available
         }
-      } catch {
-        // localStorage might not be available
       }
     }
 
@@ -301,7 +344,7 @@ class WebSocketService extends EventTarget {
   }
 
   // Specialized method for drawing synchronization
-  sendDrawingEvent(type: 'create' | 'update' | 'delete', sceneId: string, data: DrawingCreateEvent['data'] | DrawingUpdateEvent['data'] | DrawingDeleteEvent['data']) {
+  sendDrawingEvent(type: 'create' | 'update' | 'delete', data: DrawingCreateEvent['data'] | DrawingUpdateEvent['data'] | DrawingDeleteEvent['data']) {
     const drawingEvent: GameEvent = {
       type: `drawing/${type}`,
       data: data,
@@ -383,6 +426,19 @@ class WebSocketService extends EventTarget {
     this.connectionPromise = null;
   }
 
+  /**
+   * Clear cached server port - useful if server restarts on different port
+   * Run in browser console: window.webSocketService.clearCachedPort()
+   */
+  clearCachedPort(): void {
+    try {
+      localStorage.removeItem('nexus_ws_port');
+      console.log('✅ Cleared cached WebSocket port - next connection will discover server');
+    } catch (error) {
+      console.warn('Failed to clear cached port:', error);
+    }
+  }
+
   isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
   }
@@ -404,19 +460,25 @@ class WebSocketService extends EventTarget {
    * Returns an unsubscribe function
    */
   subscribe(callback: (event: WebSocketMessage['data']) => void): () => void {
-    const handler = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail?.type === 'event') {
-        callback(customEvent.detail.data as WebSocketMessage['data']);
+    const handler = (event: WebSocketCustomEvent) => {
+      if (event.detail?.type === 'event') {
+        callback(event.detail.data);
       }
     };
 
-    this.addEventListener('message', handler);
+    this.addEventListener('message', handler as EventListener);
 
     return () => {
-      this.removeEventListener('message', handler);
+      this.removeEventListener('message', handler as EventListener);
     };
   }
 }
 
 export const webSocketService = new WebSocketService();
+
+// Expose to window for debugging
+if (import.meta.env.DEV) {
+  (window as any).webSocketService = webSocketService;
+  console.log('🔧 Debug: webSocketService available at window.webSocketService');
+  console.log('   - window.webSocketService.clearCachedPort() to clear port cache');
+}

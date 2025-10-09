@@ -1,19 +1,21 @@
 /**
  * Dice Sound Effects Utility
- * Generates procedural sound effects for dice rolling
+ * Plays MP3 sound effects for dice rolling
  */
 
 class DiceSoundManager {
-  private audioContext: AudioContext | null = null;
   private isMuted = false;
+  private soundCache: Map<string, HTMLAudioElement> = new Map();
+  private audioContext: AudioContext | null = null;
 
   constructor() {
-    // Initialize AudioContext on first user interaction
-    if (typeof window !== 'undefined' && 'AudioContext' in window) {
-      // Lazy initialization to avoid autoplay issues
-    }
+    // Preload all dice sounds
+    this.preloadSounds();
   }
 
+  /**
+   * Get or create AudioContext for procedural sounds (crit success/failure)
+   */
   private getAudioContext(): AudioContext {
     if (!this.audioContext) {
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -23,19 +25,56 @@ class DiceSoundManager {
   }
 
   /**
-   * Play dice rolling sound - combination of rattling and tumbling
+   * Preload all dice sound files
+   */
+  private preloadSounds(): void {
+    const sounds = [
+      { key: '1-die', path: '/assets/dicesound/1d20Roll.mp3' },
+      { key: '2-dice', path: '/assets/dicesound/Shake2xRoll2D.mp3' },
+      { key: 'many-dice', path: '/assets/dicesound/RollManyDice.mp3' },
+    ];
+
+    sounds.forEach(({ key, path }) => {
+      const audio = new Audio(path);
+      audio.preload = 'auto';
+      this.soundCache.set(key, audio);
+    });
+  }
+
+  /**
+   * Play dice rolling sound based on dice count
+   * - 1 die: 1d20Roll.mp3
+   * - 2 dice: Shake2xRoll2D.mp3
+   * - 3+ dice: RollManyDice.mp3
    */
   playRollSound(diceCount: number = 1): void {
     if (this.isMuted) return;
 
     try {
-      const ctx = this.getAudioContext();
-      const now = ctx.currentTime;
+      // Select sound based on dice count
+      let soundKey: string;
+      if (diceCount === 1) {
+        soundKey = '1-die';
+      } else if (diceCount === 2) {
+        soundKey = '2-dice';
+      } else {
+        soundKey = 'many-dice';
+      }
 
-      // Create multiple layers for a rich rolling sound
-      this.playRattleLayer(ctx, now, diceCount);
-      this.playTumbleLayer(ctx, now, diceCount);
-      this.playImpactSound(ctx, now + 1.5); // Impact at the end
+      // Get cached sound
+      const audio = this.soundCache.get(soundKey);
+      if (!audio) {
+        console.warn('Sound not preloaded:', soundKey);
+        return;
+      }
+
+      // Clone the audio element to allow overlapping plays
+      const clonedAudio = audio.cloneNode() as HTMLAudioElement;
+      clonedAudio.volume = 0.7;
+
+      clonedAudio.play().catch((error) => {
+        console.warn('Failed to play dice sound:', error);
+      });
     } catch (error) {
       console.warn('Failed to play dice sound:', error);
     }

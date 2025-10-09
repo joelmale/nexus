@@ -226,7 +226,7 @@ export const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenSelect }) => {
                 borderRadius: '8px',
                 fontSize: '14px',
                 background: 'var(--glass-surface-strong)',
-                color: 'var(--glass-text)',
+                color: 'var(--glass-text)!important',
                 transition: 'all 0.2s',
               }}
             />

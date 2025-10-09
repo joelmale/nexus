@@ -190,6 +190,9 @@ export const GameToolbar: React.FC = () => {
       ref={toolbarRef}
       className={`game-toolbar ${isFloating ? 'floating' : 'docked'} ${position.x !== 0 || position.y !== 0 ? 'positioned' : ''} ${isCompact ? 'compact' : ''} ${isDragging ? 'dragging' : ''}`}
       role="toolbar"
+      onClick={(e) => {
+        console.log('🔧 GameToolbar div clicked!', e.target);
+      }}
       style={
         {
           '--tw-translate-x': isFloating ? `${displayPosition.x}px` : '0',
@@ -273,7 +276,10 @@ export const GameToolbar: React.FC = () => {
                           : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
                       }
                     `}
-                    onClick={() => setActiveTool(tool.id)}
+                    onClick={() => {
+                      console.log('🔧 Toolbar: Setting tool to', tool.id);
+                      setActiveTool(tool.id);
+                    }}
                     aria-pressed={activeTool === tool.id}
                     title={tool.label}
                   >
@@ -371,7 +377,10 @@ export const GameToolbar: React.FC = () => {
                         : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
                     }
                   `}
-                  onClick={() => setActiveTool(tool.id)}
+                  onClick={() => {
+                    console.log('🔧 Toolbar: Setting tool to', tool.id);
+                    setActiveTool(tool.id);
+                  }}
                   aria-pressed={activeTool === tool.id}
                   title={tool.label}
                 >

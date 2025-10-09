@@ -55,23 +55,7 @@ export const DiceBox3D: React.FC = () => {
         // Set up roll complete callback
         diceBox.onRollComplete = (results: unknown) => {
           console.log('🎲 Roll animation complete:', results);
-          // Play completion sound
-          setTimeout(() => {
-            try {
-              let diceCount = 1;
-              if (Array.isArray(results)) {
-                diceCount = results.length;
-              } else if (typeof results === 'object' && results !== null && 'rolls' in results) {
-                const rollsData = (results as { rolls: unknown }).rolls;
-                if (Array.isArray(rollsData)) {
-                  diceCount = rollsData.length;
-                }
-              }
-              diceSounds.playRollSound(diceCount);
-            } catch (error) {
-              console.warn('🎲 Error playing dice sound:', error);
-            }
-          }, 100);
+          // Sound is now played at the start of the roll, not at completion
         };
 
         // Initialize the dice box
@@ -189,6 +173,9 @@ export const DiceBox3D: React.FC = () => {
         expression: latestRoll.expression,
       });
 
+      // Play sound immediately when dice start rolling
+      diceSounds.playRollSound(rollValues.length);
+
       diceBoxRef.current
         .roll(rollNotations, { values: rollValues })
         .then((results) => {
@@ -214,7 +201,7 @@ export const DiceBox3D: React.FC = () => {
           width: '500px',
           height: '400px',
           zIndex: 10000,
-          pointerEvents: 'auto',
+          pointerEvents: 'none', // Allow clicks to pass through to canvas below
         }}
       />
       {initError && (

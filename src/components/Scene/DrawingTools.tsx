@@ -424,6 +424,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       if (e.button !== 0) return;
 
       const point = screenToScene(e.clientX, e.clientY);
+      console.log('🖱️ DrawingTools mouseDown:', activeTool, 'at', point);
 
       // Tools that don't interact with mousedown can be handled with an early return.
       if (activeTool === 'pan' || activeTool === 'move') {
@@ -439,6 +440,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       }
 
       const defaultHandler = () => {
+        console.log('🖱️ DrawingTools defaultHandler called for tool:', activeTool);
         setStartPoint(point);
         setCurrentPoint(point);
         setIsDrawing(true);
@@ -820,6 +822,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   const handleMouseUp = useCallback(
     (e: React.MouseEvent) => {
       const endPoint = screenToScene(e.clientX, e.clientY);
+      console.log('🖱️ DrawingTools mouseUp:', activeTool, 'isDrawing:', isDrawing, 'startPoint:', startPoint);
 
       switch (activeTool) {
         case 'select': {
@@ -857,8 +860,12 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
         }
 
         default: {
-          if (!isDrawing || !startPoint || activeTool === 'polygon') return;
+          if (!isDrawing || !startPoint || activeTool === 'polygon') {
+            console.log('🖱️ DrawingTools: Skipping drawing creation. isDrawing:', isDrawing, 'startPoint:', startPoint, 'tool:', activeTool);
+            return;
+          }
 
+          console.log('🖱️ DrawingTools: Creating drawing for tool:', activeTool);
           const baseDrawing = {
             id: `drawing-${Date.now()}-${user.id}`,
             style: drawingStyle,

@@ -57,8 +57,31 @@ export const Layout: React.FC = () => {
 
   // Simple recovery logic for linear flow
   useEffect(() => {
-    // Only restore if we're on welcome screen but should be in game
+    // Check if user wants to force a new session (via ?new=true)
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceNew = urlParams.get('new') === 'true';
+
+    if (forceNew) {
+      console.log('🔄 Force new session requested - clearing stored session');
+      useAppFlowStore.getState().resetToWelcome();
+      // Remove the query parameter
+      navigate('/lobby', { replace: true });
+      return;
+    }
+
+    // Restore session to game view if we have user data and room code
+    // This handles:
+    // 1. Page refresh with restored session from localStorage
+    // 2. Navigation back to game after accidental navigation away
+    // Note: After intentional leave (resetToWelcome), user.name will be empty
     if (view === 'welcome' && user.name && user.type && roomCode) {
+      console.log('🔄 Auto-restoring session to game view', {
+        userName: user.name,
+        userType: user.type,
+        roomCode,
+        isConnected: isConnectedToRoom,
+      });
+
       // Sync the user data to gameStore before going to game
       const gameStore = useGameStore.getState();
       gameStore.setUser({
@@ -67,8 +90,8 @@ export const Layout: React.FC = () => {
       });
 
       useAppFlowStore.getState().setView('game');
-    } 
-  }, [user.name, user.type, roomCode, isConnectedToRoom, view]);
+    }
+  }, [user.name, user.type, roomCode, isConnectedToRoom, view, navigate]);
 
   // React Router Integration: Sync URL params with app state
   // URL is source of truth on initial load, app state updates URL during runtime
