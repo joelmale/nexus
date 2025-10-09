@@ -35,7 +35,7 @@ export function useSessionPersistence(
   const scenes = useGameStore((state) => state.sceneState.scenes);
   const settings = useGameStore((state) => state.settings);
 
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const lastSaveRef = useRef<number>(0);
 
   // Auto-save session state when relevant data changes

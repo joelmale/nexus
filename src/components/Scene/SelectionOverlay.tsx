@@ -489,7 +489,7 @@ const renderSelectionHandles = (
     cursor: 'pointer',
   };
 
-  const handles: JSX.Element[] = [];
+  const handles: React.ReactElement[] = [];
 
   switch (drawing.type) {
     case 'rectangle': {

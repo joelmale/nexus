@@ -1238,10 +1238,7 @@ export const useGameStore = create<GameStore>()(
           import('@/utils/websocket').then(({ webSocketService }) => {
             if (webSocketService.isConnected()) {
               webSocketService.sendGameStateUpdate({
-                sceneState: {
-                  scenes: state.sceneState.scenes,
-                  activeSceneId: state.sceneState.activeSceneId,
-                },
+                sceneState: state.sceneState,
                 characters: [], // TODO: Get from character store when integrated
                 initiative: {}, // TODO: Get from initiative store when integrated
               });
@@ -1364,11 +1361,15 @@ export const useGameStore = create<GameStore>()(
           console.log('📤 Sending restored game state to server');
           webSocketService.sendGameStateUpdate({
             sceneState: {
-              scenes: recoveryData.gameState.scenes,
+              scenes: recoveryData.gameState.scenes as Scene[],
               activeSceneId: recoveryData.gameState.activeSceneId,
+              camera: get().sceneState.camera,
+              followDM: get().sceneState.followDM,
+              activeTool: get().sceneState.activeTool,
+              selectedObjectIds: get().sceneState.selectedObjectIds,
             },
-            characters: recoveryData.gameState.characters || [],
-            initiative: recoveryData.gameState.initiative || {},
+            characters: (recoveryData.gameState.characters || []) as unknown[],
+            initiative: (recoveryData.gameState.initiative || {}) as Record<string, unknown>,
           });
         }
 

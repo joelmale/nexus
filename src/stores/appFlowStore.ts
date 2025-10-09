@@ -171,7 +171,7 @@ export const useAppFlowStore = create<AppFlowStore>()(
         // Wait for session/created event from server
         const session = await webSocketService.waitForSessionCreated();
 
-        const roomCode = session.roomCode || session.room;
+        const roomCode = session.roomCode;
         console.log('✅ Room created:', roomCode);
 
         // Update appFlow state
@@ -186,7 +186,7 @@ export const useAppFlowStore = create<AppFlowStore>()(
         const { user } = get();
         useGameStore.getState().setSession({
           roomCode,
-          hostId: session.uuid,
+          hostId: user.id || '',
           players: [{ ...user, id: user.id || '', canEditScenes: true, connected: true, type: 'host', color: user.color || 'blue' }],
           status: 'connected',
         });

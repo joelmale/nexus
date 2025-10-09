@@ -475,11 +475,10 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
               drawingStyle={drawingStyle}
               camera={camera}
               _gridSize={safeGridSettings.size}
-              svgRef={svgRef}
+              svgRef={svgRef as React.RefObject<SVGSVGElement>}
               snapToGrid={safeGridSettings.snapToGrid}
               selectedObjectIds={selectedObjectIds}
               setSelection={setSelection}
-              addToSelection={addToSelection}
               clearSelection={clearSelection}
               placedTokens={placedTokens}
             />

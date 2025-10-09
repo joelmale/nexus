@@ -1,4 +1,4 @@
-import type { WebSocketMessage, GameEvent, DiceRoll, DrawingCreateEvent, DrawingUpdateEvent, DrawingDeleteEvent } from '@/types/game';
+import type { WebSocketMessage, GameEvent, DiceRoll, DrawingCreateEvent, DrawingUpdateEvent, DrawingDeleteEvent, SessionCreatedEvent, SessionJoinedEvent } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
 
@@ -179,10 +179,10 @@ class WebSocketService extends EventTarget {
 
         // Session events will be handled by the gameStore's applyEvent method
 
-        if (message.data.name === 'session/created') {
-          this.lastSessionCreatedEvent = message.data;
+        if (message.data.name === 'session/created' && 'roomCode' in message.data) {
+          this.lastSessionCreatedEvent = { roomCode: message.data.roomCode as string };
         } else if (message.data.name === 'session/joined') {
-          this.lastSessionJoinedEvent = message.data;
+          this.lastSessionJoinedEvent = message.data as unknown as SessionJoinedEvent['data'];
         }
 
         const gameEvent: GameEvent = {
@@ -290,11 +290,11 @@ class WebSocketService extends EventTarget {
   }
 
   // Send game state update to server for persistence
-  sendGameStateUpdate(partialState: Partial<import('@/types/game').GameState>) {
+  sendGameStateUpdate(partialState: { sceneState?: unknown; characters?: unknown[]; initiative?: unknown }) {
     console.log('📤 Sending game state update to server:', partialState);
     this.sendMessage({
       type: 'state',
-      data: partialState as Partial<import('@/types/game').GameState>,
+      data: partialState as never,
       timestamp: Date.now(),
       src: useGameStore.getState().user.id,
     });

@@ -53,7 +53,7 @@ export const DraggableToken: React.FC<DraggableTokenProps> = ({
 
   return (
     <div
-      ref={drag}
+      ref={drag as unknown as React.Ref<HTMLDivElement>}
       onClick={() => onClick?.(token)}
       onContextMenu={handleContextMenu}
       className="draggable-token"

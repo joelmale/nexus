@@ -61,8 +61,11 @@ export const DiceBox3D: React.FC = () => {
               let diceCount = 1;
               if (Array.isArray(results)) {
                 diceCount = results.length;
-              } else if (results?.rolls && Array.isArray(results.rolls)) {
-                diceCount = results.rolls.length;
+              } else if (typeof results === 'object' && results !== null && 'rolls' in results) {
+                const rollsData = (results as { rolls: unknown }).rolls;
+                if (Array.isArray(rollsData)) {
+                  diceCount = rollsData.length;
+                }
               }
               diceSounds.playRollSound(diceCount);
             } catch (error) {

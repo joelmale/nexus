@@ -204,7 +204,7 @@ export const GameToolbar: React.FC = () => {
       {isFloating && (
         <div className="toolbar-controls">
           <div
-            ref={dragRef}
+            ref={dragRef as unknown as React.Ref<HTMLDivElement>}
             className="toolbar-drag-handle"
             title="Drag to move | Double-click: reset position"
             onDoubleClick={handleDoubleClick}
