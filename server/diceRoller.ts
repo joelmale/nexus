@@ -195,7 +195,7 @@ export function createServerDiceRoll(
   };
 }
 
-interface DiceRollRequest {
+export interface DiceRollRequest {
   expression: string;
   isPrivate?: boolean;
   advantage?: boolean;

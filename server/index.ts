@@ -8,9 +8,9 @@ import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import type { Room, Connection, ServerMessage, GameState } from './types.js';
+import type { Room, Connection, ServerMessage, GameState, ServerDiceRollResultMessage } from './types.js';
 import type { AssetManifest } from '../shared/types.js';
-import { createServerDiceRoll, validateDiceRollRequest } from './diceRoller.js';
+import { createServerDiceRoll, validateDiceRollRequest, type DiceRollRequest } from './diceRoller.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -505,13 +505,13 @@ class NexusServer {
 
     // Handle dice roll requests (server-authoritative)
     if (message.type === 'event' && message.data?.name === 'dice/roll-request') {
-      this.handleDiceRollRequest(fromUuid, connection, message.data);
+      this.handleDiceRollRequest(fromUuid, connection, message.data as unknown as DiceRollRequest);
       return;
     }
 
     // Handle game state updates
-    if (message.type === 'game-state-update' && message.data) {
-      this.updateRoomGameState(connection.room, message.data);
+    if (message.type === 'event' && message.data?.name === 'game-state-update') {
+      this.updateRoomGameState(connection.room, message.data as unknown as GameState);
     }
 
     // Route to specific player or broadcast to room
