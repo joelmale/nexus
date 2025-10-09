@@ -1,6 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { webSocketService } from '../../../src/utils/websocket';
 
+// Mock fetch to prevent HTTP health checks
+global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+// Mock import.meta.env to disable server discovery in tests
+vi.mock('import.meta', () => ({
+  env: {
+    DEV: false, // Disable dev mode to skip server discovery
+    VITE_WS_PORT: '5000',
+    VITE_WS_HOST: 'localhost',
+  },
+}));
+
 // Mock WebSocket
 const mockWebSocket: {
   addEventListener: Mock;
@@ -28,7 +40,17 @@ const mockWebSocket: {
 describe('WebSocketManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    const mockConstructor = vi.fn().mockImplementation(() => mockWebSocket);
+    const mockConstructor = vi.fn().mockImplementation(() => {
+      // Immediately trigger onopen to simulate successful connection
+      mockWebSocket.readyState = 0; // CONNECTING
+      setTimeout(() => {
+        mockWebSocket.readyState = 1; // OPEN
+        if (mockWebSocket.onopen) {
+          mockWebSocket.onopen(new Event('open'));
+        }
+      }, 0);
+      return mockWebSocket;
+    });
     Object.assign(mockConstructor, {
       CONNECTING: 0,
       OPEN: 1,
@@ -48,43 +70,19 @@ describe('WebSocketManager', () => {
   });
 
   it('should create WebSocket connection', async () => {
-    const connectPromise = webSocketService.connect('TEST123');
+    await webSocketService.connect('TEST123');
 
     expect(global.WebSocket).toHaveBeenCalled();
-
-    // Simulate successful connection
-    mockWebSocket.readyState = 1; // OPEN
-    if (mockWebSocket.onopen) {
-      mockWebSocket.onopen(new Event('open'));
-    }
-
-    await expect(connectPromise).resolves.toBeUndefined();
     expect(webSocketService.isConnected()).toBe(true);
   });
 
   it('should handle connection events', async () => {
-    const connectPromise = webSocketService.connect('TEST123');
-
-    // Simulate WebSocket events
-    mockWebSocket.readyState = 1; // OPEN
-    if (mockWebSocket.onopen) {
-      mockWebSocket.onopen(new Event('open'));
-    }
-
-    await connectPromise;
+    await webSocketService.connect('TEST123');
     expect(webSocketService.isConnected()).toBe(true);
   });
 
   it('should send messages when connected', async () => {
-    const connectPromise = webSocketService.connect('TEST123');
-
-    // Simulate connection
-    mockWebSocket.readyState = 1; // OPEN
-    if (mockWebSocket.onopen) {
-      mockWebSocket.onopen(new Event('open'));
-    }
-
-    await connectPromise;
+    await webSocketService.connect('TEST123');
 
     const testEvent = { type: 'dice/roll', data: { roll: { expression: '1d20' } } };
     webSocketService.sendEvent(testEvent);
@@ -104,15 +102,7 @@ describe('WebSocketManager', () => {
   it('should handle malformed JSON messages gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const connectPromise = webSocketService.connect('TEST123');
-
-    // Simulate connection
-    mockWebSocket.readyState = 1; // OPEN
-    if (mockWebSocket.onopen) {
-      mockWebSocket.onopen(new Event('open'));
-    }
-
-    await connectPromise;
+    await webSocketService.connect('TEST123');
 
     if (mockWebSocket.onmessage) {
       mockWebSocket.onmessage({ data: 'invalid json' } as MessageEvent);
@@ -123,15 +113,7 @@ describe('WebSocketManager', () => {
   });
 
   it('should disconnect properly', async () => {
-    const connectPromise = webSocketService.connect('TEST123');
-
-    // Simulate connection
-    mockWebSocket.readyState = 1; // OPEN
-    if (mockWebSocket.onopen) {
-      mockWebSocket.onopen(new Event('open'));
-    }
-
-    await connectPromise;
+    await webSocketService.connect('TEST123');
 
     webSocketService.disconnect();
 

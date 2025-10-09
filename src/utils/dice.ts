@@ -52,10 +52,13 @@ export function parseDiceExpression(expression: string): ParsedDiceExpression | 
     withoutDice = withoutDice.replace(modifierMatch[0], '');
   }
 
-  // Remove any remaining + signs that were just separators (not modifiers)
-  withoutDice = withoutDice.replace(/\+/g, '');
+  // Check for trailing operators before removing + signs
+  // If there's a + or - remaining (without a number), it's invalid
+  if (withoutDice.match(/[+-]/)) {
+    return null;
+  }
 
-  // If there are any remaining characters (like a trailing -), the expression is invalid
+  // If there are any remaining characters, the expression is invalid
   if (withoutDice.length > 0) {
     return null;
   }

@@ -42,7 +42,11 @@ interface DrawingToolsProps {
   drawingStyle: DrawingStyle;
   camera: Camera;
   _gridSize: number;
-  svgRef: React.RefObject<SVGSVGElement>;
+  svgRef: React.RefObject<SVGSVGElement | null>;
+  onSelectionChange?: (
+    selectedDrawings: string[],
+    selectionBox?: { start: Point; end: Point },
+  ) => void;
   snapToGrid?: boolean;
   selectedObjectIds: string[];
   setSelection: (ids: string[]) => void;
