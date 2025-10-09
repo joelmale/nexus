@@ -49,7 +49,7 @@ describe('AssetManager', () => {
 
       const manifest = await assetManager.loadAssetManifest();
 
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8080/manifest.json');
+      expect(fetch).toHaveBeenCalledWith('http://localhost:5001/manifest.json');
       expect(manifest).toEqual(mockManifest);
     });
 
@@ -73,7 +73,7 @@ describe('AssetManager', () => {
 
       const result = await assetManager.getAssetsByCategory('maps');
 
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8080/category/maps?page=0&limit=20');
+      expect(fetch).toHaveBeenCalledWith('http://localhost:5001/category/maps?page=0&limit=20');
       expect(result).toEqual(mockAssets);
     });
 
@@ -96,7 +96,7 @@ describe('AssetManager', () => {
 
       const result = await assetManager.searchAssets('query');
 
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8080/search?q=query');
+      expect(fetch).toHaveBeenCalledWith('http://localhost:5001/search?q=query');
       expect(result).toEqual(mockResults.results);
     });
 
@@ -131,8 +131,8 @@ describe('AssetManager', () => {
 
       const result = await assetManager.loadAsset('asset1');
 
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8080/asset/asset1');
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8080/path/to/image.png');
+      expect(fetch).toHaveBeenCalledWith('http://localhost:5001/asset/asset1');
+      expect(fetch).toHaveBeenCalledWith('http://localhost:5001/path/to/image.png');
       expect(result).toBe('blob:url');
 
       // Check in-memory cache

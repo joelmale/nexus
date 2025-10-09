@@ -1,7 +1,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  parseDiceExpression,
+  parseDiceExpressionLegacy,
   rollDice,
   createDiceRoll,
   formatDiceRoll,
@@ -10,7 +10,7 @@ import {
 describe('dice utils', () => {
   describe('parseDiceExpression', () => {
     it('should parse a standard dice expression', () => {
-      expect(parseDiceExpression('2d6+3')).toEqual({
+      expect(parseDiceExpressionLegacy('2d6+3')).toEqual({
         count: 2,
         sides: 6,
         modifier: 3,
@@ -18,7 +18,7 @@ describe('dice utils', () => {
     });
 
     it('should parse a simple dice expression', () => {
-      expect(parseDiceExpression('d20')).toEqual({
+      expect(parseDiceExpressionLegacy('d20')).toEqual({
         count: 1,
         sides: 20,
         modifier: 0,
@@ -26,7 +26,7 @@ describe('dice utils', () => {
     });
 
     it('should parse a dice expression with a negative modifier', () => {
-      expect(parseDiceExpression('1d4-1')).toEqual({
+      expect(parseDiceExpressionLegacy('1d4-1')).toEqual({
         count: 1,
         sides: 4,
         modifier: -1,
@@ -34,7 +34,7 @@ describe('dice utils', () => {
     });
 
     it('should handle whitespace', () => {
-      expect(parseDiceExpression(' 2 d 8 + 4 ')).toEqual({
+      expect(parseDiceExpressionLegacy(' 2 d 8 + 4 ')).toEqual({
         count: 2,
         sides: 8,
         modifier: 4,
@@ -42,17 +42,17 @@ describe('dice utils', () => {
     });
 
     it('should return null for an invalid expression', () => {
-      expect(parseDiceExpression('d')).toBeNull();
-      expect(parseDiceExpression('2d')).toBeNull();
-      expect(parseDiceExpression('abc')).toBeNull();
-      expect(parseDiceExpression('2d6+')).toBeNull();
+      expect(parseDiceExpressionLegacy('d')).toBeNull();
+      expect(parseDiceExpressionLegacy('2d')).toBeNull();
+      expect(parseDiceExpressionLegacy('abc')).toBeNull();
+      expect(parseDiceExpressionLegacy('2d6+')).toBeNull();
     });
 
     it('should return null for out-of-range values', () => {
-      expect(parseDiceExpression('101d6')).toBeNull();
-      expect(parseDiceExpression('0d6')).toBeNull();
-      expect(parseDiceExpression('1d1001')).toBeNull();
-      expect(parseDiceExpression('1d1')).toBeNull();
+      expect(parseDiceExpressionLegacy('101d6')).toBeNull();
+      expect(parseDiceExpressionLegacy('0d6')).toBeNull();
+      expect(parseDiceExpressionLegacy('1d1001')).toBeNull();
+      expect(parseDiceExpressionLegacy('1d1')).toBeNull();
     });
   });
 
@@ -137,13 +137,15 @@ describe('dice utils', () => {
         userId: 'user1',
         userName: 'User One',
         expression: '1d6+2',
+        pools: [{ count: 1, sides: 6, results: [4] }],
+        modifier: 2,
         results: [4],
         total: 6,
         timestamp: Date.now(),
         isPrivate: false,
       };
       const formatted = formatDiceRoll(roll);
-      expect(formatted).toBe('1d6+2: <span class="">[4]</span> +2 = <strong class="roll-total ">6</strong>');
+      expect(formatted).toBe('1d6+2: <span class="dice-pool"><span class="pool-label">1d6</span><span class="">[4]</span></span> +2 = <strong class="roll-total ">6</strong>');
     });
 
     it('should format a critical success', () => {
@@ -152,6 +154,8 @@ describe('dice utils', () => {
         userId: 'user2',
         userName: 'User Two',
         expression: '1d20',
+        pools: [{ count: 1, sides: 20, results: [20] }],
+        modifier: 0,
         results: [20],
         total: 20,
         crit: 'success' as const,

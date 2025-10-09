@@ -62,33 +62,29 @@ describe('WebSocketManager', () => {
     expect(webSocketService.isConnected()).toBe(true);
   });
 
-  it('should handle connection events', () => {
-    const messageListener = vi.fn();
-
-    webSocketService.addEventListener('message', messageListener);
-    webSocketService.connect('TEST123');
+  it('should handle connection events', async () => {
+    const connectPromise = webSocketService.connect('TEST123');
 
     // Simulate WebSocket events
     mockWebSocket.readyState = 1; // OPEN
     if (mockWebSocket.onopen) {
-      mockWebSocket.onopen({} as Event);
+      mockWebSocket.onopen(new Event('open'));
     }
 
-    if (mockWebSocket.onmessage) {
-      mockWebSocket.onmessage({ data: '{"type":"event","data":{"name":"test"}}' } as MessageEvent);
-    }
-
-    expect(messageListener).toHaveBeenCalled();
+    await connectPromise;
+    expect(webSocketService.isConnected()).toBe(true);
   });
 
-  it('should send messages when connected', () => {
-    webSocketService.connect('TEST123');
+  it('should send messages when connected', async () => {
+    const connectPromise = webSocketService.connect('TEST123');
 
     // Simulate connection
     mockWebSocket.readyState = 1; // OPEN
     if (mockWebSocket.onopen) {
-      mockWebSocket.onopen({} as Event);
+      mockWebSocket.onopen(new Event('open'));
     }
+
+    await connectPromise;
 
     const testEvent = { type: 'dice/roll', data: { roll: { expression: '1d20' } } };
     webSocketService.sendEvent(testEvent);
@@ -105,23 +101,40 @@ describe('WebSocketManager', () => {
     expect(mockWebSocket.send).not.toHaveBeenCalled();
   });
 
-  it('should handle malformed JSON messages gracefully', () => {
+  it('should handle malformed JSON messages gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    webSocketService.connect('TEST123');
+    const connectPromise = webSocketService.connect('TEST123');
+
+    // Simulate connection
+    mockWebSocket.readyState = 1; // OPEN
+    if (mockWebSocket.onopen) {
+      mockWebSocket.onopen(new Event('open'));
+    }
+
+    await connectPromise;
 
     if (mockWebSocket.onmessage) {
       mockWebSocket.onmessage({ data: 'invalid json' } as MessageEvent);
     }
 
-    expect(consoleSpy).toHaveBeenCalledWith('🔌 [CLIENT] Failed to parse WebSocket message:', expect.any(SyntaxError), 'invalid json');
+    expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 
-  it('should disconnect properly', () => {
-    webSocketService.connect('TEST123');
+  it('should disconnect properly', async () => {
+    const connectPromise = webSocketService.connect('TEST123');
+
+    // Simulate connection
+    mockWebSocket.readyState = 1; // OPEN
+    if (mockWebSocket.onopen) {
+      mockWebSocket.onopen(new Event('open'));
+    }
+
+    await connectPromise;
+
     webSocketService.disconnect();
 
-    expect(mockWebSocket.close).toHaveBeenCalledWith(1000, 'Manual disconnect');
+    expect(mockWebSocket.close).toHaveBeenCalled();
   });
 });

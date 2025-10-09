@@ -48,6 +48,13 @@ export function parseDiceExpression(expression: string): ParsedDiceExpression | 
   const modifierMatch = withoutDice.match(/([+-]\d+)/);
   if (modifierMatch) {
     modifier = parseInt(modifierMatch[1]);
+    // Remove the matched modifier
+    withoutDice = withoutDice.replace(modifierMatch[0], '');
+  }
+
+  // If there are any remaining characters (like a trailing + or -), the expression is invalid
+  if (withoutDice.length > 0) {
+    return null;
   }
 
   return { pools, modifier };
