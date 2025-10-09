@@ -89,7 +89,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/${{ matrix.image }}.Dockerfile
@@ -112,7 +112,7 @@ jobs:
           sarif_file: 'trivy-${{ matrix.image }}.sarif'
 
       - name: Run Grype vulnerability scanner
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v7
         with:
           image: nexus-vtt/${{ matrix.image }}:scan
           fail-build: false
