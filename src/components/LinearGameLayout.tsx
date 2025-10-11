@@ -10,8 +10,10 @@ import {
   useScenes,
   useSettings,
   useColorScheme,
+  useGameStore,
+  useServerRoomCode,
+  useIsConnected,
 } from '@/stores/gameStore';
-import { useAppFlowStore } from '@/stores/appFlowStore';
 import { SceneCanvas } from './Scene/SceneCanvas';
 import { SceneTabs } from './Scene/SceneTabs';
 import { GameToolbar } from './GameToolbar';
@@ -26,7 +28,9 @@ export const LinearGameLayout: React.FC = () => {
   const scenes = useScenes();
   const settings = useSettings();
   const colorScheme = useColorScheme();
-  const { user, roomCode, leaveRoom } = useAppFlowStore();
+  const { user, leaveRoom } = useGameStore();
+  const roomCode = useServerRoomCode();
+  const isConnectedToRoom = useIsConnected();
 
   // Add debugging for game layout mounting and auto-reconnect WebSocket
   useEffect(() => {
@@ -39,55 +43,79 @@ export const LinearGameLayout: React.FC = () => {
       });
     }
 
-    // Auto-reconnect WebSocket if we have a room code but no connection
-    const reconnectIfNeeded = async () => {
-      if (roomCode && user.type) {
-        const { webSocketService: wsService } = await import('@/utils/websocket');
+    // Auto-reconnect WebSocket if we have a room code AND we're supposed to be connected
+    // Skip auto-reconnect for offline mode (when isConnectedToRoom is false)
+    let isCancelled = false; // Guard against React Strict Mode double-mount
 
-        if (!wsService.isConnected()) {
-          console.log('🔌 Auto-reconnecting to room:', roomCode, 'as', user.type);
-          try {
-            const userType = user.type === 'dm' ? 'host' : 'player';
-            await wsService.connect(roomCode, userType);
+    const reconnectIfNeeded = async () => {
+      if (isCancelled || !roomCode || !user.type) return; // Early exit if cancelled
+
+      // IMPORTANT: Skip auto-reconnect if we're in offline mode
+      // dev_quickDM and dev_quickPlayer set isConnectedToRoom to false
+      if (!isConnectedToRoom) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(
+            '⚡ Offline mode detected - skipping WebSocket auto-reconnect',
+          );
+        }
+        return;
+      }
+
+      const { webSocketService: wsService } = await import('@/utils/websocket');
+
+      // Check again after async import (component might have unmounted)
+      if (isCancelled) return;
+
+      if (!wsService.isConnected()) {
+        console.log('🔌 Auto-reconnecting to room:', roomCode, 'as', user.type);
+        try {
+          const userType = user.type;
+          await wsService.connect(roomCode, userType);
+          if (!isCancelled) {
             console.log('✅ Auto-reconnection successful');
-          } catch (error) {
+          }
+        } catch (error) {
+          if (!isCancelled) {
             console.error('❌ Auto-reconnection failed:', error);
           }
         }
-
-        // Listen for WebSocket messages to handle "Room not found" error
-        const handleWebSocketMessage = (event: Event) => {
-          const customEvent = event as CustomEvent;
-          const message = customEvent.detail;
-
-          if (message.type === 'error' && message.data?.message === 'Room not found') {
-            console.log('🔄 Room expired - navigating back to welcome screen');
-            // Navigate back to welcome screen
-            const { resetToWelcome } = useAppFlowStore.getState();
-            resetToWelcome();
-          }
-        };
-
-        wsService.addEventListener('message', handleWebSocketMessage);
-
-        return () => {
-          wsService.removeEventListener('message', handleWebSocketMessage);
-        };
       }
+
+      // Listen for WebSocket messages to handle "Room not found" error
+      const handleWebSocketMessage = (event: Event) => {
+        const customEvent = event as CustomEvent;
+        const message = customEvent.detail;
+
+        if (
+          message.type === 'error' &&
+          message.data?.message === 'Room not found'
+        ) {
+          console.log('🔄 Room expired - navigating back to welcome screen');
+          // Navigate back to welcome screen
+          const { resetToWelcome } = useGameStore.getState();
+          resetToWelcome();
+        }
+      };
+
+      wsService.addEventListener('message', handleWebSocketMessage);
+
+      return () => {
+        wsService.removeEventListener('message', handleWebSocketMessage);
+      };
     };
 
     reconnectIfNeeded();
 
     return () => {
+      isCancelled = true; // Cancel any pending async operations
       if (process.env.NODE_ENV === 'development') {
         console.log('🎮 LinearGameLayout unmounting');
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [roomCode, user.type, isConnectedToRoom]);
 
   // Use appFlowStore for host detection instead of old gameStore
-  const isHost = user.type === 'dm';
+  const isHost = user.type === 'host';
 
   // Debug logging for host status
   useEffect(() => {
@@ -98,6 +126,13 @@ export const LinearGameLayout: React.FC = () => {
         userName: user.name,
         roomCode,
       });
+
+      // Safety check: If we have no user but we're in game view, something is wrong
+      if (!user.name || !user.type) {
+        console.warn(
+          '⚠️ LinearGameLayout rendered with invalid user state - should be on welcome screen',
+        );
+      }
     }
   }, [user.type, isHost, user.name, roomCode]);
 
@@ -111,9 +146,9 @@ export const LinearGameLayout: React.FC = () => {
     | 'dice'
     | 'chat'
     | 'sounds'
-    | 'players'
+    | 'lobby'
     | 'settings'
-  >(isHost ? 'scene' : 'players');
+  >(isHost ? 'scene' : 'lobby');
   const [sidebarWidth, setSidebarWidth] = useState(300);
 
   // Apply color scheme on mount and when it changes
@@ -236,7 +271,7 @@ export const LinearGameLayout: React.FC = () => {
     { id: 'dice' as const, icon: '🎲', label: 'Dice' },
     { id: 'chat' as const, icon: '💬', label: 'Chat' },
     ...(isHost ? [{ id: 'sounds' as const, icon: '🔊', label: 'Sounds' }] : []),
-    { id: 'players' as const, icon: '👥', label: 'Players' },
+    { id: 'lobby' as const, icon: '🏠', label: 'Lobby' },
     { id: 'settings' as const, icon: '⚙️', label: 'Settings' },
   ];
 

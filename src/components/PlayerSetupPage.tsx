@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { useAppFlowStore } from '@/stores/appFlowStore';
+import { useGameStore } from '@/stores/gameStore';
 import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
 import { useCharacters } from '@/stores/characterStore';
 import type { PlayerCharacter } from '@/types/appFlow';
@@ -46,7 +46,7 @@ export const PlayerSetupPage: React.FC = () => {
     exportCharacters,
     importCharacters,
     resetToWelcome,
-  } = useAppFlowStore();
+  } = useGameStore();
 
   const { characters: newCharacters } = useCharacters();
   const { startCharacterCreation, LauncherComponent } =

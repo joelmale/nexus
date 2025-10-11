@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import '@/styles/dice-animation.css';
 import { diceSounds } from '@/utils/diceSounds';
+import { useSettings } from '@/stores/gameStore';
 
 export interface DiceAnimationProps {
   dice: Array<{
@@ -28,6 +29,7 @@ export const DiceAnimation: React.FC<DiceAnimationProps> = ({ dice, onComplete, 
   const [diceInstances, setDiceInstances] = useState<DiceInstance[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const settings = useSettings();
 
   useEffect(() => {
     if (dice.length === 0) return;
@@ -47,9 +49,11 @@ export const DiceAnimation: React.FC<DiceAnimationProps> = ({ dice, onComplete, 
       delay: index * 0.1, // Stagger the dice
     }));
 
-    setDiceInstances(instances);
-    setIsAnimating(true);
-    onStart?.();
+    setTimeout(() => {
+      setDiceInstances(instances);
+      setIsAnimating(true);
+      onStart?.();
+    }, 0);
 
     // Play dice rolling sound
     diceSounds.playRollSound(dice.length);
@@ -66,14 +70,17 @@ export const DiceAnimation: React.FC<DiceAnimationProps> = ({ dice, onComplete, 
     }
 
     // Animation duration: 2 seconds + stagger delay
-    const totalDuration = 2000 + (dice.length * 100);
+    const animationDuration = 2000 + (dice.length * 100);
+    // Total time = animation + configured disappear delay
+    const totalDuration = animationDuration + settings.diceDisappearTime;
+
     const timeout = setTimeout(() => {
       setIsAnimating(false);
       onComplete?.();
     }, totalDuration);
 
     return () => clearTimeout(timeout);
-  }, [dice, onComplete, onStart]);
+  }, [dice, onComplete, onStart, settings.diceDisappearTime]);
 
   if (!isAnimating || diceInstances.length === 0) {
     return null;

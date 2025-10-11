@@ -3,11 +3,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { within } from '@testing-library/react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PlayerPanel } from '@/components/PlayerPanel';
-import { useSession, useIsHost } from '@/stores/gameStore';
+import { useSession, useIsHost, useGameStore } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
 import { useCharacterCreationLauncher } from '@/components/CharacterCreationLauncher';
 import { useInitiativeStore } from '@/stores/initiativeStore';
-import { useAppFlowStore } from '@/stores/appFlowStore';
 import type { Character } from '@/types/character';
 import type { Player, Session } from '@/types/game';
 
@@ -15,6 +14,7 @@ import type { Player, Session } from '@/types/game';
 vi.mock('@/stores/gameStore', () => ({
   useSession: vi.fn(),
   useIsHost: vi.fn(),
+  useGameStore: vi.fn(),
 }));
 
 vi.mock('@/stores/characterStore', () => ({
@@ -28,10 +28,6 @@ vi.mock('@/components/CharacterCreationLauncher', () => ({
 
 vi.mock('@/stores/initiativeStore', () => ({
   useInitiativeStore: vi.fn(),
-}));
-
-vi.mock('@/stores/appFlowStore', () => ({
-  useAppFlowStore: vi.fn(),
 }));
 
 // Mock the CharacterSheet component
@@ -134,7 +130,7 @@ describe('PlayerPanel', () => {
     isActive: false,
   };
 
-  const mockAppFlow = {
+  const mockGameStoreActions = {
     setView: vi.fn(),
   };
 
@@ -153,7 +149,7 @@ describe('PlayerPanel', () => {
     vi.mocked(useInitiativeStore).mockReturnValue(mockInitiativeActions);
     vi.mocked(useCharacterCreationLauncher).mockReturnValue(mockLauncher);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(useAppFlowStore).mockReturnValue(mockAppFlow as any);
+    vi.mocked(useGameStore).mockReturnValue(mockGameStoreActions as any);
   });
 
   describe('Component Rendering', () => {
@@ -254,7 +250,7 @@ describe('PlayerPanel', () => {
       const createButton = screen.getByText('➕ New Character');
       fireEvent.click(createButton);
 
-      expect(mockAppFlow.setView).toHaveBeenCalledWith('player_setup');
+      expect(mockGameStoreActions.setView).toHaveBeenCalledWith('player_setup');
     });
 
     it('should handle character view click', () => {

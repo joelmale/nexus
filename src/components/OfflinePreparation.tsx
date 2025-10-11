@@ -7,13 +7,25 @@
  */
 
 import React, { useState } from 'react';
-import { useGameStore, useScenes, useActiveScene } from '@/stores/gameStore';
-import { useGameLifecycleStore } from '@/stores/gameLifecycleStore';
+import {
+  useGameStore,
+  useScenes,
+  useActiveScene,
+  useGamePhase,
+  useCanGoLive,
+} from '@/stores/gameStore';
 import type { LiveGameConfig } from '@/types/gameLifecycle';
 
 export const OfflinePreparation: React.FC = () => {
-  const { createScene, setActiveScene, setUser } = useGameStore();
-  const { markReadyToStart, startGoingLive, phase, canGoLive } = useGameLifecycleStore();
+  const {
+    createScene,
+    setActiveScene,
+    setUser,
+    markReadyToStart,
+    startGoingLive,
+  } = useGameStore();
+  const phase = useGamePhase();
+  const canGoLive = useCanGoLive();
   const scenes = useScenes();
   const activeScene = useActiveScene();
 
@@ -23,7 +35,7 @@ export const OfflinePreparation: React.FC = () => {
     syncFrequency: 1000,
     maxPlayers: 6,
     gameTitle: '',
-    gameDescription: ''
+    gameDescription: '',
   });
 
   const handleCreateScene = () => {
@@ -53,7 +65,7 @@ export const OfflinePreparation: React.FC = () => {
       drawings: [],
       placedTokens: [],
       isActive: false,
-      playerCount: 0
+      playerCount: 0,
     };
 
     createScene(sceneData);
@@ -88,7 +100,7 @@ export const OfflinePreparation: React.FC = () => {
   };
 
   const handleConfigChange = (updates: Partial<LiveGameConfig>) => {
-    setGameConfig(prev => ({ ...prev, ...updates }));
+    setGameConfig((prev) => ({ ...prev, ...updates }));
   };
 
   return (
@@ -124,17 +136,16 @@ export const OfflinePreparation: React.FC = () => {
           <div className="scene-management">
             {scenes.length === 0 ? (
               <div className="empty-state">
-                <p>No scenes created yet. Start by creating your first scene!</p>
-                <button
-                  className="btn btn-primary"
-                  onClick={handleCreateScene}
-                >
+                <p>
+                  No scenes created yet. Start by creating your first scene!
+                </p>
+                <button className="btn btn-primary" onClick={handleCreateScene}>
                   Create First Scene
                 </button>
               </div>
             ) : (
               <div className="scene-grid">
-                {scenes.map(scene => (
+                {scenes.map((scene) => (
                   <div
                     key={scene.id}
                     className={`scene-card ${activeScene?.id === scene.id ? 'active' : ''}`}
@@ -149,7 +160,10 @@ export const OfflinePreparation: React.FC = () => {
                   </div>
                 ))}
 
-                <div className="scene-card add-scene" onClick={handleCreateScene}>
+                <div
+                  className="scene-card add-scene"
+                  onClick={handleCreateScene}
+                >
                   <div className="add-scene-content">
                     <span className="add-icon">+</span>
                     <span>Add Scene</span>
@@ -170,7 +184,9 @@ export const OfflinePreparation: React.FC = () => {
                 id="gameTitle"
                 type="text"
                 value={gameConfig.gameTitle || ''}
-                onChange={(e) => handleConfigChange({ gameTitle: e.target.value })}
+                onChange={(e) =>
+                  handleConfigChange({ gameTitle: e.target.value })
+                }
                 placeholder="Enter your campaign title..."
               />
             </div>
@@ -180,7 +196,9 @@ export const OfflinePreparation: React.FC = () => {
               <textarea
                 id="gameDescription"
                 value={gameConfig.gameDescription || ''}
-                onChange={(e) => handleConfigChange({ gameDescription: e.target.value })}
+                onChange={(e) =>
+                  handleConfigChange({ gameDescription: e.target.value })
+                }
                 placeholder="Brief description of your game..."
                 rows={3}
               />
@@ -194,7 +212,9 @@ export const OfflinePreparation: React.FC = () => {
                 min="1"
                 max="12"
                 value={gameConfig.maxPlayers}
-                onChange={(e) => handleConfigChange({ maxPlayers: parseInt(e.target.value) })}
+                onChange={(e) =>
+                  handleConfigChange({ maxPlayers: parseInt(e.target.value) })
+                }
               />
             </div>
 
@@ -203,7 +223,9 @@ export const OfflinePreparation: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={gameConfig.allowPlayerJoining}
-                  onChange={(e) => handleConfigChange({ allowPlayerJoining: e.target.checked })}
+                  onChange={(e) =>
+                    handleConfigChange({ allowPlayerJoining: e.target.checked })
+                  }
                 />
                 Allow players to join during game
               </label>
@@ -222,7 +244,9 @@ export const OfflinePreparation: React.FC = () => {
                   <li className={scenes.length > 0 ? 'complete' : 'incomplete'}>
                     ✓ At least one scene created ({scenes.length} scenes)
                   </li>
-                  <li className={gameConfig.gameTitle ? 'complete' : 'incomplete'}>
+                  <li
+                    className={gameConfig.gameTitle ? 'complete' : 'incomplete'}
+                  >
                     {gameConfig.gameTitle ? '✓' : '○'} Game title set
                   </li>
                   <li className="complete">✓ Settings configured</li>
@@ -241,15 +265,25 @@ export const OfflinePreparation: React.FC = () => {
             {phase === 'ready' && (
               <div className="ready-to-go">
                 <h3>✅ Ready to Go Live!</h3>
-                <p>Your game is prepared and ready. Click below to start hosting online.</p>
+                <p>
+                  Your game is prepared and ready. Click below to start hosting
+                  online.
+                </p>
 
                 <div className="live-game-preview">
                   <h4>Game Summary:</h4>
                   <ul>
-                    <li><strong>{gameConfig.gameTitle || 'Untitled Campaign'}</strong></li>
+                    <li>
+                      <strong>
+                        {gameConfig.gameTitle || 'Untitled Campaign'}
+                      </strong>
+                    </li>
                     <li>{scenes.length} scenes prepared</li>
                     <li>Up to {gameConfig.maxPlayers} players</li>
-                    <li>Players {gameConfig.allowPlayerJoining ? 'can' : 'cannot'} join during game</li>
+                    <li>
+                      Players {gameConfig.allowPlayerJoining ? 'can' : 'cannot'}{' '}
+                      join during game
+                    </li>
                   </ul>
                 </div>
 
@@ -258,7 +292,9 @@ export const OfflinePreparation: React.FC = () => {
                   onClick={handleGoLive}
                   disabled={isGoingLive}
                 >
-                  {isGoingLive ? '🚀 Starting Live Game...' : '🚀 Start Live Game'}
+                  {isGoingLive
+                    ? '🚀 Starting Live Game...'
+                    : '🚀 Start Live Game'}
                 </button>
               </div>
             )}

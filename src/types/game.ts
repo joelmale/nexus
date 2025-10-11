@@ -45,9 +45,50 @@ export interface DiceRoll {
   isPrivate?: boolean; // If true, only visible to the roller and the DM
 }
 
+// Navigation & Flow Types (from appFlowStore)
+export type AppView = 'welcome' | 'player_setup' | 'dm_setup' | 'game';
+
+export interface PlayerCharacter {
+  id: string;
+  name: string;
+  race: string;
+  class: string;
+  background: string;
+  level: number;
+  stats: {
+    strength: number;
+    dexterity: number;
+    constitution: number;
+    intelligence: number;
+    wisdom: number;
+    charisma: number;
+  };
+  createdAt: number;
+  lastUsed?: number;
+  playerId: string; // Links to user.id
+}
+
+export interface GameConfig {
+  name: string;
+  description: string;
+  estimatedTime: string;
+  campaignType: 'campaign' | 'oneshot';
+  maxPlayers: number;
+}
+
 export interface GameState {
+  // Navigation (from appFlowStore)
+  view: AppView;
+
+  // User & Session (merged from both stores)
   user: User;
   session: Session | null;
+
+  // Game Configuration (from appFlowStore)
+  gameConfig?: GameConfig;
+  selectedCharacter?: PlayerCharacter;
+
+  // Game Content (existing)
   diceRolls: DiceRoll[];
   activeTab: TabType;
   sceneState: SceneState;
@@ -87,6 +128,7 @@ export interface UserSettings {
   highlightActivePlayer: boolean;
   snapToGridByDefault: boolean;
   defaultGridSize: number;
+  diceDisappearTime: number; // Time in milliseconds before dice disappear (default: 3000)
 
   // Privacy Settings
   allowSpectators: boolean;

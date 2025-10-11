@@ -8,14 +8,14 @@
  */
 
 import React, { useState } from 'react';
-import { useAppFlowStore } from '@/stores/appFlowStore';
+import { useGameStore } from '@/stores/gameStore';
 import { NexusLogo } from './Assets';
 import { useAssetExists } from '@/utils/assets';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.png';
 import { applyMockDataToStorage, clearMockDataFromStorage } from '@/utils/mockDataGenerator';
 
 export const LinearWelcomePage: React.FC = () => {
-  const { setUser, joinRoomWithCode, dev_quickDM, dev_quickPlayer, dev_skipToGame } = useAppFlowStore();
+  const { setUser, joinRoomWithCode, dev_quickDM, dev_quickPlayer } = useGameStore();
   const [playerName, setPlayerName] = useState('');
   const [selectedRole, setSelectedRole] = useState<'player' | 'dm' | null>(null);
   const [roomCode, setRoomCode] = useState('');
@@ -337,42 +337,42 @@ export const LinearWelcomePage: React.FC = () => {
               <h4 className="dev-title">⚡ Development Tools</h4>
               <div className="dev-buttons">
                 <button
-                  onClick={() => {
-                    localStorage.removeItem('nexus-active-session');
-                    window.location.href = '/lobby?new=true';
+                  onClick={async () => {
+                    if (confirm('⚠️ This will clear all game data, disconnect, and start fresh. Continue?')) {
+                      // Proper cleanup using gameStore
+                      const { useGameStore } = await import('@/stores/gameStore');
+
+                      // Reset stores
+                      useGameStore.getState().reset();
+                      await useGameStore.getState().leaveRoom();
+
+                      // Clear localStorage items
+                      localStorage.removeItem('nexus-active-session');
+                      localStorage.removeItem('nexus_ws_port');
+                      localStorage.removeItem('nexus_dice_theme');
+
+                      // Reload to ensure clean state
+                      window.location.href = '/lobby';
+                    }
                   }}
                   className="dev-btn glass-button secondary small"
-                  title="Clear session and start fresh"
+                  title="Clear all session data and start completely fresh"
                 >
                   🔄 Force New Session
                 </button>
                 <button
                   onClick={() => dev_quickDM()}
                   className="dev-btn glass-button secondary small"
-                  title="Skip to DM game interface with test room"
+                  title="Start as DM in offline mode - prepare game, then go online"
                 >
-                  🎮 Quick DM
+                  🎮 Quick DM (offline)
                 </button>
                 <button
                   onClick={() => dev_quickPlayer()}
                   className="dev-btn glass-button secondary small"
-                  title="Skip to Player setup with test character"
+                  title="Create test character and go to offline game"
                 >
-                  👤 Quick Player
-                </button>
-                <button
-                  onClick={() => dev_skipToGame('dm')}
-                  className="dev-btn glass-button secondary small"
-                  title="Skip directly to game as DM"
-                >
-                  🚀 Skip to Game (DM)
-                </button>
-                <button
-                  onClick={() => dev_skipToGame('player')}
-                  className="dev-btn glass-button secondary small"
-                  title="Skip directly to game as Player"
-                >
-                  🚀 Skip to Game (Player)
+                  👤 Quick Player (offline)
                 </button>
               </div>
             </div>

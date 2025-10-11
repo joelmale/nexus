@@ -5,20 +5,32 @@
  * enter their name, select their role (Player/DM), and begin their adventure.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useGameStore } from '@/stores/gameStore';
-import { useGameLifecycleStore } from '@/stores/gameLifecycleStore';
 import { NexusLogo } from './Assets';
 import { useAssetExists } from '@/utils/assets';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.png';
 
 export const WelcomePage: React.FC = () => {
-  const { setUser } = useGameStore();
-  const { startPreparation } = useGameLifecycleStore();
+  const { setUser, startPreparation } = useGameStore();
   const [playerName, setPlayerName] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'player' | 'host' | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'player' | 'host' | null>(
+    null,
+  );
   const [error, setError] = useState('');
   const hasCustomLogo = useAssetExists('/assets/logos/nexus-logo.svg');
+
+  const particles = useMemo(() => {
+    return Array.from({ length: 15 }).map((_, i) => ({
+      id: i,
+      style: {
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        animationDelay: `${Math.random() * 4}s`,
+        animationDuration: `${4 + Math.random() * 4}s`,
+      },
+    }));
+  }, []);
 
   const handleBeginAdventure = () => {
     if (!playerName.trim()) {
@@ -35,7 +47,7 @@ export const WelcomePage: React.FC = () => {
     // Set user with selected role
     setUser({
       name: playerName.trim(),
-      type: selectedRole
+      type: selectedRole,
     });
 
     // If DM, start preparation mode
@@ -52,16 +64,11 @@ export const WelcomePage: React.FC = () => {
         <img src={DnDTeamBackground} alt="D&D Adventure Party" />
         <div className="background-overlay"></div>
         <div className="background-particles">
-          {Array.from({ length: 15 }).map((_, i) => (
+          {particles.map((p) => (
             <div
-              key={i}
+              key={p.id}
               className="particle"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 4}s`,
-                animationDuration: `${4 + Math.random() * 4}s`
-              }}
+              style={p.style as React.CSSProperties}
             ></div>
           ))}
         </div>
@@ -79,9 +86,7 @@ export const WelcomePage: React.FC = () => {
                 <h1 className="brand-title">Nexus VTT</h1>
               </div>
             )}
-            <p className="brand-tagline">
-              Your gateway to epic adventures
-            </p>
+            <p className="brand-tagline">Your gateway to epic adventures</p>
           </div>
 
           {error && (

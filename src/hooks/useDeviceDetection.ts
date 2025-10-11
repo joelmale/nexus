@@ -92,8 +92,6 @@ export const useDeviceDetection = (): DeviceInfo => {
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleOrientationChange);
 
-    setDeviceInfo(detectDevice());
-
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleOrientationChange);

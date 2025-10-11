@@ -21,8 +21,8 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [drawingStartTime, setDrawingStartTime] = useState(0);
 
-  // Convert screen coordinates to scene coordinates
   const screenToScene = useCallback((screenX: number, screenY: number): Point => {
     if (!svgRef.current) return { x: 0, y: 0 };
     
@@ -30,14 +30,12 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
     const svgX = screenX - rect.left;
     const svgY = screenY - rect.top;
     
-    // Account for camera transform
     const sceneX = (svgX - rect.width / 2) / camera.zoom + camera.x;
     const sceneY = (svgY - rect.height / 2) / camera.zoom + camera.y;
     
     return { x: sceneX, y: sceneY };
   }, [camera, svgRef]);
 
-  // Handle mouse events for measurement
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!isActive || e.button !== 0) return;
     
@@ -45,6 +43,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
     setStartPoint(point);
     setCurrentPoint(point);
     setIsDrawing(true);
+    setDrawingStartTime(Date.now());
     e.stopPropagation();
   }, [isActive, screenToScene]);
 
@@ -61,42 +60,36 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
     
     const endPoint = screenToScene(e.clientX, e.clientY);
     
-    // Calculate distance using D&D 5e diagonal rules
     const deltaX = endPoint.x - startPoint.x;
     const deltaY = endPoint.y - startPoint.y;
     const feetDistance = dndUtils.calculateDiagonalDistance(deltaX, deltaY, gridSize);
     const gridDistance = Math.round(feetDistance / 5);
     
-    // Create measurement
     const measurement: Measurement = {
-      id: `measurement-${Date.now()}`,
+      id: `measurement-${drawingStartTime}`,
       start: startPoint,
       end: endPoint,
       distance: feetDistance,
       gridDistance,
-      createdAt: Date.now(),
+      createdAt: drawingStartTime,
       createdBy: 'current-user',
       temporary: true,
     };
     
-    // Add to measurements and notify parent
     setMeasurements(prev => [...prev, measurement]);
     onMeasurement(measurement);
     
-    // Reset drawing state
     setIsDrawing(false);
     setStartPoint(null);
     setCurrentPoint(null);
     
-    // Auto-remove temporary measurements after 5 seconds
     setTimeout(() => {
       setMeasurements(prev => prev.filter(m => m.id !== measurement.id));
     }, 5000);
     
     e.stopPropagation();
-  }, [isDrawing, startPoint, screenToScene, gridSize, onMeasurement]);
+  }, [isDrawing, startPoint, screenToScene, gridSize, onMeasurement, drawingStartTime]);
 
-  // Clear measurements when tool becomes inactive
   useEffect(() => {
     if (!isActive) {
       setIsDrawing(false);
@@ -106,7 +99,6 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
     }
   }, [isActive]);
 
-  // Calculate current measurement while drawing
   const getCurrentMeasurement = useCallback(() => {
     if (!startPoint || !currentPoint) return null;
     
@@ -120,7 +112,6 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
 
   const currentMeasurement = getCurrentMeasurement();
 
-  // Render measurement overlays
   const renderMeasurement = (measurement: Measurement, isCurrent = false) => {
     const midPoint = {
       x: (measurement.start.x + measurement.end.x) / 2,
@@ -129,7 +120,6 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
 
     return (
       <g key={measurement.id} className={`measurement ${isCurrent ? 'current' : 'completed'}`}>
-        {/* Measurement line */}
         <line
           x1={measurement.start.x}
           y1={measurement.start.y}
@@ -141,7 +131,6 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
           markerEnd="url(#measurement-arrow)"
         />
         
-        {/* Start point */}
         <circle
           cx={measurement.start.x}
           cy={measurement.start.y}
@@ -151,7 +140,6 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
           strokeWidth={1 / camera.zoom}
         />
         
-        {/* End point */}
         <circle
           cx={measurement.end.x}
           cy={measurement.end.y}
@@ -161,7 +149,6 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
           strokeWidth={1 / camera.zoom}
         />
         
-        {/* Distance label */}
         <g transform={`translate(${midPoint.x}, ${midPoint.y})`}>
           <rect
             x={-30 / camera.zoom}
@@ -223,7 +210,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
         end: currentPoint,
         distance: currentMeasurement.feetDistance,
         gridDistance: currentMeasurement.gridDistance,
-        createdAt: Date.now(),
+        createdAt: drawingStartTime,
         createdBy: 'current-user',
         temporary: true,
       }, true)}

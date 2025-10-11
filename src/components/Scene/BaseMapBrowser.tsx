@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { baseMapAssetManager, type BaseMap } from '@/services/baseMapAssets';
 import { dungeonMapService } from '@/services/dungeonMapService';
 import { assetFavoritesManager } from '@/services/assetFavorites';
@@ -14,11 +14,11 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
   onClose,
 }) => {
   const [maps, setMaps] = useState<BaseMap[]>([]);
-  const [filteredMaps, setFilteredMaps] = useState<BaseMap[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedMap, setSelectedMap] = useState<BaseMap | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [favoritesVersion, setFavoritesVersion] = useState(0);
 
   useEffect(() => {
     const initializeMaps = async () => {
@@ -27,14 +27,13 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
       const generatedMaps = dungeonMapService.getAsBaseMaps();
       const allMaps = [...generatedMaps, ...defaultMaps];
       setMaps(allMaps);
-      setFilteredMaps(allMaps);
       setIsLoading(false);
     };
 
     initializeMaps();
   }, []);
 
-  useEffect(() => {
+  const filteredMaps = useMemo(() => {
     let filtered = maps;
 
     // Filter by category
@@ -54,9 +53,8 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
           map.tags.some((tag) => tag.toLowerCase().includes(lowerQuery)),
       );
     }
-
-    setFilteredMaps(filtered);
-  }, [searchQuery, selectedCategory, maps]);
+    return filtered;
+  }, [searchQuery, selectedCategory, maps, favoritesVersion]);
 
   const handleMapClick = (map: BaseMap) => {
     setSelectedMap(map);
@@ -72,8 +70,7 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
   const toggleFavorite = (e: React.MouseEvent, mapId: string) => {
     e.stopPropagation();
     assetFavoritesManager.toggleFavorite(mapId);
-    // Force re-render
-    setFilteredMaps([...filteredMaps]);
+    setFavoritesVersion(v => v + 1);
   };
 
   return (

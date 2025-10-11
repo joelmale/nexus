@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { DiceRoller } from './DiceRoller';
 import { InitiativeTracker } from './InitiativeTracker';
-import { PlayerPanel } from './PlayerPanel';
+import { LobbyPanel } from './LobbyPanel';
 import { ScenePanel } from './Scene/ScenePanel';
 import { useGameStore } from '@/stores/gameStore';
 import { Settings } from './Settings';
@@ -16,7 +16,7 @@ interface ContextPanelProps {
     | 'generator'
     | 'initiative'
     | 'dice'
-    | 'players'
+    | 'lobby'
     | 'settings'
     | 'chat'
     | 'sounds';
@@ -28,7 +28,7 @@ interface ContextPanelProps {
       | 'generator'
       | 'initiative'
       | 'dice'
-      | 'players'
+      | 'lobby'
       | 'settings'
       | 'chat'
       | 'sounds',
@@ -67,7 +67,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     { id: 'dice' as const, icon: '🎲', label: 'Dice' },
     { id: 'sounds' as const, icon: '🔊', label: 'Sounds' },
     { id: 'chat' as const, icon: '💬', label: 'Chat' },
-    { id: 'players' as const, icon: '👥', label: 'Players' },
+    { id: 'lobby' as const, icon: '🏠', label: 'Lobby' },
     { id: 'settings' as const, icon: '⚙️', label: 'Settings' },
   ];
 
@@ -88,7 +88,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       dice: 380, // Increased for dice controls and history
       sounds: 320,
       chat: 350,
-      players: 320,
+      lobby: 380, // Session management and player list
       settings: 400,
     };
 
@@ -127,7 +127,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
             {activePanel === 'dice' && <DiceRoller />}
             {activePanel === 'sounds' && <Placeholder title="Sound Effects" />}
             {activePanel === 'chat' && <Placeholder title="Chat" />}
-            {activePanel === 'players' && <PlayerPanel />}
+            {activePanel === 'lobby' && <LobbyPanel />}
             {activePanel === 'settings' && <Settings />}
           </div>
         </div>

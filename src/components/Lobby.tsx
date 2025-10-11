@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useGameStore, useSession, useIsHost } from '@/stores/gameStore';
-import { useGameLifecycleStore } from '@/stores/gameLifecycleStore';
 import { webSocketService } from '@/utils/websocket';
 import { NexusLogo } from './Assets';
 import { useAssetExists } from '@/utils/assets';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.png';
 
 export const Lobby: React.FC = () => {
-  const { setUser } = useGameStore();
-  const { startPreparation, joinLiveGame } = useGameLifecycleStore();
+  const { setUser, startPreparation, joinLiveGame } = useGameStore();
   const session = useSession();
   const isHost = useIsHost();
   const [playerName, setPlayerName] = useState('');
@@ -83,7 +81,7 @@ export const Lobby: React.FC = () => {
           <img src={DnDTeamBackground} alt="D&D Party" />
           <div className="background-overlay"></div>
         </div>
-        
+
         <div className="lobby-content">
           <div className="glass-panel session-panel">
             <div className="panel-header">
@@ -93,7 +91,7 @@ export const Lobby: React.FC = () => {
                 Connected
               </div>
             </div>
-            
+
             <div className="session-info">
               <div className="info-item">
                 <label>Room Code</label>
@@ -120,9 +118,9 @@ export const Lobby: React.FC = () => {
             <div className="players-section">
               <h3>Party Members ({session.players.length})</h3>
               <div className="players-grid">
-                {session.players.map(player => (
-                  <div 
-                    key={player.id} 
+                {session.players.map((player) => (
+                  <div
+                    key={player.id}
                     className={`player-card ${player.type === 'host' ? 'dm-card' : 'player-card'}`}
                   >
                     <div className="player-avatar">
@@ -134,7 +132,9 @@ export const Lobby: React.FC = () => {
                         {player.type === 'host' ? 'DM' : 'Player'}
                       </div>
                     </div>
-                    <div className={`connection-indicator ${player.connected ? 'online' : 'offline'}`}>
+                    <div
+                      className={`connection-indicator ${player.connected ? 'online' : 'offline'}`}
+                    >
                       <span className="indicator-dot"></span>
                     </div>
                   </div>
@@ -142,7 +142,10 @@ export const Lobby: React.FC = () => {
               </div>
             </div>
 
-            <button onClick={handleDisconnect} className="disconnect-btn glass-button danger">
+            <button
+              onClick={handleDisconnect}
+              className="disconnect-btn glass-button danger"
+            >
               <span>🚪</span>
               Leave Session
             </button>
@@ -159,14 +162,14 @@ export const Lobby: React.FC = () => {
         <div className="background-overlay"></div>
         <div className="background-particles">
           {Array.from({ length: 20 }).map((_, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="particle"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
                 animationDelay: `${Math.random() * 4}s`,
-                animationDuration: `${4 + Math.random() * 4}s`
+                animationDuration: `${4 + Math.random() * 4}s`,
               }}
             ></div>
           ))}
@@ -184,9 +187,7 @@ export const Lobby: React.FC = () => {
                 <h1 className="brand-title">Nexus VTT</h1>
               </div>
             )}
-            <p className="brand-tagline">
-              Your gateway to epic adventures
-            </p>
+            <p className="brand-tagline">Your gateway to epic adventures</p>
           </div>
 
           {error && (
@@ -222,7 +223,7 @@ export const Lobby: React.FC = () => {
                     <p>Lead your party as the Dungeon Master</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={handleHostGame}
                   disabled={loading || !playerName.trim()}
                   className="glass-button primary"
@@ -259,7 +260,9 @@ export const Lobby: React.FC = () => {
                     <input
                       type="text"
                       value={roomCode}
-                      onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                      onChange={(e) =>
+                        setRoomCode(e.target.value.toUpperCase())
+                      }
                       placeholder="Enter room code"
                       disabled={loading}
                       maxLength={6}
@@ -267,7 +270,7 @@ export const Lobby: React.FC = () => {
                     />
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={handleJoinGame}
                   disabled={loading || !playerName.trim() || !roomCode.trim()}
                   className="glass-button secondary"

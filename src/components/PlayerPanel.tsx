@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { useSession, useIsHost } from '@/stores/gameStore';
+import { useSession, useIsHost, useGameStore } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
-import { useAppFlowStore } from '@/stores/appFlowStore';
 import { CharacterSheet } from './CharacterSheet';
 import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
 import type { Player } from '@/types/game';
@@ -105,7 +104,7 @@ export const PlayerPanel: React.FC = () => {
   const { addEntry, rollInitiativeForAll, startCombat } = useInitiativeStore();
   const [, setShowCharacterSheet] = useState(false);
   const { LauncherComponent } = useCharacterCreationLauncher();
-  const { setView } = useAppFlowStore();
+  const { setView } = useGameStore();
 
   const players = session?.players ?? [];
 

@@ -16,6 +16,12 @@ interface ParsedDiceExpression {
 export function parseDiceExpression(expression: string): ParsedDiceExpression | null {
   const cleaned = expression.toLowerCase().replace(/\s/g, '');
 
+  // Check for trailing operators (invalid expressions like "2d6+" or "1d20-")
+  // eslint-disable-next-line no-useless-escape
+  if (/[+\-]$/.test(cleaned)) {
+    return null;
+  }
+
   const pools: Array<{ count: number; sides: number }> = [];
   let modifier = 0;
 
@@ -44,7 +50,7 @@ export function parseDiceExpression(expression: string): ParsedDiceExpression | 
   // Also remove commas
   withoutDice = withoutDice.replace(/,/g, '');
 
-  // Now extract any remaining number with sign
+  // Now extract any remaining number with sign (this is the modifier)
   const modifierMatch = withoutDice.match(/([+-]\d+)/);
   if (modifierMatch) {
     modifier = parseInt(modifierMatch[1]);
@@ -52,13 +58,11 @@ export function parseDiceExpression(expression: string): ParsedDiceExpression | 
     withoutDice = withoutDice.replace(modifierMatch[0], '');
   }
 
-  // Check for trailing operators before removing + signs
-  // If there's a + or - remaining (without a number), it's invalid
-  if (withoutDice.match(/[+-]/)) {
-    return null;
-  }
+  // Remove all + signs (they're valid separators between dice)
+  // We already checked for trailing operators above, so any + here is valid
+  withoutDice = withoutDice.replace(/\+/g, '');
 
-  // If there are any remaining characters, the expression is invalid
+  // If anything remains (like a stray - or other characters), it's invalid
   if (withoutDice.length > 0) {
     return null;
   }

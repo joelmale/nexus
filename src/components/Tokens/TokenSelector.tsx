@@ -4,6 +4,15 @@ import { useTokenInterfaceStrategy } from '@/hooks/useDeviceDetection';
 import type { Token, TokenCategory } from '@/types/token';
 import { TokenLibraryManager } from './TokenLibraryManager';
 
+interface InterfaceConfig {
+  tokenGridColumns: number;
+  tokenSize: 'small' | 'medium';
+  showThumbnails: boolean;
+  enableSearch: boolean;
+  enableFilters: boolean;
+  maxVisibleCategories: number;
+}
+
 interface TokenSelectorProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,39 +29,19 @@ const TOKEN_CATEGORIES: { id: TokenCategory; label: string; icon: string }[] = [
   { id: 'effect', label: 'Effects', icon: '✨' },
 ];
 
-export const TokenSelector: React.FC<TokenSelectorProps> = ({
-  isOpen,
-  onClose,
-  onTokenSelect,
+interface TokenGridProps {
+  interfaceConfig: InterfaceConfig;
+  filteredTokens: Token[];
+  selectedToken: Token | null | undefined;
+  handleTokenClick: (token: Token) => void;
+}
+
+const TokenGrid: React.FC<TokenGridProps> = ({
+  interfaceConfig,
+  filteredTokens,
   selectedToken,
-}) => {
-  const { getTokensByCategory, searchTokens, isLoading } = useTokenAssets();
-  const { strategy, interfaceConfig } = useTokenInterfaceStrategy();
-
-  const [activeCategory, setActiveCategory] = useState<TokenCategory>('pc');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showLibraryManager, setShowLibraryManager] = useState(false);
-
-  const filteredTokens = useMemo(() => {
-    if (searchQuery.trim()) {
-      return searchTokens(searchQuery);
-    }
-
-    return getTokensByCategory(activeCategory);
-  }, [getTokensByCategory, searchTokens, searchQuery, activeCategory]);
-
-  const handleTokenClick = (token: Token) => {
-    onTokenSelect(token);
-    if (strategy === 'modal') {
-      onClose();
-    }
-  };
-
-  if (!isOpen || isLoading) {
-    return null;
-  }
-
-  const TokenGrid = () => (
+  handleTokenClick,
+}) => (
     <div
       className="token-grid"
       style={{
@@ -130,9 +119,15 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
         </div>
       ))}
     </div>
-  );
+);
 
-  const CategoryTabs = () => (
+interface CategoryTabsProps {
+    interfaceConfig: InterfaceConfig;
+    activeCategory: TokenCategory;
+    setActiveCategory: (category: TokenCategory) => void;
+}
+
+const CategoryTabs: React.FC<CategoryTabsProps> = ({ interfaceConfig, activeCategory, setActiveCategory }) => (
     <div
       className="category-tabs"
       style={{ display: 'flex', borderBottom: '1px solid #ddd' }}
@@ -163,9 +158,15 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
         ),
       )}
     </div>
-  );
+);
 
-  const SearchBar = () =>
+interface SearchBarProps {
+    interfaceConfig: InterfaceConfig;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
+}
+
+const SearchBar: React.FC<SearchBarProps> = ({ interfaceConfig, searchQuery, setSearchQuery }) =>
     interfaceConfig.enableSearch ? (
       <div style={{ padding: '16px' }}>
         <input
@@ -183,6 +184,39 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
         />
       </div>
     ) : null;
+
+
+export const TokenSelector: React.FC<TokenSelectorProps> = ({
+  isOpen,
+  onClose,
+  onTokenSelect,
+  selectedToken,
+}) => {
+  const { getTokensByCategory, searchTokens, isLoading } = useTokenAssets();
+  const { strategy, interfaceConfig } = useTokenInterfaceStrategy();
+
+  const [activeCategory, setActiveCategory] = useState<TokenCategory>('pc');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showLibraryManager, setShowLibraryManager] = useState(false);
+
+  const filteredTokens = useMemo(() => {
+    if (searchQuery.trim()) {
+      return searchTokens(searchQuery);
+    }
+
+    return getTokensByCategory(activeCategory);
+  }, [getTokensByCategory, searchTokens, searchQuery, activeCategory]);
+
+  const handleTokenClick = (token: Token) => {
+    onTokenSelect(token);
+    if (strategy === 'modal') {
+      onClose();
+    }
+  };
+
+  if (!isOpen || isLoading) {
+    return null;
+  }
 
   // Modal rendering for mobile/tablet
   if (strategy === 'modal') {
@@ -264,9 +298,9 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
             </div>
           </div>
 
-          <SearchBar />
-          <CategoryTabs />
-          <TokenGrid />
+          <SearchBar interfaceConfig={interfaceConfig} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+          <CategoryTabs interfaceConfig={interfaceConfig} activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+          <TokenGrid interfaceConfig={interfaceConfig} filteredTokens={filteredTokens} selectedToken={selectedToken} handleTokenClick={handleTokenClick} />
         </div>
       </div>
     );
@@ -333,10 +367,10 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
           </div>
         </div>
 
-        <SearchBar />
-        <CategoryTabs />
+        <SearchBar interfaceConfig={interfaceConfig} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+        <CategoryTabs interfaceConfig={interfaceConfig} activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <TokenGrid />
+          <TokenGrid interfaceConfig={interfaceConfig} filteredTokens={filteredTokens} selectedToken={selectedToken} handleTokenClick={handleTokenClick} />
         </div>
       </div>
     );

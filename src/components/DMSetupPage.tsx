@@ -8,11 +8,11 @@
  */
 
 import React, { useState } from 'react';
-import { useAppFlowStore } from '@/stores/appFlowStore';
+import { useGameStore } from '@/stores/gameStore';
 import type { GameConfig } from '@/types/appFlow';
 
 export const DMSetupPage: React.FC = () => {
-  const { user, createGameRoom, resetToWelcome } = useAppFlowStore();
+  const { user, createGameRoom, resetToWelcome } = useGameStore();
   const [gameConfig, setGameConfig] = useState<GameConfig>({
     name: '',
     description: '',

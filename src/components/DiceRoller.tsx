@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useDiceRolls, useIsHost } from '@/stores/gameStore';
+import { useDiceRolls, useIsHost, useGameStore } from '@/stores/gameStore';
 import { formatDiceRoll, createDiceRoll } from '@/utils/dice';
 import { webSocketService } from '@/utils/websocket';
 import { diceSounds } from '@/utils/diceSounds';
-import { useGameStore } from '@/stores/gameStore';
-import { useAppFlowStore } from '@/stores/appFlowStore';
 
 /**
  * @file DiceRoller.tsx
@@ -19,7 +17,7 @@ import { useAppFlowStore } from '@/stores/appFlowStore';
 export const DiceRoller: React.FC = () => {
   const diceRolls = useDiceRolls();
   const isHost = useIsHost();
-  const { user } = useAppFlowStore();
+  const { user } = useGameStore();
   // Local state for the dice expression input field.
   const [expression, setExpression] = useState('');
   // Local state for displaying validation errors.

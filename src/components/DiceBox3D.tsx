@@ -1,16 +1,18 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import DiceBox from '@3d-dice/dice-box';
-import { useGameStore } from '@/stores/gameStore';
+import { useGameStore, useSettings } from '@/stores/gameStore';
 import { diceSounds } from '@/utils/diceSounds';
 
 export const DiceBox3D: React.FC = () => {
   const diceBoxRef = useRef<DiceBox | null>(null);
   const diceBoxContainerRef = useRef<HTMLDivElement>(null);
   const lastRollIdRef = useRef<string | null>(null);
+  const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
 
   const diceRolls = useGameStore((state) => state.diceRolls);
+  const settings = useSettings();
 
   // Get dice theme from localStorage (synced with DiceRoller component)
   const getDiceTheme = useCallback(() => {
@@ -23,93 +25,70 @@ export const DiceBox3D: React.FC = () => {
 
   // Initialize DiceBox
   useEffect(() => {
-    if (diceBoxContainerRef.current && !diceBoxRef.current) {
-      try {
-        const config = {
-          id: 'dice-canvas',
-          container: '#dice-box', // Selector for target DOM element
-          assetPath: '/assets/dice-box/',
-          theme: 'default',
-          offscreen: false,
-          scale: 8,
-          gravity: 1,
-          mass: 1,
-          friction: 0.8,
-          restitution: 0,
-          linearDamping: 0.4,
-          angularDamping: 0.4,
-          spinForce: 4,
-          throwForce: 5,
-          startingHeight: 8,
-          settleTimeout: 5000,
-          delay: 10,
-          enableShadows: true,
-          lightIntensity: 1,
-        };
+    const initializeDiceBox = async () => {
+      if (diceBoxContainerRef.current && !diceBoxRef.current) {
+        try {
+          const config = {
+            id: 'dice-canvas',
+            container: '#dice-box',
+            assetPath: '/assets/dice-box/',
+            theme: 'default',
+            offscreen: false,
+            scale: 8,
+            gravity: 1,
+            mass: 1,
+            friction: 0.8,
+            restitution: 0,
+            linearDamping: 0.4,
+            angularDamping: 0.4,
+            spinForce: 4,
+            throwForce: 5,
+            startingHeight: 8,
+            settleTimeout: 5000,
+            delay: 10,
+            enableShadows: true,
+            lightIntensity: 1,
+          };
 
-        console.log('🎲 Initializing DiceBox with config:', config);
+          console.log('🎲 Initializing DiceBox with config:', config);
 
-        // v1.1.x API: single config object argument
-        const diceBox = new DiceBox(config);
+          const diceBox = new DiceBox(config);
 
-        // Set up roll complete callback
-        diceBox.onRollComplete = (results: unknown) => {
-          console.log('🎲 Roll animation complete:', results);
-          // Sound is now played at the start of the roll, not at completion
-        };
+          diceBox.onRollComplete = (results: unknown) => {
+            console.log('🎲 Roll animation complete:', results);
+          };
 
-        // Initialize the dice box
-        diceBox
-          .init()
-          .then(() => {
-            diceBoxRef.current = diceBox;
-            setIsInitialized(true);
-            setInitError(null);
-            console.log('🎲 DiceBox3D initialized successfully with config:', diceBox.config);
+          await diceBox.init();
 
-            // Debug: Check if canvas was created
-            setTimeout(() => {
-              if (diceBoxContainerRef.current) {
-                const canvas = diceBoxContainerRef.current.querySelector('canvas');
-                const allCanvases = document.querySelectorAll('canvas');
+          diceBoxRef.current = diceBox;
+          setIsInitialized(true);
+          setInitError(null);
+          console.log('🎲 DiceBox3D initialized successfully with config:', diceBox.config);
 
-                console.log('🎲 All canvas elements in document:', allCanvases.length);
-                console.log('🎲 Canvas in dice-box container:', canvas);
-                console.log('🎲 Container dimensions:', {
-                  width: diceBoxContainerRef.current.offsetWidth,
-                  height: diceBoxContainerRef.current.offsetHeight,
-                  position: diceBoxContainerRef.current.getBoundingClientRect(),
+          // Debug checks
+          setTimeout(() => {
+            if (diceBoxContainerRef.current) {
+              const canvas = diceBoxContainerRef.current.querySelector('canvas');
+              if (canvas) {
+                console.log('🎲 Canvas found! Details:', {
+                  width: canvas.width,
+                  height: canvas.height,
                 });
-
-                if (canvas) {
-                  console.log('🎲 Canvas found! Details:', {
-                    width: canvas.width,
-                    height: canvas.height,
-                    styleWidth: canvas.style.width,
-                    styleHeight: canvas.style.height,
-                    cssText: canvas.style.cssText,
-                    display: getComputedStyle(canvas).display,
-                    visibility: getComputedStyle(canvas).visibility,
-                    opacity: getComputedStyle(canvas).opacity,
-                    zIndex: getComputedStyle(canvas).zIndex,
-                  });
-                } else {
-                  console.error('🎲 ERROR: No canvas element found in dice-box container!');
-                  console.log('🎲 Container HTML:', diceBoxContainerRef.current.innerHTML);
-                }
+              } else {
+                console.error('🎲 ERROR: No canvas element found!');
               }
-            }, 500);
-          })
-          .catch((error) => {
-            console.error('🎲 Failed to initialize DiceBox3D:', error);
-            setInitError(error.message || 'Failed to initialize 3D dice');
-            setIsInitialized(false);
-          });
-      } catch (error) {
-        console.error('🎲 Error creating DiceBox instance:', error);
-        setInitError(error instanceof Error ? error.message : 'Failed to create DiceBox');
+            }
+          }, 500);
+
+        } catch (error) {
+          console.error('🎲 Failed to initialize DiceBox3D:', error);
+          setInitError(error instanceof Error ? error.message : 'Failed to initialize or create DiceBox');
+          setIsInitialized(false);
+        }
       }
-    }
+    };
+
+    initializeDiceBox();
 
     return () => {
       if (diceBoxRef.current) {
@@ -118,6 +97,11 @@ export const DiceBox3D: React.FC = () => {
         } catch (error) {
           console.warn('🎲 Error clearing dice box:', error);
         }
+      }
+      // Clear any pending timeout
+      if (clearTimeoutRef.current) {
+        clearTimeout(clearTimeoutRef.current);
+        clearTimeoutRef.current = null;
       }
     };
   }, [getDiceTheme]);
@@ -168,18 +152,36 @@ export const DiceBox3D: React.FC = () => {
     // Roll the dice with predetermined values from the server
     if (rollNotations.length > 0) {
       console.log('🎲 Rolling dice with server results:', {
-        notation: rollNotations.join('+'),
+        notations: rollNotations,
         values: rollValues,
         expression: latestRoll.expression,
       });
 
+      // Clear any existing timeout
+      if (clearTimeoutRef.current) {
+        clearTimeout(clearTimeoutRef.current);
+        clearTimeoutRef.current = null;
+      }
+
       // Play sound immediately when dice start rolling
       diceSounds.playRollSound(rollValues.length);
 
+      // Use the documented API pattern from DICE_BOX_IMPLEMENTATION.md
+      // Pass array of notation strings and values array separately
       diceBoxRef.current
         .roll(rollNotations, { values: rollValues })
         .then((results) => {
           console.log('🎲 Dice roll animation started:', results);
+
+          // Schedule dice clear after settle time + configured disappear time
+          // settleTimeout is 5000ms, so dice settle after 5 seconds
+          const totalTime = 5000 + settings.diceDisappearTime;
+          clearTimeoutRef.current = setTimeout(() => {
+            if (diceBoxRef.current) {
+              diceBoxRef.current.clear();
+              console.log('🎲 Dice cleared from canvas');
+            }
+          }, totalTime);
         })
         .catch((error) => {
           console.error('🎲 Error rolling dice:', error);
@@ -187,7 +189,7 @@ export const DiceBox3D: React.FC = () => {
 
       lastRollIdRef.current = latestRoll.id;
     }
-  }, [diceRolls, isInitialized]);
+  }, [diceRolls, isInitialized, settings.diceDisappearTime]);
 
   return (
     <>

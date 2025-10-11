@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { LinearLayout } from './LinearLayout';
-import { useAppFlowStore } from '@/stores/appFlowStore';
 import { useGameStore } from '@/stores/gameStore';
 import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 
@@ -11,7 +10,7 @@ export const Layout: React.FC = () => {
   const params = useParams<{ sessionId?: string }>();
   const navigate = useNavigate();
   const { view, user, roomCode, isConnectedToRoom, setView } =
-    useAppFlowStore();
+    useGameStore();
 
   // Add initial state logging, sync gameStore, and handle migration
   useEffect(() => {
@@ -63,7 +62,7 @@ export const Layout: React.FC = () => {
 
     if (forceNew) {
       console.log('🔄 Force new session requested - clearing stored session');
-      useAppFlowStore.getState().resetToWelcome();
+      useGameStore.getState().resetToWelcome();
       // Remove the query parameter
       navigate('/lobby', { replace: true });
       return;
@@ -74,22 +73,27 @@ export const Layout: React.FC = () => {
     // 1. Page refresh with restored session from localStorage
     // 2. Navigation back to game after accidental navigation away
     // Note: After intentional leave (resetToWelcome), user.name will be empty
-    if (view === 'welcome' && user.name && user.type && roomCode) {
+    //
+    // IMPORTANT: Get fresh state to avoid stale closure values after resetToWelcome()
+    const currentState = useGameStore.getState();
+    const hasValidSession = currentState.user.name && currentState.user.type && currentState.roomCode;
+
+    if (view === 'welcome' && hasValidSession) {
       console.log('🔄 Auto-restoring session to game view', {
-        userName: user.name,
-        userType: user.type,
-        roomCode,
-        isConnected: isConnectedToRoom,
+        userName: currentState.user.name,
+        userType: currentState.user.type,
+        roomCode: currentState.roomCode,
+        isConnected: currentState.isConnectedToRoom,
       });
 
       // Sync the user data to gameStore before going to game
       const gameStore = useGameStore.getState();
       gameStore.setUser({
-        name: user.name,
-        type: user.type === 'dm' ? 'host' : 'player',
+        name: currentState.user.name,
+        type: currentState.user.type === 'dm' ? 'host' : 'player',
       });
 
-      useAppFlowStore.getState().setView('game');
+      useGameStore.getState().setView('game');
     }
   }, [user.name, user.type, roomCode, isConnectedToRoom, view, navigate]);
 
@@ -99,7 +103,7 @@ export const Layout: React.FC = () => {
     // URL → App State: If URL has sessionId but app isn't in game mode
     if (params.sessionId && view !== 'game') {
       // Also set the roomCode to match the URL sessionId
-      useAppFlowStore.setState({ roomCode: params.sessionId });
+      useGameStore.setState({ roomCode: params.sessionId });
       setView('game');
       // Optionally: Load session data based on sessionId
       // const storage = getLinearFlowStorage();
@@ -121,7 +125,7 @@ export const Layout: React.FC = () => {
       // Not in game mode - ensure we're on /lobby
       if (currentPath !== '/lobby') {
         navigate('/lobby', { replace: true });
-        useAppFlowStore.setState({ hasLeftRoom: false });
+        useGameStore.setState({ hasLeftRoom: false });
       }
     }
   }, [view, roomCode, navigate]);

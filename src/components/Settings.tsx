@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom'; // Not used yet
 import { useGameStore, useSettings, useColorScheme } from '@/stores/gameStore';
 import {
   defaultColorSchemes,
@@ -10,7 +10,6 @@ import {
 import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 import { RefreshIcon, SaveIcon } from './Icons';
 import type { ColorScheme, UserSettings } from '@/types/game';
-import { useAppFlowStore } from '@/stores/appFlowStore';
 
 /**
  * @file Settings.tsx
@@ -228,7 +227,7 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
  * state management, saving, and resetting of user preferences.
  */
 export const Settings: React.FC = () => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Not used yet
   const {
     updateSettings,
     setColorScheme,
@@ -511,6 +510,23 @@ export const Settings: React.FC = () => {
               className="setting-input"
             />
           </SettingItem>
+
+          <SettingItem
+            label="Dice Disappear Time"
+            description="Time in seconds before dice auto-clear from screen"
+          >
+            <input
+              type="number"
+              min="1"
+              max="30"
+              step="0.5"
+              value={settings.diceDisappearTime / 1000}
+              onChange={(e) =>
+                handleSettingChange('diceDisappearTime', parseFloat(e.target.value) * 1000)
+              }
+              className="setting-input"
+            />
+          </SettingItem>
         </SettingsSection>
 
         {/* Privacy Settings */}
@@ -713,31 +729,51 @@ export const Settings: React.FC = () => {
           >
             <SettingItem
               label="Clear & Reset All"
-              description="Clear game store, disconnect from room, and reset to welcome page"
+              description="Clear all game data, disconnect from room, and return to welcome screen"
             >
               <button
                 onClick={async () => {
-                  if (confirm('⚠️  This will:\n• Clear all game data\n• Disconnect from room\n• Reset to lobby\n\nContinue?')) {
-                    // Clear gameStore
-                    useGameStore.getState().reset();
+                  if (confirm('⚠️  This will:\n• Clear all game data (scenes, characters, etc.)\n• Disconnect from room\n• Reset to welcome screen\n\nThis cannot be undone. Continue?')) {
+                    console.log('🧹 Starting full reset...');
 
-                    // Clear appFlowStore and disconnect
-                    const appFlow = useAppFlowStore.getState();
-                    await appFlow.leaveRoom();
-
-                    // Clear localStorage
                     try {
-                      localStorage.removeItem('nexus_ws_port');
-                      localStorage.removeItem('nexus_dice_theme');
-                      localStorage.removeItem('nexus-active-session');
-                    } catch (e) {
-                      console.warn('Failed to clear localStorage:', e);
+                      // 1. Clear IndexedDB storage (scenes, characters, etc.)
+                      const { getLinearFlowStorage } = await import('@/services/linearFlowStorage');
+                      const storage = getLinearFlowStorage();
+                      await storage.clearGameData();
+                      console.log('✅ Cleared IndexedDB');
+
+                      // 2. Clear game stores
+                      useGameStore.getState().reset();
+                      console.log('✅ Reset gameStore');
+
+                      // 3. Disconnect WebSocket and reset game store
+                      const gameStore = useGameStore.getState();
+                      await gameStore.leaveRoom(); // This calls resetToWelcome internally
+                      console.log('✅ Disconnected and reset gameStore');
+
+                      // 4. Clear all localStorage
+                      try {
+                        localStorage.removeItem('nexus_ws_port');
+                        localStorage.removeItem('nexus_dice_theme');
+                        localStorage.removeItem('nexus-active-session');
+                        localStorage.removeItem('nexus-characters');
+                        localStorage.removeItem('nexus-settings');
+                        localStorage.removeItem('nexus-game-state');
+                        localStorage.removeItem('nexus-session');
+                      } catch (e) {
+                        console.warn('Failed to clear localStorage:', e);
+                      }
+                      console.log('✅ Cleared localStorage');
+
+                      console.log('🧹 Full reset completed - reloading to welcome screen');
+
+                      // 5. Force reload to ensure completely clean state
+                      window.location.href = '/lobby';
+                    } catch (error) {
+                      console.error('❌ Reset failed:', error);
+                      alert('Failed to reset. Please refresh the page manually.');
                     }
-
-                    console.log('🧹 Full reset completed - navigating to lobby');
-
-                    // Navigate to lobby
-                    navigate('/lobby');
                   }
                 }}
                 style={{

@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import { immer } from 'zustand/middleware/immer';
 import type {
+  AppView,
+  PlayerCharacter,
+  GameConfig,
   GameState,
   User,
   Session,
@@ -13,6 +16,8 @@ import type {
   UserSettings,
   ColorScheme,
   Player,
+  Drawing,
+  PlacedToken,
   TokenPlaceEvent,
   TokenMoveEvent,
   TokenUpdateEvent,
@@ -33,21 +38,60 @@ import type {
   DiceRollEvent,
   DiceRollResultEvent,
 } from '@/types/game';
-import type { Drawing } from '@/types/drawing';
-import type { PlacedToken } from '@/types/token';
+import type { GamePhase, LiveGameConfig } from '@/types/gameLifecycle';
+import { PHASE_PERMISSIONS } from '@/types/gameLifecycle';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultColorSchemes, applyColorScheme } from '@/utils/colorSchemes';
 import { drawingPersistenceService } from '@/services/drawingPersistence';
 import { sessionPersistenceService } from '@/services/sessionPersistence';
+import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 
 interface GameStore extends GameState {
-  // Actions
+  // Core Actions
   setUser: (user: Partial<User>) => void;
   setSession: (session: Session | null) => void;
   addDiceRoll: (roll: DiceRoll) => void;
   setActiveTab: (tab: TabType) => void;
   applyEvent: (event: GameEvent) => void;
   reset: () => void;
+
+  // App Flow Actions (from appFlowStore)
+  view: AppView;
+  gameConfig?: GameConfig;
+  selectedCharacter?: PlayerCharacter;
+  setView: (view: AppView) => void;
+  joinRoomWithCode: (
+    roomCode: string,
+    character?: PlayerCharacter,
+  ) => Promise<void>;
+  createGameRoom: (
+    config: GameConfig,
+    clearExistingData?: boolean,
+  ) => Promise<string>;
+  leaveRoom: () => Promise<void>;
+  resetToWelcome: () => void;
+
+  // Character Management Actions (from appFlowStore)
+  createCharacter: (
+    characterData: Omit<PlayerCharacter, 'id' | 'createdAt' | 'playerId'>,
+  ) => PlayerCharacter;
+  selectCharacter: (characterId: string) => void;
+  saveCharacter: (character: PlayerCharacter) => void;
+  getSavedCharacters: () => PlayerCharacter[];
+  deleteCharacter: (characterId: string) => void;
+  exportCharacters: () => string;
+  importCharacters: (jsonData: string) => void;
+
+  // Lifecycle Actions (from gameLifecycleStore)
+  startPreparation: () => void;
+  markReadyToStart: () => void;
+  startGoingLive: (config: LiveGameConfig) => Promise<string>;
+  goLive: (roomCode: string) => void;
+  pauseGame: (reason?: string) => void;
+  resumeGame: () => void;
+  endGame: (reason?: string, saveSnapshot?: boolean) => void;
+  joinLiveGame: (roomCode: string) => Promise<void>;
+  leaveGame: () => void;
 
   // Scene Actions
   createScene: (scene: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>) => Scene;
@@ -118,13 +162,101 @@ interface GameStore extends GameState {
   attemptSessionRecovery: () => Promise<boolean>;
   clearSessionData: () => void;
 
-  // Developer Actions
+  // Developer Actions (from appFlowStore + existing)
   toggleMockData: (enable: boolean) => void;
+  dev_quickDM: (name?: string) => Promise<void>;
+  dev_quickPlayer: (name?: string, autoJoinRoom?: string) => void;
 }
 
-const initialState: GameState = {
+// Generate a stable browser ID for linking characters to this "device/browser"
+const getBrowserId = (): string => {
+  const stored = localStorage.getItem('nexus-browser-id');
+  if (stored) return stored;
+
+  const newId = uuidv4();
+  localStorage.setItem('nexus-browser-id', newId);
+  return newId;
+};
+
+// Session persistence helpers
+const SESSION_STORAGE_KEY = 'nexus-active-session';
+
+interface PersistedSession {
+  userName: string;
+  userType: 'player' | 'host';
+  roomCode: string;
+  gameConfig?: GameConfig;
+  timestamp: number;
+}
+
+const saveSessionToStorage = (state: GameStore): void => {
+  if (state.user.name && state.user.type && state.session?.roomCode) {
+    const session: PersistedSession = {
+      userName: state.user.name,
+      userType: state.user.type,
+      roomCode: state.session.roomCode,
+      gameConfig: state.gameConfig,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    console.log('💾 Saved session to localStorage:', session);
+  }
+};
+
+const loadSessionFromStorage = (): Partial<GameStore> | null => {
+  try {
+    const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!stored) return null;
+
+    const session: PersistedSession = JSON.parse(stored);
+
+    // Check if session is less than 24 hours old
+    const age = Date.now() - session.timestamp;
+    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+
+    if (age > maxAge) {
+      console.log('⏰ Session expired (older than 24 hours)');
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+
+    console.log('📂 Loaded session from localStorage:', session);
+
+    return {
+      user: {
+        name: session.userName,
+        type: session.userType,
+        id: getBrowserId(),
+        color: 'blue',
+        connected: false,
+      },
+      gameConfig: session.gameConfig,
+      // Session will be restored with roomCode via attemptSessionRecovery
+    };
+  } catch (error) {
+    console.error('Failed to load session from storage:', error);
+    return null;
+  }
+};
+
+const clearSessionFromStorage = (): void => {
+  localStorage.removeItem(SESSION_STORAGE_KEY);
+  console.log('🗑️ Cleared session from localStorage');
+};
+
+const initialState: GameState & {
+  view: AppView;
+  gameConfig?: GameConfig;
+  selectedCharacter?: PlayerCharacter;
+} = {
+  // App Flow State (from appFlowStore)
+  view: 'welcome',
+  gameConfig: undefined,
+  selectedCharacter: undefined,
+
+  // Game State
   user: {
-    id: uuidv4(),
+    id: getBrowserId(),
     name: '',
     type: 'player',
     color: 'blue',
@@ -165,6 +297,7 @@ const initialState: GameState = {
     highlightActivePlayer: true,
     snapToGridByDefault: true,
     defaultGridSize: 50,
+    diceDisappearTime: 3000, // 3 seconds default
 
     // Privacy Settings
     allowSpectators: true,
@@ -231,6 +364,13 @@ const MOCK_SESSION: Session = {
   players: MOCK_PLAYERS,
   status: 'connected',
 };
+
+// Try to restore session from localStorage
+const restoredSession = loadSessionFromStorage();
+if (restoredSession) {
+  Object.assign(initialState, restoredSession);
+  console.log('✅ Restored session on app load');
+}
 
 type EventHandler = (state: GameState, data: unknown) => void;
 
@@ -609,9 +749,23 @@ export const useGameStore = create<GameStore>()(
     ...initialState,
 
     setUser: (userData) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('👤 setUser:', userData);
+      }
       set((state) => {
         Object.assign(state.user, userData);
+
+        // Auto-navigate to setup if setting name and type
+        if (userData.name && userData.type) {
+          state.view = userData.type === 'player' ? 'player_setup' : 'dm_setup';
+        }
       });
+
+      // Save session if we have a room code
+      const currentState = get();
+      if (currentState.session?.roomCode) {
+        saveSessionToStorage(currentState);
+      }
     },
 
     setSession: (session) => {
@@ -654,9 +808,347 @@ export const useGameStore = create<GameStore>()(
         ...initialState,
         user: {
           ...initialState.user,
-          id: uuidv4(), // Generate new ID on reset
+          id: getBrowserId(), // Use stable browser ID
         },
       }));
+    },
+
+    // App Flow Actions (from appFlowStore)
+    setView: (view: AppView) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 setView:', view);
+      }
+      set((state) => {
+        state.view = view;
+      });
+    },
+
+    joinRoomWithCode: async (roomCode: string, character?: PlayerCharacter) => {
+      try {
+        // Import webSocketService
+        const { webSocketService } = await import('@/utils/websocket');
+
+        console.log(
+          '🎮 Joining room:',
+          roomCode,
+          'with character:',
+          character?.name,
+        );
+
+        // Connect to WebSocket (player mode)
+        await webSocketService.connect(roomCode, 'player');
+
+        // Wait for session/joined event from server
+        const session = await webSocketService.waitForSessionJoined();
+
+        console.log('✅ Joined room:', roomCode);
+
+        // Update state
+        set((state) => {
+          state.view = 'game';
+          if (character) {
+            state.selectedCharacter = character;
+          }
+          state.user.connected = true;
+        });
+
+        // Save session to localStorage for refresh recovery
+        saveSessionToStorage(get());
+
+        // Update session
+        const { user } = get();
+        get().setSession({
+          roomCode,
+          hostId: session.hostId,
+          players: [
+            {
+              ...user,
+              id: user.id || '',
+              canEditScenes: false,
+              connected: true,
+              type: 'player',
+              color: user.color || 'blue',
+            },
+          ],
+          status: 'connected',
+        });
+
+        // If character provided, mark it as recently used
+        if (character) {
+          const characters = get().getSavedCharacters();
+          const updated = characters.map((c) =>
+            c.id === character.id ? { ...c, lastUsed: Date.now() } : c,
+          );
+          localStorage.setItem('nexus-characters', JSON.stringify(updated));
+        }
+      } catch (error) {
+        console.error('Failed to join room:', error);
+        throw error;
+      }
+    },
+
+    createGameRoom: async (
+      config: GameConfig,
+      clearExistingData: boolean = true,
+    ) => {
+      try {
+        // Clear previous game data to start fresh (unless preserving for dev/mock data)
+        const storage = getLinearFlowStorage();
+
+        if (clearExistingData) {
+          await storage.clearGameData();
+        } else if (process.env.NODE_ENV === 'development') {
+          const existingScenes = storage.getScenes();
+          console.log(`🎮 Preserving ${existingScenes.length} existing scenes`);
+        }
+
+        // Import webSocketService
+        const { webSocketService } = await import('@/utils/websocket');
+
+        console.log('🎮 Creating game room with WebSocket connection');
+
+        // Connect to WebSocket (host mode) - server will generate room code
+        await webSocketService.connect(undefined, 'host');
+
+        // Wait for session/created event from server
+        const session = await webSocketService.waitForSessionCreated();
+
+        const roomCode = session.roomCode;
+        console.log('✅ Room created:', roomCode);
+
+        // Update state
+        set((state) => {
+          state.gameConfig = config;
+          state.view = 'game';
+          state.user.connected = true;
+        });
+
+        // Save session to localStorage for refresh recovery
+        saveSessionToStorage(get());
+
+        // Update session
+        const { user } = get();
+        get().setSession({
+          roomCode,
+          hostId: user.id || '',
+          players: [
+            {
+              ...user,
+              id: user.id || '',
+              canEditScenes: true,
+              connected: true,
+              type: 'host',
+              color: user.color || 'blue',
+            },
+          ],
+          status: 'connected',
+        });
+
+        // Sync scenes from entity store to gameStore (in case mock data exists)
+        await storage.syncScenesWithGameStore();
+
+        return roomCode;
+      } catch (error) {
+        console.error('Failed to create room:', error);
+        throw error;
+      }
+    },
+
+    leaveRoom: async () => {
+      try {
+        const currentState = get();
+        console.log('🚪 Leaving room:', {
+          roomCode: currentState.session?.roomCode,
+          userName: currentState.user.name,
+          userType: currentState.user.type,
+          isConnected: currentState.user.connected,
+        });
+
+        // Import webSocketService
+        const { webSocketService } = await import('@/utils/websocket');
+
+        // Disconnect WebSocket
+        webSocketService.disconnect();
+
+        // Reset the in-memory state
+        get().resetToWelcome();
+
+        console.log('✅ Successfully left room and reset to welcome');
+      } catch (error) {
+        console.error('Failed to leave room:', error);
+      }
+    },
+
+    resetToWelcome: () => {
+      console.log('🔄 Resetting to welcome screen');
+
+      set((state) => {
+        state.view = 'welcome';
+        state.user.name = '';
+        state.user.type = 'player';
+        state.user.connected = false;
+        state.session = null;
+        state.gameConfig = undefined;
+        state.selectedCharacter = undefined;
+      });
+
+      // Clear persisted session
+      clearSessionFromStorage();
+
+      console.log(
+        '✅ Reset complete - cleared user, room, and connection state',
+      );
+    },
+
+    // Character Management Actions (from appFlowStore)
+    createCharacter: (characterData) => {
+      const character: PlayerCharacter = {
+        ...characterData,
+        id: uuidv4(),
+        createdAt: Date.now(),
+        playerId: get().user.id,
+      };
+
+      // Save to localStorage
+      const existing = get().getSavedCharacters();
+      const updated = [...existing, character];
+      localStorage.setItem('nexus-characters', JSON.stringify(updated));
+
+      console.log('Created character:', character.name);
+      return character;
+    },
+
+    selectCharacter: (characterId: string) => {
+      const characters = get().getSavedCharacters();
+      const character = characters.find((c) => c.id === characterId);
+      if (character) {
+        console.log('Selected character:', character.name);
+        // Character selection handled by UI components
+      }
+    },
+
+    saveCharacter: (character: PlayerCharacter) => {
+      const storage = getLinearFlowStorage();
+      storage.saveCharacter(character);
+    },
+
+    getSavedCharacters: (): PlayerCharacter[] => {
+      const storage = getLinearFlowStorage();
+      return storage.getCharacters();
+    },
+
+    deleteCharacter: (characterId: string) => {
+      const storage = getLinearFlowStorage();
+      storage.deleteCharacter(characterId);
+    },
+
+    exportCharacters: (): string => {
+      const characters = get().getSavedCharacters();
+      return JSON.stringify(
+        {
+          version: 1,
+          exportedAt: Date.now(),
+          playerId: get().user.id,
+          playerName: get().user.name,
+          characters,
+        },
+        null,
+        2,
+      );
+    },
+
+    importCharacters: (jsonData: string) => {
+      try {
+        const data = JSON.parse(jsonData);
+
+        if (!data.characters || !Array.isArray(data.characters)) {
+          throw new Error('Invalid character data format');
+        }
+
+        // Update character player IDs to current browser
+        const importedCharacters: PlayerCharacter[] = data.characters.map(
+          (c: PlayerCharacter) => ({
+            ...c,
+            id: uuidv4(), // New ID to avoid conflicts
+            playerId: get().user.id, // Link to current browser
+            createdAt: c.createdAt || Date.now(),
+          }),
+        );
+
+        // Merge with existing characters
+        const existing = get().getSavedCharacters();
+        const merged = [...existing, ...importedCharacters];
+        localStorage.setItem('nexus-characters', JSON.stringify(merged));
+
+        console.log(`Imported ${importedCharacters.length} characters`);
+      } catch (error) {
+        console.error('Failed to import characters:', error);
+        throw new Error('Invalid character file format');
+      }
+    },
+
+    // Lifecycle Actions (from gameLifecycleStore)
+    startPreparation: () => {
+      set((state) => {
+        state.view = 'dm_setup';
+        state.user.type = 'host';
+        state.user.connected = false;
+        state.session = null;
+        console.log('🎯 Started preparation phase');
+      });
+    },
+
+    markReadyToStart: () => {
+      set((state) => {
+        state.view = 'game';
+        // User stays disconnected until they actually go live
+        console.log('✅ Marked ready to start live game');
+      });
+    },
+
+    startGoingLive: async (config: LiveGameConfig) => {
+      // Convert LiveGameConfig to GameConfig
+      const gameConfig: GameConfig = {
+        name: config.gameTitle || 'Untitled Campaign',
+        description: config.gameDescription || '',
+        estimatedTime: '2-4 hours', // Default
+        campaignType: 'campaign', // Default
+        maxPlayers: config.maxPlayers,
+      };
+
+      // Reuse existing createGameRoom logic
+      return await get().createGameRoom(gameConfig);
+    },
+
+    goLive: (roomCode: string) => {
+      // This is handled by createGameRoom, but we can add explicit logic if needed
+      console.log(`🚀 Game is now live! Room code: ${roomCode}`);
+    },
+
+    pauseGame: (reason?: string) => {
+      // For now, just log - full pause/resume can be implemented later
+      console.log('⏸️ Game paused', reason);
+    },
+
+    resumeGame: () => {
+      console.log('▶️ Game resumed');
+    },
+
+    endGame: (reason?: string, _saveSnapshot?: boolean) => {
+      // Use existing leaveRoom logic
+      get().leaveRoom();
+      console.log('🏁 Game ended', reason);
+    },
+
+    joinLiveGame: async (roomCode: string) => {
+      // Reuse existing joinRoomWithCode logic
+      return await get().joinRoomWithCode(roomCode);
+    },
+
+    leaveGame: () => {
+      // Use existing leaveRoom logic
+      get().leaveRoom();
+      console.log('👋 Left game');
     },
 
     // Scene Management Actions
@@ -1257,7 +1749,8 @@ export const useGameStore = create<GameStore>()(
         set((state) => {
           // Restore scenes and active scene (always restore, even if empty)
           if (recoveryData.gameState) {
-            state.sceneState.scenes = (recoveryData.gameState.scenes || []) as Scene[];
+            state.sceneState.scenes = (recoveryData.gameState.scenes ||
+              []) as Scene[];
             state.sceneState.activeSceneId =
               recoveryData.gameState.activeSceneId;
             console.log(
@@ -1369,7 +1862,10 @@ export const useGameStore = create<GameStore>()(
               selectedObjectIds: get().sceneState.selectedObjectIds,
             },
             characters: (recoveryData.gameState.characters || []) as unknown[],
-            initiative: (recoveryData.gameState.initiative || {}) as Record<string, unknown>,
+            initiative: (recoveryData.gameState.initiative || {}) as Record<
+              string,
+              unknown
+            >,
           });
         }
 
@@ -1408,9 +1904,112 @@ export const useGameStore = create<GameStore>()(
         state.session = enable ? MOCK_SESSION : null;
         // When disabling mock data, also reset the user to avoid being stuck as the mock host.
         if (!enable) {
-          state.user = { ...initialState.user, id: uuidv4() };
+          state.user = { ...initialState.user, id: getBrowserId() };
         }
       });
+    },
+
+    dev_quickDM: async (name: string = 'Test DM') => {
+      console.log(
+        '🎮 DEV: Quick DM - OFFLINE MODE (prepare game, then start online)',
+      );
+
+      // Check if mock data exists (scenes from mock data toggle)
+      const storage = getLinearFlowStorage();
+      const existingScenes = storage.getScenes();
+      const hasMockData = existingScenes.length > 0;
+
+      // Only clear if no mock data exists
+      if (!hasMockData) {
+        await storage.clearGameData();
+      } else {
+        console.log(
+          `🎮 Found ${existingScenes.length} existing scenes - preserving for game`,
+        );
+      }
+
+      // Set user first
+      set((state) => {
+        state.user.name = name;
+        state.user.type = 'host';
+        state.user.id = getBrowserId();
+      });
+
+      // Generate offline room code (DM will create real room via "Start Online Game" button)
+      const offlineRoomCode = Math.random()
+        .toString(36)
+        .substring(2, 6)
+        .toUpperCase();
+
+      const config = {
+        name: 'Test Campaign',
+        description: 'Development test session',
+        estimatedTime: '2',
+        campaignType: 'oneshot' as const,
+        maxPlayers: 4,
+      };
+
+      // Start in OFFLINE mode - DM can prepare game, then click "Start Online Game"
+      set((state) => {
+        state.gameConfig = config;
+        state.user.connected = false; // ❌ Not connected - offline mode
+        state.view = 'game';
+      });
+
+      console.log(
+        `✅ DEV: Quick DM in offline mode - Room: ${offlineRoomCode}`,
+      );
+      console.log('💡 Use "Start Online Game" in Lobby panel to go online');
+    },
+
+    dev_quickPlayer: (name: string = 'Test Player', autoJoinRoom?: string) => {
+      console.log(
+        '👤 DEV: Quick Player - OFFLINE MODE (no WebSocket connection)',
+      );
+
+      set((state) => {
+        state.user.name = name;
+        state.user.type = 'player';
+        state.user.id = `player-${Date.now()}`;
+      });
+
+      // Create a test character
+      const testCharacter: PlayerCharacter = {
+        id: `char-${Date.now()}`,
+        name: 'Aragorn',
+        race: 'Human',
+        class: 'Ranger',
+        level: 5,
+        background: 'Folk Hero',
+        stats: {
+          strength: 16,
+          dexterity: 14,
+          constitution: 13,
+          intelligence: 10,
+          wisdom: 15,
+          charisma: 12,
+        },
+        createdAt: Date.now(),
+        lastUsed: Date.now(),
+        playerId: getBrowserId(),
+      };
+
+      // Save character and set as selected
+      set((state) => {
+        state.selectedCharacter = testCharacter;
+      });
+
+      get().saveCharacter(testCharacter);
+
+      // Go directly to game in OFFLINE mode (no WebSocket)
+      const offlineRoomCode = autoJoinRoom || 'OFFLINE';
+      set((state) => {
+        state.user.connected = false; // ❌ NOT connected - offline mode
+        state.view = 'game';
+      });
+      console.log(
+        `✅ DEV: Quick player in offline game - Room: ${offlineRoomCode}`,
+      );
     },
   })),
 );
@@ -1467,3 +2066,51 @@ export const useDrawingActions = () =>
       clearDrawings: state.clearDrawings,
     })),
   );
+
+// App Flow selectors (from appFlowStore)
+export const useView = () => useGameStore((state) => state.view);
+export const useGameConfig = () => useGameStore((state) => state.gameConfig);
+export const useSelectedCharacter = () =>
+  useGameStore((state) => state.selectedCharacter);
+
+// Lifecycle selectors (derived from gameStore state)
+export const useGamePhase = (): GamePhase => {
+  return useGameStore((state) => {
+    if (state.view === 'welcome') return 'preparation';
+    if (state.view === 'player_setup' || state.view === 'dm_setup')
+      return 'preparation';
+    if (state.view === 'game' && !state.user.connected) return 'ready';
+    if (state.view === 'game' && state.user.connected && state.session)
+      return 'live';
+    return 'preparation';
+  });
+};
+
+export const useGameMode = () => {
+  return useGameStore((state) => {
+    if (!state.user.connected) return 'offline';
+    if (state.session?.hostId === state.user.id) return 'hosting';
+    return 'live'; // joined as player
+  });
+};
+
+export const useLifecyclePermissions = () => {
+  const phase = useGamePhase();
+  return PHASE_PERMISSIONS[phase];
+};
+
+export const useIsOnline = () => {
+  const mode = useGameMode();
+  return mode === 'hosting' || mode === 'live';
+};
+
+export const useCanGoLive = () => {
+  return useGameStore(
+    (state) =>
+      state.view === 'game' && !state.user.connected && !!state.session,
+  );
+};
+
+export const useServerRoomCode = () => {
+  return useGameStore((state) => state.session?.roomCode || null);
+};

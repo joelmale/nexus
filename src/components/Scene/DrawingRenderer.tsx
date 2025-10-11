@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useActiveScene } from '@/stores/gameStore';
 import type { Drawing, BaseDrawing } from '@/types/drawing';
 import type { Camera } from '@/types/game';
@@ -9,6 +9,61 @@ interface DrawingRendererProps {
   isHost: boolean;
 }
 
+const PingDrawing: React.FC<{ drawing: Drawing & { type: 'ping' }, camera: Camera, commonProps: any }> = ({ drawing, camera, commonProps }) => {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const frameId = requestAnimationFrame(() => setNow(Date.now()));
+    return () => cancelAnimationFrame(frameId);
+  });
+
+  const elapsed = now - drawing.timestamp;
+  const progress = Math.min(elapsed / drawing.duration, 1);
+
+  if (progress >= 1) {
+    return null;
+  }
+
+  const opacity = 1 - progress;
+  const scale = 1 + progress * 0.5;
+
+  return (
+    <g key={drawing.id} opacity={opacity}>
+      <circle
+        cx={drawing.position.x}
+        cy={drawing.position.y}
+        r={(20 / camera.zoom) * scale}
+        fill="none"
+        stroke="#00bcd4"
+        strokeWidth={3 / camera.zoom}
+        className={commonProps.className}
+      />
+      <circle
+        cx={drawing.position.x}
+        cy={drawing.position.y}
+        r={10 / camera.zoom}
+        fill="#00bcd4"
+        opacity={0.6}
+        className={commonProps.className}
+      />
+      <text
+        x={drawing.position.x}
+        y={drawing.position.y - 30 / camera.zoom}
+        fontSize={14 / camera.zoom}
+        fontWeight="bold"
+        fill="#00bcd4"
+        textAnchor="middle"
+        className={commonProps.className}
+        style={{
+          textShadow: '0 0 4px rgba(0,0,0,0.8)',
+        }}
+      >
+        {drawing.playerName}
+      </text>
+    </g>
+  );
+};
+
 export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
   sceneId,
   camera,
@@ -16,30 +71,24 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
 }) => {
   const activeScene = useActiveScene();
 
-  // Get all drawings for this scene
   const drawings = useMemo(() => {
     if (!activeScene || activeScene.id !== sceneId) return [];
     return activeScene.drawings || [];
   }, [activeScene, sceneId]);
 
-  // Filter drawings based on visibility rules
   const visibleDrawings = useMemo(() => {
     return drawings.filter((drawing) => {
-      // DMs can see all drawings
       if (isHost) return true;
-
-      // Players can only see drawings that are visible to them
       if (drawing.layer === 'dm-only') return false;
       if (drawing.style.dmNotesOnly) return false;
       if (drawing.style.visibleToPlayers === false) return false;
-
       return true;
     });
   }, [drawings, isHost]);
 
   const renderDrawing = (drawing: Drawing) => {
     const { style } = drawing;
-    const strokeWidth = style.strokeWidth / camera.zoom; // Scale stroke width with zoom
+    const strokeWidth = style.strokeWidth / camera.zoom;
 
     const commonProps = {
       fill: style.fillColor,
@@ -141,14 +190,12 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       case 'aoe-cylinder':
         return (
           <g key={drawing.id} className={`${commonProps.className} aoe-effect`}>
-            {/* Base circle */}
             <circle
               cx={drawing.center.x}
               cy={drawing.center.y}
               r={drawing.radius}
               {...commonProps}
             />
-            {/* Height indicator (visual representation) */}
             <text
               x={drawing.center.x}
               y={drawing.center.y}
@@ -188,61 +235,17 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
           </text>
         );
 
-      case 'ping': {
-        const elapsed = Date.now() - drawing.timestamp;
-        const progress = Math.min(elapsed / drawing.duration, 1);
-        const opacity = 1 - progress;
-        const scale = 1 + progress * 0.5;
-
-        return (
-          <g key={drawing.id} opacity={opacity}>
-            {/* Ping marker */}
-            <circle
-              cx={drawing.position.x}
-              cy={drawing.position.y}
-              r={(20 / camera.zoom) * scale}
-              fill="none"
-              stroke="#00bcd4"
-              strokeWidth={3 / camera.zoom}
-              className={commonProps.className}
-            />
-            <circle
-              cx={drawing.position.x}
-              cy={drawing.position.y}
-              r={10 / camera.zoom}
-              fill="#00bcd4"
-              opacity={0.6}
-              className={commonProps.className}
-            />
-            {/* Player name label */}
-            <text
-              x={drawing.position.x}
-              y={drawing.position.y - 30 / camera.zoom}
-              fontSize={14 / camera.zoom}
-              fontWeight="bold"
-              fill="#00bcd4"
-              textAnchor="middle"
-              className={commonProps.className}
-              style={{
-                textShadow: '0 0 4px rgba(0,0,0,0.8)',
-              }}
-            >
-              {drawing.playerName}
-            </text>
-          </g>
-        );
-      }
+      case 'ping':
+        return <PingDrawing key={drawing.id} drawing={drawing} camera={camera} commonProps={commonProps} />;
 
       case 'fog-of-war': {
         if (drawing.area.length < 3) return null;
         const pathData = `M ${drawing.area.map((p) => `${p.x} ${p.y}`).join(' L ')} Z`;
 
-        // Only show fog if it's not revealed (or if DM wants to see it)
         const fogOpacity = drawing.revealed ? 0 : drawing.density;
 
         return (
           <g key={drawing.id} className="fog-of-war-layer">
-            {/* Fog polygon */}
             <path
               d={pathData}
               fill="#000000"
@@ -252,7 +255,6 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
               strokeDasharray={isHost && !drawing.revealed ? '5,5' : undefined}
               className={commonProps.className}
             />
-            {/* DM-only indicator when revealed */}
             {isHost && drawing.revealed && (
               <text
                 x={drawing.area[0].x}
@@ -334,7 +336,6 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
 
   return (
     <g className="drawings-layer">
-      {/* Group drawings by layer for proper rendering order */}
       <g className="background-drawings">
         {visibleDrawings
           .filter((d) => d.layer === 'background')
@@ -347,7 +348,6 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
           .map(renderDrawing)}
       </g>
 
-      {/* DM-only drawings (only visible to DMs) */}
       {isHost && (
         <g className="dm-only-drawings" opacity="0.7">
           {visibleDrawings
@@ -364,3 +364,4 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
     </g>
   );
 };
+

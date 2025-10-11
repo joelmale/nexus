@@ -98,21 +98,49 @@ Object.assign(mockWebSocket, {
 // Assign the mock using a more deliberate type assertion
 global.WebSocket = mockWebSocket as unknown as typeof WebSocket;
 
-// Mock localStorage
+// Mock localStorage with actual in-memory storage
+const localStorageData: Record<string, string> = {};
 const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
+  getItem: (key: string) => localStorageData[key] || null,
+  setItem: (key: string, value: string) => {
+    localStorageData[key] = value;
+  },
+  removeItem: (key: string) => {
+    delete localStorageData[key];
+  },
+  clear: () => {
+    Object.keys(localStorageData).forEach(key => delete localStorageData[key]);
+  },
+  get length() {
+    return Object.keys(localStorageData).length;
+  },
+  key: (index: number) => {
+    const keys = Object.keys(localStorageData);
+    return keys[index] || null;
+  },
 };
 global.localStorage = localStorageMock as unknown as Storage;
 
-// Mock sessionStorage
+// Mock sessionStorage with actual in-memory storage
+const sessionStorageData: Record<string, string> = {};
 const sessionStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
+  getItem: (key: string) => sessionStorageData[key] || null,
+  setItem: (key: string, value: string) => {
+    sessionStorageData[key] = value;
+  },
+  removeItem: (key: string) => {
+    delete sessionStorageData[key];
+  },
+  clear: () => {
+    Object.keys(sessionStorageData).forEach(key => delete sessionStorageData[key]);
+  },
+  get length() {
+    return Object.keys(sessionStorageData).length;
+  },
+  key: (index: number) => {
+    const keys = Object.keys(sessionStorageData);
+    return keys[index] || null;
+  },
 };
 global.sessionStorage = sessionStorageMock as unknown as Storage;
 
