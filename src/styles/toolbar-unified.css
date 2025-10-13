@@ -1,6 +1,6 @@
-/* =============================================================================
+/* ==========================================================================
    UNIFIED TOOLBAR SYSTEM - Scene Canvas Toolbar
-   ============================================================================= */
+   ========================================================================== */
 
 /* Toolbar CSS Custom Properties for different modes */
 :root {
@@ -41,93 +41,119 @@
 
 /* Desktop/Tablet optimized toolbar - No mobile mode */
 
-/* =============================================================================
+/* ==========================================================================
    MAIN TOOLBAR CONTAINER
-   ============================================================================= */
+   ========================================================================== */
 
 .scene-canvas-toolbar {
+  /* Positioning & Layout */
   position: absolute;
+  z-index: var(--z-toolbar);
   top: 10px;
   left: 10px;
-  max-height: calc(100vh - 20px);
+  overflow: hidden;
+  overflow-y: auto;
+
+  /* Box Model */
+  min-width: var(--toolbar-min-width);
   max-width: calc(100vw - 20px);
+  max-height: calc(100vh - 40px);
+  padding: var(--toolbar-padding);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--toolbar-border-radius);
+
+  /* Visuals */
   background: var(--surface-primary);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--toolbar-border-radius);
-  padding: var(--toolbar-padding);
   box-shadow: var(--shadow-glass-lg);
-  z-index: var(--z-toolbar);
-  overflow: hidden;
-  max-height: calc(100vh - 40px);
-  max-width: calc(100vw - 20px);
-  overflow-y: auto;
-  min-width: var(--toolbar-min-width);
+
+  /* Animation & Misc */
   animation: slideIn var(--duration-300) ease-out;
   transition: all var(--transition-base);
 }
 
-/* =============================================================================
+/* ==========================================================================
    TOOLBAR SECTIONS
-   ============================================================================= */
+   ========================================================================== */
 
 .toolbar-section {
+  /* Box Model */
   margin-bottom: var(--toolbar-section-gap);
 }
 
 .toolbar-section:last-child {
+  /* Box Model */
   margin-bottom: 0;
 }
 
 .toolbar-section-label {
+  /* Box Model */
+  margin-bottom: var(--toolbar-section-label-margin);
+  padding-left: var(--spacing-1);
+
+  /* Typography */
   font-size: var(--toolbar-section-label-font-size);
   font-weight: var(--font-semibold);
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: var(--toolbar-section-label-spacing);
-  margin-bottom: var(--toolbar-section-label-margin);
-  padding-left: var(--spacing-1);
 }
 
 .toolbar-buttons {
+  /* Positioning & Layout */
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+
+  /* Box Model */
   gap: var(--toolbar-button-gap);
   border-radius: var(--toolbar-button-border-radius);
-  overflow: hidden;
 }
 
-/* =============================================================================
+/* ==========================================================================
    TOOLBAR BUTTONS
-   ============================================================================= */
+   ========================================================================== */
 
 .toolbar-btn {
+  /* Positioning & Layout */
   display: flex;
   align-items: center;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+
+  /* Box Model */
+  width: 100%;
   gap: var(--spacing-2);
   padding: var(--toolbar-button-padding);
-  background: transparent;
   border: 1px solid transparent;
   border-radius: var(--toolbar-button-border-radius);
+
+  /* Typography */
   color: var(--text-primary);
   font-size: var(--toolbar-button-font-size);
-  cursor: pointer;
-  transition: all var(--transition-fast);
   text-align: left;
-  width: 100%;
-  position: relative;
-  user-select: none;
+
+  /* Visuals */
+  background: transparent;
+
+  /* Animation & Misc */
+  transition: all var(--transition-fast);
 }
 
 .toolbar-btn:hover:not(.disabled) {
+  /* Positioning & Layout */
+  transform: translateY(-1px);
+
+  /* Visuals */
   background: var(--surface-hover);
   border-color: var(--border-primary);
-  transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 
 .toolbar-btn.active {
+  /* Visuals */
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: white;
@@ -137,123 +163,175 @@
 }
 
 .toolbar-btn.disabled {
-  opacity: 0.5;
+  /* Positioning & Layout */
   cursor: not-allowed;
+
+  /* Visuals */
+  opacity: 0.5;
 }
 
 .toolbar-btn.disabled:hover {
+  /* Positioning & Layout */
+  transform: none;
+
+  /* Visuals */
   background: transparent;
   border-color: transparent;
-  transform: none;
   box-shadow: none;
 }
 
 /* DM-only indicator */
 .toolbar-btn.dm-only::before {
-  content: '👑';
+  /* Positioning & Layout */
   position: absolute;
+  z-index: 1;
   top: -2px;
   left: -2px;
-  font-size: var(--text-xs);
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: var(--border-radius);
+
+  /* Box Model */
   padding: var(--spacing-1);
-  z-index: 1;
+  border-radius: var(--border-radius);
+
+  /* Typography */
+  content: '👑';
+  font-size: var(--text-xs);
+
+  /* Visuals */
+  background: rgba(0, 0, 0, 0.8);
 }
 
-/* =============================================================================
+/* ==========================================================================
    TOOLBAR ICONS AND LABELS
-   ============================================================================= */
+   ========================================================================== */
 
 .tool-icon {
-  font-size: var(--toolbar-icon-size);
-  width: var(--toolbar-icon-width);
-  text-align: center;
-  flex-shrink: 0;
+  /* Positioning & Layout */
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+
+  /* Box Model */
+  width: var(--toolbar-icon-width);
+
+  /* Typography */
+  font-size: var(--toolbar-icon-size);
+  text-align: center;
 }
 
 .tool-label {
+  /* Positioning & Layout */
+  overflow: hidden;
+
+  /* Box Model */
+  white-space: nowrap;
+
+  /* Typography */
   font-weight: var(--font-medium);
   font-size: var(--toolbar-label-font-size);
-  white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
 }
 
-
-/* =============================================================================
+/* ==========================================================================
    STYLE PANEL
-   ============================================================================= */
+   ========================================================================== */
 
 .style-panel {
+  /* Positioning & Layout */
   position: absolute;
+  z-index: calc(var(--z-toolbar) + 1);
   top: 0;
   left: calc(100% + var(--spacing-2));
+
+  /* Box Model */
+  min-width: 200px;
+  padding: var(--spacing-4);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+
+  /* Visuals */
   background: var(--surface-primary);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius);
-  padding: var(--spacing-4);
   box-shadow: var(--shadow-glass-lg);
-  min-width: 200px;
-  z-index: calc(var(--z-toolbar) + 1);
+
+  /* Animation & Misc */
   animation: slideIn var(--duration-300) ease-out;
 }
 
 .style-section {
+  /* Box Model */
   margin-bottom: var(--spacing-4);
 }
 
 .style-section:last-child {
+  /* Box Model */
   margin-bottom: 0;
 }
 
 .style-section h4 {
+  /* Box Model */
+  margin: 0 0 var(--spacing-3) 0;
+
+  /* Typography */
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
-  margin: 0 0 var(--spacing-3) 0;
 }
 
 .style-controls {
+  /* Positioning & Layout */
   display: flex;
   flex-direction: column;
+
+  /* Box Model */
   gap: var(--spacing-3);
 }
 
 .style-controls label {
+  /* Positioning & Layout */
   display: flex;
   flex-direction: column;
+
+  /* Box Model */
   gap: var(--spacing-1);
+
+  /* Typography */
   font-size: var(--text-xs);
-  color: var(--text-secondary);
   font-weight: var(--font-medium);
+  color: var(--text-secondary);
 }
 
 .style-controls input,
 .style-controls select {
+  /* Box Model */
   padding: var(--spacing-2);
-  background: var(--surface-secondary);
   border: 1px solid var(--border-primary);
   border-radius: var(--border-radius);
+
+  /* Typography */
   color: var(--text-primary);
   font-size: var(--text-sm);
+
+  /* Visuals */
+  background: var(--surface-secondary);
+
+  /* Animation & Misc */
   transition: border-color var(--transition-fast);
 }
 
 .style-controls input:focus,
 .style-controls select:focus {
+  /* Positioning & Layout */
   outline: none;
+
+  /* Box Model */
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
 }
 
 /* Color input styling */
-.style-controls input[type="color"] {
+.style-controls input[type='color'] {
   width: 40px;
   height: 32px;
   padding: 2px;
@@ -261,7 +339,7 @@
 }
 
 /* Range input styling */
-.style-controls input[type="range"] {
+.style-controls input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   height: 6px;
@@ -270,7 +348,7 @@
   outline: none;
 }
 
-.style-controls input[type="range"]::-webkit-slider-thumb {
+.style-controls input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 16px;
@@ -280,7 +358,7 @@
   cursor: pointer;
 }
 
-.style-controls input[type="range"]::-moz-range-thumb {
+.style-controls input[type='range']::-moz-range-thumb {
   width: 16px;
   height: 16px;
   background: var(--color-primary);
@@ -340,7 +418,7 @@
   user-select: none;
 }
 
-.dm-controls input[type="checkbox"] {
+.dm-controls input[type='checkbox'] {
   width: 16px;
   height: 16px;
   accent-color: var(--color-primary);
@@ -401,7 +479,6 @@
 /* =============================================================================
    RESPONSIVE DESIGN
    ============================================================================= */
-
 
 /* =============================================================================
    ANIMATIONS

@@ -16,10 +16,10 @@ import type { StorageAdapter } from '@/types/hybrid';
 
 // Placeholder for Transit - we'll use JSON for now
 const transitWrite = {
-  write: (data: unknown) => JSON.stringify(data)
+  write: (data: unknown) => JSON.stringify(data),
 };
 const transitRead = {
-  read: (str: string) => JSON.parse(str) as unknown
+  read: (str: string) => JSON.parse(str) as unknown,
 };
 
 /**
@@ -31,7 +31,6 @@ const transitRead = {
  * - JSON fallback for simple data
  */
 export class SerializationService {
-
   /**
    * Serialize data using Transit.js (preserves complex types)
    * Best for: Game state, scenes, complex objects
@@ -85,7 +84,10 @@ export class SerializationService {
   /**
    * Smart serialization - chooses best method based on data type
    */
-  static serialize(data: unknown, format: 'auto' | 'transit' | 'msgpack' | 'json' = 'auto'): string | Uint8Array {
+  static serialize(
+    data: unknown,
+    format: 'auto' | 'transit' | 'msgpack' | 'json' = 'auto',
+  ): string | Uint8Array {
     if (format === 'transit') {
       return this.serializeTransit(data);
     }
@@ -106,7 +108,8 @@ export class SerializationService {
       return this.serializeTransit(data);
     }
 
-    if (dataSize > 50000) { // Large data - use MessagePack
+    if (dataSize > 50000) {
+      // Large data - use MessagePack
       return this.serializeMessagePack(data);
     }
 
@@ -149,16 +152,17 @@ export class SerializationService {
     if (data instanceof Uint8Array) return true;
 
     if (Array.isArray(data)) {
-      return data.some(item => this.hasComplexTypes(item));
+      return data.some((item) => this.hasComplexTypes(item));
     }
 
     if (data && typeof data === 'object') {
       // Check for common VTT complex types
       const obj = data as Record<string, unknown>;
       if (obj.x !== undefined && obj.y !== undefined) return true; // Vector-like
-      if (obj.r !== undefined && obj.g !== undefined && obj.b !== undefined) return true; // Color-like
+      if (obj.r !== undefined && obj.g !== undefined && obj.b !== undefined)
+        return true; // Color-like
 
-      return Object.values(data).some(value => this.hasComplexTypes(value));
+      return Object.values(data).some((value) => this.hasComplexTypes(value));
     }
 
     return false;
@@ -171,8 +175,12 @@ export class SerializationService {
   static createBackupData(gameState: unknown): Uint8Array {
     const state = gameState as Record<string, unknown>;
     const sceneState = state.sceneState as { scenes?: unknown[] } | undefined;
-    const characterStore = state.characterStore as { characters?: unknown[] } | undefined;
-    const assetStore = state.assetStore as { assets?: Record<string, unknown> } | undefined;
+    const characterStore = state.characterStore as
+      | { characters?: unknown[] }
+      | undefined;
+    const assetStore = state.assetStore as
+      | { assets?: Record<string, unknown> }
+      | undefined;
 
     const backupData = {
       version: '1.0.0',
@@ -183,7 +191,7 @@ export class SerializationService {
         scenes: sceneState?.scenes?.length || 0,
         characters: characterStore?.characters?.length || 0,
         assets: Object.keys(assetStore?.assets || {}).length,
-      }
+      },
     };
 
     return this.serializeMessagePack(backupData);
@@ -192,7 +200,9 @@ export class SerializationService {
   /**
    * Parse backup data (like Ogres import)
    */
-  static parseBackupData<T = unknown>(backupFile: Uint8Array): {
+  static parseBackupData<T = unknown>(
+    backupFile: Uint8Array,
+  ): {
     data: T;
     metadata: unknown;
     version: string;
@@ -233,7 +243,7 @@ export class SerializingIndexedDBAdapter implements StorageAdapter {
     return this.baseAdapter.save(key, {
       serialized,
       format: typeof serialized === 'string' ? 'transit' : 'msgpack',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -285,17 +295,27 @@ export class SerializingIndexedDBAdapter implements StorageAdapter {
   // These methods are not part of the StorageAdapter interface but are provided
   // by the IndexedDBAdapter implementation for backup/restore functionality
   async exportData?(): Promise<Uint8Array> {
-    if ('exportData' in this.baseAdapter && typeof this.baseAdapter.exportData === 'function') {
-      const data = await (this.baseAdapter.exportData as () => Promise<Record<string, unknown>>)();
+    if (
+      'exportData' in this.baseAdapter &&
+      typeof this.baseAdapter.exportData === 'function'
+    ) {
+      const data = await (
+        this.baseAdapter.exportData as () => Promise<Record<string, unknown>>
+      )();
       return SerializationService.createBackupData(data);
     }
     throw new Error('Base adapter does not support exportData');
   }
 
   async importData?(backupFile: Uint8Array): Promise<void> {
-    if ('importData' in this.baseAdapter && typeof this.baseAdapter.importData === 'function') {
+    if (
+      'importData' in this.baseAdapter &&
+      typeof this.baseAdapter.importData === 'function'
+    ) {
       const { data } = SerializationService.parseBackupData(backupFile);
-      return (this.baseAdapter.importData as (data: unknown) => Promise<void>)(data);
+      return (this.baseAdapter.importData as (data: unknown) => Promise<void>)(
+        data,
+      );
     }
     throw new Error('Base adapter does not support importData');
   }

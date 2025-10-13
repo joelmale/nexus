@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import '@/styles/dice-animation.css';
+import '@/styles/dice.css';
 import { diceSounds } from '@/utils/diceSounds';
 import { useSettings } from '@/stores/gameStore';
 
@@ -25,7 +25,11 @@ interface DiceInstance {
 /**
  * DiceAnimation component - Renders 3D animated dice that tumble and roll
  */
-export const DiceAnimation: React.FC<DiceAnimationProps> = ({ dice, onComplete, onStart }) => {
+export const DiceAnimation: React.FC<DiceAnimationProps> = ({
+  dice,
+  onComplete,
+  onStart,
+}) => {
   const [diceInstances, setDiceInstances] = useState<DiceInstance[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,8 +63,10 @@ export const DiceAnimation: React.FC<DiceAnimationProps> = ({ dice, onComplete, 
     diceSounds.playRollSound(dice.length);
 
     // Check for critical rolls
-    const hasCritSuccess = dice.some(d => d.type === 'd20' && d.result === 20);
-    const hasCritFailure = dice.some(d => d.type === 'd20' && d.result === 1);
+    const hasCritSuccess = dice.some(
+      (d) => d.type === 'd20' && d.result === 20,
+    );
+    const hasCritFailure = dice.some((d) => d.type === 'd20' && d.result === 1);
 
     // Play crit sound at landing time (1.8s)
     if (hasCritSuccess) {
@@ -70,7 +76,7 @@ export const DiceAnimation: React.FC<DiceAnimationProps> = ({ dice, onComplete, 
     }
 
     // Animation duration: 2 seconds + stagger delay
-    const animationDuration = 2000 + (dice.length * 100);
+    const animationDuration = 2000 + dice.length * 100;
     // Total time = animation + configured disappear delay
     const totalDuration = animationDuration + settings.diceDisappearTime;
 
@@ -125,7 +131,11 @@ const AnimatedDie: React.FC<AnimatedDieProps> = ({ instance }) => {
   // Check for crits to add special class
   const isCritSuccess = instance.type === 'd20' && instance.result === 20;
   const isCritFailure = instance.type === 'd20' && instance.result === 1;
-  const critClass = isCritSuccess ? 'crit-success' : isCritFailure ? 'crit-failure' : '';
+  const critClass = isCritSuccess
+    ? 'crit-success'
+    : isCritFailure
+      ? 'crit-failure'
+      : '';
 
   return (
     <div
@@ -142,7 +152,11 @@ const AnimatedDie: React.FC<AnimatedDieProps> = ({ instance }) => {
 /**
  * Render different die types with proper faces
  */
-function renderDie(type: string, result: number, hasLanded: boolean): React.ReactNode {
+function renderDie(
+  type: string,
+  result: number,
+  hasLanded: boolean,
+): React.ReactNode {
   const dieColor = getDieColor(type);
 
   if (type === 'd6') {
@@ -164,13 +178,13 @@ function renderDie(type: string, result: number, hasLanded: boolean): React.Reac
 
 function getDieColor(type: string): string {
   const colors: Record<string, string> = {
-    'd4': '#8b5cf6', // Purple
-    'd6': '#ef4444', // Red
-    'd8': '#10b981', // Green
-    'd10': '#3b82f6', // Blue
-    'd12': '#f59e0b', // Amber
-    'd20': '#ec4899', // Pink
-    'd100': '#06b6d4', // Cyan
+    d4: '#8b5cf6', // Purple
+    d6: '#ef4444', // Red
+    d8: '#10b981', // Green
+    d10: '#3b82f6', // Blue
+    d12: '#f59e0b', // Amber
+    d20: '#ec4899', // Pink
+    d100: '#06b6d4', // Cyan
   };
   return colors[type] || '#6366f1';
 }
@@ -178,7 +192,11 @@ function getDieColor(type: string): string {
 /**
  * Render a 6-sided die (cube)
  */
-function renderD6(result: number, color: string, hasLanded: boolean): React.ReactNode {
+function renderD6(
+  result: number,
+  color: string,
+  hasLanded: boolean,
+): React.ReactNode {
   // Map result to which face should be on top
   // We'll rotate the cube so the result face is on top when landed
   const topFace = result;
@@ -217,7 +235,14 @@ function renderDots(count: number): React.ReactNode {
     3: ['top-left', 'center', 'bottom-right'],
     4: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
     5: ['top-left', 'top-right', 'center', 'bottom-left', 'bottom-right'],
-    6: ['top-left', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-right'],
+    6: [
+      'top-left',
+      'top-right',
+      'middle-left',
+      'middle-right',
+      'bottom-left',
+      'bottom-right',
+    ],
   };
 
   return (
@@ -232,7 +257,11 @@ function renderDots(count: number): React.ReactNode {
 /**
  * Render other dice types with numbers
  */
-function renderD20(result: number, color: string, hasLanded: boolean): React.ReactNode {
+function renderD20(
+  result: number,
+  color: string,
+  hasLanded: boolean,
+): React.ReactNode {
   return (
     <div className="polyhedron d20-shape" style={{ background: color }}>
       {hasLanded && <div className="die-result">{result}</div>}
@@ -240,7 +269,11 @@ function renderD20(result: number, color: string, hasLanded: boolean): React.Rea
   );
 }
 
-function renderD4(result: number, color: string, hasLanded: boolean): React.ReactNode {
+function renderD4(
+  result: number,
+  color: string,
+  hasLanded: boolean,
+): React.ReactNode {
   return (
     <div className="polyhedron d4-shape" style={{ background: color }}>
       {hasLanded && <div className="die-result">{result}</div>}
@@ -248,7 +281,11 @@ function renderD4(result: number, color: string, hasLanded: boolean): React.Reac
   );
 }
 
-function renderD8(result: number, color: string, hasLanded: boolean): React.ReactNode {
+function renderD8(
+  result: number,
+  color: string,
+  hasLanded: boolean,
+): React.ReactNode {
   return (
     <div className="polyhedron d8-shape" style={{ background: color }}>
       {hasLanded && <div className="die-result">{result}</div>}
@@ -256,7 +293,11 @@ function renderD8(result: number, color: string, hasLanded: boolean): React.Reac
   );
 }
 
-function renderD10(result: number, color: string, hasLanded: boolean): React.ReactNode {
+function renderD10(
+  result: number,
+  color: string,
+  hasLanded: boolean,
+): React.ReactNode {
   return (
     <div className="polyhedron d10-shape" style={{ background: color }}>
       {hasLanded && <div className="die-result">{result}</div>}
@@ -264,7 +305,11 @@ function renderD10(result: number, color: string, hasLanded: boolean): React.Rea
   );
 }
 
-function renderD12(result: number, color: string, hasLanded: boolean): React.ReactNode {
+function renderD12(
+  result: number,
+  color: string,
+  hasLanded: boolean,
+): React.ReactNode {
   return (
     <div className="polyhedron d12-shape" style={{ background: color }}>
       {hasLanded && <div className="die-result">{result}</div>}

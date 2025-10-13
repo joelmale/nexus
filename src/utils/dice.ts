@@ -13,7 +13,9 @@ interface ParsedDiceExpression {
  * - "2d6+3d8+5" (multiple die types with modifier)
  * - "1d20, 2d6, 1d4+2" (mixed format)
  */
-export function parseDiceExpression(expression: string): ParsedDiceExpression | null {
+export function parseDiceExpression(
+  expression: string,
+): ParsedDiceExpression | null {
   const cleaned = expression.toLowerCase().replace(/\s/g, '');
 
   // Check for trailing operators (invalid expressions like "2d6+" or "1d20-")
@@ -104,7 +106,7 @@ export function createDiceRoll(
     isPrivate?: boolean;
     advantage?: boolean;
     disadvantage?: boolean;
-  } = {}
+  } = {},
 ): DiceRoll | null {
   const parsed = parseDiceExpression(expression);
   if (!parsed) return null;
@@ -159,7 +161,11 @@ export function createDiceRoll(
 
   // Check for critical success/failure (single d20 only)
   let crit: 'success' | 'failure' | undefined = undefined;
-  if (dicePools.length === 1 && dicePools[0].count === 1 && dicePools[0].sides === 20) {
+  if (
+    dicePools.length === 1 &&
+    dicePools[0].count === 1 &&
+    dicePools[0].sides === 20
+  ) {
     if (dicePools[0].results[0] === 20) crit = 'success';
     if (dicePools[0].results[0] === 1) crit = 'failure';
   }
@@ -186,7 +192,12 @@ export function formatDiceRoll(roll: DiceRoll): string {
   if (pools.length === 0) return `${expression} = ${total}`;
 
   let resultText = '';
-  const critClass = crit === 'success' ? 'crit-success' : crit === 'failure' ? 'crit-failure' : '';
+  const critClass =
+    crit === 'success'
+      ? 'crit-success'
+      : crit === 'failure'
+        ? 'crit-failure'
+        : '';
 
   // Handle advantage/disadvantage
   if (roll.advResults && roll.advResults.length > 0) {
@@ -208,7 +219,9 @@ export function formatDiceRoll(roll: DiceRoll): string {
     for (const pool of pools) {
       const poolLabel = `${pool.count}d${pool.sides}`;
       const poolResults = `[${pool.results.join(', ')}]`;
-      poolTexts.push(`<span class="dice-pool"><span class="pool-label">${poolLabel}</span><span class="${critClass}">${poolResults}</span></span>`);
+      poolTexts.push(
+        `<span class="dice-pool"><span class="pool-label">${poolLabel}</span><span class="${critClass}">${poolResults}</span></span>`,
+      );
     }
 
     resultText += poolTexts.join(' + ');
@@ -225,8 +238,18 @@ export function formatDiceRoll(roll: DiceRoll): string {
 
 // Common dice expressions for quick access
 export const COMMON_DICE = [
-  'd4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100',
-  '2d6', '3d6', '4d6',
+  'd4',
+  'd6',
+  'd8',
+  'd10',
+  'd12',
+  'd20',
+  'd100',
+  '2d6',
+  '3d6',
+  '4d6',
   // Complex formulas
-  '1d20+1d6', '2d6+1d4', '3d4+2d6'
+  '1d20+1d6',
+  '2d6+1d4',
+  '3d4+2d6',
 ];

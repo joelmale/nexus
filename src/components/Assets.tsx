@@ -12,22 +12,22 @@ interface IconProps {
 }
 
 // Logo component for branding
-export const NexusLogo: React.FC<LogoProps> = ({ 
-  variant = 'default', 
+export const NexusLogo: React.FC<LogoProps> = ({
+  variant = 'default',
   size = 'md',
-  className = '' 
+  className = '',
 }) => {
   const sizeClasses = {
     sm: 'h-6',
-    md: 'h-8', 
+    md: 'h-8',
     lg: 'h-12',
-    xl: 'h-16'
+    xl: 'h-16',
   };
 
   const logoSrc = `/assets/logos/nexus-logo${variant !== 'default' ? `-${variant}` : ''}.svg`;
-  
+
   return (
-    <img 
+    <img
       src={logoSrc}
       alt="Nexus VTT"
       className={`${sizeClasses[size]} ${className}`}
@@ -41,12 +41,12 @@ export const NexusLogo: React.FC<LogoProps> = ({
 };
 
 // Icon component for app icons
-export const NexusIcon: React.FC<IconProps> = ({ 
-  size = 24, 
-  className = '' 
+export const NexusIcon: React.FC<IconProps> = ({
+  size = 24,
+  className = '',
 }) => {
   return (
-    <img 
+    <img
       src="/assets/icons/nexus-icon.svg"
       alt="Nexus"
       width={size}
@@ -60,4 +60,3 @@ export const NexusIcon: React.FC<IconProps> = ({
     />
   );
 };
-

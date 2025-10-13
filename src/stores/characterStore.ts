@@ -8,14 +8,16 @@ import type {
   AbilityScores,
   Equipment,
   CharacterImportSource,
-  CharacterExportFormat
+  CharacterExportFormat,
 } from '@/types/character';
+import type { PlayerCharacter } from '@/types/game';
+import { useInitiativeStore } from '@/stores/initiativeStore';
 import {
   createEmptyCharacter,
   calculateAbilityModifier,
   calculateProficiencyBonus,
   calculatePassivePerception,
-  STANDARD_SKILLS
+  STANDARD_SKILLS,
 } from '@/types/character';
 
 interface CharacterState {
@@ -46,14 +48,31 @@ interface CharacterStore extends CharacterState {
   getCharactersByPlayer: (playerId: string) => Character[];
 
   // Character Stats Calculation
-  updateAbilityScore: (characterId: string, ability: keyof AbilityScores, score: number) => void;
-  updateSkillProficiency: (characterId: string, skillName: string, proficient: boolean, expertise?: boolean) => void;
-  updateSavingThrowProficiency: (characterId: string, ability: keyof AbilityScores, proficient: boolean) => void;
+  updateAbilityScore: (
+    characterId: string,
+    ability: keyof AbilityScores,
+    score: number,
+  ) => void;
+  updateSkillProficiency: (
+    characterId: string,
+    skillName: string,
+    proficient: boolean,
+    expertise?: boolean,
+  ) => void;
+  updateSavingThrowProficiency: (
+    characterId: string,
+    ability: keyof AbilityScores,
+    proficient: boolean,
+  ) => void;
   recalculateStats: (characterId: string) => void;
 
   // Equipment Management
   addEquipment: (characterId: string, equipment: Omit<Equipment, 'id'>) => void;
-  updateEquipment: (characterId: string, equipmentId: string, updates: Partial<Equipment>) => void;
+  updateEquipment: (
+    characterId: string,
+    equipmentId: string,
+    updates: Partial<Equipment>,
+  ) => void;
   removeEquipment: (characterId: string, equipmentId: string) => void;
   equipItem: (characterId: string, equipmentId: string) => void;
   unequipItem: (characterId: string, equipmentId: string) => void;
@@ -61,14 +80,24 @@ interface CharacterStore extends CharacterState {
   // Combat Integration
   addCharacterToCombat: (characterId: string) => void;
   removeCharacterFromCombat: (characterId: string) => void;
-  updateCharacterHP: (characterId: string, current: number, temporary?: number) => void;
+  updateCharacterHP: (
+    characterId: string,
+    current: number,
+    temporary?: number,
+  ) => void;
 
   // Character Creation Wizard
-  startCharacterCreation: (playerId: string, method: 'guided' | 'manual' | 'import') => void;
+  startCharacterCreation: (
+    playerId: string,
+    method: 'guided' | 'manual' | 'import',
+  ) => void;
   updateCreationState: (updates: Partial<CharacterCreationState>) => void;
   nextCreationStep: () => void;
   previousCreationStep: () => void;
-  completeCharacterCreation: () => string | null;
+  completeCharacterCreation: () => Promise<{
+    id: string;
+    character: Character;
+  } | null>;
   cancelCharacterCreation: () => void;
 
   // Mob Management (DM only)
@@ -178,169 +207,201 @@ export const useCharacterStore = create<CharacterStore>()(
       return character.id!;
     },
 
-    updateCharacter: (characterId, updates) => set((state) => {
-      const character = state.characters.find(c => c.id === characterId);
-      if (character) {
-        Object.assign(character, updates);
-        character.updatedAt = Date.now();
+    updateCharacter: (characterId, updates) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character) {
+          Object.assign(character, updates);
+          character.updatedAt = Date.now();
 
-        // Recalculate dependent stats if ability scores changed
-        if (updates.abilities) {
-          get().recalculateStats(characterId);
+          // Recalculate dependent stats if ability scores changed
+          if (updates.abilities) {
+            get().recalculateStats(characterId);
+          }
         }
-      }
-    }),
+      }),
 
-    deleteCharacter: (characterId) => set((state) => {
-      const index = state.characters.findIndex(c => c.id === characterId);
-      if (index !== -1) {
-        state.characters.splice(index, 1);
-        if (state.activeCharacterId === characterId) {
-          state.activeCharacterId = null;
+    deleteCharacter: (characterId) =>
+      set((state) => {
+        const index = state.characters.findIndex((c) => c.id === characterId);
+        if (index !== -1) {
+          state.characters.splice(index, 1);
+          if (state.activeCharacterId === characterId) {
+            state.activeCharacterId = null;
+          }
         }
-      }
-    }),
+      }),
 
-    setActiveCharacter: (characterId) => set((state) => {
-      state.activeCharacterId = characterId;
-    }),
+    setActiveCharacter: (characterId) =>
+      set((state) => {
+        state.activeCharacterId = characterId;
+      }),
 
     getCharacter: (characterId) => {
-      return get().characters.find(c => c.id === characterId);
+      return get().characters.find((c) => c.id === characterId);
     },
 
     getCharactersByPlayer: (playerId) => {
-      return get().characters.filter(c => c.playerId === playerId);
+      return get().characters.filter((c) => c.playerId === playerId);
     },
 
     // Character Stats Calculation
-    updateAbilityScore: (characterId, ability, score) => set((state) => {
-      const character = state.characters.find(c => c.id === characterId);
-      if (character && character.abilities) {
-        character.abilities[ability].score = Math.max(1, Math.min(30, score));
-        character.abilities[ability].modifier = calculateAbilityModifier(score);
-        character.updatedAt = Date.now();
-      }
-    }),
-
-    updateSkillProficiency: (characterId, skillName, proficient, expertise = false) => set((state) => {
-      const character = state.characters.find(c => c.id === characterId);
-      if (character && character.skills) {
-        const skill = character.skills.find(s => s.name === skillName);
-        if (skill) {
-          skill.proficient = proficient;
-          skill.expertise = expertise && proficient; // Can't have expertise without proficiency
+    updateAbilityScore: (characterId, ability, score) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character && character.abilities) {
+          character.abilities[ability].score = Math.max(1, Math.min(30, score));
+          character.abilities[ability].modifier =
+            calculateAbilityModifier(score);
           character.updatedAt = Date.now();
         }
-      }
-    }),
+      }),
 
-    updateSavingThrowProficiency: (characterId, ability, proficient) => set((state) => {
-      const character = state.characters.find(c => c.id === characterId);
-      if (character && character.abilities) {
-        character.abilities[ability].proficient = proficient;
+    updateSkillProficiency: (
+      characterId,
+      skillName,
+      proficient,
+      expertise = false,
+    ) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character && character.skills) {
+          const skill = character.skills.find((s) => s.name === skillName);
+          if (skill) {
+            skill.proficient = proficient;
+            skill.expertise = expertise && proficient; // Can't have expertise without proficiency
+            character.updatedAt = Date.now();
+          }
+        }
+      }),
+
+    updateSavingThrowProficiency: (characterId, ability, proficient) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character && character.abilities) {
+          character.abilities[ability].proficient = proficient;
+          character.updatedAt = Date.now();
+        }
+      }),
+
+    recalculateStats: (characterId) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (!character || !character.abilities) return;
+
+        const proficiencyBonus = calculateProficiencyBonus(
+          character.level || 1,
+        );
+        character.proficiencyBonus = proficiencyBonus;
+
+        // Recalculate ability modifiers and saving throws
+        Object.entries(character.abilities).forEach(
+          ([_abilityName, ability]) => {
+            ability.modifier = calculateAbilityModifier(ability.score);
+            ability.savingThrow =
+              ability.modifier + (ability.proficient ? proficiencyBonus : 0);
+          },
+        );
+
+        // Recalculate skills
+        if (character.skills) {
+          character.skills.forEach((skill) => {
+            const abilityModifier =
+              character.abilities![skill.ability].modifier;
+            const profBonus = skill.proficient ? proficiencyBonus : 0;
+            const expertiseBonus = skill.expertise ? proficiencyBonus : 0;
+            skill.modifier = abilityModifier + profBonus + expertiseBonus;
+          });
+        }
+
+        // Recalculate passive perception
+        character.passivePerception = calculatePassivePerception(
+          character.abilities,
+          character.skills || [],
+          proficiencyBonus,
+        );
+
+        // Recalculate initiative (Dex modifier)
+        character.initiative = character.abilities.dexterity.modifier;
+
         character.updatedAt = Date.now();
-      }
-    }),
-
-    recalculateStats: (characterId) => set((state) => {
-      const character = state.characters.find(c => c.id === characterId);
-      if (!character || !character.abilities) return;
-
-      const proficiencyBonus = calculateProficiencyBonus(character.level || 1);
-      character.proficiencyBonus = proficiencyBonus;
-
-      // Recalculate ability modifiers and saving throws
-      Object.entries(character.abilities).forEach(([_abilityName, ability]) => {
-        ability.modifier = calculateAbilityModifier(ability.score);
-        ability.savingThrow = ability.modifier + (ability.proficient ? proficiencyBonus : 0);
-      });
-
-      // Recalculate skills
-      if (character.skills) {
-        character.skills.forEach(skill => {
-          const abilityModifier = character.abilities![skill.ability].modifier;
-          const profBonus = skill.proficient ? proficiencyBonus : 0;
-          const expertiseBonus = skill.expertise ? proficiencyBonus : 0;
-          skill.modifier = abilityModifier + profBonus + expertiseBonus;
-        });
-      }
-
-      // Recalculate passive perception
-      character.passivePerception = calculatePassivePerception(
-        character.abilities,
-        character.skills || [],
-        proficiencyBonus
-      );
-
-      // Recalculate initiative (Dex modifier)
-      character.initiative = character.abilities.dexterity.modifier;
-
-      character.updatedAt = Date.now();
-    }),
+      }),
 
     // Equipment Management
-    addEquipment: (characterId, equipmentData) => set((state) => {
-      const character = state.characters.find(c => c.id === characterId);
-      if (character) {
-        const equipment = { ...equipmentData, id: crypto.randomUUID() };
-        character.equipment = character.equipment || [];
-        character.equipment.push(equipment);
-        character.updatedAt = Date.now();
-      }
-    }),
-
-    updateEquipment: (characterId, equipmentId, updates) => set((state) => {
-      const character = state.characters.find(c => c.id === characterId);
-      if (character && character.equipment) {
-        const equipment = character.equipment.find(e => e.id === equipmentId);
-        if (equipment) {
-          Object.assign(equipment, updates);
+    addEquipment: (characterId, equipmentData) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character) {
+          const equipment = { ...equipmentData, id: crypto.randomUUID() };
+          character.equipment = character.equipment || [];
+          character.equipment.push(equipment);
           character.updatedAt = Date.now();
         }
-      }
-    }),
+      }),
 
-    removeEquipment: (characterId, equipmentId) => set((state) => {
-      const character = state.characters.find(c => c.id === characterId);
-      if (character && character.equipment) {
-        const index = character.equipment.findIndex(e => e.id === equipmentId);
-        if (index !== -1) {
-          character.equipment.splice(index, 1);
-          character.updatedAt = Date.now();
+    updateEquipment: (characterId, equipmentId, updates) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character && character.equipment) {
+          const equipment = character.equipment.find(
+            (e) => e.id === equipmentId,
+          );
+          if (equipment) {
+            Object.assign(equipment, updates);
+            character.updatedAt = Date.now();
+          }
         }
-      }
-    }),
+      }),
 
-    equipItem: (characterId, equipmentId) => set((state) => {
-      const character = state.characters.find(c => c.id === characterId);
-      if (character && character.equipment) {
-        const equipment = character.equipment.find(e => e.id === equipmentId);
-        if (equipment) {
-          equipment.equipped = true;
-          character.updatedAt = Date.now();
+    removeEquipment: (characterId, equipmentId) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character && character.equipment) {
+          const index = character.equipment.findIndex(
+            (e) => e.id === equipmentId,
+          );
+          if (index !== -1) {
+            character.equipment.splice(index, 1);
+            character.updatedAt = Date.now();
+          }
         }
-      }
-    }),
+      }),
 
-    unequipItem: (characterId, equipmentId) => set((state) => {
-      const character = state.characters.find(c => c.id === characterId);
-      if (character && character.equipment) {
-        const equipment = character.equipment.find(e => e.id === equipmentId);
-        if (equipment) {
-          equipment.equipped = false;
-          character.updatedAt = Date.now();
+    equipItem: (characterId, equipmentId) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character && character.equipment) {
+          const equipment = character.equipment.find(
+            (e) => e.id === equipmentId,
+          );
+          if (equipment) {
+            equipment.equipped = true;
+            character.updatedAt = Date.now();
+          }
         }
-      }
-    }),
+      }),
+
+    unequipItem: (characterId, equipmentId) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character && character.equipment) {
+          const equipment = character.equipment.find(
+            (e) => e.id === equipmentId,
+          );
+          if (equipment) {
+            equipment.equipped = false;
+            character.updatedAt = Date.now();
+          }
+        }
+      }),
 
     // Combat Integration
     addCharacterToCombat: (characterId) => {
       const character = get().getCharacter(characterId);
       if (character) {
         // Add to initiative tracker
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { addEntry } = require('@/stores/initiativeStore').useInitiativeStore.getState();
+
+        const { addEntry } = useInitiativeStore.getState();
         addEntry({
           name: character.name,
           type: 'player',
@@ -366,55 +427,66 @@ export const useCharacterStore = create<CharacterStore>()(
       const character = get().getCharacter(characterId);
       if (character) {
         // Remove from initiative tracker
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { entries, removeEntry } = require('@/stores/initiativeStore').useInitiativeStore.getState();
-        const entry = entries.find((e: { playerId: string }) => e.playerId === character.playerId);
+
+        const { entries, removeEntry } = useInitiativeStore.getState();
+        const entry = entries.find((e) => e.playerId === character.playerId);
         if (entry) {
           removeEntry(entry.id);
         }
       }
     },
 
-    updateCharacterHP: (characterId, current, temporary = 0) => set((state) => {
-      const character = state.characters.find(c => c.id === characterId);
-      if (character && character.hitPoints) {
-        character.hitPoints.current = Math.max(0, Math.min(character.hitPoints.maximum, current));
-        character.hitPoints.temporary = Math.max(0, temporary);
-        character.updatedAt = Date.now();
-      }
-    }),
+    updateCharacterHP: (characterId, current, temporary = 0) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character && character.hitPoints) {
+          character.hitPoints.current = Math.max(
+            0,
+            Math.min(character.hitPoints.maximum, current),
+          );
+          character.hitPoints.temporary = Math.max(0, temporary);
+          character.updatedAt = Date.now();
+        }
+      }),
 
     // Character Creation Wizard
-    startCharacterCreation: (playerId, method) => set((state) => {
-      state.creationState = {
-        playerId,
-        step: 1,
-        totalSteps: method === 'guided' ? 8 : 4,
-        character: createEmptyCharacter(playerId),
-        method,
-        isComplete: false,
-      };
-    }),
+    startCharacterCreation: (playerId, method) =>
+      set((state) => {
+        state.creationState = {
+          playerId,
+          step: 1,
+          totalSteps: method === 'guided' ? 8 : 4,
+          character: createEmptyCharacter(playerId),
+          method,
+          isComplete: false,
+        };
+      }),
 
-    updateCreationState: (updates) => set((state) => {
-      if (state.creationState) {
-        Object.assign(state.creationState, updates);
-      }
-    }),
+    updateCreationState: (updates) =>
+      set((state) => {
+        if (state.creationState) {
+          Object.assign(state.creationState, updates);
+        }
+      }),
 
-    nextCreationStep: () => set((state) => {
-      if (state.creationState && state.creationState.step < state.creationState.totalSteps) {
-        state.creationState.step += 1;
-      }
-    }),
+    nextCreationStep: () =>
+      set((state) => {
+        if (
+          state.creationState &&
+          state.creationState.step < state.creationState.totalSteps
+        ) {
+          state.creationState.step += 1;
+        }
+      }),
 
-    previousCreationStep: () => set((state) => {
-      if (state.creationState && state.creationState.step > 1) {
-        state.creationState.step -= 1;
-      }
-    }),
+    previousCreationStep: () =>
+      set((state) => {
+        if (state.creationState && state.creationState.step > 1) {
+          state.creationState.step -= 1;
+        }
+      }),
 
-    completeCharacterCreation: () => {
+    completeCharacterCreation: async () => {
       // Get the current state
       const { creationState, characters } = get();
 
@@ -425,8 +497,8 @@ export const useCharacterStore = create<CharacterStore>()(
         // Prepare the final skills array. If the base character has no skills,
         // create the default list. Otherwise, use the existing one.
         const finalSkills =
-          (!baseCharacter.skills || baseCharacter.skills.length === 0)
-            ? STANDARD_SKILLS.map(skill => ({
+          !baseCharacter.skills || baseCharacter.skills.length === 0
+            ? STANDARD_SKILLS.map((skill) => ({
                 ...skill,
                 proficient: false,
                 expertise: false,
@@ -456,35 +528,55 @@ export const useCharacterStore = create<CharacterStore>()(
 
         // Save to IndexedDB
         try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const { getLinearFlowStorage } = require('@/services/linearFlowStorage');
+          const { getLinearFlowStorage } = await import(
+            '@/services/linearFlowStorage'
+          );
           const storage = getLinearFlowStorage();
 
-          // Convert character to the format expected by the storage system
-          const characterForStorage = {
-            ...completedCharacter,
-            type: 'player',
-            browserId: storage['getBrowserId'](), // Access private method
+          // Convert character to the format expected by the storage system (PlayerCharacter)
+          const characterForStorage: PlayerCharacter = {
+            id: completedCharacter.id,
+            name: completedCharacter.name,
+            race: completedCharacter.race?.name || '',
+            class: completedCharacter.classes?.[0]?.name || '',
+            background: completedCharacter.background?.name || '',
+            level: completedCharacter.level,
+            stats: {
+              strength: completedCharacter.abilities?.strength?.score || 10,
+              dexterity: completedCharacter.abilities?.dexterity?.score || 10,
+              constitution:
+                completedCharacter.abilities?.constitution?.score || 10,
+              intelligence:
+                completedCharacter.abilities?.intelligence?.score || 10,
+              wisdom: completedCharacter.abilities?.wisdom?.score || 10,
+              charisma: completedCharacter.abilities?.charisma?.score || 10,
+            },
+            createdAt: completedCharacter.createdAt,
+            playerId: storage['getBrowserId'](), // Use browser ID as player ID for storage
           };
 
           storage.saveCharacter(characterForStorage);
-          console.log('💾 Character saved to IndexedDB:', completedCharacter.name);
+          console.log(
+            '💾 Character saved to IndexedDB:',
+            completedCharacter.name,
+          );
         } catch (error) {
           console.error('❌ Failed to save character to IndexedDB:', error);
           // Continue anyway - character is still in memory
         }
 
-        // Return the new character's ID
-        return completedCharacter.id;
+        // Return the new character object and ID
+        return { id: completedCharacter.id, character: completedCharacter };
       }
 
       // Return null if no character was in the creation state
       return null;
     },
 
-    cancelCharacterCreation: () => set((state) => {
-      state.creationState = null;
-    }),
+    cancelCharacterCreation: () =>
+      set((state) => {
+        state.creationState = null;
+      }),
 
     // Mob Management
     addMob: (mobData) => {
@@ -495,27 +587,29 @@ export const useCharacterStore = create<CharacterStore>()(
       return mob.id;
     },
 
-    updateMob: (mobId, updates) => set((state) => {
-      const mob = state.mobs.find(m => m.id === mobId);
-      if (mob) {
-        Object.assign(mob, updates);
-      }
-    }),
-
-    deleteMob: (mobId) => set((state) => {
-      const index = state.mobs.findIndex(m => m.id === mobId);
-      if (index !== -1) {
-        state.mobs.splice(index, 1);
-        // Remove from selected mobs
-        const selectedIndex = state.selectedMobs.indexOf(mobId);
-        if (selectedIndex !== -1) {
-          state.selectedMobs.splice(selectedIndex, 1);
+    updateMob: (mobId, updates) =>
+      set((state) => {
+        const mob = state.mobs.find((m) => m.id === mobId);
+        if (mob) {
+          Object.assign(mob, updates);
         }
-      }
-    }),
+      }),
+
+    deleteMob: (mobId) =>
+      set((state) => {
+        const index = state.mobs.findIndex((m) => m.id === mobId);
+        if (index !== -1) {
+          state.mobs.splice(index, 1);
+          // Remove from selected mobs
+          const selectedIndex = state.selectedMobs.indexOf(mobId);
+          if (selectedIndex !== -1) {
+            state.selectedMobs.splice(selectedIndex, 1);
+          }
+        }
+      }),
 
     getMob: (mobId) => {
-      return get().mobs.find(m => m.id === mobId);
+      return get().mobs.find((m) => m.id === mobId);
     },
 
     // Mob Groups
@@ -523,7 +617,7 @@ export const useCharacterStore = create<CharacterStore>()(
       const group: MobGroup = {
         id: crypto.randomUUID(),
         name,
-        mobs: mobIds.map(id => get().getMob(id)).filter(Boolean) as Mob[],
+        mobs: mobIds.map((id) => get().getMob(id)).filter(Boolean) as Mob[],
         environment: '',
         encounterLevel: 'Medium',
       };
@@ -535,41 +629,48 @@ export const useCharacterStore = create<CharacterStore>()(
       return group.id;
     },
 
-    updateMobGroup: (groupId, updates) => set((state) => {
-      const group = state.mobGroups.find(g => g.id === groupId);
-      if (group) {
-        Object.assign(group, updates);
-      }
-    }),
+    updateMobGroup: (groupId, updates) =>
+      set((state) => {
+        const group = state.mobGroups.find((g) => g.id === groupId);
+        if (group) {
+          Object.assign(group, updates);
+        }
+      }),
 
-    deleteMobGroup: (groupId) => set((state) => {
-      const index = state.mobGroups.findIndex(g => g.id === groupId);
-      if (index !== -1) {
-        state.mobGroups.splice(index, 1);
-      }
-    }),
+    deleteMobGroup: (groupId) =>
+      set((state) => {
+        const index = state.mobGroups.findIndex((g) => g.id === groupId);
+        if (index !== -1) {
+          state.mobGroups.splice(index, 1);
+        }
+      }),
 
     // Combat Preparation
-    selectMobForCombat: (mobId) => set((state) => {
-      if (!state.selectedMobs.includes(mobId)) {
-        state.selectedMobs.push(mobId);
-      }
-    }),
+    selectMobForCombat: (mobId) =>
+      set((state) => {
+        if (!state.selectedMobs.includes(mobId)) {
+          state.selectedMobs.push(mobId);
+        }
+      }),
 
-    deselectMobForCombat: (mobId) => set((state) => {
-      const index = state.selectedMobs.indexOf(mobId);
-      if (index !== -1) {
-        state.selectedMobs.splice(index, 1);
-      }
-    }),
+    deselectMobForCombat: (mobId) =>
+      set((state) => {
+        const index = state.selectedMobs.indexOf(mobId);
+        if (index !== -1) {
+          state.selectedMobs.splice(index, 1);
+        }
+      }),
 
-    clearSelectedMobs: () => set((state) => {
-      state.selectedMobs = [];
-    }),
+    clearSelectedMobs: () =>
+      set((state) => {
+        state.selectedMobs = [];
+      }),
 
     getSelectedMobs: () => {
       const state = get();
-      return state.selectedMobs.map(id => state.mobs.find(m => m.id === id)).filter(Boolean) as Mob[];
+      return state.selectedMobs
+        .map((id) => state.mobs.find((m) => m.id === id))
+        .filter(Boolean) as Mob[];
     },
 
     // Import/Export
@@ -596,7 +697,7 @@ export const useCharacterStore = create<CharacterStore>()(
 
     // Utility
     reset: () => set(() => ({ ...initialState })),
-  }))
+  })),
 );
 
 // Helper hooks
@@ -604,7 +705,9 @@ export const useCharacters = () => {
   const store = useCharacterStore();
   return {
     characters: store.characters,
-    activeCharacter: store.activeCharacterId ? store.getCharacter(store.activeCharacterId) : null,
+    activeCharacter: store.activeCharacterId
+      ? store.getCharacter(store.activeCharacterId)
+      : null,
     createCharacter: store.createCharacter,
     updateCharacter: store.updateCharacter,
     deleteCharacter: store.deleteCharacter,

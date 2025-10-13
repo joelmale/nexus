@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import { useGameStore } from '@/stores/gameStore';
-import type { GameConfig } from '@/types/appFlow';
+import type { GameConfig } from '@/types/game';
 
 export const DMSetupPage: React.FC = () => {
   const { user, createGameRoom, resetToWelcome } = useGameStore();
@@ -18,7 +18,7 @@ export const DMSetupPage: React.FC = () => {
     description: '',
     estimatedTime: '',
     campaignType: 'oneshot',
-    maxPlayers: 6
+    maxPlayers: 6,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -33,8 +33,7 @@ export const DMSetupPage: React.FC = () => {
     setError('');
 
     try {
-      const roomCode = await createGameRoom(gameConfig);
-      console.log('Game room created with code:', roomCode);
+      await createGameRoom(gameConfig);
     } catch (err) {
       setError('Failed to create game room');
       console.error(err);
@@ -44,7 +43,7 @@ export const DMSetupPage: React.FC = () => {
   };
 
   const handleConfigChange = (updates: Partial<GameConfig>) => {
-    setGameConfig(prev => ({ ...prev, ...updates }));
+    setGameConfig((prev) => ({ ...prev, ...updates }));
   };
 
   const isFormValid = gameConfig.name.trim().length > 0;
@@ -68,7 +67,10 @@ export const DMSetupPage: React.FC = () => {
               </button>
               <div className="header-content">
                 <h1>👑 Dungeon Master Setup</h1>
-                <p>Welcome, <strong>{user.name}</strong>! Configure your game and create a room.</p>
+                <p>
+                  Welcome, <strong>{user.name}</strong>! Configure your game and
+                  create a room.
+                </p>
               </div>
             </div>
           </div>
@@ -91,7 +93,9 @@ export const DMSetupPage: React.FC = () => {
                     id="gameName"
                     type="text"
                     value={gameConfig.name}
-                    onChange={(e) => handleConfigChange({ name: e.target.value })}
+                    onChange={(e) =>
+                      handleConfigChange({ name: e.target.value })
+                    }
                     placeholder="The Lost Mines of Phandelver"
                     className="glass-input"
                     disabled={loading}
@@ -104,7 +108,9 @@ export const DMSetupPage: React.FC = () => {
                     id="estimatedTime"
                     type="text"
                     value={gameConfig.estimatedTime}
-                    onChange={(e) => handleConfigChange({ estimatedTime: e.target.value })}
+                    onChange={(e) =>
+                      handleConfigChange({ estimatedTime: e.target.value })
+                    }
                     placeholder="3-4 hours"
                     className="glass-input"
                     disabled={loading}
@@ -119,7 +125,11 @@ export const DMSetupPage: React.FC = () => {
                     min="1"
                     max="12"
                     value={gameConfig.maxPlayers}
-                    onChange={(e) => handleConfigChange({ maxPlayers: parseInt(e.target.value) || 6 })}
+                    onChange={(e) =>
+                      handleConfigChange({
+                        maxPlayers: parseInt(e.target.value) || 6,
+                      })
+                    }
                     className="glass-input"
                     disabled={loading}
                   />
@@ -130,7 +140,11 @@ export const DMSetupPage: React.FC = () => {
                   <select
                     id="campaignType"
                     value={gameConfig.campaignType}
-                    onChange={(e) => handleConfigChange({ campaignType: e.target.value as 'campaign' | 'oneshot' })}
+                    onChange={(e) =>
+                      handleConfigChange({
+                        campaignType: e.target.value as 'campaign' | 'oneshot',
+                      })
+                    }
                     className="glass-select"
                     disabled={loading}
                   >
@@ -145,7 +159,9 @@ export const DMSetupPage: React.FC = () => {
                 <textarea
                   id="description"
                   value={gameConfig.description}
-                  onChange={(e) => handleConfigChange({ description: e.target.value })}
+                  onChange={(e) =>
+                    handleConfigChange({ description: e.target.value })
+                  }
                   placeholder="A thrilling adventure awaits! Join our heroes as they..."
                   rows={4}
                   className="glass-textarea"
@@ -162,24 +178,32 @@ export const DMSetupPage: React.FC = () => {
               <div className="game-summary glass-panel">
                 <h3>{gameConfig.name}</h3>
                 {gameConfig.description && (
-                  <p className="summary-description">{gameConfig.description}</p>
+                  <p className="summary-description">
+                    {gameConfig.description}
+                  </p>
                 )}
                 <div className="summary-details">
                   <div className="detail-item">
                     <span className="detail-label">Type:</span>
                     <span className="detail-value">
-                      {gameConfig.campaignType === 'campaign' ? '📚 Campaign' : '⚡ One-Shot'}
+                      {gameConfig.campaignType === 'campaign'
+                        ? '📚 Campaign'
+                        : '⚡ One-Shot'}
                     </span>
                   </div>
                   {gameConfig.estimatedTime && (
                     <div className="detail-item">
                       <span className="detail-label">Duration:</span>
-                      <span className="detail-value">⏱️ {gameConfig.estimatedTime}</span>
+                      <span className="detail-value">
+                        ⏱️ {gameConfig.estimatedTime}
+                      </span>
                     </div>
                   )}
                   <div className="detail-item">
                     <span className="detail-label">Players:</span>
-                    <span className="detail-value">👥 Up to {gameConfig.maxPlayers}</span>
+                    <span className="detail-value">
+                      👥 Up to {gameConfig.maxPlayers}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -191,7 +215,8 @@ export const DMSetupPage: React.FC = () => {
             <h2>🚀 Launch Game</h2>
             <div className="create-room-section">
               <p className="create-description">
-                Ready to begin? Click below to create your game room and get a shareable room code.
+                Ready to begin? Click below to create your game room and get a
+                shareable room code.
               </p>
 
               <button

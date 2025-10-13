@@ -19,7 +19,6 @@ export const DungeonGenerator: React.FC<DungeonGeneratorProps> = ({
 
       // Handle PNG generation from dungeon generator
       if (event.data.type === 'DUNGEON_PNG_GENERATED') {
-        console.log('Dungeon PNG generated:', event.data.data.filename);
         onMapGenerated(event.data.data.imageData);
       }
 

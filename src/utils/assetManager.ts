@@ -1,13 +1,24 @@
 // Asset management system for external map assets
-import type { AssetMetadata, AssetManifest, AssetSearchResult, AssetCategoryResult } from '../../shared/types';
+import type {
+  AssetMetadata,
+  AssetManifest,
+  AssetSearchResult,
+  AssetCategoryResult,
+} from '../../shared/types';
 import type { Scene } from '@/types/game';
 
 // Re-export types for use in components
-export type { AssetMetadata, AssetManifest, AssetSearchResult, AssetCategoryResult };
+export type {
+  AssetMetadata,
+  AssetManifest,
+  AssetSearchResult,
+  AssetCategoryResult,
+};
 
 // Asset server configuration - uses main server port
 // Default to localhost:5000 for development, can be overridden with env var
-const ASSET_SERVER_URL = import.meta.env.VITE_ASSET_SERVER_URL || 'http://localhost:5000';
+const ASSET_SERVER_URL =
+  import.meta.env.VITE_ASSET_SERVER_URL || 'http://localhost:5000';
 
 /**
  * Asset Manager for handling external map assets efficiently
@@ -57,9 +68,15 @@ export class AssetManager {
   /**
    * Get assets by category with pagination
    */
-  async getAssetsByCategory(category: string, page = 0, limit = 20): Promise<AssetCategoryResult> {
+  async getAssetsByCategory(
+    category: string,
+    page = 0,
+    limit = 20,
+  ): Promise<AssetCategoryResult> {
     try {
-      const response = await fetch(`${ASSET_SERVER_URL}/category/${encodeURIComponent(category)}?page=${page}&limit=${limit}`);
+      const response = await fetch(
+        `${ASSET_SERVER_URL}/category/${encodeURIComponent(category)}?page=${page}&limit=${limit}`,
+      );
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -82,7 +99,9 @@ export class AssetManager {
    */
   async searchAssets(query: string): Promise<AssetMetadata[]> {
     try {
-      const response = await fetch(`${ASSET_SERVER_URL}/search?q=${encodeURIComponent(query)}`);
+      const response = await fetch(
+        `${ASSET_SERVER_URL}/search?q=${encodeURIComponent(query)}`,
+      );
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -134,24 +153,28 @@ export class AssetManager {
    */
   private async loadAssetFromServer(assetId: string): Promise<string> {
     try {
-      const response = await fetch(`${ASSET_SERVER_URL}/asset/${encodeURIComponent(assetId)}`);
+      const response = await fetch(
+        `${ASSET_SERVER_URL}/asset/${encodeURIComponent(assetId)}`,
+      );
       if (!response.ok) {
         throw new Error(`Asset metadata not found: ${response.status}`);
       }
-      
+
       const asset: AssetMetadata = await response.json();
-      
+
       // Now fetch the actual image
-      const imageResponse = await fetch(`${ASSET_SERVER_URL}/${asset.fullImage}`);
+      const imageResponse = await fetch(
+        `${ASSET_SERVER_URL}/${asset.fullImage}`,
+      );
       if (!imageResponse.ok) {
         throw new Error(`Failed to load asset image: ${imageResponse.status}`);
       }
 
       const blob = await imageResponse.blob();
-      
+
       // Cache in IndexedDB for offline use
       await this.cacheAsset(assetId, blob);
-      
+
       return URL.createObjectURL(blob);
     } catch (error) {
       console.error(`Failed to load asset ${assetId}:`, error);
@@ -167,7 +190,7 @@ export class AssetManager {
       const db = await this.openCacheDB();
       const transaction = db.transaction(['assets'], 'readwrite');
       const store = transaction.objectStore('assets');
-      
+
       await store.put({
         id: assetId,
         blob: blob,
@@ -191,7 +214,9 @@ export class AssetManager {
 
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
-          const result = request.result as { id: string; blob: Blob; timestamp: number } | undefined;
+          const result = request.result as
+            | { id: string; blob: Blob; timestamp: number }
+            | undefined;
           if (result && result.timestamp) {
             // Check if cache is expired (e.g., 7 days)
             const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -217,10 +242,10 @@ export class AssetManager {
   private async openCacheDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open('NexusAssetCache', 1);
-      
+
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result);
-      
+
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains('assets')) {
@@ -253,12 +278,15 @@ export class AssetManager {
       const transaction = db.transaction(['assets'], 'readonly');
       const store = transaction.objectStore('assets');
       const request = store.getAll();
-      
+
       return new Promise((resolve, reject) => {
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
           const assets = request.result;
-          const totalSize = assets.reduce((sum, asset) => sum + asset.blob.size, 0);
+          const totalSize = assets.reduce(
+            (sum, asset) => sum + asset.blob.size,
+            0,
+          );
           resolve(totalSize);
         };
       });
@@ -274,7 +302,7 @@ export class AssetManager {
   async clearCache(): Promise<void> {
     try {
       // Clear memory cache
-      this.cache.forEach(blobUrl => URL.revokeObjectURL(blobUrl));
+      this.cache.forEach((blobUrl) => URL.revokeObjectURL(blobUrl));
       this.cache.clear();
 
       // Clear IndexedDB cache

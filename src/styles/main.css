@@ -35,16 +35,14 @@
 @import './toolbar-unified.css' layer(components);
 @import './settings-optimized.css' layer(components);
 @import './scenes.css' layer(components);
-@import './character-sheet.css' layer(components);
-@import './dice-roller.css' layer(components);
-@import './dice-box-3d.css' layer(components);
+@import './character.css' layer(components);
+@import './dice.css' layer(components);
 @import './player-panel.css' layer(components);
 /* Secondary components */
-@import './character-creation-wizard.css' layer(components);
-@import './character-creation.css' layer(components);
 @import './initiative-tracker.css' layer(components);
 @import './assets.css' layer(components);
 @import './asset-browser.css' layer(components);
+@import './chat.css' layer(components);
 /* Administrative components */
 @import './offline-preparation.css' layer(components);
 @import './welcome-page.css' layer(components);

@@ -47,18 +47,31 @@ export class IndexedDBAdapter implements StorageAdapter {
         return;
       }
 
-      console.log('🗄️ IndexedDB: Opening database:', this.dbName, 'version:', this.version);
+      console.log(
+        '🗄️ IndexedDB: Opening database:',
+        this.dbName,
+        'version:',
+        this.version,
+      );
       const request = indexedDB.open(this.dbName, this.version);
 
       request.onerror = () => {
-        console.error('🗄️ IndexedDB: Failed to open database:', request.error?.message);
-        reject(new Error(`Failed to open IndexedDB: ${request.error?.message}`));
+        console.error(
+          '🗄️ IndexedDB: Failed to open database:',
+          request.error?.message,
+        );
+        reject(
+          new Error(`Failed to open IndexedDB: ${request.error?.message}`),
+        );
       };
 
       request.onsuccess = () => {
         this.db = request.result;
         console.log('🗄️ IndexedDB: Database opened successfully');
-        console.log('🗄️ IndexedDB: Available object stores:', Array.from(this.db.objectStoreNames));
+        console.log(
+          '🗄️ IndexedDB: Available object stores:',
+          Array.from(this.db.objectStoreNames),
+        );
 
         // Handle unexpected database closure
         this.db.onversionchange = () => {
@@ -79,7 +92,10 @@ export class IndexedDBAdapter implements StorageAdapter {
         const db = (event.target as IDBOpenDBRequest).result;
 
         try {
-          console.log('🗄️ IndexedDB: Creating object stores from config:', this.config.stores);
+          console.log(
+            '🗄️ IndexedDB: Creating object stores from config:',
+            this.config.stores,
+          );
 
           // Create object stores based on configuration
           for (const storeConfig of this.config.stores) {
@@ -87,23 +103,29 @@ export class IndexedDBAdapter implements StorageAdapter {
             if (!db.objectStoreNames.contains(storeConfig.name)) {
               const store = db.createObjectStore(storeConfig.name, {
                 keyPath: storeConfig.keyPath,
-                autoIncrement: !storeConfig.keyPath
+                autoIncrement: !storeConfig.keyPath,
               });
               console.log('🗄️ IndexedDB: Store created:', storeConfig.name);
 
               // Create indexes
               if (storeConfig.indexes) {
                 for (const indexConfig of storeConfig.indexes) {
-                  store.createIndex(
+                  store.createIndex(indexConfig.name, indexConfig.keyPath, {
+                    unique: indexConfig.unique || false,
+                  });
+                  console.log(
+                    '🗄️ IndexedDB: Index created:',
                     indexConfig.name,
-                    indexConfig.keyPath,
-                    { unique: indexConfig.unique || false }
+                    'on store:',
+                    storeConfig.name,
                   );
-                  console.log('🗄️ IndexedDB: Index created:', indexConfig.name, 'on store:', storeConfig.name);
                 }
               }
             } else {
-              console.log('🗄️ IndexedDB: Store already exists:', storeConfig.name);
+              console.log(
+                '🗄️ IndexedDB: Store already exists:',
+                storeConfig.name,
+              );
             }
           }
           console.log('🗄️ IndexedDB: All stores created successfully');
@@ -119,8 +141,16 @@ export class IndexedDBAdapter implements StorageAdapter {
   // BASIC CRUD OPERATIONS
   // =============================================================================
 
-  async save(key: string, data: unknown, storeName: string = 'gameState'): Promise<void> {
-    console.log('🗄️ IndexedDB: Attempting to save:', { key, storeName, dataSize: JSON.stringify(data).length });
+  async save(
+    key: string,
+    data: unknown,
+    storeName: string = 'gameState',
+  ): Promise<void> {
+    console.log('🗄️ IndexedDB: Attempting to save:', {
+      key,
+      storeName,
+      dataSize: JSON.stringify(data).length,
+    });
     await this.ensureConnection();
 
     return new Promise((resolve, reject) => {
@@ -130,7 +160,10 @@ export class IndexedDBAdapter implements StorageAdapter {
         return;
       }
 
-      console.log('🗄️ IndexedDB: Available stores before save:', Array.from(this.db.objectStoreNames));
+      console.log(
+        '🗄️ IndexedDB: Available stores before save:',
+        Array.from(this.db.objectStoreNames),
+      );
 
       try {
         const transaction = this.db.transaction([storeName], 'readwrite');
@@ -140,7 +173,7 @@ export class IndexedDBAdapter implements StorageAdapter {
           key,
           data,
           timestamp: Date.now(),
-          version: this.version
+          version: this.version,
         };
 
         const request = store.put(saveData);
@@ -154,13 +187,19 @@ export class IndexedDBAdapter implements StorageAdapter {
           reject(new Error(`Failed to save data: ${request.error?.message}`));
         };
       } catch (error) {
-        console.error('🗄️ IndexedDB: Transaction creation failed for save:', error);
+        console.error(
+          '🗄️ IndexedDB: Transaction creation failed for save:',
+          error,
+        );
         reject(error);
       }
     });
   }
 
-  async load<T>(key: string, storeName: string = 'gameState'): Promise<T | null> {
+  async load<T>(
+    key: string,
+    storeName: string = 'gameState',
+  ): Promise<T | null> {
     console.log('🗄️ IndexedDB: Attempting to load:', { key, storeName });
     await this.ensureConnection();
 
@@ -171,7 +210,10 @@ export class IndexedDBAdapter implements StorageAdapter {
         return;
       }
 
-      console.log('🗄️ IndexedDB: Available stores before load:', Array.from(this.db.objectStoreNames));
+      console.log(
+        '🗄️ IndexedDB: Available stores before load:',
+        Array.from(this.db.objectStoreNames),
+      );
 
       try {
         const transaction = this.db.transaction([storeName], 'readonly');
@@ -181,10 +223,18 @@ export class IndexedDBAdapter implements StorageAdapter {
         request.onsuccess = () => {
           const result = request.result;
           if (result) {
-            console.log('🗄️ IndexedDB: Load successful:', key, 'data size:', JSON.stringify(result.data).length);
+            console.log(
+              '🗄️ IndexedDB: Load successful:',
+              key,
+              'data size:',
+              JSON.stringify(result.data).length,
+            );
             resolve(result.data as T);
           } else {
-            console.log('🗄️ IndexedDB: Load result: null (key not found):', key);
+            console.log(
+              '🗄️ IndexedDB: Load result: null (key not found):',
+              key,
+            );
             resolve(null);
           }
         };
@@ -194,7 +244,10 @@ export class IndexedDBAdapter implements StorageAdapter {
           reject(new Error(`Failed to load data: ${request.error?.message}`));
         };
       } catch (error) {
-        console.error('🗄️ IndexedDB: Transaction creation failed for load:', error);
+        console.error(
+          '🗄️ IndexedDB: Transaction creation failed for load:',
+          error,
+        );
         reject(error);
       }
     });
@@ -214,7 +267,8 @@ export class IndexedDBAdapter implements StorageAdapter {
       const request = store.delete(key);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error(`Failed to delete data: ${request.error?.message}`));
+      request.onerror = () =>
+        reject(new Error(`Failed to delete data: ${request.error?.message}`));
     });
   }
 
@@ -232,7 +286,8 @@ export class IndexedDBAdapter implements StorageAdapter {
       const request = store.clear();
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error(`Failed to clear data: ${request.error?.message}`));
+      request.onerror = () =>
+        reject(new Error(`Failed to clear data: ${request.error?.message}`));
     });
   }
 
@@ -258,14 +313,15 @@ export class IndexedDBAdapter implements StorageAdapter {
       }
 
       transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(new Error(`Batch save failed: ${transaction.error?.message}`));
+      transaction.onerror = () =>
+        reject(new Error(`Batch save failed: ${transaction.error?.message}`));
 
       for (const item of items) {
         const saveData = {
           key: item.key,
           data: item.data,
           timestamp: Date.now(),
-          version: this.version
+          version: this.version,
         };
 
         const request = store.put(saveData);
@@ -275,7 +331,11 @@ export class IndexedDBAdapter implements StorageAdapter {
         };
 
         request.onerror = () => {
-          reject(new Error(`Failed to save item ${item.key}: ${request.error?.message}`));
+          reject(
+            new Error(
+              `Failed to save item ${item.key}: ${request.error?.message}`,
+            ),
+          );
         };
       }
     });
@@ -314,7 +374,9 @@ export class IndexedDBAdapter implements StorageAdapter {
         };
 
         request.onerror = () => {
-          reject(new Error(`Failed to load item ${key}: ${request.error?.message}`));
+          reject(
+            new Error(`Failed to load item ${key}: ${request.error?.message}`),
+          );
         };
       });
     });
@@ -338,7 +400,10 @@ export class IndexedDBAdapter implements StorageAdapter {
       const request = store.count(key);
 
       request.onsuccess = () => resolve(request.result > 0);
-      request.onerror = () => reject(new Error(`Failed to check existence: ${request.error?.message}`));
+      request.onerror = () =>
+        reject(
+          new Error(`Failed to check existence: ${request.error?.message}`),
+        );
     });
   }
 
@@ -356,7 +421,8 @@ export class IndexedDBAdapter implements StorageAdapter {
       const request = store.count();
 
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(new Error(`Failed to get size: ${request.error?.message}`));
+      request.onerror = () =>
+        reject(new Error(`Failed to get size: ${request.error?.message}`));
     });
   }
 
@@ -374,11 +440,12 @@ export class IndexedDBAdapter implements StorageAdapter {
       const request = store.getAllKeys();
 
       request.onsuccess = () => {
-        const keys = request.result.map(key => String(key));
+        const keys = request.result.map((key) => String(key));
         resolve(keys);
       };
 
-      request.onerror = () => reject(new Error(`Failed to get keys: ${request.error?.message}`));
+      request.onerror = () =>
+        reject(new Error(`Failed to get keys: ${request.error?.message}`));
     });
   }
 
@@ -407,12 +474,16 @@ export class IndexedDBAdapter implements StorageAdapter {
         resolve(data);
       };
 
-      request.onerror = () => reject(new Error(`Failed to export data: ${request.error?.message}`));
+      request.onerror = () =>
+        reject(new Error(`Failed to export data: ${request.error?.message}`));
     });
   }
 
   async importData(data: Record<string, unknown>): Promise<void> {
-    const items = Object.entries(data).map(([key, value]) => ({ key, data: value }));
+    const items = Object.entries(data).map(([key, value]) => ({
+      key,
+      data: value,
+    }));
     return this.saveBatch(items);
   }
 
@@ -447,8 +518,14 @@ export class IndexedDBAdapter implements StorageAdapter {
       const deleteRequest = indexedDB.deleteDatabase(this.dbName);
 
       deleteRequest.onsuccess = () => resolve();
-      deleteRequest.onerror = () => reject(new Error(`Failed to delete database: ${deleteRequest.error?.message}`));
-      deleteRequest.onblocked = () => reject(new Error('Database deletion blocked'));
+      deleteRequest.onerror = () =>
+        reject(
+          new Error(
+            `Failed to delete database: ${deleteRequest.error?.message}`,
+          ),
+        );
+      deleteRequest.onblocked = () =>
+        reject(new Error('Database deletion blocked'));
     });
   }
 }
@@ -457,7 +534,9 @@ export class IndexedDBAdapter implements StorageAdapter {
 // FACTORY AND CONFIGURATION
 // =============================================================================
 
-export function createIndexedDBAdapter(config?: Partial<IndexedDBConfig>): IndexedDBAdapter {
+export function createIndexedDBAdapter(
+  config?: Partial<IndexedDBConfig>,
+): IndexedDBAdapter {
   const defaultConfig: IndexedDBConfig = {
     dbName: 'nexus-vtt',
     version: 1,
@@ -467,22 +546,22 @@ export function createIndexedDBAdapter(config?: Partial<IndexedDBConfig>): Index
         keyPath: 'key',
         indexes: [
           { name: 'timestamp', keyPath: 'timestamp' },
-          { name: 'version', keyPath: 'version' }
-        ]
+          { name: 'version', keyPath: 'version' },
+        ],
       },
       {
         name: 'metadata',
-        keyPath: 'key'
+        keyPath: 'key',
       },
       {
         name: 'syncLog',
         keyPath: 'id',
         indexes: [
           { name: 'timestamp', keyPath: 'timestamp' },
-          { name: 'sessionId', keyPath: 'sessionId' }
-        ]
-      }
-    ]
+          { name: 'sessionId', keyPath: 'sessionId' },
+        ],
+      },
+    ],
   };
 
   return new IndexedDBAdapter({ ...defaultConfig, ...config });

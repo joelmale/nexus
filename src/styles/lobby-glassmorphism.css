@@ -65,26 +65,32 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  50% { transform: translateY(-20px) rotate(180deg); opacity: 0.8; }
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+    opacity: 0.8;
+  }
 }
 
 .lobby-content {
   position: relative;
   z-index: 10;
-  width: 50%;
-  max-width: 1200px;
+  width: 100%;
+  max-width: 600px;
   padding: 2rem;
   display: flex;
   justify-content: center;
   align-items: center;
-  backdrop-filter: none;
-}
-
-.lobby {
-  backdrop-filter: none;
 }
 
 /* Glass Panel Base Style */
@@ -93,7 +99,7 @@
   backdrop-filter: blur(20px);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   padding: 2rem;
@@ -136,8 +142,13 @@
 }
 
 @keyframes logoFloat {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 .brand-title {
@@ -199,7 +210,7 @@
 
 .glass-input {
   width: 100%;
-  padding: 1rem 1rem 1rem 3rem;
+  padding: 0.5rem 0.5rem 0.5rem 3rem;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
@@ -236,8 +247,8 @@
 .actions-section {
   display: flex;
   flex-direction: column; /* Changed from 'row' */
-  align-items: center;    /* Added to center items */
-  gap: 1.5rem;            /* Increased gap for better vertical spacing */
+  align-items: center; /* Added to center items */
+  gap: 1.5rem; /* Increased gap for better vertical spacing */
   width: 100%;
 }
 
@@ -299,7 +310,12 @@
   right: 0;
   width: 100%;
   height: 1px; /* Changed from width: 1px */
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent); /* Changed from 180deg */
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  ); /* Changed from 180deg */
   transform: translateY(-50%); /* Helps vertically center the line */
 }
 
@@ -320,7 +336,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 1rem 2rem;
+  padding: 0.5rem 0.5rem;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
@@ -349,30 +365,55 @@
 }
 
 .glass-button.primary {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 1), rgba(139, 92, 246, 1));
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 1),
+    rgba(139, 92, 246, 1)
+  );
   border-color: rgba(99, 102, 241, 1);
 }
 
 .glass-button.primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(139, 92, 246, 0.4));
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.4),
+    rgba(139, 92, 246, 0.4)
+  );
 }
 
 .glass-button.secondary {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 1), rgba(59, 130, 246, 1));
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 1),
+    rgba(59, 130, 246, 1)
+  );
   border-color: rgba(34, 197, 94, 1);
+  color: white;
 }
 
 .glass-button.secondary:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.4), rgba(59, 130, 246, 0.4));
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.4),
+    rgba(59, 130, 246, 0.4)
+  );
 }
 
 .glass-button.danger {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 127, 0.3));
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.3),
+    rgba(220, 38, 127, 0.3)
+  );
   border-color: rgba(239, 68, 68, 0.4);
 }
 
 .glass-button.danger:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.4), rgba(220, 38, 127, 0.4));
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.4),
+    rgba(220, 38, 127, 0.4)
+  );
 }
 
 /* Loading Spinner */
@@ -386,12 +427,18 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error Message */
 .error-message {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 127, 0.2));
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.2),
+    rgba(220, 38, 127, 0.2)
+  );
   border-color: rgba(239, 68, 68, 0.4);
   color: #fef2f2;
   padding: 1rem;
@@ -442,8 +489,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Session Info */
@@ -585,18 +637,16 @@
 
 /* Desktop/Tablet optimized lobby - Animations optimized for larger screens */
 
-
-
 /* Enhanced glass effects for high-end devices */
 @media (min-width: 1200px) and (-webkit-min-device-pixel-ratio: 2) {
   .glass-panel {
     backdrop-filter: blur(25px);
   }
-  
+
   .glass-input {
     backdrop-filter: blur(15px);
   }
-  
+
   .glass-button {
     backdrop-filter: blur(15px);
   }
@@ -608,12 +658,12 @@
     background: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.4);
   }
-  
+
   .glass-input {
     background: rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.3);
   }
-  
+
   .brand-title {
     -webkit-text-fill-color: white;
     background: none;

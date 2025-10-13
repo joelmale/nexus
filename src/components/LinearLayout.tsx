@@ -11,18 +11,19 @@ import { LinearWelcomePage } from './LinearWelcomePage';
 import { PlayerSetupPage } from './PlayerSetupPage';
 import { DMSetupPage } from './DMSetupPage';
 import { LinearGameLayout } from './LinearGameLayout'; // Clean game layout for linear flow
+import { AdminPage } from './AdminPage';
+import {
+  CharacterCreationProvider,
+  useCharacterCreationLauncher,
+} from './CharacterCreationLauncher';
 
-export const LinearLayout: React.FC = () => {
+const LinearLayoutContent: React.FC = () => {
   const { view, user } = useGameStore();
   const roomCode = useServerRoomCode();
   const navigate = useNavigate();
+  const { LauncherComponent } = useCharacterCreationLauncher();
 
   // Add debugging for view changes
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🎯 LinearLayout rendering view:', view);
-    }
-  }, [view]);
 
   // Handle invalid game state - reset to welcome after render
   React.useEffect(() => {
@@ -49,30 +50,59 @@ export const LinearLayout: React.FC = () => {
   }, [view, user.name, user.type, roomCode, navigate]);
 
   // Simple view-based routing
-  switch (view) {
-    case 'welcome':
-      return <LinearWelcomePage />;
-
-    case 'player_setup':
-      return <PlayerSetupPage />;
-
-    case 'dm_setup':
-      return <DMSetupPage />;
-
-    case 'game': {
-      // Safety check: Don't render game if user state is invalid
-      // Allow DMs to prepare games offline (without roomCode)
-      const isValidGameState =
-        user.name && user.type && (roomCode || user.type === 'host');
-
-      if (!isValidGameState) {
-        // The useEffect above will handle the reset and navigation
+  const renderCurrentView = () => {
+    switch (view) {
+      case 'welcome':
         return <LinearWelcomePage />;
-      }
-      return <LinearGameLayout />;
-    }
 
-    default:
-      return <LinearWelcomePage />;
-  }
+      case 'player_setup':
+        return <PlayerSetupPage />;
+
+      case 'dm_setup':
+        return <DMSetupPage />;
+
+      case 'game': {
+        // Safety check: Don't render game if user state is invalid
+        // Allow DMs to prepare games offline (without roomCode)
+        const isValidGameState =
+          user.name && user.type && (roomCode || user.type === 'host');
+
+        if (!isValidGameState) {
+          // Invalid state - reset to welcome after render
+          setTimeout(() => {
+            useGameStore.getState().resetToWelcome();
+          }, 0);
+          return <LinearWelcomePage />;
+        }
+
+        return <LinearGameLayout />;
+      }
+
+      case 'admin':
+        // Only allow admin access in development mode
+        if (process.env.NODE_ENV !== 'development') {
+          useGameStore.getState().resetToWelcome();
+          return <LinearWelcomePage />;
+        }
+        return <AdminPage />;
+
+      default:
+        return <LinearWelcomePage />;
+    }
+  };
+
+  return (
+    <>
+      {renderCurrentView()}
+      {LauncherComponent}
+    </>
+  );
+};
+
+export const LinearLayout: React.FC = () => {
+  return (
+    <CharacterCreationProvider>
+      <LinearLayoutContent />
+    </CharacterCreationProvider>
+  );
 };

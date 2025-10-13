@@ -9,10 +9,11 @@
  */
 
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
 import { useCharacters } from '@/stores/characterStore';
-import type { PlayerCharacter } from '@/types/appFlow';
+import type { PlayerCharacter } from '@/types/game';
 import type { Character } from '@/types/character';
 
 // Convert between Character (new system) and PlayerCharacter (old system)
@@ -37,6 +38,7 @@ const convertToPlayerCharacter = (
 };
 
 export const PlayerSetupPage: React.FC = () => {
+  const navigate = useNavigate();
   const {
     user,
     getSavedCharacters,
@@ -45,12 +47,10 @@ export const PlayerSetupPage: React.FC = () => {
     joinRoomWithCode,
     exportCharacters,
     importCharacters,
-    resetToWelcome,
   } = useGameStore();
 
   const { characters: newCharacters } = useCharacters();
-  const { startCharacterCreation, LauncherComponent } =
-    useCharacterCreationLauncher();
+  const { startCharacterCreation } = useCharacterCreationLauncher();
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
     null,
@@ -130,17 +130,21 @@ export const PlayerSetupPage: React.FC = () => {
       startCharacterCreation(
         user.id,
         'fullpage',
-        (characterId) => {
-          // Convert the new character to old format and save to appFlow store
-          const newCharacter = newCharacters.find((c) => c.id === characterId);
+        (characterId, character) => {
+          // Use the character object passed directly, or fallback to state lookup
+          const newCharacter =
+            character || newCharacters.find((c) => c.id === characterId);
+
           if (newCharacter) {
+            // Convert the new character to old format and save to appFlow store
             const playerCharacter = convertToPlayerCharacter(newCharacter);
             const oldCharacter = createCharacter(playerCharacter);
             setSelectedCharacterId(oldCharacter.id);
           }
         },
         () => {
-          console.log('Character creation cancelled');
+          // Character creation cancelled
+          console.log('🎭 Character creation cancelled');
         },
       );
     }
@@ -153,13 +157,20 @@ export const PlayerSetupPage: React.FC = () => {
       </div>
 
       <div className="setup-content">
-        <div className="setup-panel glass-panel">
+        <div className="setup-panel glass-panel has-corner-button">
+          <button
+            onClick={() => navigate('/lobby')}
+            className="back-button glass-button"
+            title="Back to Lobby"
+          >
+            ←
+          </button>
           <div className="setup-header">
             <div className="header-with-back">
               <button
-                onClick={resetToWelcome}
+                onClick={() => navigate('/lobby')}
                 className="back-button glass-button"
-                title="Back to Welcome"
+                title="Back to Lobby"
               >
                 ←
               </button>
@@ -373,9 +384,6 @@ export const PlayerSetupPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Character Creation Launcher */}
-      {LauncherComponent}
     </div>
   );
 };

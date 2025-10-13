@@ -18,6 +18,9 @@ import type {
   Player,
   Drawing,
   PlacedToken,
+  ChatMessage,
+  ChatUserTypingEvent,
+  VoiceChannel,
   TokenPlaceEvent,
   TokenMoveEvent,
   TokenUpdateEvent,
@@ -94,7 +97,9 @@ interface GameStore extends GameState {
   leaveGame: () => void;
 
   // Scene Actions
-  createScene: (scene: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>) => Scene;
+  createScene: (
+    scene: Omit<Scene, 'id' | 'createdAt' | 'updatedAt' | 'roomCode'>,
+  ) => Scene;
   updateScene: (sceneId: string, updates: Partial<Scene>) => void;
   deleteScene: (sceneId: string) => void;
   reorderScenes: (fromIndex: number, toIndex: number) => void;
@@ -153,7 +158,7 @@ interface GameStore extends GameState {
   getVisibleTokens: (sceneId: string, isHost: boolean) => PlacedToken[];
 
   // Persistence Actions
-  initializeFromStorage: () => Promise<void>;
+  initializeFromStorage: (roomCode?: string) => Promise<void>;
   loadSceneDrawings: (sceneId: string) => Promise<void>;
 
   // Session Persistence Actions
@@ -161,6 +166,27 @@ interface GameStore extends GameState {
   loadSessionState: () => void;
   attemptSessionRecovery: () => Promise<boolean>;
   clearSessionData: () => void;
+
+  // Chat Actions
+  sendChatMessage: (
+    content: string,
+    messageType?: 'text' | 'dm-announcement' | 'whisper' | 'system',
+    recipientId?: string,
+  ) => void;
+  addChatMessage: (message: ChatMessage['data']) => void;
+  setTyping: (isTyping: boolean) => void;
+  clearChat: () => void;
+  markChatAsRead: () => void;
+
+  // Voice Actions
+  createVoiceChannel: (name: string) => VoiceChannel;
+  joinVoiceChannel: (channelId: string) => Promise<void>;
+  leaveVoiceChannel: () => void;
+  toggleMute: () => void;
+  toggleDeafen: () => void;
+  setAudioDevices: (devices: MediaDeviceInfo[]) => void;
+  selectAudioInput: (deviceId: string) => void;
+  selectAudioOutput: (deviceId: string) => void;
 
   // Developer Actions (from appFlowStore + existing)
   toggleMockData: (enable: boolean) => void;
@@ -244,13 +270,17 @@ const clearSessionFromStorage = (): void => {
   console.log('🗑️ Cleared session from localStorage');
 };
 
+// Read pre-game view from localStorage for persistence on refresh
+const preGameView = localStorage.getItem('nexus-pre-game-view') as AppView | null;
+console.log(`[Persistence] Found pre-game view in localStorage: '${preGameView}'`);
+
 const initialState: GameState & {
   view: AppView;
   gameConfig?: GameConfig;
   selectedCharacter?: PlayerCharacter;
 } = {
   // App Flow State (from appFlowStore)
-  view: 'welcome',
+  view: preGameView || 'welcome',
   gameConfig: undefined,
   selectedCharacter: undefined,
 
@@ -320,7 +350,26 @@ const initialState: GameState & {
     // Experimental Settings
     floatingToolbar: false, // Default to docked toolbar
   },
+
+  // Chat State
+  chat: {
+    messages: [],
+    typingUsers: [],
+    unreadCount: 0,
+  },
+
+  // Voice State
+  voice: {
+    channels: [],
+    activeChannelId: null,
+    isMuted: false,
+    isDeafened: false,
+    audioDevices: [],
+    selectedInputDevice: null,
+    selectedOutputDevice: null,
+  },
 };
+console.log(`[Persistence] Initial view set to: '${initialState.view}'`);
 
 // --- Mock Data for Development (can be toggled via settings) ---
 const MOCK_PLAYERS: Player[] = [
@@ -520,6 +569,7 @@ const eventHandlers: Record<string, EventHandler> = {
         id: uuidv4(),
         name: 'Scene 1',
         description: 'Enter description here',
+        roomCode: eventData.roomCode, // Use room code from session creation
         visibility: 'public',
         isEditable: true,
         createdBy: state.user.id,
@@ -742,6 +792,27 @@ const eventHandlers: Record<string, EventHandler> = {
       }
     }
   },
+  'chat/typing': (state, data) => {
+    const eventData = data as ChatUserTypingEvent['data'];
+    const existingUserIndex = state.chat.typingUsers.findIndex(
+      (u) => u.userId === eventData.userId,
+    );
+
+    if (eventData.isTyping) {
+      // Add user to typing list if not already there
+      if (existingUserIndex === -1) {
+        state.chat.typingUsers.push({
+          userId: eventData.userId,
+          userName: eventData.userName,
+        });
+      }
+    } else {
+      // Remove user from typing list
+      if (existingUserIndex >= 0) {
+        state.chat.typingUsers.splice(existingUserIndex, 1);
+      }
+    }
+  },
 };
 
 export const useGameStore = create<GameStore>()(
@@ -752,14 +823,20 @@ export const useGameStore = create<GameStore>()(
       if (process.env.NODE_ENV === 'development') {
         console.log('👤 setUser:', userData);
       }
+      let nextView: AppView | null = null;
       set((state) => {
         Object.assign(state.user, userData);
 
-        // Auto-navigate to setup if setting name and type
+        // Determine next view based on user data
         if (userData.name && userData.type) {
-          state.view = userData.type === 'player' ? 'player_setup' : 'dm_setup';
+          nextView = userData.type === 'player' ? 'player_setup' : 'dm_setup';
         }
       });
+
+      // Call setView to handle navigation and persistence centrally
+      if (nextView) {
+        get().setView(nextView);
+      }
 
       // Save session if we have a room code
       const currentState = get();
@@ -815,12 +892,20 @@ export const useGameStore = create<GameStore>()(
 
     // App Flow Actions (from appFlowStore)
     setView: (view: AppView) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🎯 setView:', view);
+      const from = get().view;
+      if (from === view) return; // Avoid unnecessary sets
+      console.log(`[State] Changing view from '${from}' to '${view}'`);
+      set({ view });
+
+      // Persist pre-game view to localStorage to survive refreshes
+      if (view === 'player_setup' || view === 'dm_setup') {
+        localStorage.setItem('nexus-pre-game-view', view);
+        console.log(`[Persistence] Saved view '${view}' to localStorage.`);
+      } else {
+        // Clean up when moving to welcome or into the actual game
+        localStorage.removeItem('nexus-pre-game-view');
+        console.log(`[Persistence] Cleared pre-game-view from localStorage.`);
       }
-      set((state) => {
-        state.view = view;
-      });
     },
 
     joinRoomWithCode: async (roomCode: string, character?: PlayerCharacter) => {
@@ -872,6 +957,54 @@ export const useGameStore = create<GameStore>()(
           ],
           status: 'connected',
         });
+
+        // Load room-specific scenes and drawings from storage
+        try {
+          const roomScenes =
+            await drawingPersistenceService.loadAllScenes(roomCode);
+          if (roomScenes.length > 0) {
+            set((state) => {
+              state.sceneState.scenes = roomScenes;
+              // Set the first scene as active if no active scene is set
+              if (!state.sceneState.activeSceneId && roomScenes.length > 0) {
+                state.sceneState.activeSceneId = roomScenes[0].id;
+              }
+            });
+            console.log(
+              `📂 Loaded ${roomScenes.length} scenes for room ${roomCode}`,
+            );
+
+            // Load drawings for each scene
+            for (const scene of roomScenes) {
+              try {
+                const drawings = await drawingPersistenceService.loadDrawings(
+                  scene.id,
+                  roomCode,
+                );
+                if (drawings.length > 0) {
+                  set((state) => {
+                    const sceneIndex = state.sceneState.scenes.findIndex(
+                      (s) => s.id === scene.id,
+                    );
+                    if (sceneIndex >= 0) {
+                      state.sceneState.scenes[sceneIndex].drawings = drawings;
+                    }
+                  });
+                  console.log(
+                    `📂 Loaded ${drawings.length} drawings for scene ${scene.id}`,
+                  );
+                }
+              } catch (drawingError) {
+                console.warn(
+                  `Failed to load drawings for scene ${scene.id}:`,
+                  drawingError,
+                );
+              }
+            }
+          }
+        } catch (storageError) {
+          console.warn('Failed to load room data from storage:', storageError);
+        }
 
         // If character provided, mark it as recently used
         if (character) {
@@ -980,7 +1113,8 @@ export const useGameStore = create<GameStore>()(
     },
 
     resetToWelcome: () => {
-      console.log('🔄 Resetting to welcome screen');
+      console.log('🔄 Resetting to welcome screen. Called from:');
+      console.trace(); // Log stack trace to find the caller
 
       set((state) => {
         state.view = 'welcome';
@@ -994,6 +1128,8 @@ export const useGameStore = create<GameStore>()(
 
       // Clear persisted session
       clearSessionFromStorage();
+      // Also clear the pre-game view
+      localStorage.removeItem('nexus-pre-game-view');
 
       console.log(
         '✅ Reset complete - cleared user, room, and connection state',
@@ -1028,18 +1164,42 @@ export const useGameStore = create<GameStore>()(
     },
 
     saveCharacter: (character: PlayerCharacter) => {
-      const storage = getLinearFlowStorage();
-      storage.saveCharacter(character);
+      try {
+        const existing = get().getSavedCharacters();
+        const existingIndex = existing.findIndex((c) => c.id === character.id);
+        if (existingIndex >= 0) {
+          // Update existing character
+          existing[existingIndex] = character;
+        } else {
+          // Add new character
+          existing.push(character);
+        }
+        localStorage.setItem('nexus-characters', JSON.stringify(existing));
+        console.log('Saved character:', character.name);
+      } catch (error) {
+        console.error('Failed to save character to localStorage:', error);
+      }
     },
 
     getSavedCharacters: (): PlayerCharacter[] => {
-      const storage = getLinearFlowStorage();
-      return storage.getCharacters();
+      try {
+        const stored = localStorage.getItem('nexus-characters');
+        return stored ? JSON.parse(stored) : [];
+      } catch (error) {
+        console.error('Failed to load characters from localStorage:', error);
+        return [];
+      }
     },
 
     deleteCharacter: (characterId: string) => {
-      const storage = getLinearFlowStorage();
-      storage.deleteCharacter(characterId);
+      try {
+        const existing = get().getSavedCharacters();
+        const filtered = existing.filter((c) => c.id !== characterId);
+        localStorage.setItem('nexus-characters', JSON.stringify(filtered));
+        console.log('Deleted character:', characterId);
+      } catch (error) {
+        console.error('Failed to delete character from localStorage:', error);
+      }
     },
 
     exportCharacters: (): string => {
@@ -1089,8 +1249,8 @@ export const useGameStore = create<GameStore>()(
 
     // Lifecycle Actions (from gameLifecycleStore)
     startPreparation: () => {
+      get().setView('dm_setup'); // Centralize view change
       set((state) => {
-        state.view = 'dm_setup';
         state.user.type = 'host';
         state.user.connected = false;
         state.session = null;
@@ -1153,9 +1313,15 @@ export const useGameStore = create<GameStore>()(
 
     // Scene Management Actions
     createScene: (sceneData) => {
+      const state = get();
+      if (!state.session) {
+        throw new Error('Cannot create scene: No active session');
+      }
+
       const scene: Scene = {
         ...sceneData,
         id: uuidv4(),
+        roomCode: state.session.roomCode, // Auto-inject current room code
         drawings: [], // Initialize with empty drawings array
         placedTokens: [], // Initialize with empty placed tokens array
         createdAt: Date.now(),
@@ -1657,9 +1823,10 @@ export const useGameStore = create<GameStore>()(
     },
 
     // Persistence Management Actions
-    initializeFromStorage: async () => {
+    initializeFromStorage: async (roomCode?: string) => {
       try {
-        const savedScenes = await drawingPersistenceService.loadAllScenes();
+        const savedScenes =
+          await drawingPersistenceService.loadAllScenes(roomCode);
 
         if (savedScenes.length > 0) {
           set((state) => {
@@ -1678,7 +1845,11 @@ export const useGameStore = create<GameStore>()(
 
     loadSceneDrawings: async (sceneId) => {
       try {
-        const drawings = await drawingPersistenceService.loadDrawings(sceneId);
+        const roomCode = get().session?.roomCode;
+        const drawings = await drawingPersistenceService.loadDrawings(
+          sceneId,
+          roomCode,
+        );
 
         set((state) => {
           const sceneIndex = state.sceneState.scenes.findIndex(
@@ -2010,6 +2181,187 @@ export const useGameStore = create<GameStore>()(
       console.log(
         `✅ DEV: Quick player in offline game - Room: ${offlineRoomCode}`,
       );
+    },
+
+    // Chat Actions
+    sendChatMessage: (content, messageType = 'text', recipientId) => {
+      const state = get();
+      if (!state.user.name || !state.session) return;
+
+      const message: ChatMessage['data'] = {
+        id: uuidv4(),
+        userId: state.user.id,
+        userName: state.user.name,
+        content: content.trim(),
+        messageType,
+        recipientId,
+        timestamp: Date.now(),
+      };
+
+      // Add to local state immediately for optimistic UI
+      set((draft) => {
+        draft.chat.messages.push(message);
+
+        // Keep only last 100 messages
+        if (draft.chat.messages.length > 100) {
+          draft.chat.messages = draft.chat.messages.slice(-100);
+        }
+      });
+
+      // Send via WebSocket if connected
+      if (state.user.connected) {
+        try {
+          import('@/utils/websocket').then(({ webSocketService }) => {
+            webSocketService.sendChatMessage(message);
+          });
+        } catch (error) {
+          console.error('Failed to send chat message:', error);
+        }
+      }
+    },
+
+    addChatMessage: (message) => {
+      set((state) => {
+        // Avoid duplicates
+        if (!state.chat.messages.some((m) => m.id === message.id)) {
+          state.chat.messages.push(message);
+
+          // Keep only last 100 messages
+          if (state.chat.messages.length > 100) {
+            state.chat.messages = state.chat.messages.slice(-100);
+          }
+
+          // Increment unread count if message is not from current user
+          if (message.userId !== state.user.id) {
+            state.chat.unreadCount++;
+
+            // Show toast for DM announcements
+            if (message.messageType === 'dm-announcement') {
+              import('sonner').then(({ toast }) => {
+                toast.success(`👑 ${message.userName}: ${message.content}`, {
+                  duration: 5000,
+                  description: 'DM Announcement',
+                });
+              });
+            }
+          }
+        }
+      });
+    },
+
+    setTyping: (isTyping) => {
+      const state = get();
+      if (!state.user.name || !state.session || !state.user.connected) return;
+
+      try {
+        import('@/utils/websocket').then(({ webSocketService }) => {
+          webSocketService.sendEvent({
+            type: 'chat/typing',
+            data: {
+              userId: state.user.id,
+              userName: state.user.name,
+              isTyping,
+            },
+          });
+        });
+      } catch (error) {
+        console.error('Failed to send typing status:', error);
+      }
+    },
+
+    clearChat: () => {
+      set((state) => {
+        state.chat.messages = [];
+        state.chat.unreadCount = 0;
+      });
+    },
+
+    markChatAsRead: () => {
+      set((state) => {
+        state.chat.unreadCount = 0;
+      });
+    },
+
+    // Voice Actions
+    createVoiceChannel: (name) => {
+      const channel: VoiceChannel = {
+        id: uuidv4(),
+        name,
+        participants: [],
+        isActive: true,
+      };
+
+      set((state) => {
+        state.voice.channels.push(channel);
+      });
+
+      return channel;
+    },
+
+    joinVoiceChannel: async (channelId) => {
+      // TODO: Implement WebRTC connection logic
+      console.log(`🎤 Joining voice channel: ${channelId}`);
+
+      set((state) => {
+        const channel = state.voice.channels.find((c) => c.id === channelId);
+        if (channel && !channel.participants.includes(state.user.id)) {
+          channel.participants.push(state.user.id);
+          state.voice.activeChannelId = channelId;
+        }
+      });
+    },
+
+    leaveVoiceChannel: () => {
+      // TODO: Close WebRTC connections
+      console.log('🎤 Leaving voice channel');
+
+      set((state) => {
+        if (state.voice.activeChannelId) {
+          const channel = state.voice.channels.find(
+            (c) => c.id === state.voice.activeChannelId,
+          );
+          if (channel) {
+            channel.participants = channel.participants.filter(
+              (id) => id !== state.user.id,
+            );
+          }
+          state.voice.activeChannelId = null;
+        }
+      });
+    },
+
+    toggleMute: () => {
+      set((state) => {
+        state.voice.isMuted = !state.voice.isMuted;
+        // TODO: Apply mute to WebRTC stream
+      });
+    },
+
+    toggleDeafen: () => {
+      set((state) => {
+        state.voice.isDeafened = !state.voice.isDeafened;
+        // TODO: Apply deafen to WebRTC streams
+      });
+    },
+
+    setAudioDevices: (devices) => {
+      set((state) => {
+        state.voice.audioDevices = devices;
+      });
+    },
+
+    selectAudioInput: (deviceId) => {
+      set((state) => {
+        state.voice.selectedInputDevice = deviceId;
+        // TODO: Switch audio input device
+      });
+    },
+
+    selectAudioOutput: (deviceId) => {
+      set((state) => {
+        state.voice.selectedOutputDevice = deviceId;
+        // TODO: Switch audio output device
+      });
     },
   })),
 );

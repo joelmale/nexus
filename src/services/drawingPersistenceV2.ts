@@ -30,7 +30,9 @@ class DrawingPersistenceServiceV2 {
     let migratedDrawings = 0;
 
     try {
-      console.log('🔄 Migrating drawing data from localStorage to IndexedDB...');
+      console.log(
+        '🔄 Migrating drawing data from localStorage to IndexedDB...',
+      );
 
       // Migrate scenes
       const scenesData = localStorage.getItem('nexus-scenes');
@@ -55,9 +57,13 @@ class DrawingPersistenceServiceV2 {
 
       // Migrate drawings for each scene
       const localStorageKeys = Object.keys(localStorage);
-      const drawingKeys = localStorageKeys.filter(key => key.startsWith('nexus-drawings-'));
+      const drawingKeys = localStorageKeys.filter((key) =>
+        key.startsWith('nexus-drawings-'),
+      );
 
-      console.log(`📂 Found ${drawingKeys.length} drawing sets in localStorage`);
+      console.log(
+        `📂 Found ${drawingKeys.length} drawing sets in localStorage`,
+      );
 
       for (const key of drawingKeys) {
         try {
@@ -69,7 +75,9 @@ class DrawingPersistenceServiceV2 {
             if (data.drawings && Array.isArray(data.drawings)) {
               await this.storage.saveDrawings(sceneId, data.drawings);
               migratedDrawings += data.drawings.length;
-              console.log(`✅ Migrated ${data.drawings.length} drawings for scene ${sceneId}`);
+              console.log(
+                `✅ Migrated ${data.drawings.length} drawings for scene ${sceneId}`,
+              );
             }
           }
 
@@ -81,7 +89,9 @@ class DrawingPersistenceServiceV2 {
         }
       }
 
-      console.log(`✅ Migration complete: ${migratedScenes} scenes, ${migratedDrawings} drawings`);
+      console.log(
+        `✅ Migration complete: ${migratedScenes} scenes, ${migratedDrawings} drawings`,
+      );
 
       return { migratedScenes, migratedDrawings, errors };
     } catch (error) {
@@ -128,10 +138,12 @@ class DrawingPersistenceServiceV2 {
   async loadScene(sceneId: string): Promise<Scene | null> {
     try {
       const scenes = this.storage.getScenes();
-      const scene = scenes.find(s => s.id === sceneId);
+      const scene = scenes.find((s) => s.id === sceneId);
 
       if (scene) {
-        console.log(`📂 Loaded scene from IndexedDB: ${scene.name} (${sceneId})`);
+        console.log(
+          `📂 Loaded scene from IndexedDB: ${scene.name} (${sceneId})`,
+        );
         return scene;
       } else {
         console.log(`📂 Scene not found in IndexedDB: ${sceneId}`);
@@ -170,7 +182,9 @@ class DrawingPersistenceServiceV2 {
   async saveDrawings(sceneId: string, drawings: Drawing[]): Promise<void> {
     try {
       await this.storage.saveDrawings(sceneId, drawings);
-      console.log(`💾 Saved ${drawings.length} drawings to IndexedDB for scene ${sceneId}`);
+      console.log(
+        `💾 Saved ${drawings.length} drawings to IndexedDB for scene ${sceneId}`,
+      );
     } catch (error) {
       console.error('❌ Failed to save drawings:', error);
       throw error;
@@ -183,7 +197,9 @@ class DrawingPersistenceServiceV2 {
   async loadDrawings(sceneId: string): Promise<Drawing[]> {
     try {
       const drawings = this.storage.getDrawings(sceneId);
-      console.log(`📂 Loaded ${drawings.length} drawings from IndexedDB for scene ${sceneId}`);
+      console.log(
+        `📂 Loaded ${drawings.length} drawings from IndexedDB for scene ${sceneId}`,
+      );
       return drawings;
     } catch (error) {
       console.error('❌ Failed to load drawings:', error);
@@ -221,11 +237,15 @@ class DrawingPersistenceServiceV2 {
   /**
    * Update a specific drawing in a scene
    */
-  async updateDrawing(sceneId: string, drawingId: string, updates: Partial<Drawing>): Promise<void> {
+  async updateDrawing(
+    sceneId: string,
+    drawingId: string,
+    updates: Partial<Drawing>,
+  ): Promise<void> {
     try {
       const existingDrawings = await this.loadDrawings(sceneId);
-      const updatedDrawings = existingDrawings.map(drawing =>
-        drawing.id === drawingId ? { ...drawing, ...updates } : drawing
+      const updatedDrawings = existingDrawings.map((drawing) =>
+        drawing.id === drawingId ? { ...drawing, ...updates } : drawing,
       ) as Drawing[];
       await this.saveDrawings(sceneId, updatedDrawings);
     } catch (error) {
@@ -240,7 +260,9 @@ class DrawingPersistenceServiceV2 {
   async removeDrawing(sceneId: string, drawingId: string): Promise<void> {
     try {
       const existingDrawings = await this.loadDrawings(sceneId);
-      const updatedDrawings = existingDrawings.filter(drawing => drawing.id !== drawingId);
+      const updatedDrawings = existingDrawings.filter(
+        (drawing) => drawing.id !== drawingId,
+      );
       await this.saveDrawings(sceneId, updatedDrawings);
     } catch (error) {
       console.error('❌ Failed to remove drawing:', error);
@@ -272,7 +294,7 @@ class DrawingPersistenceServiceV2 {
     return {
       totalScenes: scenes.length,
       totalDrawings,
-      storageSize: `${stats.entities} entities in IndexedDB`
+      storageSize: `${stats.entities} entities in IndexedDB`,
     };
   }
 
@@ -283,7 +305,9 @@ class DrawingPersistenceServiceV2 {
     // Check if there's old localStorage data
     const hasOldScenes = localStorage.getItem('nexus-scenes') !== null;
     const localStorageKeys = Object.keys(localStorage);
-    const hasOldDrawings = localStorageKeys.some(key => key.startsWith('nexus-drawings-'));
+    const hasOldDrawings = localStorageKeys.some((key) =>
+      key.startsWith('nexus-drawings-'),
+    );
 
     return hasOldScenes || hasOldDrawings;
   }
@@ -294,12 +318,12 @@ export const drawingPersistenceServiceV2 = new DrawingPersistenceServiceV2();
 
 // Hook for React components to use the new persistence service
 export const useDrawingPersistenceV2 = () => {
-  const sceneState = useGameStore(state => state.sceneState);
-  const updateScene = useGameStore(state => state.updateScene);
+  const sceneState = useGameStore((state) => state.sceneState);
+  const updateScene = useGameStore((state) => state.updateScene);
 
   const saveCurrentScene = async () => {
     const activeScene = sceneState.scenes.find(
-      s => s.id === sceneState.activeSceneId
+      (s) => s.id === sceneState.activeSceneId,
     );
 
     if (activeScene) {

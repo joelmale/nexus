@@ -1,25 +1,16 @@
 /* =============================================================================
-   DESIGN TOKENS - Unified CSS Variables System
-   ============================================================================= */
+    DESIGN TOKENS - Unified CSS Variables System
+    =============================================================================
+    Organized design system with semantic tokens for maintainable styling.
+    ============================================================================= */
 
 :root {
   /* =============================================================================
-     COLOR PALETTE
+     1. CORE COLOR PALETTE
+     Base color scales used throughout the design system
      ============================================================================= */
 
-  /* Primary Colors */
-  --blue-50: #eff6ff;
-  --blue-100: #dbeafe;
-  --blue-200: #bfdbfe;
-  --blue-300: #93c5fd;
-  --blue-400: #60a5fa;
-  --blue-500: #3b82f6;
-  --blue-600: #2563eb;
-  --blue-700: #1d4ed8;
-  --blue-800: #1e40af;
-  --blue-900: #1e3a8a;
-
-  /* Indigo Colors */
+  /* Primary Brand Colors - Indigo */
   --indigo-50: #eef2ff;
   --indigo-100: #e0e7ff;
   --indigo-200: #c7d2fe;
@@ -31,7 +22,7 @@
   --indigo-800: #3730a3;
   --indigo-900: #312e81;
 
-  /* Purple Colors */
+  /* Secondary Colors - Purple */
   --purple-50: #faf5ff;
   --purple-100: #f3e8ff;
   --purple-200: #e9d5ff;
@@ -43,7 +34,7 @@
   --purple-800: #6b21a8;
   --purple-900: #581c87;
 
-  /* Cyan Colors */
+  /* Accent Colors - Cyan */
   --cyan-50: #ecfeff;
   --cyan-100: #cffafe;
   --cyan-200: #a5f3fc;
@@ -55,7 +46,7 @@
   --cyan-800: #155e75;
   --cyan-900: #164e63;
 
-  /* Emerald Colors */
+  /* Status Colors */
   --emerald-50: #ecfdf5;
   --emerald-100: #d1fae5;
   --emerald-200: #a7f3d0;
@@ -67,7 +58,6 @@
   --emerald-800: #065f46;
   --emerald-900: #064e3b;
 
-  /* Amber Colors */
   --amber-50: #fffbeb;
   --amber-100: #fef3c7;
   --amber-200: #fde68a;
@@ -79,7 +69,6 @@
   --amber-800: #92400e;
   --amber-900: #78350f;
 
-  /* Red Colors */
   --red-50: #fef2f2;
   --red-100: #fee2e2;
   --red-200: #fecaca;
@@ -91,7 +80,18 @@
   --red-800: #991b1b;
   --red-900: #7f1d1d;
 
-  /* Neutral Colors */
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+
+  /* Neutral Colors - Gray & Slate */
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
   --gray-200: #e5e7eb;
@@ -103,7 +103,6 @@
   --gray-800: #1f2937;
   --gray-900: #111827;
 
-  /* Slate Colors */
   --slate-50: #f8fafc;
   --slate-100: #f1f5f9;
   --slate-200: #e2e8f0;
@@ -116,27 +115,28 @@
   --slate-900: #0f172a;
 
   /* =============================================================================
-     SEMANTIC COLOR TOKENS
+     2. SEMANTIC COLOR SYSTEM
+     High-level color tokens for consistent theming
      ============================================================================= */
 
-  /* Primary System Colors */
+  /* Brand Colors - Primary action colors */
   --color-primary: var(--indigo-500);
   --color-primary-hover: var(--indigo-600);
   --color-primary-active: var(--indigo-700);
   --color-primary-rgb: 99, 102, 241;
 
-  /* Secondary System Colors */
+  /* Brand Colors - Secondary action colors */
   --color-secondary: var(--purple-500);
   --color-secondary-hover: var(--purple-600);
   --color-secondary-active: var(--purple-700);
   --color-secondary-rgb: 168, 85, 247;
 
-  /* Accent Colors */
+  /* Accent Colors - Tertiary actions and highlights */
   --color-accent: var(--cyan-500);
   --color-accent-hover: var(--cyan-600);
   --color-accent-active: var(--cyan-700);
 
-  /* Status Colors */
+  /* Status Colors - Semantic meaning */
   --color-success: var(--emerald-500);
   --color-success-hover: var(--emerald-600);
   --color-warning: var(--amber-500);
@@ -146,8 +146,13 @@
   --color-info: var(--blue-500);
   --color-info-hover: var(--blue-600);
 
+  /* Surface and Text Colors - Base semantic colors */
+  --color-surface: var(--surface-primary);
+  --color-text: var(--text-primary);
+
   /* =============================================================================
-     GLASSMORPHISM DESIGN SYSTEM
+     3. GLASSMORPHISM SYSTEM
+     Translucent design tokens for modern glass effects
      ============================================================================= */
 
   /* Background Gradients */
@@ -155,35 +160,40 @@
   --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   --gradient-tertiary: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   --gradient-dark: linear-gradient(135deg, #2d1b69 0%, #11998e 100%);
-  --gradient-aurora: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  --gradient-aurora: linear-gradient(
+    135deg,
+    #667eea 0%,
+    #764ba2 50%,
+    #f093fb 100%
+  );
 
-  /* Glass Surface Colors */
-  --glass-surface: rgba(255, 255, 255, 0.1);
-  --glass-surface-hover: rgba(255, 255, 255, 0.15);
-  --glass-surface-strong: rgba(255, 255, 255, 0.2);
-  --glass-surface-subtle: rgba(255, 255, 255, 0.05);
+  /* Glass Surface Opacity Levels */
+  --glass-surface: rgba(255, 255, 255, 0.1); /* Base glass surface */
+  --glass-surface-hover: rgba(255, 255, 255, 0.15); /* Hover state */
+  --glass-surface-strong: rgba(255, 255, 255, 0.2); /* Strong emphasis */
+  --glass-surface-subtle: rgba(255, 255, 255, 0.05); /* Subtle elements */
 
-  /* Glass Border Colors */
-  --glass-border: rgba(255, 255, 255, 0.2);
-  --glass-border-strong: rgba(255, 255, 255, 0.3);
-  --glass-border-subtle: rgba(255, 255, 255, 0.1);
+  /* Glass Border Opacity Levels */
+  --glass-border: rgba(255, 255, 255, 0.2); /* Standard borders */
+  --glass-border-strong: rgba(255, 255, 255, 0.3); /* Strong borders */
+  --glass-border-subtle: rgba(255, 255, 255, 0.1); /* Subtle borders */
 
-  /* Glass Text Colors */
-  --glass-text: rgba(255, 255, 255, 0.9);
-  --glass-text-muted: rgba(255, 255, 255, 0.7);
-  --glass-text-light: rgba(255, 255, 255, 0.5);
-  --glass-text-strong: rgba(255, 255, 255, 1);
+  /* Glass Text Opacity Levels */
+  --glass-text: rgba(255, 255, 255, 0.9); /* Primary text */
+  --glass-text-muted: rgba(255, 255, 255, 0.7); /* Secondary text */
+  --glass-text-light: rgba(255, 255, 255, 0.5); /* Muted text */
+  --glass-text-strong: rgba(255, 255, 255, 1); /* Strong text */
 
-  /* Dark Glass Variants */
+  /* Dark Glass Variants (for overlays) */
   --glass-dark: rgba(0, 0, 0, 0.1);
   --glass-dark-hover: rgba(0, 0, 0, 0.15);
   --glass-dark-strong: rgba(0, 0, 0, 0.2);
   --glass-dark-border: rgba(0, 0, 0, 0.2);
 
   /* Blur Effects */
-  --glass-blur: blur(20px);
-  --glass-blur-strong: blur(40px);
-  --glass-blur-subtle: blur(10px);
+  --glass-blur: blur(20px); /* Standard glass blur */
+  --glass-blur-strong: blur(40px); /* Heavy blur for modals */
+  --glass-blur-subtle: blur(10px); /* Light blur for subtle effects */
 
   /* =============================================================================
      COMPONENT TOKENS
@@ -217,28 +227,28 @@
      ============================================================================= */
 
   --spacing-0: 0;
-  --spacing-0_5: 0.125rem;  /* 2px */
-  --spacing-1: 0.25rem;     /* 4px */
-  --spacing-1_5: 0.375rem;  /* 6px */
-  --spacing-2: 0.5rem;      /* 8px */
-  --spacing-2_5: 0.625rem;  /* 10px */
-  --spacing-3: 0.75rem;     /* 12px */
-  --spacing-3_5: 0.875rem;  /* 14px */
-  --spacing-4: 1rem;        /* 16px */
-  --spacing-5: 1.25rem;     /* 20px */
-  --spacing-6: 1.5rem;      /* 24px */
-  --spacing-7: 1.75rem;     /* 28px */
-  --spacing-8: 2rem;        /* 32px */
-  --spacing-9: 2.25rem;     /* 36px */
-  --spacing-10: 2.5rem;     /* 40px */
-  --spacing-11: 2.75rem;    /* 44px */
-  --spacing-12: 3rem;       /* 48px */
-  --spacing-14: 3.5rem;     /* 56px */
-  --spacing-16: 4rem;       /* 64px */
-  --spacing-20: 5rem;       /* 80px */
-  --spacing-24: 6rem;       /* 96px */
-  --spacing-28: 7rem;       /* 112px */
-  --spacing-32: 8rem;       /* 128px */
+  --spacing-0_5: 0.125rem; /* 2px */
+  --spacing-1: 0.25rem; /* 4px */
+  --spacing-1_5: 0.375rem; /* 6px */
+  --spacing-2: 0.5rem; /* 8px */
+  --spacing-2_5: 0.625rem; /* 10px */
+  --spacing-3: 0.75rem; /* 12px */
+  --spacing-3_5: 0.875rem; /* 14px */
+  --spacing-4: 1rem; /* 16px */
+  --spacing-5: 1.25rem; /* 20px */
+  --spacing-6: 1.5rem; /* 24px */
+  --spacing-7: 1.75rem; /* 28px */
+  --spacing-8: 2rem; /* 32px */
+  --spacing-9: 2.25rem; /* 36px */
+  --spacing-10: 2.5rem; /* 40px */
+  --spacing-11: 2.75rem; /* 44px */
+  --spacing-12: 3rem; /* 48px */
+  --spacing-14: 3.5rem; /* 56px */
+  --spacing-16: 4rem; /* 64px */
+  --spacing-20: 5rem; /* 80px */
+  --spacing-24: 6rem; /* 96px */
+  --spacing-28: 7rem; /* 112px */
+  --spacing-32: 8rem; /* 128px */
 
   /* Semantic Spacing */
   --spacing-xs: var(--spacing-1);
@@ -254,19 +264,19 @@
      ============================================================================= */
 
   /* Font Sizes */
-  --text-xs: 0.75rem;       /* 12px */
-  --text-sm: 0.875rem;      /* 14px */
-  --text-base: 1rem;        /* 16px */
-  --text-lg: 1.125rem;      /* 18px */
-  --text-xl: 1.25rem;       /* 20px */
-  --text-2xl: 1.5rem;       /* 24px */
-  --text-3xl: 1.875rem;     /* 30px */
-  --text-4xl: 2.25rem;      /* 36px */
-  --text-5xl: 3rem;         /* 48px */
-  --text-6xl: 3.75rem;      /* 60px */
-  --text-7xl: 4.5rem;       /* 72px */
-  --text-8xl: 6rem;         /* 96px */
-  --text-9xl: 8rem;         /* 128px */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.25rem; /* 20px */
+  --text-2xl: 1.5rem; /* 24px */
+  --text-3xl: 1.875rem; /* 30px */
+  --text-4xl: 2.25rem; /* 36px */
+  --text-5xl: 3rem; /* 48px */
+  --text-6xl: 3.75rem; /* 60px */
+  --text-7xl: 4.5rem; /* 72px */
+  --text-8xl: 6rem; /* 96px */
+  --text-9xl: 8rem; /* 128px */
 
   /* Font Weights */
   --font-thin: 100;
@@ -280,14 +290,14 @@
   --font-black: 900;
 
   /* Line Heights */
-  --leading-3: 0.75rem;     /* 12px */
-  --leading-4: 1rem;        /* 16px */
-  --leading-5: 1.25rem;     /* 20px */
-  --leading-6: 1.5rem;      /* 24px */
-  --leading-7: 1.75rem;     /* 28px */
-  --leading-8: 2rem;        /* 32px */
-  --leading-9: 2.25rem;     /* 36px */
-  --leading-10: 2.5rem;     /* 40px */
+  --leading-3: 0.75rem; /* 12px */
+  --leading-4: 1rem; /* 16px */
+  --leading-5: 1.25rem; /* 20px */
+  --leading-6: 1.5rem; /* 24px */
+  --leading-7: 1.75rem; /* 28px */
+  --leading-8: 2rem; /* 32px */
+  --leading-9: 2.25rem; /* 36px */
+  --leading-10: 2.5rem; /* 40px */
   --leading-none: 1;
   --leading-tight: 1.25;
   --leading-snug: 1.375;
@@ -296,22 +306,26 @@
   --leading-loose: 2;
 
   /* Font Families */
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-sans:
+    'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo,
+    monospace;
 
   /* =============================================================================
      BORDER RADIUS SCALE
      ============================================================================= */
 
   --radius-none: 0;
-  --radius-sm: 0.125rem;    /* 2px */
+  --radius-sm: 0.125rem; /* 2px */
   --radius-default: 0.25rem; /* 4px */
-  --radius-md: 0.375rem;    /* 6px */
-  --radius-lg: 0.5rem;      /* 8px */
-  --radius-xl: 0.75rem;     /* 12px */
-  --radius-2xl: 1rem;       /* 16px */
-  --radius-3xl: 1.5rem;     /* 24px */
+  --radius-md: 0.375rem; /* 6px */
+  --radius-lg: 0.5rem; /* 8px */
+  --radius-xl: 0.75rem; /* 12px */
+  --radius-2xl: 1rem; /* 16px */
+  --radius-3xl: 1.5rem; /* 24px */
   --radius-full: 9999px;
 
   /* Semantic Border Radius */
@@ -325,21 +339,30 @@
 
   /* Basic Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-default: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-default:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
 
   /* Glass Shadows */
   --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-  --shadow-glass-lg: 0 15px 35px rgba(31, 38, 135, 0.2), 0 5px 15px rgba(0, 0, 0, 0.07);
+  --shadow-glass-lg:
+    0 15px 35px rgba(31, 38, 135, 0.2), 0 5px 15px rgba(0, 0, 0, 0.07);
   --shadow-glass-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
 
   /* Colored Shadows */
-  --shadow-primary: 0 10px 15px -3px rgba(var(--color-primary-rgb), 0.1), 0 4px 6px -2px rgba(var(--color-primary-rgb), 0.05);
-  --shadow-secondary: 0 10px 15px -3px rgba(var(--color-secondary-rgb), 0.1), 0 4px 6px -2px rgba(var(--color-secondary-rgb), 0.05);
+  --shadow-primary:
+    0 10px 15px -3px rgba(var(--color-primary-rgb), 0.1),
+    0 4px 6px -2px rgba(var(--color-primary-rgb), 0.05);
+  --shadow-secondary:
+    0 10px 15px -3px rgba(var(--color-secondary-rgb), 0.1),
+    0 4px 6px -2px rgba(var(--color-secondary-rgb), 0.05);
 
   /* =============================================================================
      Z-INDEX SCALE
@@ -395,10 +418,10 @@
      BREAKPOINTS
      ============================================================================= */
 
-  --breakpoint-sm: 640px;   /* Small screens */
-  --breakpoint-md: 768px;   /* Medium screens */
-  --breakpoint-lg: 1024px;  /* Large screens */
-  --breakpoint-xl: 1280px;  /* Extra large screens */
+  --breakpoint-sm: 640px; /* Small screens */
+  --breakpoint-md: 768px; /* Medium screens */
+  --breakpoint-lg: 1024px; /* Large screens */
+  --breakpoint-xl: 1280px; /* Extra large screens */
   --breakpoint-2xl: 1536px; /* 2X large screens */
 }
 
@@ -407,31 +430,43 @@
    ============================================================================= */
 
 /* Solid Theme Override */
-[data-theme="solid"],
+[data-theme='solid'],
 .solid-theme {
-  /* Override glassmorphism with solid colors */
-  --surface-primary: var(--slate-50);
-  --surface-secondary: var(--slate-100);
-  --surface-hover: var(--slate-200);
-  --bg-surface: var(--slate-50);
-  --bg-panel: var(--slate-100);
-  --bg-modal: var(--slate-50);
+  /* Override glassmorphism with solid colors - dark theme for better modal contrast */
+  --surface-primary: var(--slate-800);
+  --surface-secondary: var(--slate-700);
+  --surface-hover: var(--slate-600);
+  --bg-surface: var(--slate-800);
+  --bg-panel: var(--slate-700);
+  --bg-modal: var(--slate-800);
 
-  --border-primary: var(--slate-200);
-  --border-secondary: var(--slate-300);
-  --border-subtle: var(--slate-100);
+  --border-primary: var(--slate-600);
+  --border-secondary: var(--slate-500);
+  --border-subtle: var(--slate-700);
 
-  --text-primary: var(--slate-900);
-  --text-secondary: var(--slate-600);
+  --text-primary: var(--slate-50);
+  --text-secondary: var(--slate-200);
   --text-muted: var(--slate-400);
-  --text-strong: var(--slate-950);
+  --text-strong: var(--slate-100);
 
-  --bg-primary: var(--slate-50);
+  --bg-primary: var(--slate-800);
 
   /* Remove glass effects */
   --glass-blur: none;
   --glass-blur-strong: none;
   --glass-blur-subtle: none;
+
+  /* Solid theme specific variables - dark background, light text */
+  --solid-bg-primary: var(--surface-primary);
+  --solid-bg-secondary: var(--surface-secondary);
+  --solid-bg-tertiary: var(--slate-600);
+  --solid-bg-hover: var(--surface-hover);
+  --solid-bg-active: var(--slate-500);
+  --solid-border: var(--border-primary);
+  --solid-border-light: var(--border-secondary);
+  --solid-text: var(--text-primary);
+  --solid-text-muted: var(--text-secondary);
+  --solid-text-light: var(--text-muted);
 }
 
 /* =============================================================================
@@ -447,6 +482,7 @@
   --glass-surface-hover: var(--surface-hover);
   --glass-border: var(--border-primary);
   --glass-text: var(--text-primary);
+  --glass-text-secondary: var(--text-secondary);
   --glass-text-muted: var(--text-secondary);
   --glass-text-light: var(--text-muted);
   --glass-hover-bg: var(--surface-hover);
@@ -459,10 +495,20 @@
   --primary-rgb: var(--color-primary-rgb);
   --secondary-bg: var(--color-secondary);
   --secondary-border: var(--color-secondary);
+
+  /* Dice system variables */
+  --die-color: var(--color-primary);
+  --rotate-x: 0deg;
+  --rotate-y: 0deg;
+  --rotate-z: 0deg;
+  --start-x: 0px;
+  --start-y: 0px;
+  --delay: 0ms;
 }
 
 /* Solid theme also needs legacy variables */
 .solid-theme {
+  /* Legacy glass variables for existing components */
   --glass-bg: var(--surface-primary);
   --glass-surface: var(--surface-primary);
   --glass-surface-strong: var(--surface-secondary);
@@ -470,6 +516,7 @@
   --glass-surface-hover: var(--surface-hover);
   --glass-border: var(--border-primary);
   --glass-text: var(--text-primary);
+  --glass-text-secondary: var(--text-secondary);
   --glass-text-muted: var(--text-secondary);
   --glass-text-light: var(--text-muted);
   --glass-hover-bg: var(--surface-hover);

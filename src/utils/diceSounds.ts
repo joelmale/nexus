@@ -18,7 +18,10 @@ class DiceSoundManager {
    */
   private getAudioContext(): AudioContext {
     if (!this.audioContext) {
-      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
       this.audioContext = new AudioContextClass();
     }
     return this.audioContext;
@@ -91,7 +94,7 @@ class DiceSoundManager {
       const now = ctx.currentTime;
 
       // Play a triumphant ascending arpeggio
-      const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
       notes.forEach((freq, i) => {
         this.playTone(ctx, freq, now + i * 0.1, 0.3, 'sine');
       });
@@ -117,7 +120,7 @@ class DiceSoundManager {
       const now = ctx.currentTime;
 
       // Play a sad descending progression
-      const notes = [392.00, 329.63, 293.66, 246.94]; // G4, E4, D4, B3
+      const notes = [392.0, 329.63, 293.66, 246.94]; // G4, E4, D4, B3
       notes.forEach((freq, i) => {
         this.playTone(ctx, freq, now + i * 0.15, 0.4, 'triangle');
       });
@@ -132,7 +135,11 @@ class DiceSoundManager {
   /**
    * Create rattling sound layer
    */
-  private playRattleLayer(ctx: AudioContext, startTime: number, diceCount: number): void {
+  private playRattleLayer(
+    ctx: AudioContext,
+    startTime: number,
+    diceCount: number,
+  ): void {
     const duration = 1.5;
     const rattles = Math.min(diceCount * 8, 30);
 
@@ -148,7 +155,11 @@ class DiceSoundManager {
   /**
    * Create tumbling sound layer
    */
-  private playTumbleLayer(ctx: AudioContext, startTime: number, diceCount: number): void {
+  private playTumbleLayer(
+    ctx: AudioContext,
+    startTime: number,
+    diceCount: number,
+  ): void {
     const tumbles = Math.min(diceCount * 4, 12);
 
     for (let i = 0; i < tumbles; i++) {
@@ -181,7 +192,7 @@ class DiceSoundManager {
     startTime: number,
     duration: number,
     type: OscillatorType = 'sine',
-    volume: number = 0.1
+    volume: number = 0.1,
   ): void {
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
@@ -209,7 +220,7 @@ class DiceSoundManager {
     startTime: number,
     duration: number,
     filterFreq: number = 1000,
-    volume: number = 0.1
+    volume: number = 0.1,
   ): void {
     const bufferSize = ctx.sampleRate * duration;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);

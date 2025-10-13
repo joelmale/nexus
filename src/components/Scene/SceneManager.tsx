@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
-import { useGameStore, useScenes, useActiveScene, useIsHost, useUser } from '@/stores/gameStore';
+import {
+  useGameStore,
+  useScenes,
+  useActiveScene,
+  useIsHost,
+  useUser,
+} from '@/stores/gameStore';
 import { SceneCanvas } from './SceneCanvas';
 import { SceneList } from './SceneList';
 import { SceneEditor } from './SceneEditor';
+import { SceneErrorBoundary } from '../ErrorBoundary';
 import { sceneUtils } from '@/utils/sceneUtils';
 import type { Scene } from '@/types/game';
 
@@ -16,7 +23,10 @@ export const SceneManager: React.FC = () => {
   const [editingScene, setEditingScene] = useState<Scene | null>(null);
 
   const handleCreateScene = () => {
-    const defaultScene = sceneUtils.createDefaultScene(`Scene ${scenes.length + 1}`, user.id);
+    const defaultScene = sceneUtils.createDefaultScene(
+      `Scene ${scenes.length + 1}`,
+      user.id,
+    );
     const newScene = createScene(defaultScene);
     setEditingScene(newScene);
     setIsEditorOpen(true);
@@ -43,10 +53,7 @@ export const SceneManager: React.FC = () => {
         <div className="empty-state">
           <h2>No Scenes Created</h2>
           <p>Create your first scene to begin your adventure!</p>
-          <button 
-            className="btn btn-primary"
-            onClick={handleCreateScene}
-          >
+          <button className="btn btn-primary" onClick={handleCreateScene}>
             Create First Scene
           </button>
         </div>
@@ -66,45 +73,44 @@ export const SceneManager: React.FC = () => {
   }
 
   return (
-    <div className="scene-manager">
-      <div className="scene-sidebar">
-        <div className="scene-controls">
-          <h3>Scenes</h3>
-          {isHost && (
-            <button 
-              className="btn btn-small btn-primary"
-              onClick={handleCreateScene}
-            >
-              + New Scene
-            </button>
+    <SceneErrorBoundary>
+      <div className="scene-manager">
+        <div className="scene-sidebar">
+          <div className="scene-controls">
+            <h3>Scenes</h3>
+            {isHost && (
+              <button
+                className="btn btn-small btn-primary"
+                onClick={handleCreateScene}
+              >
+                + New Scene
+              </button>
+            )}
+          </div>
+
+          <SceneList
+            scenes={scenes}
+            activeSceneId={activeScene?.id || null}
+            onSceneSelect={handleSceneSelect}
+            onSceneEdit={isHost ? handleEditScene : undefined}
+            isHost={isHost}
+          />
+        </div>
+
+        <div className="scene-main">
+          {activeScene ? (
+            <SceneCanvas scene={activeScene} />
+          ) : (
+            <div className="no-scene-active">
+              <p>Select a scene to view</p>
+            </div>
           )}
         </div>
-        
-        <SceneList 
-          scenes={scenes}
-          activeSceneId={activeScene?.id || null}
-          onSceneSelect={handleSceneSelect}
-          onSceneEdit={isHost ? handleEditScene : undefined}
-          isHost={isHost}
-        />
-      </div>
 
-      <div className="scene-main">
-        {activeScene ? (
-          <SceneCanvas scene={activeScene} />
-        ) : (
-          <div className="no-scene-active">
-            <p>Select a scene to view</p>
-          </div>
+        {isEditorOpen && editingScene && (
+          <SceneEditor scene={editingScene} onClose={handleCloseEditor} />
         )}
       </div>
-
-      {isEditorOpen && editingScene && (
-        <SceneEditor 
-          scene={editingScene}
-          onClose={handleCloseEditor}
-        />
-      )}
-    </div>
+    </SceneErrorBoundary>
   );
 };

@@ -11,6 +11,7 @@ import {
   useActiveScene,
   useDrawingActions,
   useGameStore,
+  useServerRoomCode,
 } from '@/stores/gameStore';
 import { webSocketService } from '@/utils/websocket';
 import { clipboardService } from '@/services/clipboardService';
@@ -81,8 +82,10 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
   const user = useUser();
   const activeScene = useActiveScene();
+  const roomCode = useServerRoomCode();
   const { createDrawing, deleteDrawing, updateDrawing } = useDrawingActions();
   const updateScene = useGameStore((state) => state.updateScene);
+
   const isHost = user.type === 'host';
 
   // Convert screen coordinates to scene coordinates
@@ -127,8 +130,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
           drawing,
         },
       });
-
-      console.log(`Created ${drawing.type} drawing`, drawing);
     },
     [activeScene, createDrawing],
   );
@@ -147,8 +148,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
           drawingId,
         },
       });
-
-      console.log(`Deleted drawing: ${drawingId}`);
     },
     [activeScene, deleteDrawing],
   );
@@ -428,7 +427,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       if (e.button !== 0) return;
 
       const point = screenToScene(e.clientX, e.clientY);
-      console.log('🖱️ DrawingTools mouseDown:', activeTool, 'at', point);
 
       // Tools that don't interact with mousedown can be handled with an early return.
       if (activeTool === 'pan' || activeTool === 'move') {
@@ -444,7 +442,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       }
 
       const defaultHandler = () => {
-        console.log('🖱️ DrawingTools defaultHandler called for tool:', activeTool);
         setStartPoint(point);
         setCurrentPoint(point);
         setIsDrawing(true);
@@ -504,6 +501,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
             duration: 3000,
             style: drawingStyle,
             layer: 'overlay',
+            roomCode: roomCode || '',
             createdAt: now,
             updatedAt: now,
             createdBy: user.id,
@@ -540,6 +538,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               fontFamily: 'Arial, sans-serif',
               style: drawingStyle,
               layer: 'overlay',
+              roomCode: roomCode || '',
               createdAt: now,
               updatedAt: now,
               createdBy: user.id,
@@ -586,10 +585,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
                 updates: { revealed: newRevealed },
               },
             });
-
-            console.log(
-              `🌫️ Toggled fog mask ${fogMask.id}: revealed=${newRevealed}`,
-            );
           }
         },
         'mask-remove': () => {
@@ -602,7 +597,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
           if (fogMask && activeScene) {
             if (window.confirm('Remove this fog mask?')) {
               deleteAndSyncDrawing(fogMask.id);
-              console.log(`🧽 Removed fog mask ${fogMask.id}`);
             }
           }
         },
@@ -634,8 +628,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               });
             }
           });
-
-          console.log(`👁 Revealed ${fogMasks.length} fog mask(s)`);
         },
         'mask-hide': () => {
           // Hide all fog masks on the scene
@@ -665,8 +657,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               });
             }
           });
-
-          console.log(`🙈 Hid ${fogMasks.length} fog mask(s)`);
         },
         'grid-align': () => {
           // Set the clicked point as the new grid origin
@@ -708,10 +698,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               },
             },
           });
-
-          console.log(
-            `📐 Grid aligned! Click point: (${point.x.toFixed(0)}, ${point.y.toFixed(0)}), Grid offset: (${offsetX.toFixed(1)}, ${offsetY.toFixed(1)})`,
-          );
 
           // Show visual feedback
           const notification = document.createElement('div');
@@ -756,6 +742,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       user.name,
       updateDrawing,
       updateScene,
+      roomCode,
     ],
   );
 
@@ -826,7 +813,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   const handleMouseUp = useCallback(
     (e: React.MouseEvent) => {
       const endPoint = screenToScene(e.clientX, e.clientY);
-      console.log('🖱️ DrawingTools mouseUp:', activeTool, 'isDrawing:', isDrawing, 'startPoint:', startPoint);
 
       switch (activeTool) {
         case 'select': {
@@ -865,11 +851,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
         default: {
           if (!isDrawing || !startPoint || activeTool === 'polygon') {
-            console.log('🖱️ DrawingTools: Skipping drawing creation. isDrawing:', isDrawing, 'startPoint:', startPoint, 'tool:', activeTool);
             return;
           }
 
-          console.log('🖱️ DrawingTools: Creating drawing for tool:', activeTool);
           const baseDrawing = {
             id: `drawing-${Date.now()}-${user.id}`,
             style: drawingStyle,
@@ -877,6 +861,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               drawingStyle.dmNotesOnly || !drawingStyle.visibleToPlayers
                 ? 'dm-only'
                 : 'effects',
+            roomCode: roomCode || '',
             createdAt: Date.now(),
             updatedAt: Date.now(),
             createdBy: user.id,
@@ -942,6 +927,18 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
           if (createDrawingFunc) {
             const drawing = createDrawingFunc();
             createAndSyncDrawing(drawing);
+
+            // Switch back to select tool after drawing a shape
+            const shapeTools = [
+              'line',
+              'rectangle',
+              'circle',
+              'cone',
+              'pencil',
+            ];
+            if (shapeTools.includes(activeTool)) {
+              useGameStore.getState().setActiveTool('select');
+            }
           } else {
             // If no creator function is found for the active tool, do nothing.
             console.warn(`No drawing creator found for tool: ${activeTool}`);
@@ -971,6 +968,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       createAndSyncDrawing,
       pencilPath,
       _gridSize,
+      roomCode,
     ],
   );
 
@@ -997,6 +995,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               strokeWidth: 2,
             },
             layer: 'dm-only',
+            roomCode: roomCode || '',
             createdAt: Date.now(),
             updatedAt: Date.now(),
             createdBy: user.id,
@@ -1007,6 +1006,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
           createAndSyncDrawing(drawing);
           setPolygonPoints([]);
+          useGameStore.getState().setActiveTool('select');
           e.preventDefault();
         } else {
           // Regular polygon
@@ -1018,6 +1018,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               drawingStyle.dmNotesOnly || !drawingStyle.visibleToPlayers
                 ? 'dm-only'
                 : 'effects',
+            roomCode: roomCode || '',
             createdAt: Date.now(),
             updatedAt: Date.now(),
             createdBy: user.id,
@@ -1026,11 +1027,19 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
           createAndSyncDrawing(drawing);
           setPolygonPoints([]);
+          useGameStore.getState().setActiveTool('select');
           e.preventDefault();
         }
       }
     },
-    [activeTool, polygonPoints, drawingStyle, user.id, createAndSyncDrawing],
+    [
+      activeTool,
+      polygonPoints,
+      drawingStyle,
+      user.id,
+      createAndSyncDrawing,
+      roomCode,
+    ],
   );
 
   // Delete selected drawings
@@ -1068,6 +1077,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
                 strokeWidth: 2,
               },
               layer: 'dm-only',
+              roomCode: roomCode || '',
               createdAt: Date.now(),
               updatedAt: Date.now(),
               createdBy: user.id,
@@ -1085,6 +1095,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
                 drawingStyle.dmNotesOnly || !drawingStyle.visibleToPlayers
                   ? 'dm-only'
                   : 'effects',
+              roomCode: roomCode || '',
               createdAt: Date.now(),
               updatedAt: Date.now(),
               createdBy: user.id,

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { dndUtils, type Point, type Measurement } from '@/types/drawing';
 import type { Camera } from '@/types/game';
 
@@ -15,7 +15,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
   camera,
   gridSize,
   onMeasurement,
-  svgRef
+  svgRef,
 }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
@@ -23,90 +23,123 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [drawingStartTime, setDrawingStartTime] = useState(0);
 
-  const screenToScene = useCallback((screenX: number, screenY: number): Point => {
-    if (!svgRef.current) return { x: 0, y: 0 };
-    
-    const rect = svgRef.current.getBoundingClientRect();
-    const svgX = screenX - rect.left;
-    const svgY = screenY - rect.top;
-    
-    const sceneX = (svgX - rect.width / 2) / camera.zoom + camera.x;
-    const sceneY = (svgY - rect.height / 2) / camera.zoom + camera.y;
-    
-    return { x: sceneX, y: sceneY };
-  }, [camera, svgRef]);
+  const screenToScene = useCallback(
+    (screenX: number, screenY: number): Point => {
+      if (!svgRef.current) return { x: 0, y: 0 };
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!isActive || e.button !== 0) return;
-    
-    const point = screenToScene(e.clientX, e.clientY);
-    setStartPoint(point);
-    setCurrentPoint(point);
-    setIsDrawing(true);
-    setDrawingStartTime(Date.now());
-    e.stopPropagation();
-  }, [isActive, screenToScene]);
+      const rect = svgRef.current.getBoundingClientRect();
+      const svgX = screenX - rect.left;
+      const svgY = screenY - rect.top;
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDrawing || !startPoint) return;
-    
-    const point = screenToScene(e.clientX, e.clientY);
-    setCurrentPoint(point);
-    e.stopPropagation();
-  }, [isDrawing, startPoint, screenToScene]);
+      const sceneX = (svgX - rect.width / 2) / camera.zoom + camera.x;
+      const sceneY = (svgY - rect.height / 2) / camera.zoom + camera.y;
 
-  const handleMouseUp = useCallback((e: React.MouseEvent) => {
-    if (!isDrawing || !startPoint) return;
-    
-    const endPoint = screenToScene(e.clientX, e.clientY);
-    
-    const deltaX = endPoint.x - startPoint.x;
-    const deltaY = endPoint.y - startPoint.y;
-    const feetDistance = dndUtils.calculateDiagonalDistance(deltaX, deltaY, gridSize);
-    const gridDistance = Math.round(feetDistance / 5);
-    
-    const measurement: Measurement = {
-      id: `measurement-${drawingStartTime}`,
-      start: startPoint,
-      end: endPoint,
-      distance: feetDistance,
-      gridDistance,
-      createdAt: drawingStartTime,
-      createdBy: 'current-user',
-      temporary: true,
-    };
-    
-    setMeasurements(prev => [...prev, measurement]);
-    onMeasurement(measurement);
-    
-    setIsDrawing(false);
-    setStartPoint(null);
-    setCurrentPoint(null);
-    
-    setTimeout(() => {
-      setMeasurements(prev => prev.filter(m => m.id !== measurement.id));
-    }, 5000);
-    
-    e.stopPropagation();
-  }, [isDrawing, startPoint, screenToScene, gridSize, onMeasurement, drawingStartTime]);
+      return { x: sceneX, y: sceneY };
+    },
+    [camera, svgRef],
+  );
 
-  useEffect(() => {
-    if (!isActive) {
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isActive || e.button !== 0) return;
+
+      const point = screenToScene(e.clientX, e.clientY);
+      setStartPoint(point);
+      setCurrentPoint(point);
+      setIsDrawing(true);
+      setDrawingStartTime(Date.now());
+      e.stopPropagation();
+    },
+    [isActive, screenToScene],
+  );
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isDrawing || !startPoint) return;
+
+      const point = screenToScene(e.clientX, e.clientY);
+      setCurrentPoint(point);
+      e.stopPropagation();
+    },
+    [isDrawing, startPoint, screenToScene],
+  );
+
+  const handleMouseUp = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isDrawing || !startPoint) return;
+
+      const endPoint = screenToScene(e.clientX, e.clientY);
+
+      const deltaX = endPoint.x - startPoint.x;
+      const deltaY = endPoint.y - startPoint.y;
+      const feetDistance = dndUtils.calculateDiagonalDistance(
+        deltaX,
+        deltaY,
+        gridSize,
+      );
+      const gridDistance = Math.round(feetDistance / 5);
+
+      const measurement: Measurement = {
+        id: `measurement-${drawingStartTime}`,
+        start: startPoint,
+        end: endPoint,
+        distance: feetDistance,
+        gridDistance,
+        createdAt: drawingStartTime,
+        createdBy: 'current-user',
+        temporary: true,
+      };
+
+      setMeasurements((prev) => [...prev, measurement]);
+      onMeasurement(measurement);
+
       setIsDrawing(false);
       setStartPoint(null);
       setCurrentPoint(null);
-      setMeasurements(prev => prev.filter(m => !m.temporary));
+
+      setTimeout(() => {
+        setMeasurements((prev) => prev.filter((m) => m.id !== measurement.id));
+      }, 5000);
+
+      e.stopPropagation();
+    },
+    [
+      isDrawing,
+      startPoint,
+      screenToScene,
+      gridSize,
+      onMeasurement,
+      drawingStartTime,
+    ],
+  );
+
+  const prevIsActiveRef = useRef(isActive);
+  useEffect(() => {
+    if (!isActive && prevIsActiveRef.current) {
+      // Tool just became inactive, reset state
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsDrawing(false);
+       
+      setStartPoint(null);
+       
+      setCurrentPoint(null);
+      setMeasurements((prev) => prev.filter((m) => !m.temporary));
     }
+    prevIsActiveRef.current = isActive;
   }, [isActive]);
 
   const getCurrentMeasurement = useCallback(() => {
     if (!startPoint || !currentPoint) return null;
-    
+
     const deltaX = currentPoint.x - startPoint.x;
     const deltaY = currentPoint.y - startPoint.y;
-    const feetDistance = dndUtils.calculateDiagonalDistance(deltaX, deltaY, gridSize);
+    const feetDistance = dndUtils.calculateDiagonalDistance(
+      deltaX,
+      deltaY,
+      gridSize,
+    );
     const gridDistance = Math.round(feetDistance / 5);
-    
+
     return { feetDistance, gridDistance };
   }, [startPoint, currentPoint, gridSize]);
 
@@ -115,11 +148,14 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
   const renderMeasurement = (measurement: Measurement, isCurrent = false) => {
     const midPoint = {
       x: (measurement.start.x + measurement.end.x) / 2,
-      y: (measurement.start.y + measurement.end.y) / 2
+      y: (measurement.start.y + measurement.end.y) / 2,
     };
 
     return (
-      <g key={measurement.id} className={`measurement ${isCurrent ? 'current' : 'completed'}`}>
+      <g
+        key={measurement.id}
+        className={`measurement ${isCurrent ? 'current' : 'completed'}`}
+      >
         <line
           x1={measurement.start.x}
           y1={measurement.start.y}
@@ -130,7 +166,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
           strokeDasharray={isCurrent ? '5,3' : 'none'}
           markerEnd="url(#measurement-arrow)"
         />
-        
+
         <circle
           cx={measurement.start.x}
           cy={measurement.start.y}
@@ -139,7 +175,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
           stroke="#000000"
           strokeWidth={1 / camera.zoom}
         />
-        
+
         <circle
           cx={measurement.end.x}
           cy={measurement.end.y}
@@ -148,7 +184,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
           stroke="#000000"
           strokeWidth={1 / camera.zoom}
         />
-        
+
         <g transform={`translate(${midPoint.x}, ${midPoint.y})`}>
           <rect
             x={-30 / camera.zoom}
@@ -201,20 +237,27 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
           <path d="M0,0 L0,6 L9,3 z" fill="#ffff00" />
         </marker>
       </defs>
-      
-      {measurements.map(measurement => renderMeasurement(measurement))}
-      
-      {isDrawing && startPoint && currentPoint && currentMeasurement && renderMeasurement({
-        id: 'current',
-        start: startPoint,
-        end: currentPoint,
-        distance: currentMeasurement.feetDistance,
-        gridDistance: currentMeasurement.gridDistance,
-        createdAt: drawingStartTime,
-        createdBy: 'current-user',
-        temporary: true,
-      }, true)}
-      
+
+      {measurements.map((measurement) => renderMeasurement(measurement))}
+
+      {isDrawing &&
+        startPoint &&
+        currentPoint &&
+        currentMeasurement &&
+        renderMeasurement(
+          {
+            id: 'current',
+            start: startPoint,
+            end: currentPoint,
+            distance: currentMeasurement.feetDistance,
+            gridDistance: currentMeasurement.gridDistance,
+            createdAt: drawingStartTime,
+            createdBy: 'current-user',
+            temporary: true,
+          },
+          true,
+        )}
+
       <rect
         x={-10000}
         y={-10000}
@@ -226,7 +269,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       />
-      
+
       {isActive && !isDrawing && (
         <g className="measurement-instructions">
           <text

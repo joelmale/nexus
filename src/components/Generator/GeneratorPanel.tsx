@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { DungeonGenerator } from './DungeonGenerator';
 import { dungeonMapService } from '../../services/dungeonMapService';
 import { DungeonRenderer, type DungeonData } from './DungeonRenderer';
 import { GeneratorFloatingControls } from './GeneratorFloatingControls';
-import { useGameStore } from '@/stores/gameStore';
+import { useGameStore, useActiveScene } from '@/stores/gameStore';
 import '@/styles/generator-panel.css';
-
-interface ToastMessage {
-  id: number;
-  message: string;
-  type: 'success' | 'info' | 'warning';
-}
 
 interface GeneratorPanelProps {
   onSwitchToScenes?: () => void;
@@ -23,50 +17,16 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 }) => {
   const [generatedMap, setGeneratedMap] = useState<string | null>(null);
   const [dungeonData, setDungeonData] = useState<DungeonData | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [activeGenerator, setActiveGenerator] =
     useState<GeneratorType>('dungeon');
+  const [showPreview, setShowPreview] = useState(false);
 
-  // Get active scene from store
-  const activeScene = useGameStore((state) => {
-    const { scenes, activeSceneId } = state.sceneState;
-    return scenes.find((s) => s.id === activeSceneId) || null;
-  });
+  const activeScene = useActiveScene();
   const updateScene = useGameStore((state) => state.updateScene);
-
-  const showToast = (message: string, type: ToastMessage['type']) => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
-
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, 5000);
-  };
-
-  useEffect(() => {
-    // Show initial toast when component mounts
-    const timer = setTimeout(() => {
-      showToast('Click to add map to current Scene Background', 'info');
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleMapGenerated = async (imageData: string) => {
     try {
       setGeneratedMap(imageData);
-
-      // Verify image data is valid
-      const isDataURL = imageData.startsWith('data:image/');
-      const imageSize = imageData.length;
-      const imageSizeKB = (imageSize / 1024).toFixed(2);
-
-      console.log('✅ Dungeon map generated:', {
-        isValidDataURL: isDataURL,
-        sizeKB: imageSizeKB,
-        sizeBytes: imageSize,
-        preview: imageData.substring(0, 50) + '...'
-      });
 
       // Don't automatically save - only save when user clicks "Add to Scene"
       // This prevents filling up localStorage with unwanted maps
@@ -76,13 +36,8 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   };
 
   const handleAddMapToScene = async () => {
-    console.log('handleAddMapToScene clicked', { generatedMap, activeScene });
-
     if (!activeScene) {
-      showToast(
-        'No active scene. Please create or select a scene first.',
-        'warning',
-      );
+      console.warn('No active scene. Please create or select a scene first.');
       return;
     }
 
@@ -92,26 +47,21 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         '.generator-iframe',
       ) as HTMLIFrameElement;
       if (!iframe || !iframe.contentWindow) {
-        showToast(
-          'Generator not loaded. Please wait and try again.',
-          'warning',
-        );
+        console.warn('Generator not loaded. Please wait and try again.');
         return;
       }
 
       // Try to get the canvas from the iframe
       const canvas = iframe.contentWindow.document.querySelector('canvas');
       if (!canvas) {
-        showToast(
+        console.warn(
           'No dungeon visible. Generate a dungeon first (press Enter).',
-          'warning',
         );
         return;
       }
 
       // Convert canvas to data URL
       const imageData = canvas.toDataURL('image/png');
-      console.log('Captured image from canvas');
 
       // Try to extract dungeon title from the iframe
       let dungeonTitle = '';
@@ -136,24 +86,16 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
           const element = iframeDoc.querySelector(selector);
           if (element && element.textContent?.trim()) {
             dungeonTitle = element.textContent.trim();
-            console.log(
-              `Found title with selector "${selector}":`,
-              dungeonTitle,
-            );
             break;
           }
         }
 
         // If still not found, try to get it from the canvas text or check if there's a data attribute
         if (!dungeonTitle) {
-          // Log the iframe body HTML to help debug
-          console.log(
-            'Iframe body HTML (first 500 chars):',
-            iframeDoc.body.innerHTML.substring(0, 500),
-          );
+          // Could not extract title from iframe
         }
-      } catch (error) {
-        console.log('Could not extract dungeon title:', error);
+      } catch {
+        // Could not extract dungeon title
       }
 
       // If no title found, use timestamp
@@ -163,26 +105,18 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
       // Try to save to dungeon map service with custom name
       try {
-        const mapId = await dungeonMapService.saveGeneratedMap(
-          imageData,
-          dungeonTitle,
-        );
-        console.log('Saved to library:', mapId, 'with name:', dungeonTitle);
+        await dungeonMapService.saveGeneratedMap(imageData, dungeonTitle);
       } catch (saveError) {
-        console.warn('Could not save to library (storage may be full):', saveError);
+        console.warn(
+          'Could not save to library (storage may be full):',
+          saveError,
+        );
         // Continue anyway - the map will still be added to the scene
       }
 
       // Create image to get dimensions
       const img = new Image();
       img.onload = () => {
-        console.log('✅ Image loaded successfully:', {
-          width: img.width,
-          height: img.height,
-          naturalWidth: img.naturalWidth,
-          naturalHeight: img.naturalHeight,
-        });
-
         const backgroundData = {
           url: imageData,
           width: img.width,
@@ -193,37 +127,16 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         };
 
         // Update the active scene with the background image
-        console.log('📝 Updating scene with background:', {
-          sceneId: activeScene.id,
-          sceneName: activeScene.name,
-          imageUrl: imageData.substring(0, 50) + '...',
-          dimensions: `${img.width}x${img.height}`,
-        });
-
         updateScene(activeScene.id, {
           backgroundImage: backgroundData,
         });
 
-        console.log('✅ Scene updated with background');
-
         // Verify the update
         setTimeout(() => {
-          const updatedScene = useGameStore
+          useGameStore
             .getState()
             .sceneState.scenes.find((s) => s.id === activeScene.id);
-          console.log('Scene after update:', {
-            id: updatedScene?.id,
-            name: updatedScene?.name,
-            hasBackground: !!updatedScene?.backgroundImage,
-            backgroundUrl:
-              updatedScene?.backgroundImage?.url?.substring(0, 50) + '...',
-          });
         }, 100);
-
-        showToast(
-          `✅ Map added to "${activeScene.name}" successfully!`,
-          'success',
-        );
 
         // Switch to scenes panel
         if (onSwitchToScenes) {
@@ -233,16 +146,13 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
       img.onerror = () => {
         console.error('Failed to load image');
-        showToast(
-          'Failed to load dungeon map image. Please try again.',
-          'warning',
-        );
+        console.error('Failed to load dungeon map image. Please try again.');
       };
 
       img.src = imageData;
     } catch (error) {
       console.error('Failed to add map to scene:', error);
-      showToast('Failed to add map to scene. Please try again.', 'warning');
+      console.error('Failed to add map to scene. Please try again.', error);
     }
   };
 
@@ -287,9 +197,8 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       ctx?.drawImage(img, 0, 0);
 
       const imageData = canvas.toDataURL('image/png');
-      const mapId = await dungeonMapService.saveGeneratedMap(imageData);
+      await dungeonMapService.saveGeneratedMap(imageData);
 
-      console.log('Dungeon JSON converted and saved:', mapId);
       alert(`Dungeon "${dungeonData.title}" saved to library!`);
       URL.revokeObjectURL(url);
     };
@@ -328,7 +237,15 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   }
 
   return (
-    <div className="generator-panel" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div
+      className="generator-panel"
+      style={{
+        position: 'relative',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       {/* Hidden file input for JSON upload */}
       <input
         id="dungeon-json-upload"
@@ -353,17 +270,21 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
       {/* Debug: Show generated map preview */}
       {generatedMap && process.env.NODE_ENV === 'development' && (
-        <div style={{
-          position: 'absolute',
-          bottom: '10px',
-          right: '10px',
-          zIndex: 1000,
-          background: 'rgba(0,0,0,0.8)',
-          padding: '10px',
-          borderRadius: '8px',
-          border: '2px solid #4ade80',
-        }}>
-          <div style={{ color: '#4ade80', fontSize: '12px', marginBottom: '5px' }}>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '10px',
+            right: '10px',
+            zIndex: 1000,
+            background: 'rgba(0,0,0,0.8)',
+            padding: '10px',
+            borderRadius: '8px',
+            border: '2px solid #4ade80',
+          }}
+        >
+          <div
+            style={{ color: '#4ade80', fontSize: '12px', marginBottom: '5px' }}
+          >
             ✅ Map Generated ({(generatedMap.length / 1024).toFixed(0)} KB)
           </div>
           <img
@@ -379,14 +300,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         </div>
       )}
 
-      {/* Toast notifications */}
-      <div className="toast-container">
-        {toasts.map((toast) => (
-          <div key={toast.id} className={`toast toast-${toast.type}`}>
-            {toast.message}
-          </div>
-        ))}
-      </div>
+      {/* Toast notifications removed by user request */}
 
       {activeGenerator === 'dungeon' && (
         <DungeonGenerator onMapGenerated={handleMapGenerated} />

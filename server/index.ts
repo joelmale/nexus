@@ -8,20 +8,30 @@ import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import type { Room, Connection, ServerMessage, GameState, ServerDiceRollResultMessage } from './types.js';
+import type {
+  Room,
+  Connection,
+  ServerMessage,
+  GameState,
+  ServerDiceRollResultMessage,
+} from './types.js';
 import type { AssetManifest } from '../shared/types.js';
-import { createServerDiceRoll, validateDiceRollRequest, type DiceRollRequest } from './diceRoller.js';
+import {
+  createServerDiceRoll,
+  validateDiceRollRequest,
+  type DiceRollRequest,
+} from './diceRoller.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Asset categories for directory structure
 const ASSET_CATEGORIES = {
-  'Maps': 'Maps',
-  'Tokens': 'Tokens',
-  'Art': 'Art',
-  'Handouts': 'Handouts',
-  'Reference': 'Reference'
+  Maps: 'Maps',
+  Tokens: 'Tokens',
+  Art: 'Art',
+  Handouts: 'Handouts',
+  Reference: 'Reference',
 };
 
 class NexusServer {
@@ -34,9 +44,12 @@ class NexusServer {
   private manifest: AssetManifest | null = null;
 
   // Configuration
-  private readonly ASSETS_PATH = process.env.ASSETS_PATH || path.join(__dirname, '../asset-server/assets');
+  private readonly ASSETS_PATH =
+    process.env.ASSETS_PATH || path.join(__dirname, '../asset-server/assets');
   private readonly CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
-  private readonly CACHE_MAX_AGE = parseInt(process.env.CACHE_MAX_AGE || '86400');
+  private readonly CACHE_MAX_AGE = parseInt(
+    process.env.CACHE_MAX_AGE || '86400',
+  );
 
   // Session recovery settings
   private readonly HIBERNATION_TIMEOUT = 10 * 60 * 1000; // 10 minutes
@@ -49,14 +62,18 @@ class NexusServer {
     this.app = express();
 
     // Middleware
-    this.app.use(helmet({
-      crossOriginResourcePolicy: { policy: "cross-origin" }
-    }));
+    this.app.use(
+      helmet({
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+      }),
+    );
     this.app.use(compression());
-    this.app.use(cors({
-      origin: this.CORS_ORIGIN,
-      credentials: false
-    }));
+    this.app.use(
+      cors({
+        origin: this.CORS_ORIGIN,
+        credentials: false,
+      }),
+    );
     this.app.use(express.json());
 
     // Setup routes
@@ -74,7 +91,7 @@ class NexusServer {
     // Attach WebSocket server to HTTP server
     this.wss = new WebSocketServer({
       server: this.httpServer,
-      perMessageDeflate: false
+      perMessageDeflate: false,
     });
 
     this.wss.on('connection', (ws, req) => {
@@ -90,33 +107,36 @@ class NexusServer {
       res.json({
         status: 'ok',
         version: '1.0.0',
-        port: this.port,  // ✅ Broadcast server port for discovery
+        port: this.port, // ✅ Broadcast server port for discovery
         wsUrl: `ws://localhost:${this.port}`,
         rooms: this.rooms.size,
         connections: this.connections.size,
         assetsLoaded: this.manifest?.totalAssets || 0,
-        uptime: process.uptime()
+        uptime: process.uptime(),
       });
     });
 
     this.app.get('/', (req, res) => {
       res.json({
         status: 'ok',
-        port: this.port,  // ✅ Include port in root endpoint too
+        port: this.port, // ✅ Include port in root endpoint too
         wsUrl: `ws://localhost:${this.port}`,
         rooms: this.rooms.size,
-        connections: this.connections.size
+        connections: this.connections.size,
       });
     });
   }
 
   private setupAssetRoutes() {
     // Cache headers helper
-    const setCacheHeaders = (res: express.Response, maxAge: number = this.CACHE_MAX_AGE) => {
+    const setCacheHeaders = (
+      res: express.Response,
+      maxAge: number = this.CACHE_MAX_AGE,
+    ) => {
       res.set({
         'Cache-Control': `public, max-age=${maxAge}`,
-        'ETag': `"${Date.now()}"`,
-        'Vary': 'Accept-Encoding'
+        ETag: `"${Date.now()}"`,
+        Vary: 'Accept-Encoding',
       });
     };
 
@@ -138,20 +158,23 @@ class NexusServer {
 
       const query = req.query.q as string;
       if (!query || query.length < 2) {
-        return res.status(400).json({ error: 'Query must be at least 2 characters' });
+        return res
+          .status(400)
+          .json({ error: 'Query must be at least 2 characters' });
       }
 
       const lowercaseQuery = query.toLowerCase();
-      const results = this.manifest.assets.filter(asset =>
-        asset.name.toLowerCase().includes(lowercaseQuery) ||
-        asset.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery))
+      const results = this.manifest.assets.filter(
+        (asset) =>
+          asset.name.toLowerCase().includes(lowercaseQuery) ||
+          asset.tags.some((tag) => tag.toLowerCase().includes(lowercaseQuery)),
       );
 
       setCacheHeaders(res, 60); // Cache search results for 1 minute
       res.json({
         query,
         results,
-        total: results.length
+        total: results.length,
       });
     });
 
@@ -167,7 +190,9 @@ class NexusServer {
 
       let filteredAssets = this.manifest.assets;
       if (category !== 'all') {
-        filteredAssets = this.manifest.assets.filter(asset => asset.category === category);
+        filteredAssets = this.manifest.assets.filter(
+          (asset) => asset.category === category,
+        );
       }
 
       const start = page * limit;
@@ -181,7 +206,7 @@ class NexusServer {
         limit,
         assets,
         hasMore: end < filteredAssets.length,
-        total: filteredAssets.length
+        total: filteredAssets.length,
       });
     });
 
@@ -191,7 +216,7 @@ class NexusServer {
         return res.status(503).json({ error: 'Manifest not loaded' });
       }
 
-      const asset = this.manifest.assets.find(a => a.id === req.params.id);
+      const asset = this.manifest.assets.find((a) => a.id === req.params.id);
       if (!asset) {
         return res.status(404).json({ error: 'Asset not found' });
       }
@@ -201,32 +226,54 @@ class NexusServer {
     });
 
     // Serve static assets with caching (new structure)
-    Object.values(ASSET_CATEGORIES).forEach(categoryName => {
-      this.app.use(`/${categoryName}/assets`, (req, res, next) => {
-        setCacheHeaders(res);
-        next();
-      }, express.static(path.join(this.ASSETS_PATH, categoryName, 'assets')));
+    Object.values(ASSET_CATEGORIES).forEach((categoryName) => {
+      this.app.use(
+        `/${categoryName}/assets`,
+        (req, res, next) => {
+          setCacheHeaders(res);
+          next();
+        },
+        express.static(path.join(this.ASSETS_PATH, categoryName, 'assets')),
+      );
 
-      this.app.use(`/${categoryName}/thumbnails`, (req, res, next) => {
-        setCacheHeaders(res);
-        next();
-      }, express.static(path.join(this.ASSETS_PATH, categoryName, 'thumbnails')));
+      this.app.use(
+        `/${categoryName}/thumbnails`,
+        (req, res, next) => {
+          setCacheHeaders(res);
+          next();
+        },
+        express.static(path.join(this.ASSETS_PATH, categoryName, 'thumbnails')),
+      );
     });
 
     // Legacy support for old structure
-    this.app.use('/assets', (req, res, next) => {
-      setCacheHeaders(res);
-      next();
-    }, express.static(path.join(this.ASSETS_PATH, 'assets')));
+    this.app.use(
+      '/assets',
+      (req, res, next) => {
+        setCacheHeaders(res);
+        next();
+      },
+      express.static(path.join(this.ASSETS_PATH, 'assets')),
+    );
 
-    this.app.use('/thumbnails', (req, res, next) => {
-      setCacheHeaders(res);
-      next();
-    }, express.static(path.join(this.ASSETS_PATH, 'thumbnails')));
+    this.app.use(
+      '/thumbnails',
+      (req, res, next) => {
+        setCacheHeaders(res);
+        next();
+      },
+      express.static(path.join(this.ASSETS_PATH, 'thumbnails')),
+    );
 
     // 404 handler for API routes
     this.app.use((req, res, next) => {
-      if (req.path.startsWith('/api') || req.path.startsWith('/manifest') || req.path.startsWith('/search') || req.path.startsWith('/category') || req.path.startsWith('/asset/')) {
+      if (
+        req.path.startsWith('/api') ||
+        req.path.startsWith('/manifest') ||
+        req.path.startsWith('/search') ||
+        req.path.startsWith('/category') ||
+        req.path.startsWith('/asset/')
+      ) {
         res.status(404).json({
           error: 'Not found',
           availableEndpoints: [
@@ -236,8 +283,8 @@ class NexusServer {
             '/category/:name',
             '/asset/:id',
             '/assets/:filename',
-            '/thumbnails/:filename'
-          ]
+            '/thumbnails/:filename',
+          ],
         });
       } else {
         next();
@@ -250,7 +297,9 @@ class NexusServer {
       const manifestPath = path.join(this.ASSETS_PATH, 'manifest.json');
       if (fs.existsSync(manifestPath)) {
         this.manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-        console.log(`📋 Loaded manifest: ${this.manifest?.totalAssets} assets in ${this.manifest?.categories.length} categories`);
+        console.log(
+          `📋 Loaded manifest: ${this.manifest?.totalAssets} assets in ${this.manifest?.categories.length} categories`,
+        );
       } else {
         console.warn('⚠️  No manifest.json found at', manifestPath);
         this.manifest = {
@@ -258,7 +307,7 @@ class NexusServer {
           generatedAt: new Date().toISOString(),
           totalAssets: 0,
           categories: [],
-          assets: []
+          assets: [],
         };
       }
     } catch (error) {
@@ -268,7 +317,7 @@ class NexusServer {
         generatedAt: new Date().toISOString(),
         totalAssets: 0,
         categories: [],
-        assets: []
+        assets: [],
       };
     }
 
@@ -334,7 +383,7 @@ class NexusServer {
 
   private handleHostConnection(connection: Connection, hostRoomCode?: string) {
     const roomCode = hostRoomCode || this.generateRoomCode();
-    
+
     if (this.rooms.has(roomCode)) {
       this.sendError(connection, 'Room already exists');
       return;
@@ -357,11 +406,11 @@ class NexusServer {
     // Send consistent field names
     this.sendMessage(connection, {
       type: 'event',
-      data: { 
-        name: 'session/created', 
+      data: {
+        name: 'session/created',
         roomCode, // Use roomCode for consistency
         room: roomCode, // Keep both for backward compatibility
-        uuid: connection.id 
+        uuid: connection.id,
       },
       timestamp: Date.now(),
     });
@@ -407,7 +456,11 @@ class NexusServer {
     connection.user = { name: 'Host', type: 'host' };
 
     // Send reconnection confirmation
-    console.log(`🎮 Room gameState when reconnecting:`, room.gameState ? 'exists' : 'null', room.gameState);
+    console.log(
+      `🎮 Room gameState when reconnecting:`,
+      room.gameState ? 'exists' : 'null',
+      room.gameState,
+    );
     this.sendMessage(connection, {
       type: 'event',
       data: {
@@ -417,20 +470,24 @@ class NexusServer {
         uuid: connection.id,
         hostId: room.host,
         roomStatus: room.status,
-        gameState: room.gameState
+        gameState: room.gameState,
       },
       timestamp: Date.now(),
     });
 
     // Notify all players about host reconnection
-    this.broadcastToRoom(roomCode, {
-      type: 'event',
-      data: {
-        name: 'session/host-reconnected',
-        uuid: connection.id
+    this.broadcastToRoom(
+      roomCode,
+      {
+        type: 'event',
+        data: {
+          name: 'session/host-reconnected',
+          uuid: connection.id,
+        },
+        timestamp: Date.now(),
       },
-      timestamp: Date.now(),
-    }, connection.id);
+      connection.id,
+    );
 
     console.log(`🏠 Host reconnected to room ${roomCode}: ${connection.id}`);
   }
@@ -468,20 +525,24 @@ class NexusServer {
         uuid: connection.id,
         hostId: room.host,
         roomStatus: room.status,
-        gameState: room.gameState // Send saved game state if available
+        gameState: room.gameState, // Send saved game state if available
       },
       timestamp: Date.now(),
     });
 
     // Notify other players
-    this.broadcastToRoom(roomCode, {
-      type: 'event',
-      data: {
-        name: 'session/join',
-        uuid: connection.id
+    this.broadcastToRoom(
+      roomCode,
+      {
+        type: 'event',
+        data: {
+          name: 'session/join',
+          uuid: connection.id,
+        },
+        timestamp: Date.now(),
       },
-      timestamp: Date.now(),
-    }, connection.id);
+      connection.id,
+    );
 
     console.log(`👋 Player joined room ${roomCode}: ${connection.id}`);
   }
@@ -501,17 +562,38 @@ class NexusServer {
     // Update room activity
     room.lastActivity = Date.now();
 
-    console.log(`📨 Message from ${fromUuid} in room ${connection.room}: ${message.type}`);
+    console.log(
+      `📨 Message from ${fromUuid} in room ${connection.room}: ${message.type}`,
+    );
 
     // Handle dice roll requests (server-authoritative)
-    if (message.type === 'event' && message.data?.name === 'dice/roll-request') {
-      this.handleDiceRollRequest(fromUuid, connection, message.data as unknown as DiceRollRequest);
+    if (
+      message.type === 'event' &&
+      message.data?.name === 'dice/roll-request'
+    ) {
+      this.handleDiceRollRequest(
+        fromUuid,
+        connection,
+        message.data as unknown as DiceRollRequest,
+      );
       return;
     }
 
     // Handle game state updates
-    if (message.type === 'event' && message.data?.name === 'game-state-update') {
-      this.updateRoomGameState(connection.room, message.data as unknown as GameState);
+    if (
+      message.type === 'event' &&
+      message.data?.name === 'game-state-update'
+    ) {
+      this.updateRoomGameState(
+        connection.room,
+        message.data as unknown as GameState,
+      );
+    }
+
+    // Handle chat messages
+    if ((message as any).type === 'chat-message') {
+      this.handleChatMessage(fromUuid, connection, message);
+      return;
     }
 
     // Route to specific player or broadcast to room
@@ -525,21 +607,60 @@ class NexusServer {
         });
       }
     } else {
-      this.broadcastToRoom(connection.room, {
-        ...message,
-        src: fromUuid,
-        timestamp: Date.now(),
-      }, fromUuid);
+      this.broadcastToRoom(
+        connection.room,
+        {
+          ...message,
+          src: fromUuid,
+          timestamp: Date.now(),
+        },
+        fromUuid,
+      );
     }
   }
 
-  private handleDiceRollRequest(fromUuid: string, connection: Connection, data: DiceRollRequest) {
+  private handleChatMessage(
+    fromUuid: string,
+    connection: Connection,
+    message: any,
+  ) {
+    if (!connection.room) return;
+
+    const room = this.rooms.get(connection.room);
+    if (!room) return;
+
+    const content = message.data?.content || '';
+    console.log(
+      `💬 Chat message from ${fromUuid} in room ${connection.room}: ${content}`,
+    );
+
+    // For now, broadcast all chat messages to the room
+    // TODO: Add whisper support and message filtering
+    this.broadcastToRoom(
+      connection.room,
+      {
+        ...message,
+        src: fromUuid,
+        timestamp: Date.now(),
+      },
+      fromUuid,
+    );
+  }
+
+  private handleDiceRollRequest(
+    fromUuid: string,
+    connection: Connection,
+    data: DiceRollRequest,
+  ) {
     console.log(`🎲 Dice roll request from ${fromUuid}:`, data);
 
     // Validate the request
     const validation = validateDiceRollRequest(data);
     if (!validation.valid) {
-      this.sendError(connection, validation.error || 'Invalid dice roll request');
+      this.sendError(
+        connection,
+        validation.error || 'Invalid dice roll request',
+      );
       return;
     }
 
@@ -548,16 +669,11 @@ class NexusServer {
     const isHost = connection.user?.type === 'host';
 
     // Generate the dice roll on the server (cryptographically secure)
-    const roll = createServerDiceRoll(
-      data.expression,
-      fromUuid,
-      userName,
-      {
-        isPrivate: isHost && data.isPrivate,
-        advantage: data.advantage,
-        disadvantage: data.disadvantage,
-      }
-    );
+    const roll = createServerDiceRoll(data.expression, fromUuid, userName, {
+      isPrivate: isHost && data.isPrivate,
+      advantage: data.advantage,
+      disadvantage: data.disadvantage,
+    });
 
     if (!roll) {
       this.sendError(connection, 'Failed to create dice roll');
@@ -571,8 +687,7 @@ class NexusServer {
       crit: roll.crit,
     });
 
-    
-// Broadcast the result to all clients in the room
+    // Broadcast the result to all clients in the room
     this.broadcastToRoom(connection.room!, {
       type: 'event',
       data: {
@@ -584,7 +699,10 @@ class NexusServer {
     });
   }
 
-  private updateRoomGameState(roomCode: string, gameStateUpdate: Partial<GameState>) {
+  private updateRoomGameState(
+    roomCode: string,
+    gameStateUpdate: Partial<GameState>,
+  ) {
     const room = this.rooms.get(roomCode);
     if (!room) return;
 
@@ -615,7 +733,11 @@ class NexusServer {
     console.log(`💾 Game state updated for room ${roomCode}`);
   }
 
-  private broadcastToRoom(roomCode: string, message: ServerMessage, excludeUuid?: string) {
+  private broadcastToRoom(
+    roomCode: string,
+    message: ServerMessage,
+    excludeUuid?: string,
+  ) {
     const room = this.rooms.get(roomCode);
     if (!room) return;
 
@@ -667,12 +789,12 @@ class NexusServer {
         type: 'event',
         data: {
           name: 'session/hibernated',
-          message: 'Host disconnected. Room will remain available for 10 minutes.',
-          reconnectWindow: this.HIBERNATION_TIMEOUT
+          message:
+            'Host disconnected. Room will remain available for 10 minutes.',
+          reconnectWindow: this.HIBERNATION_TIMEOUT,
         },
         timestamp: Date.now(),
       });
-
     } else {
       // Player left - notify others and update room
       console.log(`👋 Player left room ${connection.room}: ${uuid}`);
@@ -708,7 +830,9 @@ class NexusServer {
       this.abandonRoom(roomCode);
     }, this.HIBERNATION_TIMEOUT);
 
-    console.log(`😴 Room ${roomCode} hibernated, will be abandoned in ${this.HIBERNATION_TIMEOUT / 1000}s`);
+    console.log(
+      `😴 Room ${roomCode} hibernated, will be abandoned in ${this.HIBERNATION_TIMEOUT / 1000}s`,
+    );
   }
 
   private abandonRoom(roomCode: string) {
@@ -732,7 +856,10 @@ class NexusServer {
     this.rooms.delete(roomCode);
   }
 
-  private attemptRoomRecovery(roomCode: string, connection: Connection): boolean {
+  private attemptRoomRecovery(
+    roomCode: string,
+    connection: Connection,
+  ): boolean {
     const room = this.rooms.get(roomCode);
     if (!room) return false;
 
@@ -759,7 +886,7 @@ class NexusServer {
         data: {
           name: 'session/reactivated',
           message: 'Room has been reactivated.',
-          reconnectedBy: connection.id
+          reconnectedBy: connection.id,
         },
         timestamp: Date.now(),
       });
@@ -773,14 +900,14 @@ class NexusServer {
   private generateRoomCode(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
-    
+
     do {
       result = '';
       for (let i = 0; i < 4; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
       }
     } while (this.rooms.has(result));
-    
+
     return result;
   }
 
@@ -818,8 +945,12 @@ class NexusServer {
 
   // Statistics method for monitoring
   public getStats() {
-    const activeRooms = Array.from(this.rooms.values()).filter(r => r.status === 'active').length;
-    const hibernatingRooms = Array.from(this.rooms.values()).filter(r => r.status === 'hibernating').length;
+    const activeRooms = Array.from(this.rooms.values()).filter(
+      (r) => r.status === 'active',
+    ).length;
+    const hibernatingRooms = Array.from(this.rooms.values()).filter(
+      (r) => r.status === 'hibernating',
+    ).length;
 
     return {
       activeRooms,
@@ -846,7 +977,7 @@ const REQUIRED_PORT = process.env.PORT ? parseInt(process.env.PORT) : 5000;
 console.log(`🚀 Starting WebSocket server on port ${REQUIRED_PORT}...`);
 
 const server = new NexusServer(REQUIRED_PORT);
-    
+
 // Graceful shutdown handling
 process.on('SIGINT', () => {
   console.log('\n🛑 Received SIGINT, shutting down gracefully...');
@@ -874,7 +1005,12 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Optional: Log server statistics every 5 minutes
-setInterval(() => {
-  const stats = server.getStats();
-  console.log(`📊 Server Stats: ${stats.activeRooms} active, ${stats.hibernatingRooms} hibernating, ${stats.totalConnections} connections on port ${stats.serverPort}`);
-}, 5 * 60 * 1000);
+setInterval(
+  () => {
+    const stats = server.getStats();
+    console.log(
+      `📊 Server Stats: ${stats.activeRooms} active, ${stats.hibernatingRooms} hibernating, ${stats.totalConnections} connections on port ${stats.serverPort}`,
+    );
+  },
+  5 * 60 * 1000,
+);

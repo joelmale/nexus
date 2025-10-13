@@ -25,7 +25,7 @@ export const Placeholder: React.FC<PlaceholderProps> = ({ title }) => {
       <h2>{title}</h2>
       <p>This feature is coming soon!</p>
       <div className="placeholder-content">
-        <div className="placeholder-card"> 
+        <div className="placeholder-card">
           <h3>Planned Features</h3>
           <ul>
             {/* Dynamically render a list of planned features based on the placeholder's title. */}
@@ -51,11 +51,11 @@ export const Placeholder: React.FC<PlaceholderProps> = ({ title }) => {
             )}
             {title === 'Chat' && (
               <>
-              <li>Public messages for general table talk</li>
-              <li>Private whispers to specific players</li>
-              <li>DM announcements with special styling</li>
-              <li>Roll result integration and history</li>
-              <li>Message typing indicators and timestamps</li>
+                <li>Public messages for general table talk</li>
+                <li>Private whispers to specific players</li>
+                <li>DM announcements with special styling</li>
+                <li>Roll result integration and history</li>
+                <li>Message typing indicators and timestamps</li>
               </>
             )}
             {title === 'Props' && (
@@ -81,7 +81,7 @@ export const Placeholder: React.FC<PlaceholderProps> = ({ title }) => {
                 <li>Background music playback</li>
                 <li>Volume and playback controls</li>
               </>
-            )}  
+            )}
           </ul>
         </div>
       </div>

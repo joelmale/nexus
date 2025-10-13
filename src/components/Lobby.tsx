@@ -30,8 +30,6 @@ export const Lobby: React.FC = () => {
 
       // Start offline preparation mode instead of immediately connecting
       startPreparation();
-
-      console.log('🎯 Started offline preparation mode');
     } catch (err) {
       setError('Failed to start game preparation');
       console.error(err);
@@ -59,8 +57,6 @@ export const Lobby: React.FC = () => {
 
       // Use lifecycle store to join live game
       await joinLiveGame(roomCode.trim().toUpperCase());
-
-      console.log(`🎮 Joined live game: ${roomCode.trim().toUpperCase()}`);
     } catch (err) {
       setError('Failed to join game session - room may not exist or be full');
       console.error(err);

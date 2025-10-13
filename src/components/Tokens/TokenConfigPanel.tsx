@@ -134,7 +134,9 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
       setBackgroundRemoved(true);
     } catch (error) {
       console.error('Failed to remove background:', error);
-      alert('Failed to remove background. Try adjusting the tolerance or uploading a different image.');
+      alert(
+        'Failed to remove background. Try adjusting the tolerance or uploading a different image.',
+      );
     } finally {
       setIsProcessing(false);
     }

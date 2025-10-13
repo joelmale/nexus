@@ -53,21 +53,8 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
     });
   };
 
-  // Add debugging for host detection
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🎪 ScenePanel host check:', {
-        isHost,
-        scene: scene?.id || 'none',
-      });
-    }
-  }, [isHost, scene?.id]);
-
   // If not DM, don't render anything
   if (!isHost) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('❌ ScenePanel: Not host, returning null');
-    }
     return null;
   }
 
@@ -893,10 +880,6 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                     tokenIds.forEach((token) => {
                       deleteToken(safeScene.id, token.id);
                     });
-
-                    console.log(
-                      `🗑️ Deleted all objects from scene ${safeScene.id}`,
-                    );
                   }
                 }}
                 className="danger-outline"

@@ -14,10 +14,10 @@ class SceneImageStore {
   private async openDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
-      
+
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result);
-      
+
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains(this.storeName)) {
@@ -33,14 +33,14 @@ class SceneImageStore {
   async storeImage(file: File, sceneId: string): Promise<string> {
     const db = await this.openDB();
     const imageId = `${sceneId}-${Date.now()}`;
-    
+
     // Convert file to blob for storage
     const blob = new Blob([file], { type: file.type });
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
-      
+
       const imageData = {
         id: imageId,
         blob: blob,
@@ -49,13 +49,13 @@ class SceneImageStore {
         size: file.size,
         createdAt: Date.now(),
       };
-      
+
       const request = store.put(imageData);
-      
+
       request.onsuccess = () => {
         resolve(`nexus-image://${imageId}`);
       };
-      
+
       request.onerror = () => reject(request.error);
     });
   }
@@ -67,15 +67,15 @@ class SceneImageStore {
     if (!referenceUrl.startsWith('nexus-image://')) {
       return referenceUrl; // Return as-is if it's not our internal format
     }
-    
+
     const imageId = referenceUrl.replace('nexus-image://', '');
     const db = await this.openDB();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
       const request = store.get(imageId);
-      
+
       request.onsuccess = () => {
         const result = request.result;
         if (result) {
@@ -85,7 +85,7 @@ class SceneImageStore {
           reject(new Error('Image not found'));
         }
       };
-      
+
       request.onerror = () => reject(request.error);
     });
   }
@@ -97,15 +97,15 @@ class SceneImageStore {
     if (!referenceUrl.startsWith('nexus-image://')) {
       return; // Nothing to delete if it's not our internal format
     }
-    
+
     const imageId = referenceUrl.replace('nexus-image://', '');
     const db = await this.openDB();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       const request = store.delete(imageId);
-      
+
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
@@ -116,12 +116,12 @@ class SceneImageStore {
    */
   async clearAllImages(): Promise<void> {
     const db = await this.openDB();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       const request = store.clear();
-      
+
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
@@ -138,7 +138,10 @@ export const sceneUtils = {
   /**
    * Create a default scene configuration
    */
-  createDefaultScene(name?: string, createdBy: string = 'unknown'): Omit<Scene, 'id' | 'createdAt' | 'updatedAt'> {
+  createDefaultScene(
+    name?: string,
+    createdBy: string = 'unknown',
+  ): Omit<Scene, 'id' | 'createdAt' | 'updatedAt' | 'roomCode'> {
     return {
       name: name || 'New Scene',
       description: '',
@@ -172,31 +175,31 @@ export const sceneUtils = {
    */
   validateScene(scene: Partial<Scene>): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
-    
+
     if (!scene.name || scene.name.trim().length === 0) {
       errors.push('Scene name is required');
     }
-    
+
     if (scene.name && scene.name.trim().length > 100) {
       errors.push('Scene name must be 100 characters or less');
     }
-    
+
     if (scene.description && scene.description.length > 500) {
       errors.push('Scene description must be 500 characters or less');
     }
-    
+
     if (scene.gridSettings) {
       const { size, opacity } = scene.gridSettings;
-      
+
       if (size !== undefined && (size < 10 || size > 200)) {
         errors.push('Grid size must be between 10 and 200 pixels');
       }
-      
+
       if (opacity !== undefined && (opacity < 0 || opacity > 1)) {
         errors.push('Grid opacity must be between 0 and 1');
       }
     }
-    
+
     return {
       valid: errors.length === 0,
       errors,
@@ -206,15 +209,20 @@ export const sceneUtils = {
   /**
    * Calculate the bounds of a scene based on its background image
    */
-  getSceneBounds(scene: Scene): { width: number; height: number; centerX: number; centerY: number } | null {
+  getSceneBounds(scene: Scene): {
+    width: number;
+    height: number;
+    centerX: number;
+    centerY: number;
+  } | null {
     if (!scene.backgroundImage) {
       return null;
     }
-    
+
     const { width, height, offsetX, offsetY, scale } = scene.backgroundImage;
     const scaledWidth = width * scale;
     const scaledHeight = height * scale;
-    
+
     return {
       width: scaledWidth,
       height: scaledHeight,
@@ -226,19 +234,23 @@ export const sceneUtils = {
   /**
    * Calculate optimal camera position to fit scene content
    */
-  calculateFitToSceneCamera(scene: Scene, viewportWidth: number, viewportHeight: number) {
+  calculateFitToSceneCamera(
+    scene: Scene,
+    viewportWidth: number,
+    viewportHeight: number,
+  ) {
     const bounds = this.getSceneBounds(scene);
-    
+
     if (!bounds) {
       return { x: 0, y: 0, zoom: 1 };
     }
-    
+
     // Calculate zoom to fit the scene with some padding
     const padding = 100; // pixels of padding
     const zoomX = (viewportWidth - padding * 2) / bounds.width;
     const zoomY = (viewportHeight - padding * 2) / bounds.height;
     const zoom = Math.min(zoomX, zoomY, 2); // Cap at 2x zoom
-    
+
     return {
       x: bounds.centerX,
       y: bounds.centerY,
@@ -249,11 +261,16 @@ export const sceneUtils = {
   /**
    * Snap coordinates to grid
    */
-  snapToGrid(x: number, y: number, gridSize: number, enabled: boolean = true): { x: number; y: number } {
+  snapToGrid(
+    x: number,
+    y: number,
+    gridSize: number,
+    enabled: boolean = true,
+  ): { x: number; y: number } {
     if (!enabled) {
       return { x, y };
     }
-    
+
     return {
       x: Math.round(x / gridSize) * gridSize,
       y: Math.round(y / gridSize) * gridSize,
@@ -268,11 +285,11 @@ export const sceneUtils = {
     screenY: number,
     camera: { x: number; y: number; zoom: number },
     viewportWidth: number,
-    viewportHeight: number
+    viewportHeight: number,
   ): { x: number; y: number } {
     const worldX = (screenX - viewportWidth / 2) / camera.zoom + camera.x;
     const worldY = (screenY - viewportHeight / 2) / camera.zoom + camera.y;
-    
+
     return { x: worldX, y: worldY };
   },
 
@@ -284,11 +301,11 @@ export const sceneUtils = {
     worldY: number,
     camera: { x: number; y: number; zoom: number },
     viewportWidth: number,
-    viewportHeight: number
+    viewportHeight: number,
   ): { x: number; y: number } {
     const screenX = (worldX - camera.x) * camera.zoom + viewportWidth / 2;
     const screenY = (worldY - camera.y) * camera.zoom + viewportHeight / 2;
-    
+
     return { x: screenX, y: screenY };
   },
 
@@ -298,8 +315,8 @@ export const sceneUtils = {
   generateRandomColor(): string {
     const hue = Math.floor(Math.random() * 360);
     const saturation = 70 + Math.floor(Math.random() * 20); // 70-90%
-    const lightness = 45 + Math.floor(Math.random() * 10);  // 45-55%
-    
+    const lightness = 45 + Math.floor(Math.random() * 10); // 45-55%
+
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
   },
 
@@ -308,11 +325,11 @@ export const sceneUtils = {
    */
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   },
 
@@ -322,21 +339,22 @@ export const sceneUtils = {
   validateImageFile(file: File): { valid: boolean; error?: string } {
     const maxSize = 5 * 1024 * 1024; // 5MB
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    
+
     if (file.size > maxSize) {
       return {
         valid: false,
         error: `File size too large. Maximum allowed size is ${this.formatFileSize(maxSize)}.`,
       };
     }
-    
+
     if (!allowedTypes.includes(file.type)) {
       return {
         valid: false,
-        error: 'Invalid file type. Please choose a JPEG, PNG, WebP, or GIF image.',
+        error:
+          'Invalid file type. Please choose a JPEG, PNG, WebP, or GIF image.',
       };
     }
-    
+
     return { valid: true };
   },
 };
@@ -351,18 +369,18 @@ export const useSceneImages = () => {
     if (!validation.valid) {
       throw new Error(validation.error);
     }
-    
+
     return await sceneImageStore.storeImage(file, sceneId);
   };
-  
+
   const getImageUrl = async (referenceUrl: string): Promise<string> => {
     return await sceneImageStore.getImageUrl(referenceUrl);
   };
-  
+
   const deleteImage = async (referenceUrl: string): Promise<void> => {
     return await sceneImageStore.deleteImage(referenceUrl);
   };
-  
+
   return {
     storeImage,
     getImageUrl,

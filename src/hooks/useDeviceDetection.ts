@@ -40,7 +40,7 @@ const detectDevice = (): DeviceInfo => {
   else if (width >= BREAKPOINTS.sm) screenSize = 'sm';
 
   let type: DeviceType = 'desktop';
-  
+
   if (isIOS || isAndroid) {
     type = width < BREAKPOINTS.md ? 'mobile' : 'tablet';
   } else if (hasTouch && width < BREAKPOINTS.lg) {
@@ -103,21 +103,27 @@ export const useDeviceDetection = (): DeviceInfo => {
 
 export const useTokenInterfaceStrategy = () => {
   const deviceInfo = useDeviceDetection();
-  
+
   const shouldUseModal = deviceInfo.isMobile || deviceInfo.isTablet;
   const shouldUseFloatingWindow = deviceInfo.isDesktop && !deviceInfo.hasTouch;
   const shouldUseSidebar = deviceInfo.isDesktop && deviceInfo.hasTouch;
 
   return {
     deviceInfo,
-    strategy: shouldUseModal ? 'modal' : shouldUseFloatingWindow ? 'floating' : 'sidebar',
+    strategy: shouldUseModal
+      ? 'modal'
+      : shouldUseFloatingWindow
+        ? 'floating'
+        : 'sidebar',
     shouldUseModal,
     shouldUseFloatingWindow,
     shouldUseSidebar,
-    
+
     interfaceConfig: {
       tokenGridColumns: deviceInfo.isMobile ? 3 : deviceInfo.isTablet ? 4 : 6,
-      tokenSize: deviceInfo.isMobile ? 'small' : 'medium',
+      tokenSize: (deviceInfo.isMobile ? 'small' : 'medium') as
+        | 'small'
+        | 'medium',
       showThumbnails: !deviceInfo.isMobile,
       enableSearch: true,
       enableFilters: !deviceInfo.isMobile,
@@ -129,8 +135,12 @@ export const useTokenInterfaceStrategy = () => {
 export const canUseFloatingWindows = (): Promise<boolean> => {
   return new Promise((resolve) => {
     try {
-      const testWindow = window.open('', '_blank', 'width=1,height=1,left=-1000,top=-1000');
-      
+      const testWindow = window.open(
+        '',
+        '_blank',
+        'width=1,height=1,left=-1000,top=-1000',
+      );
+
       if (testWindow) {
         testWindow.close();
         resolve(true);

@@ -23,7 +23,7 @@ function createAction<T = unknown>(
     requiresAuth?: boolean;
     optimistic?: boolean;
     sessionId?: string;
-  } = {}
+  } = {},
 ): GameAction {
   return {
     id: uuidv4(),
@@ -34,7 +34,7 @@ function createAction<T = unknown>(
     payload,
     version: 0, // Will be set by the state manager
     requiresAuth: options.requiresAuth || false,
-    optimistic: options.optimistic || false
+    optimistic: options.optimistic || false,
   };
 }
 
@@ -58,57 +58,86 @@ export function setUserColor(userId: string, color: string): GameAction {
 // SCENE ACTIONS
 // =============================================================================
 
-export function createScene(userId: string, scene: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>): GameAction {
+export function createScene(
+  userId: string,
+  scene: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>,
+): GameAction {
   const newScene: Scene = {
     ...scene,
     id: uuidv4(),
     createdAt: Date.now(),
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
   };
 
-  return createAction('scene/create', { scene: newScene }, userId, { requiresAuth: true });
+  return createAction('scene/create', { scene: newScene }, userId, {
+    requiresAuth: true,
+  });
 }
 
-export function updateScene(userId: string, sceneId: string, updates: Partial<Scene>): GameAction {
+export function updateScene(
+  userId: string,
+  sceneId: string,
+  updates: Partial<Scene>,
+): GameAction {
   return createAction(
     'scene/update',
     { sceneId, updates: { ...updates, updatedAt: Date.now() } },
     userId,
-    { requiresAuth: true }
+    { requiresAuth: true },
   );
 }
 
 export function deleteScene(userId: string, sceneId: string): GameAction {
-  return createAction('scene/delete', { sceneId }, userId, { requiresAuth: true });
+  return createAction('scene/delete', { sceneId }, userId, {
+    requiresAuth: true,
+  });
 }
 
-export function reorderScenes(userId: string, fromIndex: number, toIndex: number): GameAction {
-  return createAction('scene/reorder', { fromIndex, toIndex }, userId, { requiresAuth: true });
+export function reorderScenes(
+  userId: string,
+  fromIndex: number,
+  toIndex: number,
+): GameAction {
+  return createAction('scene/reorder', { fromIndex, toIndex }, userId, {
+    requiresAuth: true,
+  });
 }
 
 export function setActiveScene(userId: string, sceneId: string): GameAction {
-  return createAction('scene/setActive', { sceneId }, userId, { requiresAuth: true });
+  return createAction('scene/setActive', { sceneId }, userId, {
+    requiresAuth: true,
+  });
 }
 
-export function updateCamera(userId: string, sceneId: string, camera: Partial<Camera>): GameAction {
+export function updateCamera(
+  userId: string,
+  sceneId: string,
+  camera: Partial<Camera>,
+): GameAction {
   return createAction('camera/update', { sceneId, camera }, userId, {
     requiresAuth: true,
-    optimistic: true
+    optimistic: true,
   });
 }
 
 export function setFollowDM(userId: string, follow: boolean): GameAction {
-  return createAction('camera/setFollowDM', { follow }, userId, { requiresAuth: true });
+  return createAction('camera/setFollowDM', { follow }, userId, {
+    requiresAuth: true,
+  });
 }
 
 // =============================================================================
 // TOKEN ACTIONS
 // =============================================================================
 
-export function placeToken(userId: string, sceneId: string, token: PlacedToken): GameAction {
+export function placeToken(
+  userId: string,
+  sceneId: string,
+  token: PlacedToken,
+): GameAction {
   return createAction('token/place', { sceneId, token }, userId, {
     requiresAuth: false, // Players can place tokens
-    optimistic: true
+    optimistic: true,
   });
 }
 
@@ -117,24 +146,38 @@ export function moveToken(
   sceneId: string,
   tokenId: string,
   position: { x: number; y: number },
-  rotation?: number
+  rotation?: number,
 ): GameAction {
-  return createAction('token/move', { sceneId, tokenId, position, rotation }, userId, {
-    requiresAuth: false,
-    optimistic: true
-  });
+  return createAction(
+    'token/move',
+    { sceneId, tokenId, position, rotation },
+    userId,
+    {
+      requiresAuth: false,
+      optimistic: true,
+    },
+  );
 }
 
-export function updateToken(userId: string, sceneId: string, tokenId: string, updates: Partial<PlacedToken>): GameAction {
+export function updateToken(
+  userId: string,
+  sceneId: string,
+  tokenId: string,
+  updates: Partial<PlacedToken>,
+): GameAction {
   return createAction('token/update', { sceneId, tokenId, updates }, userId, {
     requiresAuth: false,
-    optimistic: true
+    optimistic: true,
   });
 }
 
-export function deleteToken(userId: string, sceneId: string, tokenId: string): GameAction {
+export function deleteToken(
+  userId: string,
+  sceneId: string,
+  tokenId: string,
+): GameAction {
   return createAction('token/delete', { sceneId, tokenId }, userId, {
-    requiresAuth: false // Players can delete their own tokens
+    requiresAuth: false, // Players can delete their own tokens
   });
 }
 
@@ -142,29 +185,51 @@ export function deleteToken(userId: string, sceneId: string, tokenId: string): G
 // DRAWING ACTIONS
 // =============================================================================
 
-export function createDrawing(userId: string, sceneId: string, drawing: Drawing): GameAction {
+export function createDrawing(
+  userId: string,
+  sceneId: string,
+  drawing: Drawing,
+): GameAction {
   return createAction('drawing/create', { sceneId, drawing }, userId, {
     requiresAuth: false,
-    optimistic: true
+    optimistic: true,
   });
 }
 
-export function updateDrawing(userId: string, sceneId: string, drawingId: string, updates: Partial<Drawing>): GameAction {
-  return createAction('drawing/update', { sceneId, drawingId, updates }, userId, {
-    requiresAuth: false,
-    optimistic: true
-  });
+export function updateDrawing(
+  userId: string,
+  sceneId: string,
+  drawingId: string,
+  updates: Partial<Drawing>,
+): GameAction {
+  return createAction(
+    'drawing/update',
+    { sceneId, drawingId, updates },
+    userId,
+    {
+      requiresAuth: false,
+      optimistic: true,
+    },
+  );
 }
 
-export function deleteDrawing(userId: string, sceneId: string, drawingId: string): GameAction {
+export function deleteDrawing(
+  userId: string,
+  sceneId: string,
+  drawingId: string,
+): GameAction {
   return createAction('drawing/delete', { sceneId, drawingId }, userId, {
-    requiresAuth: false
+    requiresAuth: false,
   });
 }
 
-export function clearDrawings(userId: string, sceneId: string, layer?: string): GameAction {
+export function clearDrawings(
+  userId: string,
+  sceneId: string,
+  layer?: string,
+): GameAction {
   return createAction('drawing/clear', { sceneId, layer }, userId, {
-    requiresAuth: true // Only DM can clear all drawings
+    requiresAuth: true, // Only DM can clear all drawings
   });
 }
 
@@ -175,7 +240,7 @@ export function clearDrawings(userId: string, sceneId: string, layer?: string): 
 export function rollDice(userId: string, roll: DiceRoll): GameAction {
   return createAction('dice/roll', { roll }, userId, {
     requiresAuth: false,
-    optimistic: true
+    optimistic: true,
   });
 }
 
@@ -187,7 +252,10 @@ export function clearDiceHistory(userId: string): GameAction {
 // SETTINGS ACTIONS
 // =============================================================================
 
-export function updateSettings(userId: string, settings: Partial<UserSettings>): GameAction {
+export function updateSettings(
+  userId: string,
+  settings: Partial<UserSettings>,
+): GameAction {
   return createAction('settings/update', { settings }, userId);
 }
 
@@ -200,7 +268,9 @@ export function resetSettings(userId: string): GameAction {
 // =============================================================================
 
 export function createSession(userId: string, roomCode: string): GameAction {
-  return createAction('session/create', { roomCode }, userId, { requiresAuth: true });
+  return createAction('session/create', { roomCode }, userId, {
+    requiresAuth: true,
+  });
 }
 
 export function joinSession(userId: string, roomCode: string): GameAction {
@@ -212,20 +282,34 @@ export function leaveSession(userId: string): GameAction {
 }
 
 export function kickPlayer(userId: string, playerId: string): GameAction {
-  return createAction('session/kickPlayer', { playerId }, userId, { requiresAuth: true });
+  return createAction('session/kickPlayer', { playerId }, userId, {
+    requiresAuth: true,
+  });
 }
 
-export function updatePlayerPermissions(userId: string, playerId: string, permissions: Partial<PlayerPermissions>): GameAction {
-  return createAction('session/updatePermissions', { playerId, permissions }, userId, { requiresAuth: true });
+export function updatePlayerPermissions(
+  userId: string,
+  playerId: string,
+  permissions: Partial<PlayerPermissions>,
+): GameAction {
+  return createAction(
+    'session/updatePermissions',
+    { playerId, permissions },
+    userId,
+    { requiresAuth: true },
+  );
 }
 
 // =============================================================================
 // BULK ACTIONS
 // =============================================================================
 
-export function batchActions(userId: string, actions: GameAction[]): GameAction {
+export function batchActions(
+  userId: string,
+  actions: GameAction[],
+): GameAction {
   return createAction('batch/execute', { actions }, userId, {
-    requiresAuth: actions.some(action => action.requiresAuth)
+    requiresAuth: actions.some((action) => action.requiresAuth),
   });
 }
 

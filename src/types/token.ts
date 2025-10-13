@@ -58,6 +58,7 @@ export interface PlacedToken {
   id: string;
   tokenId: string; // Reference to the base Token
   sceneId: string;
+  roomCode: string; // Links token to specific game room
   x: number;
   y: number;
   rotation: number; // In degrees
@@ -122,6 +123,7 @@ export const createPlacedToken = (
   token: Token,
   position: Point,
   sceneId: string,
+  roomCode: string,
   placedBy: string,
   options: Partial<PlacedToken> = {},
 ): PlacedToken => {
@@ -129,6 +131,7 @@ export const createPlacedToken = (
     id: `placed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     tokenId: token.id,
     sceneId,
+    roomCode,
     x: position.x,
     y: position.y,
     rotation: 0,

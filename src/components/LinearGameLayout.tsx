@@ -4,7 +4,13 @@
  * Clean game interface without routing logic for use in linear flow
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  Suspense,
+} from 'react';
 import {
   useActiveScene,
   useScenes,
@@ -34,15 +40,6 @@ export const LinearGameLayout: React.FC = () => {
 
   // Add debugging for game layout mounting and auto-reconnect WebSocket
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🎮 LinearGameLayout mounted with:', {
-        user,
-        roomCode,
-        activeScene: activeScene?.id || 'none',
-        scenesCount: scenes.length,
-      });
-    }
-
     // Auto-reconnect WebSocket if we have a room code AND we're supposed to be connected
     // Skip auto-reconnect for offline mode (when isConnectedToRoom is false)
     let isCancelled = false; // Guard against React Strict Mode double-mount
@@ -53,11 +50,7 @@ export const LinearGameLayout: React.FC = () => {
       // IMPORTANT: Skip auto-reconnect if we're in offline mode
       // dev_quickDM and dev_quickPlayer set isConnectedToRoom to false
       if (!isConnectedToRoom) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(
-            '⚡ Offline mode detected - skipping WebSocket auto-reconnect',
-          );
-        }
+        // Offline mode detected - skipping WebSocket auto-reconnect
         return;
       }
 
@@ -67,13 +60,9 @@ export const LinearGameLayout: React.FC = () => {
       if (isCancelled) return;
 
       if (!wsService.isConnected()) {
-        console.log('🔌 Auto-reconnecting to room:', roomCode, 'as', user.type);
         try {
           const userType = user.type;
           await wsService.connect(roomCode, userType);
-          if (!isCancelled) {
-            console.log('✅ Auto-reconnection successful');
-          }
         } catch (error) {
           if (!isCancelled) {
             console.error('❌ Auto-reconnection failed:', error);
@@ -90,7 +79,6 @@ export const LinearGameLayout: React.FC = () => {
           message.type === 'error' &&
           message.data?.message === 'Room not found'
         ) {
-          console.log('🔄 Room expired - navigating back to welcome screen');
           // Navigate back to welcome screen
           const { resetToWelcome } = useGameStore.getState();
           resetToWelcome();
@@ -108,9 +96,6 @@ export const LinearGameLayout: React.FC = () => {
 
     return () => {
       isCancelled = true; // Cancel any pending async operations
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🎮 LinearGameLayout unmounting');
-      }
     };
   }, [roomCode, user.type, isConnectedToRoom]);
 
@@ -119,20 +104,11 @@ export const LinearGameLayout: React.FC = () => {
 
   // Debug logging for host status
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('👑 Host status check:', {
-        userType: user.type,
-        isHost,
-        userName: user.name,
-        roomCode,
-      });
-
-      // Safety check: If we have no user but we're in game view, something is wrong
-      if (!user.name || !user.type) {
-        console.warn(
-          '⚠️ LinearGameLayout rendered with invalid user state - should be on welcome screen',
-        );
-      }
+    // Safety check: If we have no user but we're in game view, something is wrong
+    if (!user.name || !user.type) {
+      console.warn(
+        '⚠️ LinearGameLayout rendered with invalid user state - should be on welcome screen',
+      );
     }
   }, [user.type, isHost, user.name, roomCode]);
 
@@ -156,18 +132,12 @@ export const LinearGameLayout: React.FC = () => {
     applyColorScheme(colorScheme);
   }, [colorScheme]);
 
-  // Apply theme class to body element based on glassmorphism setting
+  // Apply theme based on glassmorphism setting using theme manager
   useEffect(() => {
-    if (!settings.enableGlassmorphism) {
-      document.body.classList.add('theme-solid');
-    } else {
-      document.body.classList.remove('theme-solid');
-    }
-
-    // Cleanup on unmount
-    return () => {
-      document.body.classList.remove('theme-solid');
-    };
+    import('@/utils/themeManager').then(({ switchTheme }) => {
+      const targetTheme = settings.enableGlassmorphism ? 'glass' : 'solid';
+      switchTheme(targetTheme);
+    });
   }, [settings.enableGlassmorphism]);
 
   // Resize functionality
@@ -362,7 +332,7 @@ export const LinearGameLayout: React.FC = () => {
                 onClick={() => setPanelExpanded(!panelExpanded)}
                 title={panelExpanded ? 'Collapse panel' : 'Expand panel'}
               >
-                <span className="toggle-icon">{panelExpanded ? '«' : '»'}</span>
+                <span className="toggle-icon">{panelExpanded ? '»' : '«'}</span>
               </button>
             </li>
 
@@ -409,7 +379,13 @@ export const LinearGameLayout: React.FC = () => {
 
         {/* Floating Toolbar */}
         <div className="layout-toolbar">
-          <GameToolbar />
+          <Suspense
+            fallback={
+              <div className="toolbar-skeleton">Loading toolbar...</div>
+            }
+          >
+            <GameToolbar />
+          </Suspense>
         </div>
       </div>
 
@@ -425,13 +401,17 @@ export const LinearGameLayout: React.FC = () => {
           onMouseDown={handleResizeStart}
         />
 
-        <ContextPanel
-          activePanel={activePanel}
-          onPanelChange={setActivePanel}
-          expanded={panelExpanded}
-          onToggleExpanded={() => setPanelExpanded(!panelExpanded)}
-          onContentWidthChange={handleContentWidthChange}
-        />
+        <Suspense
+          fallback={<div className="panel-skeleton">Loading panel...</div>}
+        >
+          <ContextPanel
+            activePanel={activePanel}
+            onPanelChange={setActivePanel}
+            expanded={panelExpanded}
+            onToggleExpanded={() => setPanelExpanded(!panelExpanded)}
+            onContentWidthChange={handleContentWidthChange}
+          />
+        </Suspense>
       </div>
 
       {/* Floating Generator Overlay */}

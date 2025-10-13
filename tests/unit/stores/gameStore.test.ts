@@ -63,6 +63,16 @@ describe('gameStore', () => {
   });
 
   describe('scene actions', () => {
+    beforeEach(() => {
+      // Scene actions require an active session
+      useGameStore.getState().setSession({
+        roomCode: 'TEST',
+        hostId: 'user-1',
+        players: [],
+        status: 'connected',
+      });
+    });
+
     it('should create a scene', () => {
       const sceneData = { name: 'Test Scene', description: 'A scene for testing' };
       const newScene = useGameStore.getState().createScene(sceneData);

@@ -2,13 +2,17 @@ import React, { useState } from 'react';
 
 interface GeneratorFloatingControlsProps {
   activeGenerator: 'dungeon' | 'cave' | 'world' | 'city' | 'dwelling';
-  onGeneratorChange: (generator: 'dungeon' | 'cave' | 'world' | 'city' | 'dwelling') => void;
+  onGeneratorChange: (
+    generator: 'dungeon' | 'cave' | 'world' | 'city' | 'dwelling',
+  ) => void;
   onAddToScene: () => void;
   onUploadJSON?: () => void;
   hasActiveScene: boolean;
 }
 
-export const GeneratorFloatingControls: React.FC<GeneratorFloatingControlsProps> = ({
+export const GeneratorFloatingControls: React.FC<
+  GeneratorFloatingControlsProps
+> = ({
   activeGenerator,
   onGeneratorChange,
   onAddToScene,
@@ -137,7 +141,9 @@ export const GeneratorFloatingControls: React.FC<GeneratorFloatingControlsProps>
 
         {/* Expanded Panel */}
         {isExpanded && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+          >
             {/* Header with collapse button */}
             <div
               style={{
@@ -174,7 +180,13 @@ export const GeneratorFloatingControls: React.FC<GeneratorFloatingControlsProps>
             </div>
 
             {/* Generator Selection */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.375rem',
+              }}
+            >
               <label
                 style={{
                   fontSize: '0.75rem',
@@ -274,7 +286,9 @@ export const GeneratorFloatingControls: React.FC<GeneratorFloatingControlsProps>
                   <span>⌨️ Shortcuts</span>
                   <span
                     style={{
-                      transform: showShortcuts ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transform: showShortcuts
+                        ? 'rotate(180deg)'
+                        : 'rotate(0deg)',
                       transition: 'transform 0.2s',
                     }}
                   >

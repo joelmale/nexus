@@ -9,15 +9,23 @@ interface DrawingRendererProps {
   isHost: boolean;
 }
 
-const PingDrawing: React.FC<{ drawing: Drawing & { type: 'ping' }, camera: Camera, commonProps: any }> = ({ drawing, camera, commonProps }) => {
-  const [now, setNow] = useState(Date.now());
+const PingDrawing: React.FC<{
+  drawing: Drawing & { type: 'ping' };
+  camera: Camera;
+  commonProps: any;
+}> = ({ drawing, camera, commonProps }) => {
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    const frameId = requestAnimationFrame(() => setNow(Date.now()));
-    return () => cancelAnimationFrame(frameId);
-  });
+    const updateFrame = () => {
+      setElapsed(Date.now() - drawing.timestamp);
+      requestAnimationFrame(updateFrame);
+    };
 
-  const elapsed = now - drawing.timestamp;
+    const frameId = requestAnimationFrame(updateFrame);
+    return () => cancelAnimationFrame(frameId);
+  }, [drawing.timestamp]);
+
   const progress = Math.min(elapsed / drawing.duration, 1);
 
   if (progress >= 1) {
@@ -236,7 +244,14 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
         );
 
       case 'ping':
-        return <PingDrawing key={drawing.id} drawing={drawing} camera={camera} commonProps={commonProps} />;
+        return (
+          <PingDrawing
+            key={drawing.id}
+            drawing={drawing}
+            camera={camera}
+            commonProps={commonProps}
+          />
+        );
 
       case 'fog-of-war': {
         if (drawing.area.length < 3) return null;
@@ -364,4 +379,3 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
     </g>
   );
 };
-

@@ -1,10 +1,27 @@
 /**
  * Theme Solid - Performance-focused alternative to glassmorphism
- * 
+ *
  * This theme provides opaque, solid backgrounds without blur effects
  * to improve performance on lower-end devices or when preferred by users.
  * Uses color scheme variables for consistent theming.
  */
+
+/* ========================================================================== THEME VARIABLES & GLOBAL OVERRIDES ========================================================================== */
+
+/* Global solid theme variables - available when solid theme is active */
+:root {
+  /* Solid theme color variables - set dynamically by applyColorScheme() */
+  --solid-bg-primary: #1e293b; /* Default fallback */
+  --solid-bg-secondary: #334155; /* Default fallback */
+  --solid-bg-tertiary: #475569; /* Default fallback */
+  --solid-bg-hover: #334155; /* Default fallback */
+  --solid-bg-active: #475569; /* Default fallback */
+  --solid-border: #64748b; /* Default fallback */
+  --solid-border-light: #94a3b8; /* Default fallback */
+  --solid-text: #f8fafc; /* Default fallback */
+  --solid-text-muted: rgba(248, 250, 252, 0.7); /* Default fallback */
+  --solid-text-light: rgba(248, 250, 252, 0.5); /* Default fallback */
+}
 
 /* When theme-solid class is applied to body, override glassmorphism effects */
 .theme-solid {
@@ -40,6 +57,8 @@
   -webkit-backdrop-filter: none !important;
 }
 
+/* ========================================================================== BUTTON STYLES ========================================================================== */
+
 /* Button solid overrides - use color scheme */
 .theme-solid button:not(.unstyled) {
   background: var(--solid-bg-secondary) !important;
@@ -48,25 +67,43 @@
 
 /* Game toolbar buttons - properly styled with grey gradients and 3D effects */
 .theme-solid .game-toolbar button.unstyled {
-  background: linear-gradient(to bottom, rgb(55, 65, 81), rgb(31, 41, 55)) !important;
+  background: linear-gradient(
+    to bottom,
+    rgb(55, 65, 81),
+    rgb(31, 41, 55)
+  ) !important;
   border: 1px solid rgb(75, 85, 99) !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2) !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 2px 4px -2px rgba(0, 0, 0, 0.2) !important;
   color: rgb(209, 213, 219);
 }
 
 .theme-solid .game-toolbar button.unstyled:hover {
-  background: linear-gradient(to bottom, rgb(75, 85, 99), rgb(55, 65, 81)) !important;
+  background: linear-gradient(
+    to bottom,
+    rgb(75, 85, 99),
+    rgb(55, 65, 81)
+  ) !important;
   color: white !important;
   transform: translateY(-1px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3) !important;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.4),
+    0 4px 6px -4px rgba(0, 0, 0, 0.3) !important;
 }
 
 .theme-solid .game-toolbar button.unstyled:active,
-.theme-solid .game-toolbar button.unstyled[aria-pressed="true"] {
-  background: linear-gradient(to bottom, rgb(107, 114, 128), rgb(75, 85, 99)) !important;
+.theme-solid .game-toolbar button.unstyled[aria-pressed='true'] {
+  background: linear-gradient(
+    to bottom,
+    rgb(107, 114, 128),
+    rgb(75, 85, 99)
+  ) !important;
   color: white !important;
   transform: translateY(0);
-  box-shadow: 0 10px 15px -3px rgba(107, 114, 128, 0.5), 0 4px 6px -4px rgba(107, 114, 128, 0.5) !important;
+  box-shadow:
+    0 10px 15px -3px rgba(107, 114, 128, 0.5),
+    0 4px 6px -4px rgba(107, 114, 128, 0.5) !important;
 }
 
 .theme-solid button::before {
@@ -74,13 +111,143 @@
 }
 
 .theme-solid button.primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   border: 1px solid var(--color-primary);
   box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
 }
 
 .theme-solid button.primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--color-secondary), var(--color-accent));
+  background: linear-gradient(
+    135deg,
+    var(--color-secondary),
+    var(--color-accent)
+  );
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.4);
+}
+
+.theme-solid button.secondary {
+  background: var(--solid-bg-tertiary);
+  border: 1px solid var(--solid-border-light);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-solid button.secondary:hover:not(:disabled) {
+  background: var(--solid-bg-active);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid button.danger {
+  padding: 12px 12px;
+  border-radius: 8px;
+  background: #ef4444;
+  border: 1px solid #ef4444;
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.theme-solid button.danger:hover:not(:disabled) {
+  background: #dc2626;
+  border: 1px solid #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.theme-solid button.danger-outline {
+  padding: 12px 24px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
+}
+
+.theme-solid button.danger-outline:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  color: #fecaca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.theme-solid button.disconnect-btn {
+  background: linear-gradient(135deg, var(--color-error), #dc2626);
+  border: 1px solid var(--color-error);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.theme-solid button.disconnect-btn:hover {
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+/* Game toolbar buttons - properly styled with grey gradients and 3D effects */
+.theme-solid .game-toolbar button.unstyled {
+  background: linear-gradient(
+    to bottom,
+    rgb(55, 65, 81),
+    rgb(31, 41, 55)
+  ) !important;
+  border: 1px solid rgb(75, 85, 99) !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 2px 4px -2px rgba(0, 0, 0, 0.2) !important;
+  color: rgb(209, 213, 219);
+}
+
+.theme-solid .game-toolbar button.unstyled:hover {
+  background: linear-gradient(
+    to bottom,
+    rgb(75, 85, 99),
+    rgb(55, 65, 81)
+  ) !important;
+  color: white !important;
+  transform: translateY(-1px);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.4),
+    0 4px 6px -4px rgba(0, 0, 0, 0.3) !important;
+}
+
+.theme-solid .game-toolbar button.unstyled:active,
+.theme-solid .game-toolbar button.unstyled[aria-pressed='true'] {
+  background: linear-gradient(
+    to bottom,
+    rgb(107, 114, 128),
+    rgb(75, 85, 99)
+  ) !important;
+  color: white !important;
+  transform: translateY(0);
+  box-shadow:
+    0 10px 15px -3px rgba(107, 114, 128, 0.5),
+    0 4px 6px -4px rgba(107, 114, 128, 0.5) !important;
+}
+
+.theme-solid button::before {
+  display: none; /* Remove shine animation */
+}
+
+.theme-solid button.primary {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
+  border: 1px solid var(--color-primary);
+  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
+}
+
+.theme-solid button.primary:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    var(--color-secondary),
+    var(--color-accent)
+  );
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.4);
 }
@@ -142,6 +309,8 @@
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
 }
 
+/* ========================================================================== DICE ROLLER COMPONENTS ========================================================================== */
+
 /* Dice roller solid overrides - use color scheme */
 .theme-solid .dice-input,
 .theme-solid .dice-history {
@@ -171,7 +340,11 @@
 }
 
 .theme-solid .dice-btn:hover {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
 }
@@ -197,6 +370,60 @@
   border: 1px solid var(--solid-border-light);
 }
 
+.theme-solid .dice-input::before,
+.theme-solid .dice-history::before {
+  display: none; /* Remove decorative gradient */
+}
+
+.theme-solid .dice-expression {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+}
+
+.theme-solid .dice-expression:focus {
+  background: var(--solid-bg-hover);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.theme-solid .dice-btn {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+}
+
+.theme-solid .dice-btn:hover {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
+}
+
+.theme-solid .dice-roll {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+}
+
+.theme-solid .dice-roll:hover {
+  background: var(--solid-bg-hover);
+  transform: translateX(2px); /* Reduced movement */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-solid .dice-roll.private {
+  background: rgba(var(--color-primary-rgb), 0.15);
+  border-left: 4px solid var(--color-primary);
+}
+
+.theme-solid .roll-result {
+  background: var(--solid-bg-tertiary);
+  border: 1px solid var(--solid-border-light);
+}
+
+/* ========================================================================== PLACEHOLDER COMPONENTS ========================================================================== */
+
 /* Placeholder solid overrides */
 .theme-solid .placeholder-content {
   background: var(--solid-bg-primary);
@@ -217,12 +444,16 @@
   transform: translateX(5px); /* Reduced movement */
 }
 
+/* ========================================================================== ERROR MESSAGES ========================================================================== */
+
 /* Error messages solid override */
 .theme-solid .error {
   background: rgba(var(--color-error-rgb, 239, 68, 68), 0.15);
   border: 1px solid var(--color-error);
   box-shadow: 0 2px 8px rgba(var(--color-error-rgb, 239, 68, 68), 0.2);
 }
+
+/* ========================================================================== ANIMATIONS ========================================================================== */
 
 /* Animations adjustments for solid theme */
 .theme-solid .glass,
@@ -241,10 +472,191 @@
   }
 }
 
+/* ========================================================================== GLASS PANEL STYLES ========================================================================== */
+
 .theme-solid .glass-panel {
   background: var(--solid-bg-primary);
   border: 1px solid var(--solid-border);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.theme-solid .glass-input {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+}
+
+.theme-solid .glass-input:focus {
+  background: var(--solid-bg-hover);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.theme-solid .action-group {
+  background: var(--solid-bg-secondary);
+}
+
+.theme-solid .glass-button {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+}
+
+.theme-solid .glass-button:hover:not(:disabled) {
+  background: var(--solid-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .action-group:hover {
+  background: var(--solid-bg-hover);
+  transform: translateY(-2px); /* Reduced movement */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .glass-button.primary {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
+  border-color: var(--color-primary);
+}
+
+.theme-solid .glass-button.primary:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    var(--color-secondary),
+    var(--color-accent)
+  );
+}
+
+.theme-solid .glass-button.secondary {
+  background: linear-gradient(
+    135deg,
+    var(--color-accent),
+    var(--color-secondary)
+  );
+  border-color: var(--color-accent);
+  color: white;
+}
+
+.theme-solid .glass-button.secondary:hover:not(:disabled) {
+  filter: brightness(1.2);
+}
+
+.theme-solid .glass-button.danger {
+  background: linear-gradient(135deg, var(--color-error), #dc2626);
+  border-color: var(--color-error);
+}
+
+.theme-solid .glass-button.danger:hover:not(:disabled) {
+  filter: brightness(1.2);
+}
+
+.theme-solid .name-input input,
+.theme-solid .action-group input {
+  background: var(--solid-bg-primary);
+  border: 1px solid var(--solid-border);
+  color: var(--solid-text);
+}
+
+.theme-solid .room-code {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+}
+
+.theme-solid .name-input input:focus,
+.theme-solid .action-group input:focus {
+  background: var(--solid-bg-hover);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.theme-solid .role-badge {
+  background: rgba(var(--color-primary-rgb), 0.15);
+  border: 1px solid var(--color-primary);
+}
+
+.theme-solid .player-card {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+}
+
+.theme-solid .player-card:hover {
+  background: var(--solid-bg-hover);
+}
+
+.theme-solid .session-info,
+.theme-solid .players-list {
+  background: var(--solid-bg-primary);
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .players-list li {
+  background: var(--solid-bg-secondary);
+  border-bottom: 1px solid var(--solid-border);
+}
+
+.theme-solid .players-list li:hover {
+  background: var(--solid-bg-hover);
+  transform: translateX(2px); /* Reduced movement */
+}
+
+.theme-solid .dm-card {
+  background: rgba(var(--color-primary-rgb), 0.1);
+  border-color: var(--color-primary);
+}
+
+.theme-solid .player-avatar {
+  background: var(--solid-bg-primary);
+}
+
+.theme-solid .players-list li.host {
+  background: linear-gradient(
+    135deg,
+    var(--solid-bg-tertiary),
+    var(--solid-bg-secondary)
+  );
+  border: 1px solid var(--color-primary);
+}
+
+.theme-solid .brand-title,
+.theme-solid .roller-name,
+.theme-solid .layout-header h1,
+.theme-solid h1 {
+  background: linear-gradient(
+    135deg,
+    var(--solid-text) 0%,
+    var(--solid-text-muted) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: brightness(1.1);
+}
+
+.theme-solid .error-message {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--color-error-rgb, 239, 68, 68), 0.15),
+    rgba(220, 38, 127, 0.15)
+  );
+  border-color: var(--color-error);
+}
+
+/* Disable floating animations in solid theme */
+.theme-solid @keyframes float {
+  0%,
+  100% {
+    transform: none;
+  }
+}
+
+.theme-solid @keyframes logoFloat {
+  0%,
+  100% {
+    transform: none;
+  }
 }
 
 .theme-solid .glass-input {
@@ -279,17 +691,30 @@
 }
 
 .theme-solid .glass-button.primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   border-color: var(--color-primary);
 }
 
 .theme-solid .glass-button.primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--color-secondary), var(--color-accent));
+  background: linear-gradient(
+    135deg,
+    var(--color-secondary),
+    var(--color-accent)
+  );
 }
 
 .theme-solid .glass-button.secondary {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-accent),
+    var(--color-secondary)
+  );
   border-color: var(--color-accent);
+  color: white;
 }
 
 .theme-solid .glass-button.secondary:hover:not(:disabled) {
@@ -365,7 +790,11 @@
 }
 
 .theme-solid .players-list li.host {
-  background: linear-gradient(135deg, var(--solid-bg-tertiary), var(--solid-bg-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--solid-bg-tertiary),
+    var(--solid-bg-secondary)
+  );
   border: 1px solid var(--color-primary);
 }
 
@@ -375,29 +804,23 @@
 .theme-solid h1 {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  background: linear-gradient(135deg, var(--solid-text) 0%, var(--solid-text-muted) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--solid-text) 0%,
+    var(--solid-text-muted) 100%
+  );
   background-clip: text;
   filter: brightness(1.1);
 }
 .theme-solid .error-message {
-  background: linear-gradient(135deg, rgba(var(--color-error-rgb, 239, 68, 68), 0.15), rgba(220, 38, 127, 0.15));
+  background: linear-gradient(
+    135deg,
+    rgba(var(--color-error-rgb, 239, 68, 68), 0.15),
+    rgba(220, 38, 127, 0.15)
+  );
   border-color: var(--color-error);
 }
 
-/* Disable floating animations in solid theme */
-.theme-solid @keyframes float {
-  0%, 100% { transform: none; }
-}
-
-.theme-solid @keyframes logoFloat {
-  0%, 100% { transform: none; }
-}
-
-.theme-solid .dice-input,
-.theme-solid .dice-history {
-  background: var(--solid-bg-primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
 /* Scrollbar styling for solid theme */
 .theme-solid .rolls-list::-webkit-scrollbar-track {
   background: var(--solid-bg-primary);
@@ -411,16 +834,71 @@
   background: var(--solid-border-light);
 }
 
-.theme-solid .dice-input::before,
-.theme-solid .dice-history::before {
-  display: none; /* Remove decorative gradient */
-}
+/* ========================================================================== SETTINGS AND PANEL OVERRIDES ========================================================================== */
 
-/* Settings and panel overrides for solid theme */
 .theme-solid .settings-section {
   background: var(--solid-bg-primary);
   border: 1px solid var(--solid-border);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .scene-panel-header {
+  background: var(--solid-bg-primary);
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .scene-section {
+  background: var(--solid-bg-primary);
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .visibility-option {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-solid .visibility-option:hover {
+  background: var(--solid-bg-hover);
+  border-color: var(--solid-border-light);
+}
+
+.theme-solid .checkbox-label {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-solid .checkbox-label:hover {
+  background: var(--solid-bg-hover);
+  border-color: var(--solid-border-light);
+}
+
+.theme-solid .dropdown-trigger {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--solid-border);
+}
+
+.theme-solid .dropdown-trigger:hover {
+  background: var(--solid-bg-hover);
+  border-color: var(--solid-border-light);
+}
+
+.theme-solid .dropdown-menu {
+  background: var(--solid-bg-primary);
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.theme-solid .dropdown-item:hover {
+  background: var(--solid-bg-hover);
+}
+
+.theme-solid .dropdown-item.active {
+  background: var(--solid-bg-tertiary);
+  border-left: 3px solid var(--color-primary);
 }
 
 .theme-solid .dice-expression {
@@ -463,7 +941,11 @@
 }
 
 .theme-solid .dice-btn:hover {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
   transform: translateY(-1px);
 }
@@ -525,6 +1007,8 @@
   border: 1px solid var(--solid-border-light);
 }
 
+/* ========================================================================== FORM CONTROLS ========================================================================== */
+
 /* Form controls in solid theme */
 .theme-solid .setting-select,
 .theme-solid .setting-input {
@@ -549,6 +1033,8 @@
   background: var(--solid-bg-secondary);
   border: 1px solid var(--solid-border);
 }
+
+/* ========================================================================== SCENE EDITING CONTROLS ========================================================================== */
 
 /* Scene editing controls in solid theme */
 .theme-solid .scene-name-display,
@@ -575,8 +1061,34 @@
 .theme-solid .scene-name-input:focus,
 .theme-solid .scene-description-input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
 }
+
+.theme-solid .scene-name-display:hover,
+.theme-solid .scene-description-display:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-solid .scene-name-input,
+.theme-solid .scene-description-input {
+  background: var(--solid-bg-secondary);
+  border: 1px solid var(--color-accent);
+  color: var(--solid-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-solid .scene-name-input:focus,
+.theme-solid .scene-description-input:focus {
+  border-color: var(--color-primary);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+/* ========================================================================== SCENE MANAGEMENT UI ========================================================================== */
 
 /* Scene management UI in solid theme */
 .theme-solid .scene-controls {
@@ -602,6 +1114,8 @@
   box-shadow: 0 0 20px rgba(var(--color-primary-rgb), 0.2);
 }
 
+/* ========================================================================== ACCESSIBILITY ========================================================================== */
+
 /* Ensure accessibility with proper contrast in solid theme */
 @media (prefers-contrast: high) {
   .theme-solid {
@@ -625,6 +1139,8 @@
     transform: scale(1);
   }
 }
+
+/* ========================================================================== EMPTY STATES ========================================================================== */
 
 .theme-solid .empty-state {
   background: var(--solid-bg-primary);

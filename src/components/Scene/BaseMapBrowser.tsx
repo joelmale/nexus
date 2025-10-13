@@ -18,7 +18,7 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedMap, setSelectedMap] = useState<BaseMap | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [favoritesVersion, setFavoritesVersion] = useState(0);
+  const [, setFavoritesVersion] = useState(0);
 
   useEffect(() => {
     const initializeMaps = async () => {
@@ -54,7 +54,7 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
       );
     }
     return filtered;
-  }, [searchQuery, selectedCategory, maps, favoritesVersion]);
+  }, [searchQuery, selectedCategory, maps]);
 
   const handleMapClick = (map: BaseMap) => {
     setSelectedMap(map);
@@ -70,7 +70,7 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
   const toggleFavorite = (e: React.MouseEvent, mapId: string) => {
     e.stopPropagation();
     assetFavoritesManager.toggleFavorite(mapId);
-    setFavoritesVersion(v => v + 1);
+    setFavoritesVersion((v) => v + 1);
   };
 
   return (
@@ -93,22 +93,31 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
           />
         </div>
 
-        <div className="asset-browser-filters" style={{
-          padding: '8px 16px',
-          display: 'flex',
-          gap: '8px',
-          borderBottom: '1px solid var(--border-color)'
-        }}>
-          {['all', 'favorites', 'outdoor', 'indoor', 'dungeon', 'urban'].map((category) => (
-            <button
-              key={category}
-              className={`btn btn-small ${selectedCategory === category ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setSelectedCategory(category)}
-              style={{ textTransform: 'capitalize' }}
-            >
-              {category === 'all' ? 'All Maps' : category === 'favorites' ? '⭐ Favorites' : category}
-            </button>
-          ))}
+        <div
+          className="asset-browser-filters"
+          style={{
+            padding: '8px 16px',
+            display: 'flex',
+            gap: '8px',
+            borderBottom: '1px solid var(--border-color)',
+          }}
+        >
+          {['all', 'favorites', 'outdoor', 'indoor', 'dungeon', 'urban'].map(
+            (category) => (
+              <button
+                key={category}
+                className={`btn btn-small ${selectedCategory === category ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setSelectedCategory(category)}
+                style={{ textTransform: 'capitalize' }}
+              >
+                {category === 'all'
+                  ? 'All Maps'
+                  : category === 'favorites'
+                    ? '⭐ Favorites'
+                    : category}
+              </button>
+            ),
+          )}
         </div>
 
         <div
@@ -139,10 +148,17 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
                   className={`asset-browser-item ${selectedMap?.id === map.id ? 'selected' : ''}`}
                   onClick={() => handleMapClick(map)}
                   style={{
-                    border: selectedMap?.id === map.id ? '3px solid var(--primary-color)' : '2px solid var(--border-color)',
-                    boxShadow: selectedMap?.id === map.id ? '0 0 12px var(--primary-color)' : 'none',
-                    transform: selectedMap?.id === map.id ? 'scale(1.02)' : 'scale(1)',
-                    transition: 'all 0.2s ease'
+                    border:
+                      selectedMap?.id === map.id
+                        ? '3px solid var(--primary-color)'
+                        : '2px solid var(--border-color)',
+                    boxShadow:
+                      selectedMap?.id === map.id
+                        ? '0 0 12px var(--primary-color)'
+                        : 'none',
+                    transform:
+                      selectedMap?.id === map.id ? 'scale(1.02)' : 'scale(1)',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   <div className="asset-thumbnail">
@@ -171,26 +187,32 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        transition: 'transform 0.2s ease'
+                        transition: 'transform 0.2s ease',
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.transform = 'scale(1.1)')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.transform = 'scale(1)')
+                      }
                     >
                       {assetFavoritesManager.isFavorite(map.id) ? '⭐' : '☆'}
                     </button>
                     {map.category && (
-                      <span style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        padding: '4px 8px',
-                        background: 'var(--primary-color)',
-                        color: 'white',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        textTransform: 'capitalize'
-                      }}>
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          padding: '4px 8px',
+                          background: 'var(--primary-color)',
+                          color: 'white',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          textTransform: 'capitalize',
+                        }}
+                      >
                         {map.category}
                       </span>
                     )}

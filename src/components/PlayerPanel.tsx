@@ -127,7 +127,6 @@ export const PlayerPanel: React.FC = () => {
     const player = players.find((p) => p.id === playerId);
     if (player && window.confirm(`Kick ${player.name} from the game?`)) {
       // TODO: Implement kick functionality
-      console.log('Kicking player:', playerId);
     }
   };
 
@@ -140,7 +139,6 @@ export const PlayerPanel: React.FC = () => {
       const action = currentPermissions ? 'Remove' : 'Grant';
       if (window.confirm(`${action} DM permissions for ${player.name}?`)) {
         // TODO: Implement permission toggle
-        console.log(`${action} DM permissions for:`, playerId);
       }
     }
   };
@@ -185,11 +183,6 @@ export const PlayerPanel: React.FC = () => {
     // Roll initiative for all entries and start combat
     rollInitiativeForAll();
     startCombat();
-
-    // TODO: Switch to initiative tab programmatically
-    console.log(
-      'All characters added to initiative tracker and combat started',
-    );
   };
 
   // Show character sheet if one is active

@@ -20,7 +20,9 @@ class DrawingPersistenceService {
     if (this.migrationDone) return;
 
     if (this.storage.needsDrawingMigration()) {
-      console.log('🔄 Auto-migrating drawing data from localStorage to IndexedDB...');
+      console.log(
+        '🔄 Auto-migrating drawing data from localStorage to IndexedDB...',
+      );
       const result = await this.storage.migrateDrawingData();
 
       if (result.errors.length > 0) {
@@ -46,12 +48,14 @@ class DrawingPersistenceService {
         version: 1,
       };
       localStorage.setItem(key, JSON.stringify(data));
-      console.log(`Saved ${drawings.length} drawings locally for scene ${sceneId}`);
+      console.log(
+        `Saved ${drawings.length} drawings locally for scene ${sceneId}`,
+      );
     } catch (error) {
       console.error('Failed to save drawings to localStorage:', error);
     }
   }
-  
+
   /**
    * Load drawings for a scene from localStorage
    */
@@ -59,48 +63,49 @@ class DrawingPersistenceService {
     try {
       const key = `${this.STORAGE_PREFIX}-${sceneId}`;
       const stored = localStorage.getItem(key);
-      
+
       if (!stored) {
         return [];
       }
-      
+
       const data = JSON.parse(stored);
-      
+
       if (!data.drawings || !Array.isArray(data.drawings)) {
         console.warn('Invalid drawings data in localStorage');
         return [];
       }
-      
-      console.log(`Loaded ${data.drawings.length} drawings locally for scene ${sceneId}`);
+
+      console.log(
+        `Loaded ${data.drawings.length} drawings locally for scene ${sceneId}`,
+      );
       return data.drawings;
-      
     } catch (error) {
       console.error('Failed to load drawings from localStorage:', error);
       return [];
     }
   }
-  
+
   /**
    * Save entire scene data to localStorage
    */
   saveSceneLocally(scene: Scene): void {
     try {
       const scenesData = this.loadAllScenesLocally();
-      const existingIndex = scenesData.findIndex(s => s.id === scene.id);
-      
+      const existingIndex = scenesData.findIndex((s) => s.id === scene.id);
+
       if (existingIndex >= 0) {
         scenesData[existingIndex] = { ...scene, updatedAt: Date.now() };
       } else {
         scenesData.push({ ...scene, updatedAt: Date.now() });
       }
-      
+
       localStorage.setItem(this.SCENES_KEY, JSON.stringify(scenesData));
       console.log(`Saved scene ${scene.id} locally`);
     } catch (error) {
       console.error('Failed to save scene to localStorage:', error);
     }
   }
-  
+
   /**
    * Load all scenes from localStorage
    */
@@ -110,12 +115,12 @@ class DrawingPersistenceService {
       if (!stored) {
         return [];
       }
-      
+
       const scenes = JSON.parse(stored);
       if (!Array.isArray(scenes)) {
         return [];
       }
-      
+
       console.log(`Loaded ${scenes.length} scenes from localStorage`);
       return scenes;
     } catch (error) {
@@ -135,9 +140,9 @@ class DrawingPersistenceService {
   /**
    * Load drawings using IndexedDB (with auto-migration)
    */
-  async loadDrawings(sceneId: string): Promise<Drawing[]> {
+  async loadDrawings(sceneId: string, roomCode?: string): Promise<Drawing[]> {
     await this.ensureMigration();
-    return this.storage.getDrawings(sceneId);
+    return this.storage.getDrawings(sceneId, roomCode);
   }
 
   /**
@@ -151,9 +156,9 @@ class DrawingPersistenceService {
   /**
    * Load all scenes using IndexedDB (with auto-migration)
    */
-  async loadAllScenes(): Promise<Scene[]> {
+  async loadAllScenes(roomCode?: string): Promise<Scene[]> {
     await this.ensureMigration();
-    return this.storage.getScenes();
+    return this.storage.getScenes(roomCode);
   }
 
   /**
@@ -170,12 +175,12 @@ export const drawingPersistenceService = new DrawingPersistenceService();
 
 // Hook for React components to use the persistence service
 export const useDrawingPersistence = () => {
-  const sceneState = useGameStore(state => state.sceneState);
-  const updateScene = useGameStore(state => state.updateScene);
+  const sceneState = useGameStore((state) => state.sceneState);
+  const updateScene = useGameStore((state) => state.updateScene);
 
   const saveCurrentScene = async () => {
     const activeScene = sceneState.scenes.find(
-      s => s.id === sceneState.activeSceneId
+      (s) => s.id === sceneState.activeSceneId,
     );
 
     if (activeScene) {
@@ -188,11 +193,11 @@ export const useDrawingPersistence = () => {
     updateScene(sceneId, { drawings });
     return drawings;
   };
-  
+
   const saveDrawingsForScene = async (sceneId: string, drawings: Drawing[]) => {
     await drawingPersistenceService.saveDrawings(sceneId, drawings);
   };
-  
+
   return {
     saveCurrentScene,
     loadScene,

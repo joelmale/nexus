@@ -7,6 +7,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { Settings } from './Settings';
 import { Placeholder } from './Placeholder';
 import { TokenPanel } from './Tokens/TokenPanel';
+import { ChatPanel } from './ChatPanel';
 
 interface ContextPanelProps {
   activePanel:
@@ -97,9 +98,6 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
 
     // Only update if this is a different width than we last reported
     if (targetWidth !== lastReported) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Panel width set: ${activePanel} -> ${targetWidth}px`);
-      }
       lastReportedWidthRef.current = targetWidth;
       onContentWidthChange(targetWidth);
     }
@@ -126,7 +124,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
             {activePanel === 'initiative' && <InitiativeTracker />}
             {activePanel === 'dice' && <DiceRoller />}
             {activePanel === 'sounds' && <Placeholder title="Sound Effects" />}
-            {activePanel === 'chat' && <Placeholder title="Chat" />}
+            {activePanel === 'chat' && <ChatPanel />}
             {activePanel === 'lobby' && <LobbyPanel />}
             {activePanel === 'settings' && <Settings />}
           </div>

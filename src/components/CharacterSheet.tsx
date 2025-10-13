@@ -14,8 +14,14 @@ interface AbilityScoreProps {
   readonly?: boolean;
 }
 
-const AbilityScore: React.FC<AbilityScoreProps> = ({ name, ability, character, readonly }) => {
-  const { updateAbilityScore, updateSavingThrowProficiency } = useCharacterStore();
+const AbilityScore: React.FC<AbilityScoreProps> = ({
+  name,
+  ability,
+  character,
+  readonly,
+}) => {
+  const { updateAbilityScore, updateSavingThrowProficiency } =
+    useCharacterStore();
   const abilityData = character.abilities[ability];
 
   return (
@@ -25,13 +31,23 @@ const AbilityScore: React.FC<AbilityScoreProps> = ({ name, ability, character, r
         <input
           type="number"
           value={abilityData.score}
-          onChange={(e) => !readonly && updateAbilityScore(character.id, ability, parseInt(e.target.value, 10) || 10)}
+          onChange={(e) =>
+            !readonly &&
+            updateAbilityScore(
+              character.id,
+              ability,
+              parseInt(e.target.value, 10) || 10,
+            )
+          }
           min="1"
           max="30"
           className="score-input"
           readOnly={readonly}
         />
-        <div className="modifier">{abilityData.modifier >= 0 ? '+' : ''}{abilityData.modifier}</div>
+        <div className="modifier">
+          {abilityData.modifier >= 0 ? '+' : ''}
+          {abilityData.modifier}
+        </div>
       </div>
 
       <div className="saving-throw">
@@ -39,17 +55,28 @@ const AbilityScore: React.FC<AbilityScoreProps> = ({ name, ability, character, r
           <input
             type="checkbox"
             checked={abilityData.proficient || false}
-            onChange={(e) => !readonly && updateSavingThrowProficiency(character.id, ability, e.target.checked)}
+            onChange={(e) =>
+              !readonly &&
+              updateSavingThrowProficiency(
+                character.id,
+                ability,
+                e.target.checked,
+              )
+            }
             disabled={readonly}
           />
-          Save: {abilityData.savingThrow >= 0 ? '+' : ''}{abilityData.savingThrow}
+          Save: {abilityData.savingThrow >= 0 ? '+' : ''}
+          {abilityData.savingThrow}
         </label>
       </div>
     </div>
   );
 };
 
-const SkillsList: React.FC<{ character: Character; readonly?: boolean }> = ({ character, readonly }) => {
+const SkillsList: React.FC<{ character: Character; readonly?: boolean }> = ({
+  character,
+  readonly,
+}) => {
   const { updateSkillProficiency } = useCharacterStore();
 
   return (
@@ -62,20 +89,36 @@ const SkillsList: React.FC<{ character: Character; readonly?: boolean }> = ({ ch
               <input
                 type="checkbox"
                 checked={skill.proficient}
-                onChange={(e) => !readonly && updateSkillProficiency(character.id, skill.name, e.target.checked)}
+                onChange={(e) =>
+                  !readonly &&
+                  updateSkillProficiency(
+                    character.id,
+                    skill.name,
+                    e.target.checked,
+                  )
+                }
                 disabled={readonly}
               />
               <input
                 type="checkbox"
                 checked={skill.expertise}
-                onChange={(e) => !readonly && updateSkillProficiency(character.id, skill.name, skill.proficient, e.target.checked)}
+                onChange={(e) =>
+                  !readonly &&
+                  updateSkillProficiency(
+                    character.id,
+                    skill.name,
+                    skill.proficient,
+                    e.target.checked,
+                  )
+                }
                 disabled={readonly || !skill.proficient}
                 title="Expertise (double proficiency)"
                 className="expertise-checkbox"
               />
               <span className="skill-name">{skill.name}</span>
               <span className="skill-modifier">
-                {skill.modifier >= 0 ? '+' : ''}{skill.modifier}
+                {skill.modifier >= 0 ? '+' : ''}
+                {skill.modifier}
               </span>
             </label>
           </div>
@@ -85,10 +128,21 @@ const SkillsList: React.FC<{ character: Character; readonly?: boolean }> = ({ ch
   );
 };
 
-const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({ character, readonly }) => {
-  const { addEquipment, updateEquipment, removeEquipment, equipItem, unequipItem } = useCharacterStore();
+const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({
+  character,
+  readonly,
+}) => {
+  const {
+    addEquipment,
+    updateEquipment,
+    removeEquipment,
+    equipItem,
+    unequipItem,
+  } = useCharacterStore();
   const [newItemName, setNewItemName] = useState('');
-  const [newItemType, setNewItemType] = useState<'weapon' | 'armor' | 'tool' | 'consumable' | 'treasure' | 'other'>('other');
+  const [newItemType, setNewItemType] = useState<
+    'weapon' | 'armor' | 'tool' | 'consumable' | 'treasure' | 'other'
+  >('other');
 
   const handleAddEquipment = () => {
     if (newItemName.trim() && !readonly) {
@@ -119,7 +173,17 @@ const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({
           />
           <select
             value={newItemType}
-            onChange={(e) => setNewItemType(e.target.value as 'weapon' | 'armor' | 'tool' | 'consumable' | 'treasure' | 'other')}
+            onChange={(e) =>
+              setNewItemType(
+                e.target.value as
+                  | 'weapon'
+                  | 'armor'
+                  | 'tool'
+                  | 'consumable'
+                  | 'treasure'
+                  | 'other',
+              )
+            }
             className="equipment-type-select"
           >
             <option value="weapon">Weapon</option>
@@ -129,18 +193,28 @@ const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({
             <option value="treasure">Treasure</option>
             <option value="other">Other</option>
           </select>
-          <button onClick={handleAddEquipment} className="add-equipment-btn">Add</button>
+          <button onClick={handleAddEquipment} className="add-equipment-btn">
+            Add
+          </button>
         </div>
       )}
 
       <div className="equipment-list">
         {character.equipment?.map((item) => (
-          <div key={item.id} className={`equipment-item ${item.equipped ? 'equipped' : ''}`}>
+          <div
+            key={item.id}
+            className={`equipment-item ${item.equipped ? 'equipped' : ''}`}
+          >
             <div className="equipment-info">
               <input
                 type="text"
                 value={item.name}
-                onChange={(e) => !readonly && updateEquipment(character.id, item.id, { name: e.target.value })}
+                onChange={(e) =>
+                  !readonly &&
+                  updateEquipment(character.id, item.id, {
+                    name: e.target.value,
+                  })
+                }
                 className="equipment-name"
                 readOnly={readonly}
               />
@@ -148,7 +222,12 @@ const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({
               <input
                 type="number"
                 value={item.quantity}
-                onChange={(e) => !readonly && updateEquipment(character.id, item.id, { quantity: parseInt(e.target.value, 10) || 1 })}
+                onChange={(e) =>
+                  !readonly &&
+                  updateEquipment(character.id, item.id, {
+                    quantity: parseInt(e.target.value, 10) || 1,
+                  })
+                }
                 min="0"
                 className="equipment-quantity"
                 readOnly={readonly}
@@ -158,7 +237,11 @@ const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({
             {!readonly && (
               <div className="equipment-actions">
                 <button
-                  onClick={() => item.equipped ? unequipItem(character.id, item.id) : equipItem(character.id, item.id)}
+                  onClick={() =>
+                    item.equipped
+                      ? unequipItem(character.id, item.id)
+                      : equipItem(character.id, item.id)
+                  }
                   className={`equip-btn ${item.equipped ? 'equipped' : ''}`}
                 >
                   {item.equipped ? 'Unequip' : 'Equip'}
@@ -178,9 +261,14 @@ const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({
   );
 };
 
-export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, readonly = false }) => {
+export const CharacterSheet: React.FC<CharacterSheetProps> = ({
+  character,
+  readonly = false,
+}) => {
   const { updateCharacter, updateCharacterHP } = useCharacterStore();
-  const [activeTab, setActiveTab] = useState<'stats' | 'equipment' | 'spells' | 'notes'>('stats');
+  const [activeTab, setActiveTab] = useState<
+    'stats' | 'equipment' | 'spells' | 'notes'
+  >('stats');
 
   const handleBasicInfoChange = (field: keyof Character, value: unknown) => {
     if (!readonly) {
@@ -193,11 +281,18 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
     }
   };
 
-  const handleHPChange = (field: 'current' | 'maximum' | 'temporary', value: number) => {
+  const handleHPChange = (
+    field: 'current' | 'maximum' | 'temporary',
+    value: number,
+  ) => {
     if (!readonly) {
       try {
         if (field === 'current' || field === 'temporary') {
-          updateCharacterHP(character.id, field === 'current' ? value : character.hitPoints.current, field === 'temporary' ? value : character.hitPoints.temporary);
+          updateCharacterHP(
+            character.id,
+            field === 'current' ? value : character.hitPoints.current,
+            field === 'temporary' ? value : character.hitPoints.temporary,
+          );
         } else {
           updateCharacter(character.id, {
             hitPoints: {
@@ -234,7 +329,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
                 type="number"
                 id="character-level"
                 value={character.level}
-                onChange={(e) => handleBasicInfoChange('level', parseInt(e.target.value, 10) || 1)}
+                onChange={(e) =>
+                  handleBasicInfoChange(
+                    'level',
+                    parseInt(e.target.value, 10) || 1,
+                  )
+                }
                 min="1"
                 max="20"
                 className="level-input"
@@ -248,7 +348,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
                 type="text"
                 id="character-race"
                 value={character.race?.name || ''}
-                onChange={(e) => handleBasicInfoChange('race', { ...character.race, name: e.target.value })}
+                onChange={(e) =>
+                  handleBasicInfoChange('race', {
+                    ...character.race,
+                    name: e.target.value,
+                  })
+                }
                 placeholder="Race"
                 className="race-input"
                 readOnly={readonly}
@@ -262,7 +367,11 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
                 id="character-class"
                 value={character.classes?.[0]?.name || ''}
                 onChange={(e) => {
-                  const newClass = { ...character.classes?.[0], name: e.target.value, level: character.level };
+                  const newClass = {
+                    ...character.classes?.[0],
+                    name: e.target.value,
+                    level: character.level,
+                  };
                   handleBasicInfoChange('classes', [newClass]);
                 }}
                 placeholder="Class"
@@ -281,7 +390,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
               type="number"
               id="character-ac"
               value={character.armorClass}
-              onChange={(e) => handleBasicInfoChange('armorClass', parseInt(e.target.value, 10) || 10)}
+              onChange={(e) =>
+                handleBasicInfoChange(
+                  'armorClass',
+                  parseInt(e.target.value, 10) || 10,
+                )
+              }
               min="0"
               className="ac-input"
               readOnly={readonly}
@@ -291,7 +405,8 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
           <div className="stat-block">
             <label>Initiative</label>
             <div className="initiative-display">
-              {character.initiative >= 0 ? '+' : ''}{character.initiative}
+              {character.initiative >= 0 ? '+' : ''}
+              {character.initiative}
             </div>
           </div>
 
@@ -301,7 +416,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
               type="number"
               id="character-speed"
               value={character.speed}
-              onChange={(e) => handleBasicInfoChange('speed', parseInt(e.target.value, 10) || 30)}
+              onChange={(e) =>
+                handleBasicInfoChange(
+                  'speed',
+                  parseInt(e.target.value, 10) || 30,
+                )
+              }
               min="0"
               className="speed-input"
               readOnly={readonly}
@@ -319,7 +439,9 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
             <input
               type="number"
               value={character.hitPoints.current}
-              onChange={(e) => handleHPChange('current', parseInt(e.target.value, 10) || 0)}
+              onChange={(e) =>
+                handleHPChange('current', parseInt(e.target.value, 10) || 0)
+              }
               min="0"
               max={character.hitPoints.maximum}
               className="current-hp"
@@ -330,7 +452,9 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
             <input
               type="number"
               value={character.hitPoints.maximum}
-              onChange={(e) => handleHPChange('maximum', parseInt(e.target.value, 10) || 1)}
+              onChange={(e) =>
+                handleHPChange('maximum', parseInt(e.target.value, 10) || 1)
+              }
               min="1"
               className="max-hp"
               readOnly={readonly}
@@ -345,7 +469,9 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
             type="number"
             id="character-temp-hp"
             value={character.hitPoints.temporary}
-            onChange={(e) => handleHPChange('temporary', parseInt(e.target.value, 10) || 0)}
+            onChange={(e) =>
+              handleHPChange('temporary', parseInt(e.target.value, 10) || 0)
+            }
             min="0"
             className="temp-hp"
             readOnly={readonly}
@@ -398,12 +524,42 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
             <div className="ability-scores">
               <h4>Ability Scores</h4>
               <div className="abilities-grid">
-                <AbilityScore name="STR" ability="strength" character={character} readonly={readonly} />
-                <AbilityScore name="DEX" ability="dexterity" character={character} readonly={readonly} />
-                <AbilityScore name="CON" ability="constitution" character={character} readonly={readonly} />
-                <AbilityScore name="INT" ability="intelligence" character={character} readonly={readonly} />
-                <AbilityScore name="WIS" ability="wisdom" character={character} readonly={readonly} />
-                <AbilityScore name="CHA" ability="charisma" character={character} readonly={readonly} />
+                <AbilityScore
+                  name="STR"
+                  ability="strength"
+                  character={character}
+                  readonly={readonly}
+                />
+                <AbilityScore
+                  name="DEX"
+                  ability="dexterity"
+                  character={character}
+                  readonly={readonly}
+                />
+                <AbilityScore
+                  name="CON"
+                  ability="constitution"
+                  character={character}
+                  readonly={readonly}
+                />
+                <AbilityScore
+                  name="INT"
+                  ability="intelligence"
+                  character={character}
+                  readonly={readonly}
+                />
+                <AbilityScore
+                  name="WIS"
+                  ability="wisdom"
+                  character={character}
+                  readonly={readonly}
+                />
+                <AbilityScore
+                  name="CHA"
+                  ability="charisma"
+                  character={character}
+                  readonly={readonly}
+                />
               </div>
             </div>
 
@@ -437,7 +593,10 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
                 <div className="spellcasting-info">
                   <p>Spellcasting Class: {character.spellcasting.class}</p>
                   <p>Spell Save DC: {character.spellcasting.spellSaveDC}</p>
-                  <p>Spell Attack Bonus: +{character.spellcasting.spellAttackBonus}</p>
+                  <p>
+                    Spell Attack Bonus: +
+                    {character.spellcasting.spellAttackBonus}
+                  </p>
                 </div>
               )}
             </div>
@@ -465,7 +624,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
                   <label>Personality Traits</label>
                   <textarea
                     value={character.personalityTraits?.join('\n') || ''}
-                    onChange={(e) => handleBasicInfoChange('personalityTraits', e.target.value.split('\n').filter(t => t.trim()))}
+                    onChange={(e) =>
+                      handleBasicInfoChange(
+                        'personalityTraits',
+                        e.target.value.split('\n').filter((t) => t.trim()),
+                      )
+                    }
                     rows={2}
                     className="personality-input"
                     readOnly={readonly}
@@ -475,7 +639,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
                   <label>Ideals</label>
                   <textarea
                     value={character.ideals?.join('\n') || ''}
-                    onChange={(e) => handleBasicInfoChange('ideals', e.target.value.split('\n').filter(t => t.trim()))}
+                    onChange={(e) =>
+                      handleBasicInfoChange(
+                        'ideals',
+                        e.target.value.split('\n').filter((t) => t.trim()),
+                      )
+                    }
                     rows={2}
                     className="personality-input"
                     readOnly={readonly}
@@ -485,7 +654,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
                   <label>Bonds</label>
                   <textarea
                     value={character.bonds?.join('\n') || ''}
-                    onChange={(e) => handleBasicInfoChange('bonds', e.target.value.split('\n').filter(t => t.trim()))}
+                    onChange={(e) =>
+                      handleBasicInfoChange(
+                        'bonds',
+                        e.target.value.split('\n').filter((t) => t.trim()),
+                      )
+                    }
                     rows={2}
                     className="personality-input"
                     readOnly={readonly}
@@ -495,7 +669,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, reado
                   <label>Flaws</label>
                   <textarea
                     value={character.flaws?.join('\n') || ''}
-                    onChange={(e) => handleBasicInfoChange('flaws', e.target.value.split('\n').filter(t => t.trim()))}
+                    onChange={(e) =>
+                      handleBasicInfoChange(
+                        'flaws',
+                        e.target.value.split('\n').filter((t) => t.trim()),
+                      )
+                    }
                     rows={2}
                     className="personality-input"
                     readOnly={readonly}

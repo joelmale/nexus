@@ -54,7 +54,12 @@ export interface MultiplayerSession extends Session {
   isAuthority: boolean; // Whether current user is the authority
 
   // Connection status
-  connectionState: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+  connectionState:
+    | 'disconnected'
+    | 'connecting'
+    | 'connected'
+    | 'reconnecting'
+    | 'error';
   lastConnected?: number;
   connectionAttempts: number;
 
@@ -200,7 +205,12 @@ export interface IndexedDBConfig {
 // =============================================================================
 
 export interface RealtimeMessage {
-  type: 'action' | 'state-sync' | 'player-join' | 'player-leave' | 'session-control';
+  type:
+    | 'action'
+    | 'state-sync'
+    | 'player-join'
+    | 'player-leave'
+    | 'session-control';
   sessionId: string;
   timestamp: number;
   version: number;

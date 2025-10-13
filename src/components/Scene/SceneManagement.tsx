@@ -6,11 +6,20 @@ interface SceneManagementProps {
   onBackToSettings: () => void;
 }
 
-export const SceneManagement: React.FC<SceneManagementProps> = ({ onBackToSettings }) => {
+export const SceneManagement: React.FC<SceneManagementProps> = ({
+  onBackToSettings,
+}) => {
   const scenes = useScenes();
-  const { deleteScenesById, updateScenesVisibility, duplicateScene, setActiveScene } = useGameStore();
+  const {
+    deleteScenesById,
+    updateScenesVisibility,
+    duplicateScene,
+    setActiveScene,
+  } = useGameStore();
   const [selectedScenes, setSelectedScenes] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<'name' | 'created' | 'updated'>('updated');
+  const [sortBy, setSortBy] = useState<'name' | 'created' | 'updated'>(
+    'updated',
+  );
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Sort scenes based on current sort settings
@@ -44,15 +53,15 @@ export const SceneManagement: React.FC<SceneManagementProps> = ({ onBackToSettin
     if (selectedScenes.length === scenes.length) {
       setSelectedScenes([]);
     } else {
-      setSelectedScenes(scenes.map(s => s.id));
+      setSelectedScenes(scenes.map((s) => s.id));
     }
   };
 
   const handleSelectScene = (sceneId: string) => {
-    setSelectedScenes(prev =>
+    setSelectedScenes((prev) =>
       prev.includes(sceneId)
-        ? prev.filter(id => id !== sceneId)
-        : [...prev, sceneId]
+        ? prev.filter((id) => id !== sceneId)
+        : [...prev, sceneId],
     );
   };
 
@@ -60,11 +69,15 @@ export const SceneManagement: React.FC<SceneManagementProps> = ({ onBackToSettin
     if (selectedScenes.length === 0) return;
 
     const sceneNames = selectedScenes
-      .map(id => scenes.find(s => s.id === id)?.name)
+      .map((id) => scenes.find((s) => s.id === id)?.name)
       .filter(Boolean)
       .join(', ');
 
-    if (window.confirm(`Delete ${selectedScenes.length} scene(s)?\n\n${sceneNames}\n\nThis cannot be undone.`)) {
+    if (
+      window.confirm(
+        `Delete ${selectedScenes.length} scene(s)?\n\n${sceneNames}\n\nThis cannot be undone.`,
+      )
+    ) {
       deleteScenesById(selectedScenes);
       setSelectedScenes([]);
     }
@@ -87,19 +100,27 @@ export const SceneManagement: React.FC<SceneManagementProps> = ({ onBackToSettin
 
   const getVisibilityIcon = (visibility: Scene['visibility']) => {
     switch (visibility) {
-      case 'private': return '🔒';
-      case 'shared': return '👥';
-      case 'public': return '🌐';
-      default: return '❓';
+      case 'private':
+        return '🔒';
+      case 'shared':
+        return '👥';
+      case 'public':
+        return '🌐';
+      default:
+        return '❓';
     }
   };
 
   const getVisibilityText = (visibility: Scene['visibility']) => {
     switch (visibility) {
-      case 'private': return 'Private';
-      case 'shared': return 'Shared';
-      case 'public': return 'Public';
-      default: return 'Unknown';
+      case 'private':
+        return 'Private';
+      case 'shared':
+        return 'Shared';
+      case 'public':
+        return 'Public';
+      default:
+        return 'Unknown';
     }
   };
 
@@ -140,11 +161,10 @@ export const SceneManagement: React.FC<SceneManagementProps> = ({ onBackToSettin
           </div>
 
           <div className="selection-controls">
-            <button
-              onClick={handleSelectAll}
-              className="select-all-btn"
-            >
-              {selectedScenes.length === scenes.length ? 'Deselect All' : 'Select All'}
+            <button onClick={handleSelectAll} className="select-all-btn">
+              {selectedScenes.length === scenes.length
+                ? 'Deselect All'
+                : 'Select All'}
             </button>
             <span className="selection-count">
               {selectedScenes.length} selected
@@ -211,14 +231,18 @@ export const SceneManagement: React.FC<SceneManagementProps> = ({ onBackToSettin
                 <h4 className="scene-name">{scene.name}</h4>
                 <div className="scene-meta">
                   <span className="scene-visibility">
-                    {getVisibilityIcon(scene.visibility)} {getVisibilityText(scene.visibility)}
+                    {getVisibilityIcon(scene.visibility)}{' '}
+                    {getVisibilityText(scene.visibility)}
                   </span>
                 </div>
               </div>
               <span className="scene-id">ID: {scene.id.slice(0, 8)}</span>
             </div>
 
-            <div className="scene-item-content" onClick={() => setActiveScene(scene.id)}>
+            <div
+              className="scene-item-content"
+              onClick={() => setActiveScene(scene.id)}
+            >
               {scene.description && (
                 <p className="scene-description">{scene.description}</p>
               )}
@@ -261,7 +285,11 @@ export const SceneManagement: React.FC<SceneManagementProps> = ({ onBackToSettin
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (window.confirm(`Delete scene "${scene.name}"? This cannot be undone.`)) {
+                  if (
+                    window.confirm(
+                      `Delete scene "${scene.name}"? This cannot be undone.`,
+                    )
+                  ) {
                     deleteScenesById([scene.id]);
                   }
                 }}
@@ -278,10 +306,7 @@ export const SceneManagement: React.FC<SceneManagementProps> = ({ onBackToSettin
           <div className="empty-scenes">
             <h4>No scenes yet</h4>
             <p>Create your first scene to get started!</p>
-            <button
-              onClick={onBackToSettings}
-              className="create-scene-btn"
-            >
+            <button onClick={onBackToSettings} className="create-scene-btn">
               Create Scene
             </button>
           </div>

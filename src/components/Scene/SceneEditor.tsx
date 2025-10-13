@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, Suspense } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { useSceneImages, sceneUtils } from '@/utils/sceneUtils';
 import { AssetBrowser } from '@/components/AssetBrowser';
@@ -393,28 +393,46 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
 
       {/* Base Map Browser Modal */}
       {showBaseMapBrowser && (
-        <BaseMapBrowser
-          onSelect={handleBaseMapSelect}
-          onClose={() => setShowBaseMapBrowser(false)}
-        />
+        <Suspense
+          fallback={
+            <div className="loading-overlay">
+              <div className="loading-spinner">Loading base maps...</div>
+            </div>
+          }
+        >
+          <BaseMapBrowser
+            onSelect={handleBaseMapSelect}
+            onClose={() => setShowBaseMapBrowser(false)}
+          />
+        </Suspense>
       )}
 
       {/* Asset Browser Modal */}
       {showAssetBrowser && (
-        <div className="asset-browser-overlay">
-          <div className="asset-browser-modal">
-            <div className="asset-browser-header">
-              <h3>Choose Background Image</h3>
-              <button
-                className="btn btn-small"
-                onClick={() => setShowAssetBrowser(false)}
-              >
-                ✕
-              </button>
+        <Suspense
+          fallback={
+            <div className="asset-browser-overlay">
+              <div className="asset-browser-modal loading">
+                <div className="loading-spinner">Loading assets...</div>
+              </div>
             </div>
-            <AssetBrowser onAssetSelect={handleAssetSelect} />
+          }
+        >
+          <div className="asset-browser-overlay">
+            <div className="asset-browser-modal">
+              <div className="asset-browser-header">
+                <h3>Choose Background Image</h3>
+                <button
+                  className="btn btn-small"
+                  onClick={() => setShowAssetBrowser(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              <AssetBrowser onAssetSelect={handleAssetSelect} />
+            </div>
           </div>
-        </div>
+        </Suspense>
       )}
     </div>
   );

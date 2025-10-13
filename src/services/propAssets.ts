@@ -279,7 +279,9 @@ class PropAssetManager {
   /**
    * Add a custom prop
    */
-  async addCustomProp(prop: Omit<Prop, 'id' | 'createdAt' | 'updatedAt'>): Promise<Prop> {
+  async addCustomProp(
+    prop: Omit<Prop, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<Prop> {
     const newProp: Prop = {
       ...prop,
       id: `custom-prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -289,7 +291,9 @@ class PropAssetManager {
     };
 
     // Find or create custom library
-    let customLibrary = this.propLibraries.find((lib) => lib.id === 'custom-props');
+    let customLibrary = this.propLibraries.find(
+      (lib) => lib.id === 'custom-props',
+    );
     if (!customLibrary) {
       customLibrary = {
         id: 'custom-props',
@@ -352,8 +356,13 @@ class PropAssetManager {
   private async saveLibrariesToStorage(): Promise<void> {
     try {
       // Only save custom libraries
-      const customLibraries = this.propLibraries.filter((lib) => !lib.isDefault);
-      localStorage.setItem('nexus_prop_libraries', JSON.stringify(customLibraries));
+      const customLibraries = this.propLibraries.filter(
+        (lib) => !lib.isDefault,
+      );
+      localStorage.setItem(
+        'nexus_prop_libraries',
+        JSON.stringify(customLibraries),
+      );
     } catch (error) {
       console.error('Failed to save prop libraries:', error);
     }
@@ -425,7 +434,9 @@ export function usePropAssets() {
     searchProps: (query: string) => propAssetManager.searchProps(query),
     getPropsByCategory: (category: PropCategory) =>
       propAssetManager.getPropsByCategory(category),
-    addCustomProp: async (prop: Omit<Prop, 'id' | 'createdAt' | 'updatedAt'>) => {
+    addCustomProp: async (
+      prop: Omit<Prop, 'id' | 'createdAt' | 'updatedAt'>,
+    ) => {
       const result = await propAssetManager.addCustomProp(prop);
       forceUpdate();
       return result;

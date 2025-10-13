@@ -10,7 +10,7 @@ import type {
   AbilityScores,
   CharacterRace,
   CharacterClass,
-  CharacterBackground
+  CharacterBackground,
 } from '@/types/character';
 import { CHARACTER_CLASSES, CHARACTER_RACES } from '@/types/character';
 
@@ -74,38 +74,38 @@ export function generateAbilityScores(): AbilityScores {
       score: strength,
       modifier: calculateModifier(strength),
       savingThrow: calculateModifier(strength),
-      proficient: false
+      proficient: false,
     },
     dexterity: {
       score: dexterity,
       modifier: calculateModifier(dexterity),
       savingThrow: calculateModifier(dexterity),
-      proficient: false
+      proficient: false,
     },
     constitution: {
       score: constitution,
       modifier: calculateModifier(constitution),
       savingThrow: calculateModifier(constitution),
-      proficient: false
+      proficient: false,
     },
     intelligence: {
       score: intelligence,
       modifier: calculateModifier(intelligence),
       savingThrow: calculateModifier(intelligence),
-      proficient: false
+      proficient: false,
     },
     wisdom: {
       score: wisdom,
       modifier: calculateModifier(wisdom),
       savingThrow: calculateModifier(wisdom),
-      proficient: false
+      proficient: false,
     },
     charisma: {
       score: charisma,
       modifier: calculateModifier(charisma),
       savingThrow: calculateModifier(charisma),
-      proficient: false
-    }
+      proficient: false,
+    },
   };
 }
 
@@ -116,10 +116,17 @@ export function generatePointBuyAbilities(): AbilityScores {
   // Simplified point buy - distribute 27 points across abilities (base 8 each)
   const pointsToDistribute = 27;
   const baseScore = 8;
-  const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'] as const;
+  const abilities = [
+    'strength',
+    'dexterity',
+    'constitution',
+    'intelligence',
+    'wisdom',
+    'charisma',
+  ] as const;
 
   const scores: Record<string, number> = {};
-  abilities.forEach(ability => scores[ability] = baseScore);
+  abilities.forEach((ability) => (scores[ability] = baseScore));
 
   let remainingPoints = pointsToDistribute;
 
@@ -150,38 +157,38 @@ export function generatePointBuyAbilities(): AbilityScores {
       score: scores.strength,
       modifier: calculateModifier(scores.strength),
       savingThrow: calculateModifier(scores.strength),
-      proficient: false
+      proficient: false,
     },
     dexterity: {
       score: scores.dexterity,
       modifier: calculateModifier(scores.dexterity),
       savingThrow: calculateModifier(scores.dexterity),
-      proficient: false
+      proficient: false,
     },
     constitution: {
       score: scores.constitution,
       modifier: calculateModifier(scores.constitution),
       savingThrow: calculateModifier(scores.constitution),
-      proficient: false
+      proficient: false,
     },
     intelligence: {
       score: scores.intelligence,
       modifier: calculateModifier(scores.intelligence),
       savingThrow: calculateModifier(scores.intelligence),
-      proficient: false
+      proficient: false,
     },
     wisdom: {
       score: scores.wisdom,
       modifier: calculateModifier(scores.wisdom),
       savingThrow: calculateModifier(scores.wisdom),
-      proficient: false
+      proficient: false,
     },
     charisma: {
       score: scores.charisma,
       modifier: calculateModifier(scores.charisma),
       savingThrow: calculateModifier(scores.charisma),
-      proficient: false
-    }
+      proficient: false,
+    },
   };
 }
 
@@ -194,7 +201,8 @@ export function generatePointBuyAbilities(): AbilityScores {
  */
 export function getRandomRace(): CharacterRace {
   const race = getRandomElement(CHARACTER_RACES);
-  const subrace = race.subraces.length > 0 ? getRandomElement(race.subraces) : undefined;
+  const subrace =
+    race.subraces.length > 0 ? getRandomElement(race.subraces) : undefined;
 
   // Basic race data - in a full implementation, this would include racial traits
   return {
@@ -203,7 +211,7 @@ export function getRandomRace(): CharacterRace {
     traits: [], // Would be populated based on race selection
     abilityScoreIncrease: {}, // Would be populated based on race selection
     languages: ['Common'], // Base language, others would be added based on race
-    proficiencies: [] // Would be populated based on race selection
+    proficiencies: [], // Would be populated based on race selection
   };
 }
 
@@ -221,7 +229,7 @@ export function getRandomClass(): CharacterClass {
     name: characterClass.name,
     level: 1,
     hitDie: characterClass.hitDie,
-    subclass: undefined // Subclasses typically chosen at level 2-3
+    subclass: undefined, // Subclasses typically chosen at level 2-3
   };
 }
 
@@ -230,8 +238,18 @@ export function getRandomClass(): CharacterClass {
 // =============================================================================
 
 const BACKGROUNDS = [
-  'Acolyte', 'Criminal', 'Folk Hero', 'Noble', 'Sage', 'Soldier',
-  'Charlatan', 'Entertainer', 'Guild Artisan', 'Hermit', 'Outlander', 'Sailor'
+  'Acolyte',
+  'Criminal',
+  'Folk Hero',
+  'Noble',
+  'Sage',
+  'Soldier',
+  'Charlatan',
+  'Entertainer',
+  'Guild Artisan',
+  'Hermit',
+  'Outlander',
+  'Sailor',
 ];
 
 /**
@@ -247,7 +265,7 @@ export function getRandomBackground(): CharacterBackground {
     languages: [], // Would be populated based on background
     equipment: [], // Would be populated based on background
     feature: '', // Would be populated based on background
-    description: ''
+    description: '',
   };
 }
 
@@ -256,9 +274,15 @@ export function getRandomBackground(): CharacterBackground {
 // =============================================================================
 
 const ALIGNMENTS = [
-  'Lawful Good', 'Neutral Good', 'Chaotic Good',
-  'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
-  'Lawful Evil', 'Neutral Evil', 'Chaotic Evil'
+  'Lawful Good',
+  'Neutral Good',
+  'Chaotic Good',
+  'Lawful Neutral',
+  'True Neutral',
+  'Chaotic Neutral',
+  'Lawful Evil',
+  'Neutral Evil',
+  'Chaotic Evil',
 ];
 
 /**
@@ -274,32 +298,235 @@ export function getRandomAlignment(): string {
 
 const NAME_SETS = {
   Human: {
-    first: ['Aeliana', 'Beiro', 'Cara', 'Drannor', 'Enna', 'Galinndan', 'Heian', 'Halimath', 'Helanda', 'Halgrim', 'Kasimir', 'Mindartis', 'Naal', 'Nutae', 'Paelynn', 'Pieron', 'Riardon', 'Rolen', 'Silvyr', 'Suhnne', 'Thallan', 'Theriatis', 'Thervan', 'Uthemar', 'Vanuath', 'Varis'],
-    surnames: ['Amakir', 'Amakur', 'Aramoor', 'Berris', 'Beshere', 'Daergel', 'Dardragon', 'Helder', 'Hornraven', 'Lackman', 'Stormwind', 'Windrivver']
+    first: [
+      'Aeliana',
+      'Beiro',
+      'Cara',
+      'Drannor',
+      'Enna',
+      'Galinndan',
+      'Heian',
+      'Halimath',
+      'Helanda',
+      'Halgrim',
+      'Kasimir',
+      'Mindartis',
+      'Naal',
+      'Nutae',
+      'Paelynn',
+      'Pieron',
+      'Riardon',
+      'Rolen',
+      'Silvyr',
+      'Suhnne',
+      'Thallan',
+      'Theriatis',
+      'Thervan',
+      'Uthemar',
+      'Vanuath',
+      'Varis',
+    ],
+    surnames: [
+      'Amakir',
+      'Amakur',
+      'Aramoor',
+      'Berris',
+      'Beshere',
+      'Daergel',
+      'Dardragon',
+      'Helder',
+      'Hornraven',
+      'Lackman',
+      'Stormwind',
+      'Windrivver',
+    ],
   },
   Elf: {
-    first: ['Adrie', 'Ahmvir', 'Aramil', 'Aranea', 'Berrian', 'Caelynn', 'Carric', 'Dayereth', 'Enna', 'Galinndan', 'Hadarai', 'Halimath', 'Heian', 'Himo', 'Immeral', 'Ivellios', 'Korfel', 'Lamlis', 'Laucian', 'Mindartis', 'Naal', 'Nutae', 'Paelynn', 'Pieron', 'Quarion', 'Riardon', 'Rolen', 'Silvyr', 'Suhnne', 'Thallan', 'Theriatis', 'Therivan', 'Thervan', 'Uthemar', 'Vanuath', 'Varis'],
-    surnames: ['Amakir', 'Amakur', 'Aramoor', 'Berris', 'Beshere', 'Daergel', 'Dardragon', 'Helder', 'Hornraven', 'Lackman', 'Stormwind', 'Windrivver']
+    first: [
+      'Adrie',
+      'Ahmvir',
+      'Aramil',
+      'Aranea',
+      'Berrian',
+      'Caelynn',
+      'Carric',
+      'Dayereth',
+      'Enna',
+      'Galinndan',
+      'Hadarai',
+      'Halimath',
+      'Heian',
+      'Himo',
+      'Immeral',
+      'Ivellios',
+      'Korfel',
+      'Lamlis',
+      'Laucian',
+      'Mindartis',
+      'Naal',
+      'Nutae',
+      'Paelynn',
+      'Pieron',
+      'Quarion',
+      'Riardon',
+      'Rolen',
+      'Silvyr',
+      'Suhnne',
+      'Thallan',
+      'Theriatis',
+      'Therivan',
+      'Thervan',
+      'Uthemar',
+      'Vanuath',
+      'Varis',
+    ],
+    surnames: [
+      'Amakir',
+      'Amakur',
+      'Aramoor',
+      'Berris',
+      'Beshere',
+      'Daergel',
+      'Dardragon',
+      'Helder',
+      'Hornraven',
+      'Lackman',
+      'Stormwind',
+      'Windrivver',
+    ],
   },
   Dwarf: {
-    first: ['Adrik', 'Alberich', 'Baern', 'Barreck', 'Brottor', 'Bruenor', 'Dain', 'Darrak', 'Delg', 'Eberk', 'Einkil', 'Fargrim', 'Flint', 'Gardain', 'Harbek', 'Kildrak', 'Morgran', 'Orsik', 'Oskar', 'Rangrim', 'Rurik', 'Taklinn', 'Thoradin', 'Thorek', 'Tordek', 'Traubon', 'Travok', 'Ulfgar', 'Veit', 'Vondal'],
-    surnames: ['Battlehammer', 'Brawnanvil', 'Dankil', 'Fireforge', 'Frostbeard', 'Gorunn', 'Holderhek', 'Ironfist', 'Loderr', 'Lutgehr', 'Rumnaheim', 'Strakeln', 'Torunn', 'Ungart']
+    first: [
+      'Adrik',
+      'Alberich',
+      'Baern',
+      'Barreck',
+      'Brottor',
+      'Bruenor',
+      'Dain',
+      'Darrak',
+      'Delg',
+      'Eberk',
+      'Einkil',
+      'Fargrim',
+      'Flint',
+      'Gardain',
+      'Harbek',
+      'Kildrak',
+      'Morgran',
+      'Orsik',
+      'Oskar',
+      'Rangrim',
+      'Rurik',
+      'Taklinn',
+      'Thoradin',
+      'Thorek',
+      'Tordek',
+      'Traubon',
+      'Travok',
+      'Ulfgar',
+      'Veit',
+      'Vondal',
+    ],
+    surnames: [
+      'Battlehammer',
+      'Brawnanvil',
+      'Dankil',
+      'Fireforge',
+      'Frostbeard',
+      'Gorunn',
+      'Holderhek',
+      'Ironfist',
+      'Loderr',
+      'Lutgehr',
+      'Rumnaheim',
+      'Strakeln',
+      'Torunn',
+      'Ungart',
+    ],
   },
   Halfling: {
-    first: ['Alton', 'Ander', 'Cade', 'Corrin', 'Eldon', 'Errich', 'Finnan', 'Garret', 'Lindal', 'Lyle', 'Merric', 'Milo', 'Osborn', 'Perrin', 'Reed', 'Roscoe', 'Wellby'],
-    surnames: ['Brushgather', 'Goodbarrel', 'Greenbottle', 'High-hill', 'Hilltopple', 'Leagallow', 'Tealeaf', 'Thorngage', 'Tosscobble', 'Underbough']
+    first: [
+      'Alton',
+      'Ander',
+      'Cade',
+      'Corrin',
+      'Eldon',
+      'Errich',
+      'Finnan',
+      'Garret',
+      'Lindal',
+      'Lyle',
+      'Merric',
+      'Milo',
+      'Osborn',
+      'Perrin',
+      'Reed',
+      'Roscoe',
+      'Wellby',
+    ],
+    surnames: [
+      'Brushgather',
+      'Goodbarrel',
+      'Greenbottle',
+      'High-hill',
+      'Hilltopple',
+      'Leagallow',
+      'Tealeaf',
+      'Thorngage',
+      'Tosscobble',
+      'Underbough',
+    ],
   },
   Dragonborn: {
-    first: ['Arjhan', 'Balasar', 'Bharash', 'Donaar', 'Ghesh', 'Heskan', 'Kriv', 'Medrash', 'Mehen', 'Nadarr', 'Pandjed', 'Patrin', 'Rhogar', 'Shamash', 'Shedinn', 'Tarhun', 'Torinn'],
-    surnames: ['Clethtinthiallor', 'Daardendrian', 'Delmirev', 'Drachedandion', 'Fenkenkabradon', 'Kepeshkmolik', 'Kerrhylon', 'Kimbatuul', 'Linxakasendalor', 'Myastan', 'Nemmonis', 'Norixius', 'Ophinshtalajiir', 'Prexijandilin', 'Shestendeliath', 'Turnuroth', 'Verthisathurgiesh', 'Yarjerit']
-  }
+    first: [
+      'Arjhan',
+      'Balasar',
+      'Bharash',
+      'Donaar',
+      'Ghesh',
+      'Heskan',
+      'Kriv',
+      'Medrash',
+      'Mehen',
+      'Nadarr',
+      'Pandjed',
+      'Patrin',
+      'Rhogar',
+      'Shamash',
+      'Shedinn',
+      'Tarhun',
+      'Torinn',
+    ],
+    surnames: [
+      'Clethtinthiallor',
+      'Daardendrian',
+      'Delmirev',
+      'Drachedandion',
+      'Fenkenkabradon',
+      'Kepeshkmolik',
+      'Kerrhylon',
+      'Kimbatuul',
+      'Linxakasendalor',
+      'Myastan',
+      'Nemmonis',
+      'Norixius',
+      'Ophinshtalajiir',
+      'Prexijandilin',
+      'Shestendeliath',
+      'Turnuroth',
+      'Verthisathurgiesh',
+      'Yarjerit',
+    ],
+  },
 };
 
 /**
  * Generate a random name based on race
  */
 export function generateName(raceName: string = 'Human'): string {
-  const nameSet = NAME_SETS[raceName as keyof typeof NAME_SETS] || NAME_SETS.Human;
+  const nameSet =
+    NAME_SETS[raceName as keyof typeof NAME_SETS] || NAME_SETS.Human;
   const firstName = getRandomElement(nameSet.first);
   const lastName = getRandomElement(nameSet.surnames);
 
@@ -323,9 +550,17 @@ export function generateRandomCharacter(playerId: string): Partial<Character> {
 
   // Calculate derived stats
   const proficiencyBonus = 2; // Level 1 proficiency bonus
-  const hitPointMaximum = Math.max(1, characterClass.hitDie === 'd6' ? 6 :
-                                      characterClass.hitDie === 'd8' ? 8 :
-                                      characterClass.hitDie === 'd10' ? 10 : 12) + abilities.constitution.modifier;
+  const hitPointMaximum =
+    Math.max(
+      1,
+      characterClass.hitDie === 'd6'
+        ? 6
+        : characterClass.hitDie === 'd8'
+          ? 8
+          : characterClass.hitDie === 'd10'
+            ? 10
+            : 12,
+    ) + abilities.constitution.modifier;
 
   return {
     id: crypto.randomUUID(),
@@ -340,11 +575,11 @@ export function generateRandomCharacter(playerId: string): Partial<Character> {
     hitPoints: {
       maximum: hitPointMaximum,
       current: hitPointMaximum,
-      temporary: 0
+      temporary: 0,
     },
     hitDice: {
       total: 1,
-      remaining: 1
+      remaining: 1,
     },
     armorClass: 10 + abilities.dexterity.modifier,
     initiative: abilities.dexterity.modifier,
@@ -368,7 +603,7 @@ export function generateRandomCharacter(playerId: string): Partial<Character> {
     notes: '',
     createdAt: Date.now(),
     updatedAt: Date.now(),
-    version: '1.0'
+    version: '1.0',
   };
 }
 
@@ -426,14 +661,14 @@ export function randomizeAbilityScores(): AbilityScores {
  * Get list of available races for UI dropdowns
  */
 export function getAvailableRaces(): string[] {
-  return CHARACTER_RACES.map(race => race.name);
+  return CHARACTER_RACES.map((race) => race.name);
 }
 
 /**
  * Get list of available classes for UI dropdowns
  */
 export function getAvailableClasses(): string[] {
-  return CHARACTER_CLASSES.map(cls => cls.name);
+  return CHARACTER_CLASSES.map((cls) => cls.name);
 }
 
 /**

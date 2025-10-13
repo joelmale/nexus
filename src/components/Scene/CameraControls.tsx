@@ -56,11 +56,9 @@ export const CameraControls: React.FC<CameraControlsProps> = ({
         >
           -
         </button>
-        
-        <span className="zoom-display">
-          {Math.round(camera.zoom * 100)}%
-        </span>
-        
+
+        <span className="zoom-display">{Math.round(camera.zoom * 100)}%</span>
+
         <button
           className="btn btn-small"
           onClick={handleZoomIn}
@@ -79,7 +77,7 @@ export const CameraControls: React.FC<CameraControlsProps> = ({
         >
           🎯
         </button>
-        
+
         <button
           className="btn btn-small"
           onClick={handleFitToScreen}

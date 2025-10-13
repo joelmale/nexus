@@ -72,7 +72,7 @@ export interface Equipment {
   description?: string;
   attuned?: boolean;
   equipped?: boolean;
-  cost?: { amount: number; currency: string; };
+  cost?: { amount: number; currency: string };
   // Weapon properties
   damage?: {
     dice: string;
@@ -108,6 +108,26 @@ export interface CharacterClass {
   level: number;
   hitDie: string; // e.g., "d10"
   subclass?: string;
+  // Enhanced: Level-scaled properties for randomization
+  proficienciesByLevel?: {
+    [level: number]: {
+      weaponProficiencies: string[];
+      armorProficiencies: string[];
+      toolProficiencies: string[];
+      skillProficiencies: string[];
+    };
+  };
+  featuresByLevel?: {
+    [level: number]: Feature[];
+  };
+  spellsByLevel?: {
+    [level: number]: Spell[];
+  };
+  subclassOptions?: string[];
+  spellcasting?: {
+    type: 'full' | 'half' | 'third' | 'pact' | 'none';
+    ability?: keyof AbilityScores;
+  };
 }
 
 export interface CharacterBackground {
@@ -117,6 +137,13 @@ export interface CharacterBackground {
   equipment: string[];
   feature: string;
   description?: string;
+  // Enhanced: Additional background properties for randomization
+  toolProficiencies?: string[];
+  personalityTraits?: string[];
+  ideals?: string[];
+  bonds?: string[];
+  flaws?: string[];
+  equipmentPack?: string;
 }
 
 export interface CharacterRace {
@@ -126,6 +153,53 @@ export interface CharacterRace {
   abilityScoreIncrease: Partial<Record<keyof AbilityScores, number>>;
   languages: string[];
   proficiencies: string[];
+  // Enhanced: Racial features and traits for randomization
+  features?: Feature[];
+  subraceFeatures?: { [subrace: string]: Feature[] };
+  size?: 'small' | 'medium';
+  speed?: number;
+}
+
+// Equipment and Inventory Types
+export interface Weapon {
+  id: string;
+  name: string;
+  type: 'simple' | 'martial';
+  category: 'melee' | 'ranged';
+  damage: string; // e.g., "1d8", "2d6+2"
+  properties: string[]; // e.g., ["versatile", "finesse", "light"]
+  weight?: number;
+  cost?: string;
+  rarity?: 'common' | 'uncommon' | 'rare' | 'very rare' | 'legendary';
+}
+
+export interface Armor {
+  id: string;
+  name: string;
+  type: 'light' | 'medium' | 'heavy' | 'shield';
+  ac: number;
+  strengthRequirement?: number;
+  stealthDisadvantage?: boolean;
+  weight?: number;
+  cost?: string;
+  rarity?: 'common' | 'uncommon' | 'rare' | 'very rare' | 'legendary';
+}
+
+export interface Tool {
+  id: string;
+  name: string;
+  category: string; // e.g., "artisan", "gaming", "musical"
+  weight?: number;
+  cost?: string;
+  rarity?: 'common' | 'uncommon' | 'rare' | 'very rare' | 'legendary';
+}
+
+// Personality Data
+export interface PersonalityData {
+  traits: string[];
+  ideals: string[];
+  bonds: string[];
+  flaws: string[];
 }
 
 export interface Character {
@@ -231,7 +305,21 @@ export interface CharacterExportFormat {
 export interface Mob {
   id: string;
   name: string;
-  type: 'beast' | 'humanoid' | 'monstrosity' | 'undead' | 'fiend' | 'celestial' | 'elemental' | 'fey' | 'dragon' | 'giant' | 'construct' | 'ooze' | 'plant' | 'aberration';
+  type:
+    | 'beast'
+    | 'humanoid'
+    | 'monstrosity'
+    | 'undead'
+    | 'fiend'
+    | 'celestial'
+    | 'elemental'
+    | 'fey'
+    | 'dragon'
+    | 'giant'
+    | 'construct'
+    | 'ooze'
+    | 'plant'
+    | 'aberration';
   size: 'tiny' | 'small' | 'medium' | 'large' | 'huge' | 'gargantuan';
   challengeRating: string;
   armorClass: number;
@@ -284,8 +372,12 @@ export function calculateProficiencyBonus(level: number): number {
   return Math.ceil(normalizedLevel / 4) + 1;
 }
 
-export function calculatePassivePerception(abilities: AbilityScores, skills: Skill[], proficiencyBonus: number): number {
-  const perceptionSkill = skills.find(skill => skill.name === 'Perception');
+export function calculatePassivePerception(
+  abilities: AbilityScores,
+  skills: Skill[],
+  proficiencyBonus: number,
+): number {
+  const perceptionSkill = skills.find((skill) => skill.name === 'Perception');
   const wisdomModifier = abilities.wisdom.modifier;
 
   if (!perceptionSkill) {
@@ -296,7 +388,9 @@ export function calculatePassivePerception(abilities: AbilityScores, skills: Ski
   // Calculate based on skill proficiency and expertise
   let bonus = wisdomModifier;
   if (perceptionSkill.proficient) {
-    bonus += perceptionSkill.expertise ? proficiencyBonus * 2 : proficiencyBonus;
+    bonus += perceptionSkill.expertise
+      ? proficiencyBonus * 2
+      : proficiencyBonus;
   }
 
   return 10 + bonus;
@@ -313,7 +407,7 @@ export function createEmptyCharacter(playerId: string): Character {
   };
 
   // Create skills from standard skills with all disabled initially
-  const skills: Skill[] = STANDARD_SKILLS.map(standardSkill => ({
+  const skills: Skill[] = STANDARD_SKILLS.map((standardSkill) => ({
     ...standardSkill,
     proficient: false,
     expertise: false,
@@ -321,7 +415,11 @@ export function createEmptyCharacter(playerId: string): Character {
   }));
 
   const proficiencyBonus = calculateProficiencyBonus(1);
-  const passivePerception = calculatePassivePerception(abilities, skills, proficiencyBonus);
+  const passivePerception = calculatePassivePerception(
+    abilities,
+    skills,
+    proficiencyBonus,
+  );
 
   return {
     id: crypto.randomUUID(),
@@ -384,7 +482,10 @@ export function createEmptyCharacter(playerId: string): Character {
 }
 
 // D&D 5e Standard Skills
-export const STANDARD_SKILLS: Omit<Skill, 'modifier' | 'proficient' | 'expertise'>[] = [
+export const STANDARD_SKILLS: Omit<
+  Skill,
+  'modifier' | 'proficient' | 'expertise'
+>[] = [
   { name: 'Acrobatics', ability: 'dexterity' },
   { name: 'Animal Handling', ability: 'wisdom' },
   { name: 'Arcana', ability: 'intelligence' },

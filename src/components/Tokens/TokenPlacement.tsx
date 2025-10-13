@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import type { PlacedToken, Token } from '@/types/token';
 import type { Camera } from '@/types/game';
-import { useUser, useActiveScene } from '@/stores/gameStore';
+import { useUser, useActiveScene, useServerRoomCode } from '@/stores/gameStore';
 import { webSocketService } from '@/utils/websocket';
 
 interface TokenPlacementProps {
@@ -19,74 +19,87 @@ export const TokenPlacement: React.FC<TokenPlacementProps> = ({
   camera,
   gridSize,
   svgRef,
-  onTokenPlaced
+  onTokenPlaced,
 }) => {
   const user = useUser();
   const activeScene = useActiveScene();
+  const roomCode = useServerRoomCode();
 
-  const screenToScene = useCallback((screenX: number, screenY: number) => {
-    if (!svgRef.current) return { x: 0, y: 0 };
-    
-    const rect = svgRef.current.getBoundingClientRect();
-    const svgX = screenX - rect.left;
-    const svgY = screenY - rect.top;
-    
-    const sceneX = (svgX - rect.width / 2) / camera.zoom + camera.x;
-    const sceneY = (svgY - rect.height / 2) / camera.zoom + camera.y;
-    
-    return { x: sceneX, y: sceneY };
-  }, [camera, svgRef]);
+  const screenToScene = useCallback(
+    (screenX: number, screenY: number) => {
+      if (!svgRef.current) return { x: 0, y: 0 };
 
-  const snapToGrid = useCallback((x: number, y: number) => {
-    return {
-      x: Math.round(x / gridSize) * gridSize,
-      y: Math.round(y / gridSize) * gridSize,
-    };
-  }, [gridSize]);
+      const rect = svgRef.current.getBoundingClientRect();
+      const svgX = screenX - rect.left;
+      const svgY = screenY - rect.top;
 
-  const placeToken = useCallback((position: { x: number; y: number }) => {
-    if (!selectedToken || !activeScene) return;
+      const sceneX = (svgX - rect.width / 2) / camera.zoom + camera.x;
+      const sceneY = (svgY - rect.height / 2) / camera.zoom + camera.y;
 
-    const snappedPosition = snapToGrid(position.x, position.y);
-    
-    const placedToken: PlacedToken = {
-      id: `placed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      tokenId: selectedToken.id,
-      sceneId: activeScene.id,
-      x: snappedPosition.x,
-      y: snappedPosition.y,
-      rotation: 0,
-      scale: 1.0,
-      layer: 'tokens',
-      visibleToPlayers: true,
-      dmNotesOnly: false,
-      conditions: [],
-      placedBy: user.id,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
+      return { x: sceneX, y: sceneY };
+    },
+    [camera, svgRef],
+  );
 
-    // Sync via WebSocket
-    webSocketService.sendEvent({
-      type: 'token/place',
-      data: {
+  const snapToGrid = useCallback(
+    (x: number, y: number) => {
+      return {
+        x: Math.round(x / gridSize) * gridSize,
+        y: Math.round(y / gridSize) * gridSize,
+      };
+    },
+    [gridSize],
+  );
+
+  const placeToken = useCallback(
+    (position: { x: number; y: number }) => {
+      if (!selectedToken || !activeScene) return;
+
+      const snappedPosition = snapToGrid(position.x, position.y);
+
+      const placedToken: PlacedToken = {
+        id: `placed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        tokenId: selectedToken.id,
         sceneId: activeScene.id,
-        token: placedToken,
-      },
-    });
+        roomCode: roomCode || '',
+        x: snappedPosition.x,
+        y: snappedPosition.y,
+        rotation: 0,
+        scale: 1.0,
+        layer: 'tokens',
+        visibleToPlayers: true,
+        dmNotesOnly: false,
+        conditions: [],
+        placedBy: user.id,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
 
-    onTokenPlaced?.(placedToken);
-    console.log('Placed token:', placedToken);
-  }, [selectedToken, activeScene, snapToGrid, user.id, onTokenPlaced]);
+      // Sync via WebSocket
+      webSocketService.sendEvent({
+        type: 'token/place',
+        data: {
+          sceneId: activeScene.id,
+          token: placedToken,
+        },
+      });
 
-  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
-    if (activeTool !== 'token-place' || !selectedToken) return;
+      onTokenPlaced?.(placedToken);
+    },
+    [selectedToken, activeScene, snapToGrid, user.id, onTokenPlaced, roomCode],
+  );
 
-    const scenePosition = screenToScene(e.clientX, e.clientY);
-    placeToken(scenePosition);
-    
-    e.stopPropagation();
-  }, [activeTool, selectedToken, screenToScene, placeToken]);
+  const handleCanvasClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (activeTool !== 'token-place' || !selectedToken) return;
+
+      const scenePosition = screenToScene(e.clientX, e.clientY);
+      placeToken(scenePosition);
+
+      e.stopPropagation();
+    },
+    [activeTool, selectedToken, screenToScene, placeToken],
+  );
 
   if (activeTool !== 'token-place') {
     return null;

@@ -52,12 +52,6 @@ export const TokenDropZone: React.FC<TokenDropZoneProps> = ({
           finalY = Math.round(sceneY / gridSize) * gridSize;
         }
 
-        console.log('Token drop:', {
-          token: item.token.name,
-          screenPos: { x: offset.x, y: offset.y },
-          scenePos: { x: finalX, y: finalY },
-        });
-
         // Call the drop handler
         onTokenDrop(item.token, finalX, finalY);
       },

@@ -7,6 +7,7 @@
  */
 
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import {
   useGameStore,
   useScenes,
@@ -83,12 +84,13 @@ export const OfflinePreparation: React.FC = () => {
 
     setIsGoingLive(true);
     try {
-      const roomCode = await startGoingLive(gameConfig);
-      console.log(`🚀 Game is now live with room code: ${roomCode}`);
+      await startGoingLive(gameConfig);
       // The lifecycle store will handle the transition to live mode
     } catch (error) {
       console.error('Failed to go live:', error);
-      // TODO: Show error to user
+      toast.error('Failed to start live game', {
+        description: error instanceof Error ? error.message : String(error),
+      });
     } finally {
       setIsGoingLive(false);
     }

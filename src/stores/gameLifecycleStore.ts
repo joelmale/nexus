@@ -17,14 +17,14 @@ import type {
   LiveGameConfig,
   GameLifecycleAction,
   GameLifecycleEvent,
-  GameLifecycleEvents
+  GameLifecycleEvents,
 } from '@/types/gameLifecycle';
 import { PHASE_PERMISSIONS } from '@/types/gameLifecycle';
 
 interface GameLifecycleStore extends GameLifecycleState {
   // State queries
   canTransitionTo: (newPhase: GamePhase) => boolean;
-  getPermissions: () => typeof PHASE_PERMISSIONS[GamePhase];
+  getPermissions: () => (typeof PHASE_PERMISSIONS)[GamePhase];
   isOnline: () => boolean;
   needsSync: () => boolean;
 
@@ -50,7 +50,7 @@ interface GameLifecycleStore extends GameLifecycleState {
   // Event handling
   emitEvent: <T extends GameLifecycleEvent>(
     event: T,
-    payload: GameLifecycleEvents[T]
+    payload: GameLifecycleEvents[T],
   ) => void;
 
   // Internal state (not managed by Immer)
@@ -64,11 +64,14 @@ const VALID_TRANSITIONS: Record<GamePhase, GamePhase[]> = {
   starting: ['live', 'preparation'],
   live: ['paused', 'ended'],
   paused: ['live', 'ended'],
-  ended: ['preparation']
+  ended: ['preparation'],
 };
 
 // Event handlers stored outside of Immer state to avoid freezing
-export const eventHandlers = new Map<GameLifecycleEvent, Array<(payload: unknown) => void>>();
+export const eventHandlers = new Map<
+  GameLifecycleEvent,
+  Array<(payload: unknown) => void>
+>();
 
 export const useGameLifecycleStore = create<GameLifecycleStore>()(
   subscribeWithSelector(
@@ -119,7 +122,7 @@ export const useGameLifecycleStore = create<GameLifecycleStore>()(
         });
 
         get().emitEvent('lifecycle/enterPreparation', {
-          sessionId: get().localSessionId
+          sessionId: get().localSessionId,
         });
       },
 
@@ -137,7 +140,7 @@ export const useGameLifecycleStore = create<GameLifecycleStore>()(
         const snapshot = get().createSnapshot();
         get().emitEvent('lifecycle/readyToStart', {
           sessionId: get().localSessionId,
-          snapshot
+          snapshot,
         });
 
         console.log('✅ Marked ready to start live game');
@@ -159,7 +162,10 @@ export const useGameLifecycleStore = create<GameLifecycleStore>()(
 
           // This will be implemented to connect to server and get room code
           // For now, generate a mock room code
-          const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+          const roomCode = Math.random()
+            .toString(36)
+            .substring(2, 6)
+            .toUpperCase();
 
           get().emitEvent('lifecycle/startLive', { config, snapshot });
 
@@ -294,8 +300,8 @@ export const useGameLifecycleStore = create<GameLifecycleStore>()(
           metadata: {
             version: 1,
             createdBy: 'mock-user', // Will be populated from user store
-            sessionId: state.localSessionId
-          }
+            sessionId: state.localSessionId,
+          },
         };
       },
 
@@ -320,14 +326,17 @@ export const useGameLifecycleStore = create<GameLifecycleStore>()(
       // Event handling
       emitEvent: <T extends GameLifecycleEvent>(
         event: T,
-        payload: GameLifecycleEvents[T]
+        payload: GameLifecycleEvents[T],
       ) => {
         const handlers = eventHandlers.get(event) || [];
-        handlers.forEach(handler => {
+        handlers.forEach((handler) => {
           try {
             handler(payload);
           } catch (error) {
-            console.error(`Error in lifecycle event handler for ${event}:`, error);
+            console.error(
+              `Error in lifecycle event handler for ${event}:`,
+              error,
+            );
           }
         });
       },
@@ -346,7 +355,7 @@ export const useGameLifecycleStore = create<GameLifecycleStore>()(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           payload: {} as any,
           timestamp: Date.now(),
-          userId
+          userId,
         };
 
         set((state) => {
@@ -354,15 +363,15 @@ export const useGameLifecycleStore = create<GameLifecycleStore>()(
         });
 
         return true;
-      }
-    }))
-  )
+      },
+    })),
+  ),
 );
 
 // Hook for event subscription
 export const useGameLifecycleEvents = (
   event: GameLifecycleEvent,
-  handler: (payload: unknown) => void
+  handler: (payload: unknown) => void,
 ) => {
   React.useEffect(() => {
     const handlers = eventHandlers.get(event) || [];
@@ -371,7 +380,7 @@ export const useGameLifecycleEvents = (
 
     return () => {
       const currentHandlers = eventHandlers.get(event) || [];
-      const filteredHandlers = currentHandlers.filter(h => h !== handler);
+      const filteredHandlers = currentHandlers.filter((h) => h !== handler);
       eventHandlers.set(event, filteredHandlers);
     };
   }, [event, handler]);

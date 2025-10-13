@@ -6,9 +6,9 @@ interface AssetBrowserProps {
   selectedCategory?: string;
 }
 
-export const AssetBrowser: React.FC<AssetBrowserProps> = ({ 
-  onAssetSelect, 
-  selectedCategory = 'all' 
+export const AssetBrowser: React.FC<AssetBrowserProps> = ({
+  onAssetSelect,
+  selectedCategory = 'all',
 }) => {
   const [assets, setAssets] = useState<AssetMetadata[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -69,8 +69,12 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
     if (!hasMore || searchQuery) return;
 
     try {
-      const result = await assetManager.getAssetsByCategory(category, page + 1, 20);
-      setAssets(prev => [...prev, ...result.assets]);
+      const result = await assetManager.getAssetsByCategory(
+        category,
+        page + 1,
+        20,
+      );
+      setAssets((prev) => [...prev, ...result.assets]);
       setHasMore(result.hasMore);
       setPage(page + 1);
     } catch (error) {
@@ -79,7 +83,11 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
   };
 
   const handleClearCache = async () => {
-    if (confirm('Clear all cached map assets? This will free up storage but assets will need to be downloaded again.')) {
+    if (
+      confirm(
+        'Clear all cached map assets? This will free up storage but assets will need to be downloaded again.',
+      )
+    ) {
       try {
         await assetManager.clearCache();
         setCacheSize(0);
@@ -104,7 +112,7 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
         <div className="cache-info">
           <span>Cache: {formatFileSize(cacheSize)}</span>
           {cacheSize > 0 && (
-            <button 
+            <button
               className="btn btn-small btn-secondary"
               onClick={handleClearCache}
             >
@@ -131,9 +139,13 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
             onChange={(e) => setCategory(e.target.value)}
             className="category-select"
           >
-            {categories.map(cat => (
+            {categories.map((cat) => (
               <option key={cat} value={cat}>
-                {cat === 'all' ? 'All Categories' : cat.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                {cat === 'all'
+                  ? 'All Categories'
+                  : cat
+                      .replace('-', ' ')
+                      .replace(/\b\w/g, (l) => l.toUpperCase())}
               </option>
             ))}
           </select>
@@ -169,7 +181,8 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
                 <div className="asset-info">
                   <h4 className="asset-name">{asset.name}</h4>
                   <span className="asset-meta">
-                    {formatFileSize(asset.fileSize)} • {asset.format.toUpperCase()}
+                    {formatFileSize(asset.fileSize)} •{' '}
+                    {asset.format.toUpperCase()}
                   </span>
                 </div>
               </div>
@@ -178,10 +191,7 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
 
           {hasMore && (
             <div className="load-more">
-              <button 
-                className="btn btn-secondary"
-                onClick={loadMore}
-              >
+              <button className="btn btn-secondary" onClick={loadMore}>
                 Load More Maps
               </button>
             </div>

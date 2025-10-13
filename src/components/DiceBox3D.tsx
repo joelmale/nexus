@@ -50,12 +50,10 @@ export const DiceBox3D: React.FC = () => {
             lightIntensity: 1,
           };
 
-          console.log('🎲 Initializing DiceBox with config:', config);
-
           const diceBox = new DiceBox(config);
 
-          diceBox.onRollComplete = (results: unknown) => {
-            console.log('🎲 Roll animation complete:', results);
+          diceBox.onRollComplete = (_results: unknown) => {
+            // Roll animation complete
           };
 
           await diceBox.init();
@@ -63,26 +61,26 @@ export const DiceBox3D: React.FC = () => {
           diceBoxRef.current = diceBox;
           setIsInitialized(true);
           setInitError(null);
-          console.log('🎲 DiceBox3D initialized successfully with config:', diceBox.config);
 
           // Debug checks
           setTimeout(() => {
             if (diceBoxContainerRef.current) {
-              const canvas = diceBoxContainerRef.current.querySelector('canvas');
+              const canvas =
+                diceBoxContainerRef.current.querySelector('canvas');
               if (canvas) {
-                console.log('🎲 Canvas found! Details:', {
-                  width: canvas.width,
-                  height: canvas.height,
-                });
+                // Canvas found
               } else {
                 console.error('🎲 ERROR: No canvas element found!');
               }
             }
           }, 500);
-
         } catch (error) {
           console.error('🎲 Failed to initialize DiceBox3D:', error);
-          setInitError(error instanceof Error ? error.message : 'Failed to initialize or create DiceBox');
+          setInitError(
+            error instanceof Error
+              ? error.message
+              : 'Failed to initialize or create DiceBox',
+          );
           setIsInitialized(false);
         }
       }
@@ -112,7 +110,6 @@ export const DiceBox3D: React.FC = () => {
       const theme = getDiceTheme();
       try {
         diceBoxRef.current.updateConfig({ theme });
-        console.log('🎲 Updated dice theme:', theme);
       } catch (error) {
         console.warn('🎲 Failed to update theme:', error);
       }
@@ -138,9 +135,10 @@ export const DiceBox3D: React.FC = () => {
 
     for (const pool of latestRoll.pools) {
       // For advantage/disadvantage rolls, we have two sets of results
-      const resultsToUse = latestRoll.advResults && latestRoll.advResults.length > 0
-        ? [...pool.results, ...(pool.advResults || [])]
-        : pool.results;
+      const resultsToUse =
+        latestRoll.advResults && latestRoll.advResults.length > 0
+          ? [...pool.results, ...(pool.advResults || [])]
+          : pool.results;
 
       // Add each die individually with its predetermined value
       for (const value of resultsToUse) {
@@ -151,12 +149,6 @@ export const DiceBox3D: React.FC = () => {
 
     // Roll the dice with predetermined values from the server
     if (rollNotations.length > 0) {
-      console.log('🎲 Rolling dice with server results:', {
-        notations: rollNotations,
-        values: rollValues,
-        expression: latestRoll.expression,
-      });
-
       // Clear any existing timeout
       if (clearTimeoutRef.current) {
         clearTimeout(clearTimeoutRef.current);
@@ -170,16 +162,13 @@ export const DiceBox3D: React.FC = () => {
       // Pass array of notation strings and values array separately
       diceBoxRef.current
         .roll(rollNotations, { values: rollValues })
-        .then((results) => {
-          console.log('🎲 Dice roll animation started:', results);
-
+        .then((_results) => {
           // Schedule dice clear after settle time + configured disappear time
           // settleTimeout is 5000ms, so dice settle after 5 seconds
           const totalTime = 5000 + settings.diceDisappearTime;
           clearTimeoutRef.current = setTimeout(() => {
             if (diceBoxRef.current) {
               diceBoxRef.current.clear();
-              console.log('🎲 Dice cleared from canvas');
             }
           }, totalTime);
         })

@@ -1,0 +1,1149 @@
+/* ========================================================================== DICE SYSTEM STYLES ========================================================================== */
+Consolidated styles for dice rolling, animation, and 3D rendering.
+     Organized into logical sections for maintainability.
+     ============================================================================= */
+
+ /* ========================================================================== 1. DICE ANIMATION OVERLAY ========================================================================== */
+
+.dice-animation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.dice-animation-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  perspective: 1200px;
+  perspective-origin: center center;
+}
+
+/* Animated Die Container */
+.animated-die {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100px;
+  height: 100px;
+  transform-style: preserve-3d;
+  animation: diceRoll 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+.animated-die.landed {
+  animation: diceLand 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  animation-delay: calc(var(--delay, 0s) + 1.7s);
+}
+
+.die-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  width: 100%;
+  height: 100%;
+}
+
+/* Dice Rolling Animation */
+@keyframes diceRoll {
+  0% {
+    transform: translate(var(--start-x, 0%), var(--start-y, -100%))
+      rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(0.5);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  40% {
+    transform: translate(calc(var(--start-x, 0%) * 0.5), -20%)
+      rotateX(calc(var(--rotate-x, 360deg) * 0.3))
+      rotateY(calc(var(--rotate-y, 360deg) * 0.3))
+      rotateZ(calc(var(--rotate-z, 360deg) * 0.3)) scale(1.2);
+  }
+  70% {
+    transform: translate(0%, 10%) rotateX(calc(var(--rotate-x, 360deg) * 0.7))
+      rotateY(calc(var(--rotate-y, 360deg) * 0.7))
+      rotateZ(calc(var(--rotate-z, 360deg) * 0.7)) scale(1.1);
+  }
+  85% {
+    transform: translate(0%, 0%) rotateX(var(--rotate-x, 360deg))
+      rotateY(var(--rotate-y, 360deg)) rotateZ(var(--rotate-z, 360deg)) scale(1);
+  }
+  92% {
+    transform: translate(0%, 2%) rotateX(var(--rotate-x, 360deg))
+      rotateY(var(--rotate-y, 360deg)) rotateZ(var(--rotate-z, 360deg))
+      scale(1.05);
+  }
+  100% {
+    transform: translate(0%, 0%) rotateX(var(--rotate-x, 360deg))
+      rotateY(var(--rotate-y, 360deg)) rotateZ(var(--rotate-z, 360deg)) scale(1);
+  }
+}
+
+/* Landing Animation */
+@keyframes diceLand {
+  0% {
+    transform: translate(0%, 0%) rotateX(var(--rotate-x, 360deg))
+      rotateY(var(--rotate-y, 360deg)) rotateZ(var(--rotate-z, 360deg)) scale(1);
+  }
+  50% {
+    transform: translate(0%, -5%) rotateX(0deg) rotateY(0deg) rotateZ(0deg)
+      scale(1.15);
+  }
+  70% {
+    transform: translate(0%, 2%) rotateX(0deg) rotateY(0deg) rotateZ(0deg)
+      scale(0.95);
+  }
+  85% {
+    transform: translate(0%, -1%) rotateX(0deg) rotateY(0deg) rotateZ(0deg)
+      scale(1.05);
+  }
+  100% {
+    transform: translate(0%, 0%) rotateX(0deg) rotateY(0deg) rotateZ(0deg)
+      scale(1.3);
+    filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
+  }
+}
+
+/* === D6 CUBE === */
+.cube {
+  position: relative;
+  transform-style: preserve-3d;
+  width: 100%;
+  height: 100%;
+}
+
+.cube-face {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  box-shadow:
+    inset 0 0 20px rgba(255, 255, 255, 0.1),
+    0 5px 15px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+}
+
+.cube-face.front {
+  transform: rotateY(0deg) translateZ(50px);
+}
+.cube-face.back {
+  transform: rotateY(180deg) translateZ(50px);
+}
+.cube-face.right {
+  transform: rotateY(90deg) translateZ(50px);
+}
+.cube-face.left {
+  transform: rotateY(-90deg) translateZ(50px);
+}
+.cube-face.top {
+  transform: rotateX(90deg) translateZ(50px);
+}
+.cube-face.bottom {
+  transform: rotateX(-90deg) translateZ(50px);
+}
+
+/* Show specific face on landing */
+.cube.show-face-1 {
+  transform: rotateY(0deg) rotateX(0deg);
+}
+.cube.show-face-2 {
+  transform: rotateX(-90deg) rotateY(0deg);
+}
+.cube.show-face-3 {
+  transform: rotateY(-90deg) rotateX(0deg);
+}
+.cube.show-face-4 {
+  transform: rotateY(90deg) rotateX(0deg);
+}
+.cube.show-face-5 {
+  transform: rotateX(90deg) rotateY(0deg);
+}
+.cube.show-face-6 {
+  transform: rotateY(180deg) rotateX(0deg);
+}
+
+/* Dots for D6 */
+.dots {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 100%;
+  height: 100%;
+  padding: 15px;
+}
+
+.dot {
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.dot.top-left {
+  grid-column: 1;
+  grid-row: 1;
+}
+.dot.top-right {
+  grid-column: 3;
+  grid-row: 1;
+}
+.dot.middle-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+.dot.center {
+  grid-column: 2;
+  grid-row: 2;
+}
+.dot.middle-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+.dot.bottom-left {
+  grid-column: 1;
+  grid-row: 3;
+}
+.dot.bottom-right {
+  grid-column: 3;
+  grid-row: 3;
+}
+
+/* === POLYHEDRON SHAPES (d4, d8, d10, d12, d20) === */
+.polyhedron {
+  position: relative;
+  transform-style: preserve-3d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    inset 0 0 30px rgba(255, 255, 255, 0.2),
+    0 5px 20px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+/* D4 - Tetrahedron (pyramid) */
+.d4-shape {
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  background: linear-gradient(135deg, var(--die-color, #8b5cf6), #6d28d9);
+}
+
+/* D8 - Octahedron (diamond) */
+.d8-shape {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  background: linear-gradient(135deg, var(--die-color, #10b981), #059669);
+}
+
+/* D10 - Pentagonal trapezohedron */
+.d10-shape {
+  clip-path: polygon(
+    30% 0%,
+    70% 0%,
+    100% 30%,
+    100% 70%,
+    70% 100%,
+    30% 100%,
+    0% 70%,
+    0% 30%
+  );
+  background: linear-gradient(135deg, var(--die-color, #3b82f6), #2563eb);
+}
+
+/* D12 - Dodecahedron (pentagon-based) */
+.d12-shape {
+  clip-path: polygon(
+    50% 0%,
+    80% 10%,
+    100% 35%,
+    100% 65%,
+    80% 90%,
+    50% 100%,
+    20% 90%,
+    0% 65%,
+    0% 35%,
+    20% 10%
+  );
+  background: linear-gradient(135deg, var(--die-color, #f59e0b), #d97706);
+}
+
+/* D20 - Icosahedron (most sides) */
+.d20-shape {
+  clip-path: polygon(
+    50% 0%,
+    75% 5%,
+    95% 25%,
+    100% 50%,
+    95% 75%,
+    75% 95%,
+    50% 100%,
+    25% 95%,
+    5% 75%,
+    0% 50%,
+    5% 25%,
+    25% 5%
+  );
+  background: linear-gradient(135deg, var(--die-color, #ec4899), #db2777);
+}
+
+/* Die Result Number */
+.die-result {
+  position: relative;
+  z-index: 10;
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(255, 255, 255, 0.3);
+  animation: resultPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes resultPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Size variations for different dice */
+.animated-die.d4 {
+  width: 80px;
+  height: 80px;
+}
+
+.animated-die.d4 .cube-face,
+.animated-die.d4 .polyhedron {
+  width: 80px;
+  height: 80px;
+}
+
+.animated-die.d4 .die-result {
+  font-size: 36px;
+}
+
+.animated-die.d20,
+.animated-die.d12 {
+  width: 120px;
+  height: 120px;
+}
+
+.animated-die.d20 .polyhedron,
+.animated-die.d12 .polyhedron {
+  width: 120px;
+  height: 120px;
+}
+
+.animated-die.d20 .die-result,
+.animated-die.d12 .die-result {
+  font-size: 56px;
+}
+
+/* Critical Success Glow (Natural 20) */
+.animated-die.d20.crit-success .polyhedron {
+  animation: critSuccessGlow 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes critSuccessGlow {
+  from {
+    box-shadow:
+      inset 0 0 30px rgba(255, 255, 255, 0.2),
+      0 0 30px rgba(16, 185, 129, 0.8),
+      0 0 60px rgba(16, 185, 129, 0.6);
+  }
+  to {
+    box-shadow:
+      inset 0 0 30px rgba(255, 255, 255, 0.3),
+      0 0 50px rgba(16, 185, 129, 1),
+      0 0 100px rgba(16, 185, 129, 0.8);
+  }
+}
+
+/* Critical Failure Glow (Natural 1) */
+.animated-die.d20.crit-failure .polyhedron {
+  animation: critFailureGlow 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes critFailureGlow {
+  from {
+    box-shadow:
+      inset 0 0 30px rgba(255, 255, 255, 0.2),
+      0 0 30px rgba(239, 68, 68, 0.8),
+      0 0 60px rgba(239, 68, 68, 0.6);
+  }
+  to {
+    box-shadow:
+      inset 0 0 30px rgba(255, 255, 255, 0.3),
+      0 0 50px rgba(239, 68, 68, 1),
+      0 0 100px rgba(239, 68, 68, 0.8);
+  }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .animated-die {
+    width: 70px;
+    height: 70px;
+  }
+
+  .cube-face,
+  .polyhedron {
+    width: 70px;
+    height: 70px;
+  }
+
+  .die-result {
+    font-size: 32px;
+  }
+}
+
+/* ========================================================================== 2. DICE BOX 3D ========================================================================== */
+
+#dice-box {
+  /* Container styling handled inline */
+}
+
+#dice-box canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* ========================================================================== 3. DICE ROLLER PANEL ========================================================================== */
+
+.dice-roller {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.dice-input,
+.dice-history {
+  position: relative;
+  overflow: hidden;
+  padding: 1rem;
+  border-radius: var(--border-radius-xl);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  box-shadow: var(--shadow-glass-lg);
+}
+
+.dice-input::before,
+.dice-history::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
+}
+
+.dice-input h2,
+.dice-history h3 {
+  margin-bottom: 1.5rem;
+  color: var(--glass-text);
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.roll-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dice-expression {
+  padding: 0.5rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  font-size: 0.95rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--glass-text);
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.dice-expression::placeholder {
+  color: var(--glass-text-light);
+}
+
+.dice-expression:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: var(--glass-surface-hover);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.1),
+    0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.roll-btn {
+  padding: 0.5rem 1rem;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.95rem;
+  color: white;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+}
+
+.roll-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+}
+
+.roll-options {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 0.05rem;
+}
+
+.toggle-label {
+  flex-grow: 1;
+  font-size: 0.9rem;
+  color: var(--glass-text-muted);
+  font-weight: 500;
+}
+
+/* Custom Toggle Switch for Advantage/Disadvantage */
+.setting-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.setting-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  background: var(--glass-surface);
+  transition: 0.3s;
+}
+
+.slider:before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: var(--glass-text);
+  transition: 0.3s;
+}
+
+input:checked + .slider {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+  background: white;
+}
+
+.slider:hover {
+  box-shadow: 0 0 8px rgba(var(--color-primary-rgb), 0.3);
+}
+
+.roll-results {
+  margin-top: 1rem;
+}
+
+.roll-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  margin-bottom: 0.5rem;
+  background: var(--glass-surface);
+  transition: all 0.2s ease;
+}
+
+.roll-result:hover {
+  background: var(--glass-surface-hover);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.roll-expression {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--glass-text);
+  font-size: 0.9rem;
+}
+
+.roll-total {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.roll-details {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--glass-text-muted);
+}
+
+.dice-history {
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-expression {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--glass-text);
+  font-size: 0.85rem;
+}
+
+.history-total {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.history-time {
+  font-size: 0.75rem;
+  color: var(--glass-text-muted);
+}
+
+.clear-history-btn {
+  cursor: pointer;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--border-radius);
+  font-size: 0.85rem;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  transition: all 0.2s ease;
+}
+
+.clear-history-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Die Selection Container */
+.dice-roller__die-selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  justify-content: center;
+  margin-bottom: var(--spacing-4);
+}
+
+/* Individual Die Button */
+.dice-roller__die-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  min-width: 50px;
+  min-height: 40px;
+  background: var(--surface-secondary);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.dice-roller__die-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+  color: white;
+  background: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.dice-roller__die-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Die Icon Text */
+.dice-roller__die-icon {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Legacy support for old die-icon class */
+.die-icon {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  font-family: var(--font-mono);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ========================================================================== 4. DICE BUILDER & DIE TYPE BUTTONS (from dice-roller.css) ========================================================================== */
+
+/* Dice Builder Section */
+.dice-builder {
+  margin-top: 2rem;
+}
+
+.dice-builder h3 {
+  font-size: 1.2rem;
+  color: var(--glass-text-muted);
+  font-weight: 600;
+}
+
+/* Clear Button */
+.clear-queue-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.6);
+  transform: scale(1.05);
+}
+
+.clear-queue-btn:active {
+  transform: scale(0.95);
+}
+
+/* Die Type Buttons Grid */
+.die-type-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 0.75rem;
+}
+
+/* Individual Die Button */
+.die-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0.25rem 0.25rem;
+  border: 2px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  min-height: 35px;
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.die-type-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+}
+
+.die-type-btn:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.6);
+  background: var(--glass-surface-hover);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 8px 16px rgba(99, 102, 241, 0.3),
+    0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.die-type-btn:active {
+  transform: translateY(-2px) scale(0.98);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 4px 8px rgba(99, 102, 241, 0.2);
+}
+
+/* +1 Label */
+.die-label {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--glass-text-muted);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+/* Modifiers Section */
+.modifiers-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.modifiers-section h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: var(--glass-text-muted);
+  font-weight: 600;
+}
+
+.modifier-controls {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.modifier-btn {
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--glass-text);
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.modifier-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--glass-surface-hover);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.modifier-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ========================================================================== 5. ROLL HISTORY & RESULTS (from dice-roller.css) ========================================================================== */
+
+.rolls-list {
+  overflow-y: auto;
+  max-height: 450px;
+  padding-right: 0.5rem;
+}
+
+.no-rolls {
+  text-align: center;
+  padding: 3rem;
+  color: var(--glass-text-muted);
+  font-style: italic;
+}
+
+.dice-roll {
+  padding: 1.5rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: 1rem;
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition: all 0.3s ease;
+}
+
+.dice-roll:hover {
+  background: var(--glass-surface-hover);
+  transform: translateX(5px);
+  box-shadow: var(--shadow-glass);
+}
+
+.dice-roll.private {
+  border-left: 4px solid var(--color-primary);
+  padding-left: calc(1.5rem - 4px);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.dice-roll.new-roll {
+  animation: newRollFlash 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.roll-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.roller-name {
+  font-weight: 700;
+  color: var(--glass-text);
+  background: linear-gradient(135deg, #fff 0%, #f0f9ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.roll-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--glass-text-light);
+}
+
+.roll-time {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.private-tag {
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+  background: var(--color-primary);
+}
+.reroll-btn {
+  cursor: pointer;
+  padding: 0.2rem;
+  border: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--glass-text-muted);
+  background: none;
+  transition: all 0.2s ease;
+}
+
+.reroll-btn:hover {
+  color: var(--color-accent);
+  transform: rotate(90deg);
+}
+
+@keyframes newRollFlash {
+  0% {
+    background: var(--glass-surface-strong);
+    transform: scale(1.02);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+  }
+  100% {
+    background: var(--glass-surface);
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+
+/* Styles for Advantage/Disadvantage and Critical Rolls */
+.roll-result .discarded-roll {
+  text-decoration: line-through;
+  color: var(--glass-text-muted);
+  opacity: 0.6;
+}
+
+.roll-result .kept-roll {
+  font-weight: 700;
+  color: var(--glass-text);
+}
+
+.roll-result .crit-success {
+  color: var(--color-success);
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.roll-result .crit-failure {
+  color: var(--color-error);
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.roll-total.crit-success,
+.roll-total.crit-failure {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Multiple Dice Pool Styles */
+.dice-pool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0.15rem;
+}
+
+.pool-label {
+  font-weight: 700;
+  font-size: 0.9em;
+  color: var(--color-primary);
+  opacity: 0.8;
+}
+
+/* Dice Panel Control Buttons */
+.theme-toggle-btn,
+.sound-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0.5rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
+  color: var(--glass-text);
+  background: var(--glass-surface);
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:before,
+.sound-toggle-btn:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+}
+
+.theme-toggle-btn:hover,
+.sound-toggle-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--glass-surface-hover);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.theme-toggle-btn:active,
+.sound-toggle-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dice-roller {
+    margin: 0 1rem;
+  }
+
+  .dice-input,
+  .dice-history {
+    padding: 0.75rem;
+  }
+
+  .dice-input h2,
+  .dice-history h3 {
+    font-size: 1.25rem;
+  }
+
+  .roll-result {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .roll-total {
+    align-self: flex-end;
+  }
+
+  .cube-face,
+  .polyhedron {
+    width: 70px;
+    height: 70px;
+  }
+
+  .die-result {
+    font-size: 32px;
+  }
+}

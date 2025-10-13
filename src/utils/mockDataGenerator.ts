@@ -6,7 +6,13 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import type { Scene, PlacedToken } from '@/types/game';
-import type { Drawing, LineDrawing, RectangleDrawing, CircleDrawing, TextDrawing } from '@/types/drawing';
+import type {
+  Drawing,
+  LineDrawing,
+  RectangleDrawing,
+  CircleDrawing,
+  TextDrawing,
+} from '@/types/drawing';
 
 export interface MockDataConfig {
   userId: string;
@@ -37,6 +43,7 @@ export function generateMockGameData(config: MockDataConfig): MockGameData {
       visibility: 'public',
       isEditable: true,
       createdBy: config.userId,
+      roomCode: 'TEST_ROOM',
       createdAt: now,
       updatedAt: now,
       backgroundImage: {
@@ -75,6 +82,7 @@ export function generateMockGameData(config: MockDataConfig): MockGameData {
       visibility: 'public',
       isEditable: true,
       createdBy: config.userId,
+      roomCode: 'TEST_ROOM',
       createdAt: now,
       updatedAt: now,
       backgroundImage: {
@@ -261,6 +269,7 @@ export function generateMockGameData(config: MockDataConfig): MockGameData {
       id: uuidv4(),
       tokenId: 'mock-token-goblin-1',
       sceneId: scene1Id,
+      roomCode: 'TEST_ROOM',
       x: 900,
       y: 650,
       rotation: 0,
@@ -277,6 +286,7 @@ export function generateMockGameData(config: MockDataConfig): MockGameData {
       id: uuidv4(),
       tokenId: 'mock-token-goblin-2',
       sceneId: scene1Id,
+      roomCode: 'TEST_ROOM',
       x: 1100,
       y: 700,
       rotation: 45,
@@ -297,6 +307,7 @@ export function generateMockGameData(config: MockDataConfig): MockGameData {
       id: uuidv4(),
       tokenId: 'mock-token-skeleton-1',
       sceneId: scene2Id,
+      roomCode: 'TEST_ROOM',
       x: 1100,
       y: 800,
       rotation: 0,
@@ -324,7 +335,9 @@ export function generateMockGameData(config: MockDataConfig): MockGameData {
 /**
  * Apply mock data to the linearFlowStorage (entity store)
  */
-export async function applyMockDataToStorage(config: MockDataConfig): Promise<void> {
+export async function applyMockDataToStorage(
+  config: MockDataConfig,
+): Promise<void> {
   const { getLinearFlowStorage } = await import('@/services/linearFlowStorage');
   const storage = getLinearFlowStorage();
 

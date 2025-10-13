@@ -7,7 +7,7 @@
 
 import { getOgresStore } from './ogresStyleStore';
 import type { Scene, Token, Drawing } from '@/types/game';
-import type { PlayerCharacter, GameConfig } from '@/types/appFlow';
+import type { PlayerCharacter, GameConfig } from '@/types/game';
 
 export class LinearFlowStorage {
   private store = getOgresStore();
@@ -210,7 +210,13 @@ export class LinearFlowStorage {
   /**
    * Get all scenes
    */
-  getScenes(): Scene[] {
+  getScenes(roomCode?: string): Scene[] {
+    if (roomCode) {
+      return this.store.query({
+        type: 'scene',
+        where: { roomCode },
+      }) as unknown as Scene[];
+    }
     return this.store.getByType('scene') as unknown as Scene[];
   }
 
@@ -294,10 +300,14 @@ export class LinearFlowStorage {
   /**
    * Get all drawings for a scene
    */
-  getDrawings(sceneId: string): Drawing[] {
+  getDrawings(sceneId: string, roomCode?: string): Drawing[] {
+    const where: Record<string, unknown> = { sceneId };
+    if (roomCode) {
+      where.roomCode = roomCode;
+    }
     return this.store.query({
       type: 'drawing',
-      where: { sceneId },
+      where,
     }) as unknown as Drawing[];
   }
 
@@ -316,15 +326,12 @@ export class LinearFlowStorage {
    * Add a single drawing to a scene
    */
   addDrawing(sceneId: string, drawing: Drawing): Drawing {
-    const drawingEntity = this.store.create(
-      'drawing',
-      {
-        ...drawing,
-        sceneId,
-        createdAt: drawing.createdAt || Date.now(),
-        updatedAt: Date.now(),
-      },
-    );
+    const drawingEntity = this.store.create('drawing', {
+      ...drawing,
+      sceneId,
+      createdAt: drawing.createdAt || Date.now(),
+      updatedAt: Date.now(),
+    });
 
     console.log(`🎨 Added drawing to scene ${sceneId}:`, drawing.id);
     return drawingEntity as unknown as Drawing;
@@ -482,7 +489,14 @@ export class LinearFlowStorage {
   /**
    * Load session state
    */
-  loadSession(): { user: { name: string; type: string; id: string }; roomCode: string; view: string; isConnected: boolean; browserId: string; lastActivity: number } | null {
+  loadSession(): {
+    user: { name: string; type: string; id: string };
+    roomCode: string;
+    view: string;
+    isConnected: boolean;
+    browserId: string;
+    lastActivity: number;
+  } | null {
     const sessions = this.store.query({
       type: 'session',
       where: { browserId: this.getBrowserId() },
@@ -492,13 +506,23 @@ export class LinearFlowStorage {
 
     const session = sessions[0];
     console.log('📂 Loaded session from entity store');
-    return session as unknown as { user: { name: string; type: string; id: string }; roomCode: string; view: string; isConnected: boolean; browserId: string; lastActivity: number };
+    return session as unknown as {
+      user: { name: string; type: string; id: string };
+      roomCode: string;
+      view: string;
+      isConnected: boolean;
+      browserId: string;
+      lastActivity: number;
+    };
   }
 
   /**
    * Load legacy session data
    */
-  loadLegacySessionData(): { session: unknown | null; gameState: unknown | null } {
+  loadLegacySessionData(): {
+    session: unknown | null;
+    gameState: unknown | null;
+  } {
     const browserId = this.getBrowserId();
 
     const sessionData = this.store.query({
@@ -555,8 +579,12 @@ export class LinearFlowStorage {
 
     // Get all entities first (before deleting anything to avoid query issues)
     // Filter out undefined values in case of corrupted data
-    const allDrawings = (this.store.getByType('drawing') as unknown as Drawing[]).filter(d => d != null);
-    const allScenes = (this.store.getByType('scene') as unknown as Scene[]).filter(s => s != null);
+    const allDrawings = (
+      this.store.getByType('drawing') as unknown as Drawing[]
+    ).filter((d) => d != null);
+    const allScenes = (
+      this.store.getByType('scene') as unknown as Scene[]
+    ).filter((s) => s != null);
 
     // Delete all drawings first
     allDrawings.forEach((drawing) => {
@@ -859,7 +887,9 @@ export class LinearFlowStorage {
    */
   downloadBackup(filename?: string): void {
     this.exportCampaign().then((backupData) => {
-      const blob = new Blob([backupData as BlobPart], { type: 'application/octet-stream' });
+      const blob = new Blob([backupData as BlobPart], {
+        type: 'application/octet-stream',
+      });
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement('a');
@@ -913,7 +943,9 @@ export class LinearFlowStorage {
 
   private getBrowserId(): string {
     // Check IndexedDB first (new system)
-    const browserIdEntity = this.store.get('browser-id') as { value: string } | null;
+    const browserIdEntity = this.store.get('browser-id') as {
+      value: string;
+    } | null;
 
     if (browserIdEntity) {
       return browserIdEntity.value;
@@ -1021,7 +1053,9 @@ export function getLinearFlowStorage(): LinearFlowStorage {
 
 // Debug exports for console access
 if (typeof window !== 'undefined') {
-  (window as unknown as { debugStorage: Record<string, unknown> }).debugStorage = {
+  (
+    window as unknown as { debugStorage: Record<string, unknown> }
+  ).debugStorage = {
     resetDatabase: async () => {
       const storage = getLinearFlowStorage();
       await storage.resetDatabase();

@@ -1,10 +1,10 @@
 export type PropSize =
-  | 'tiny'      // 0.5x0.5 grid squares
-  | 'small'     // 1x1 grid squares
-  | 'medium'    // 2x2 grid squares
-  | 'large'     // 3x3 grid squares
-  | 'huge'      // 4x4 grid squares
-  | 'custom';   // User-defined size
+  | 'tiny' // 0.5x0.5 grid squares
+  | 'small' // 1x1 grid squares
+  | 'medium' // 2x2 grid squares
+  | 'large' // 3x3 grid squares
+  | 'huge' // 4x4 grid squares
+  | 'custom'; // User-defined size
 
 export type PropCategory =
   | 'furniture'

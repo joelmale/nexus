@@ -4,6 +4,7 @@ import React, {
   useState,
   useCallback,
   useMemo,
+  useTransition,
 } from 'react';
 import {
   useGameStore,
@@ -13,6 +14,7 @@ import {
   useActiveTool,
   useSceneState,
   useSceneDrawings,
+  useServerRoomCode,
 } from '@/stores/gameStore';
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
@@ -22,9 +24,12 @@ import { SelectionOverlay } from './SelectionOverlay';
 import { DrawingPropertiesPanel } from './DrawingPropertiesPanel';
 import { TokenDropZone } from './TokenDropZone';
 import { TokenRenderer } from './TokenRenderer';
+import { TokenToolbar } from '../Tokens/TokenToolbar';
+import { CanvasErrorBoundary, TokenErrorBoundary } from '../ErrorBoundary';
 import { webSocketService } from '@/utils/websocket';
 import { tokenAssetManager } from '@/services/tokenAssets';
-import { createPlacedToken } from '@/types/token';
+import { createPlacedToken, getTokenPixelSize } from '@/types/token';
+import { useTokenStore, useSelectedToken } from '@/stores/tokenStore';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
 import type {
@@ -48,6 +53,8 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     addToSelection,
     clearSelection,
   } = useGameStore();
+  const { selectToken } = useTokenStore();
+  const selectedToken = useSelectedToken();
   const { selectedObjectIds } = useSceneState();
   const camera = useCamera();
   const followDM = useFollowDM();
@@ -55,12 +62,13 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   const activeTool = useActiveTool() as
     | DrawingTool
     | MeasurementTool
-    | 'select'
     | 'pan'
     | 'move'
-    | 'copy'
-    | 'cut'
-    | 'paste'
+    | 'select'
+    | 'eraser'
+    | 'ping'
+    | 'polygon'
+    | 'pencil'
     | 'mask-create'
     | 'mask-toggle'
     | 'mask-remove'
@@ -68,15 +76,11 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     | 'mask-hide'
     | 'grid-align';
 
+  const [, startSelectionTransition] = useTransition();
+  const roomCode = useServerRoomCode();
+
   // Debug log for background image
-  useEffect(() => {
-    console.log('🎨 SceneCanvas render:', {
-      sceneId: scene.id,
-      sceneName: scene.name,
-      hasBackground: !!scene.backgroundImage,
-      backgroundUrl: scene.backgroundImage?.url?.substring(0, 50),
-    });
-  }, [scene.id, scene.name, scene.backgroundImage]);
+  useEffect(() => {}, [scene.id, scene.name, scene.backgroundImage]);
 
   // Safe access to scene properties with defaults
   const safeGridSettings = useMemo(
@@ -107,7 +111,6 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     coneLength: 15,
     dndSpellLevel: 1,
   });
-
 
   const drawings = useSceneDrawings(scene.id);
 
@@ -142,11 +145,6 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         message.data.name?.startsWith('drawing/')
       ) {
         if (message.data.sceneId === scene.id) {
-          console.log(
-            'Received drawing sync event:',
-            message.data.name,
-            message.data,
-          );
           // The event has already been processed by the game store
           // This is just for additional UI updates if needed
         }
@@ -155,7 +153,6 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       // Handle camera synchronization for players following DM
       if (message.type === 'event' && message.data.name === 'camera/update') {
         if (message.data.sceneId === scene.id && !isHost && followDM) {
-          console.log('Following DM camera update:', message.data.camera);
           // Camera update is handled by the game store
         }
       }
@@ -257,8 +254,6 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Get tokens for this scene - must be defined before callbacks that use it
   const placedTokens = getSceneTokens(scene.id);
 
-
-
   const handleClosePropertiesPanel = useCallback(() => {
     clearSelection();
   }, [clearSelection]);
@@ -270,6 +265,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         token,
         { x, y },
         scene.id,
+        roomCode || '',
         user.id,
         {
           visibleToPlayers: token.isPublic !== false,
@@ -286,19 +282,27 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
           token: placedToken,
         },
       });
-
-      console.log(`Token placed: ${token.name} at (${x}, ${y})`);
     },
-    [scene.id, user.id, placeToken],
+    [scene.id, user.id, placeToken, roomCode],
   );
 
-  const handleTokenSelect = useCallback((tokenId: string, multi: boolean) => {
-    if (multi) {
-      addToSelection([tokenId]);
-    } else {
-      setSelection([tokenId]);
-    }
-  }, [addToSelection, setSelection]);
+  const handleTokenSelect = useCallback(
+    (tokenId: string, multi: boolean) => {
+      if (multi) {
+        // Urgent: Update selection immediately for visual feedback
+        addToSelection([tokenId]);
+        // For multi-select, we don't update token toolbar selection
+      } else {
+        // Urgent: Update selection immediately for visual feedback
+        setSelection([tokenId]);
+        // Non-urgent: Update token store selection for toolbar
+        startSelectionTransition(() => {
+          selectToken(tokenId);
+        });
+      }
+    },
+    [addToSelection, setSelection, startSelectionTransition, selectToken],
+  );
 
   const handleTokenMove = useCallback(
     (tokenId: string, deltaX: number, deltaY: number) => {
@@ -369,143 +373,185 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Calculate transform for the scene content
   const transform = `translate(${viewportSize.width / 2 - camera.x * camera.zoom}, ${viewportSize.height / 2 - camera.y * camera.zoom}) scale(${camera.zoom})`;
 
+  // Calculate toolbar position for selected token
+  const getToolbarPosition = useCallback(() => {
+    if (!selectedToken) return { x: 0, y: 0 };
+
+    // Find the placed token data
+    const placedToken = placedTokens.find((pt) => pt.id === selectedToken.id);
+    if (!placedToken) return { x: 0, y: 0 };
+
+    // Calculate screen position: apply camera transform to token position
+    const screenX =
+      viewportSize.width / 2 + (placedToken.x - camera.x) * camera.zoom;
+    const screenY =
+      viewportSize.height / 2 + (placedToken.y - camera.y) * camera.zoom;
+
+    // Position toolbar above and to the right of the token
+    const tokenSize =
+      getTokenPixelSize(
+        tokenAssetManager.getTokenById(placedToken.tokenId)?.size || 'medium',
+        safeGridSettings.size,
+      ) *
+      placedToken.scale *
+      camera.zoom;
+
+    return {
+      x: screenX + tokenSize / 2 + 10, // 10px offset from token edge
+      y: screenY - tokenSize / 2 - 10, // Above the token
+    };
+  }, [
+    selectedToken,
+    placedTokens,
+    camera,
+    viewportSize,
+    safeGridSettings.size,
+  ]);
+
   return (
-    <div className="scene-canvas-container">
-      {/* Drawing Properties Panel */}
-      {selectedDrawingIds.length > 0 && (
-        <DrawingPropertiesPanel
-          selectedDrawingIds={selectedDrawingIds}
+    <CanvasErrorBoundary>
+      <div className="scene-canvas-container">
+        {/* Drawing Properties Panel */}
+        {selectedDrawingIds.length > 0 && (
+          <DrawingPropertiesPanel
+            selectedDrawingIds={selectedDrawingIds}
+            sceneId={scene.id}
+            onClose={handleClosePropertiesPanel}
+          />
+        )}
+
+        {/* Token Toolbar */}
+        {selectedToken && <TokenToolbar position={getToolbarPosition()} />}
+
+        <TokenDropZone
           sceneId={scene.id}
-          onClose={handleClosePropertiesPanel}
-        />
-      )}
-
-      <TokenDropZone
-        sceneId={scene.id}
-        camera={camera}
-        gridSize={safeGridSettings.size}
-        snapToGrid={safeGridSettings.snapToGrid}
-        onTokenDrop={handleTokenDrop}
-      >
-        <svg
-          ref={svgRef}
-          className="scene-canvas"
-          width="100%"
-          height="100%"
-          onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
-          style={{ cursor: getCursor() }}
+          camera={camera}
+          gridSize={safeGridSettings.size}
+          snapToGrid={safeGridSettings.snapToGrid}
+          onTokenDrop={handleTokenDrop}
         >
-          <defs>
-            {/* Define patterns and gradients here */}
-            <pattern
-              id={`grid-${scene.id}`}
-              width={safeGridSettings.size}
-              height={safeGridSettings.size}
-              patternUnits="userSpaceOnUse"
-            >
-              <path
-                d={`M ${safeGridSettings.size} 0 L 0 0 0 ${safeGridSettings.size}`}
-                fill="none"
-                stroke={safeGridSettings.color}
-                strokeWidth="1"
-                opacity={safeGridSettings.opacity}
-              />
-            </pattern>
-          </defs>
+          <svg
+            ref={svgRef}
+            className="scene-canvas"
+            width="100%"
+            height="100%"
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            style={{ cursor: getCursor() }}
+          >
+            <defs>
+              {/* Define patterns and gradients here */}
+              <pattern
+                id={`grid-${scene.id}`}
+                width={safeGridSettings.size}
+                height={safeGridSettings.size}
+                patternUnits="userSpaceOnUse"
+              >
+                <path
+                  d={`M ${safeGridSettings.size} 0 L 0 0 0 ${safeGridSettings.size}`}
+                  fill="none"
+                  stroke={safeGridSettings.color}
+                  strokeWidth="1"
+                  opacity={safeGridSettings.opacity}
+                />
+              </pattern>
+            </defs>
 
-          <g className="scene-content" transform={transform}>
-            {/* Background layer */}
-            {scene.backgroundImage && (
-              <SceneBackground
-                backgroundImage={scene.backgroundImage}
+            <g className="scene-content" transform={transform}>
+              {/* Background layer */}
+              {scene.backgroundImage && (
+                <SceneBackground
+                  backgroundImage={scene.backgroundImage}
+                  sceneId={scene.id}
+                />
+              )}
+
+              {/* Grid layer */}
+              {safeGridSettings.enabled && (
+                <SceneGrid
+                  scene={scene}
+                  viewportSize={viewportSize}
+                  camera={camera}
+                />
+              )}
+
+              {/* Drawings layer */}
+              <DrawingRenderer
                 sceneId={scene.id}
-              />
-            )}
-
-            {/* Grid layer */}
-            {safeGridSettings.enabled && (
-              <SceneGrid
-                scene={scene}
-                viewportSize={viewportSize}
                 camera={camera}
+                isHost={isHost}
               />
-            )}
 
-            {/* Drawings layer */}
-            <DrawingRenderer
-              sceneId={scene.id}
-              camera={camera}
-              isHost={isHost}
-            />
+              {/* Tokens layer */}
+              <TokenErrorBoundary>
+                <g id="tokens-layer">
+                  {placedTokens.map((placedToken) => {
+                    const token = tokenAssetManager.getTokenById(
+                      placedToken.tokenId,
+                    );
+                    if (!token) return null;
 
-            {/* Tokens layer */}
-            <g id="tokens-layer">
-              {placedTokens.map((placedToken) => {
-                const token = tokenAssetManager.getTokenById(
-                  placedToken.tokenId,
-                );
-                if (!token) return null;
+                    // Filter by visibility
+                    if (!isHost && !placedToken.visibleToPlayers) return null;
 
-                // Filter by visibility
-                if (!isHost && !placedToken.visibleToPlayers) return null;
+                    return (
+                      <TokenRenderer
+                        key={placedToken.id}
+                        placedToken={placedToken}
+                        token={token}
+                        gridSize={safeGridSettings.size}
+                        isSelected={selectedObjectIds.includes(placedToken.id)}
+                        onSelect={handleTokenSelect}
+                        onMove={handleTokenMove}
+                        onMoveEnd={handleTokenMoveEnd}
+                        canEdit={isHost || placedToken.placedBy === user.id}
+                      />
+                    );
+                  })}
+                </g>
+              </TokenErrorBoundary>
 
-                return (
-                  <TokenRenderer
-                    key={placedToken.id}
-                    placedToken={placedToken}
-                    token={token}
-                    gridSize={safeGridSettings.size}
-                    isSelected={selectedObjectIds.includes(placedToken.id)}
-                    onSelect={handleTokenSelect}
-                    onMove={handleTokenMove}
-                    onMoveEnd={handleTokenMoveEnd}
-                    canEdit={isHost || placedToken.placedBy === user.id}
-                  />
-                );
-              })}
+              {/* Drawing tools layer (interactive) */}
+              <DrawingTools
+                activeTool={activeTool}
+                drawingStyle={drawingStyle}
+                camera={camera}
+                _gridSize={safeGridSettings.size}
+                svgRef={svgRef as React.RefObject<SVGSVGElement>}
+                snapToGrid={safeGridSettings.snapToGrid}
+                selectedObjectIds={selectedObjectIds}
+                setSelection={setSelection}
+                clearSelection={clearSelection}
+                placedTokens={placedTokens}
+              />
+
+              {/* Selection overlay */}
+              <SelectionOverlay
+                selectedDrawings={selectedObjectIds}
+                sceneId={scene.id}
+                camera={camera}
+                onClearSelection={clearSelection}
+              />
+
+              {/* Content layers will be added here (tokens, etc.) */}
             </g>
 
-            {/* Drawing tools layer (interactive) */}
-            <DrawingTools
-              activeTool={activeTool}
-              drawingStyle={drawingStyle}
-              camera={camera}
-              _gridSize={safeGridSettings.size}
-              svgRef={svgRef as React.RefObject<SVGSVGElement>}
-              snapToGrid={safeGridSettings.snapToGrid}
-              selectedObjectIds={selectedObjectIds}
-              setSelection={setSelection}
-              clearSelection={clearSelection}
-              placedTokens={placedTokens}
-            />
-
-            {/* Selection overlay */}
-            <SelectionOverlay
-              selectedDrawings={selectedObjectIds}
-              sceneId={scene.id}
-              camera={camera}
-              onClearSelection={clearSelection}
-            />
-
-            {/* Content layers will be added here (tokens, etc.) */}
-          </g>
-
-          {/* UI overlay elements (not affected by camera transform) */}
-          <g className="ui-overlay">
-            {/* Coordinate display for debugging */}
-            {process.env.NODE_ENV === 'development' && (
-              <text x="10" y="20" fill="white" fontSize="12">
-                Camera: ({Math.round(camera.x)}, {Math.round(camera.y)}) Zoom:{' '}
-                {camera.zoom.toFixed(2)}
-              </text>
-            )}
-          </g>
-        </svg>
-      </TokenDropZone>
-    </div>
+            {/* UI overlay elements (not affected by camera transform) */}
+            <g className="ui-overlay">
+              {/* Coordinate display for debugging */}
+              {process.env.NODE_ENV === 'development' && (
+                <text x="10" y="20" fill="white" fontSize="12">
+                  Camera: ({Math.round(camera.x)}, {Math.round(camera.y)}) Zoom:{' '}
+                  {camera.zoom.toFixed(2)}
+                </text>
+              )}
+            </g>
+          </svg>
+        </TokenDropZone>
+      </div>
+    </CanvasErrorBoundary>
   );
 };

@@ -1,6 +1,5 @@
-/* Add to existing CSS at the end */
+/* ========================================================================== HEADER BRANDING ========================================================================== */
 
-/* Logo and branding styles */
 .header-brand {
   display: flex;
   align-items: center;
@@ -16,17 +15,19 @@
   transform: scale(1.05);
 }
 
+/* ========================================================================== LOBBY BRANDING ========================================================================== */
+
 .lobby-brand {
-  margin-bottom: 1rem;
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-bottom: 1rem;
 }
 
 .lobby-logo {
+  max-height: 120px;
   filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.4));
   transition: all 0.3s ease;
-  max-height: 120px;
 }
 
 .lobby-logo:hover {
@@ -34,7 +35,8 @@
   transform: scale(1.02);
 }
 
-/* Fallback styles when no custom logo is available */
+/* ========================================================================== FALLBACK TEXT BRANDING ========================================================================== */
+
 .layout-header h1 {
   font-size: 1.75rem;
   font-weight: 700;
@@ -53,12 +55,12 @@
 
 .lobby-content h1 {
   font-size: 3rem;
+  font-weight: 800;
   margin-bottom: 1rem;
   background: linear-gradient(135deg, #fff 0%, #f0f9ff 50%, #e0f2fe 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-weight: 800;
   text-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
 }
@@ -68,24 +70,28 @@
   transform: scale(1.02);
 }
 
-/* Asset loading states */
+/* ========================================================================== ASSET LOADING STATES ========================================================================== */
+
 .asset-loading {
   display: inline-block;
   width: 100%;
   height: 40px;
-  background: linear-gradient(90deg, 
-    var(--glass-surface) 0%, 
-    var(--glass-surface-hover) 50%, 
-    var(--glass-surface) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--glass-surface) 0%,
+    var(--glass-surface-hover) 50%,
+    var(--glass-surface) 100%
+  );
   background-size: 200% 100%;
-  animation: shimmer 2s infinite;
   border-radius: var(--border-radius);
+  animation: shimmer 2s infinite;
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
-
-/* Desktop/Tablet optimized assets - Mobile responsive design removed per requirements */
-

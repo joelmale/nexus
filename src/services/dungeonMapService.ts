@@ -114,7 +114,9 @@ class DungeonMapService {
   private saveToStorage(recursionDepth = 0): void {
     // Prevent infinite recursion
     if (recursionDepth > 10) {
-      console.error('❌ Failed to save after removing 10 maps. Clearing all generated maps.');
+      console.error(
+        '❌ Failed to save after removing 10 maps. Clearing all generated maps.',
+      );
       this.generatedMaps = [];
       localStorage.removeItem(this.STORAGE_KEY);
       return;
@@ -139,7 +141,9 @@ class DungeonMapService {
         error.name === 'QuotaExceededError'
       ) {
         if (this.generatedMaps.length > 0) {
-          console.warn(`⚠️ Storage full. Removing oldest map (${this.generatedMaps.length} total)`);
+          console.warn(
+            `⚠️ Storage full. Removing oldest map (${this.generatedMaps.length} total)`,
+          );
           this.generatedMaps.shift(); // Remove oldest
           this.saveToStorage(recursionDepth + 1); // Try again with depth tracking
         } else {
@@ -173,7 +177,9 @@ class DungeonMapService {
       const removed = this.generatedMaps.length - count;
       this.generatedMaps = this.generatedMaps.slice(-count);
       this.saveToStorage();
-      console.log(`🗑️ Removed ${removed} old dungeon maps, kept ${count} most recent`);
+      console.log(
+        `🗑️ Removed ${removed} old dungeon maps, kept ${count} most recent`,
+      );
     }
   }
 

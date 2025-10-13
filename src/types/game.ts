@@ -46,7 +46,12 @@ export interface DiceRoll {
 }
 
 // Navigation & Flow Types (from appFlowStore)
-export type AppView = 'welcome' | 'player_setup' | 'dm_setup' | 'game';
+export type AppView =
+  | 'welcome'
+  | 'player_setup'
+  | 'dm_setup'
+  | 'game'
+  | 'admin';
 
 export interface PlayerCharacter {
   id: string;
@@ -76,6 +81,12 @@ export interface GameConfig {
   maxPlayers: number;
 }
 
+export interface ChatState {
+  messages: ChatMessage['data'][];
+  typingUsers: { userId: string; userName: string }[];
+  unreadCount: number;
+}
+
 export interface GameState {
   // Navigation (from appFlowStore)
   view: AppView;
@@ -93,6 +104,12 @@ export interface GameState {
   activeTab: TabType;
   sceneState: SceneState;
   settings: UserSettings;
+
+  // Chat
+  chat: ChatState;
+
+  // Voice
+  voice: VoiceState;
 }
 
 export type TabType = 'lobby' | 'dice' | 'scenes' | 'tokens' | 'settings';
@@ -157,6 +174,7 @@ export interface Scene {
   id: string;
   name: string;
   description: string;
+  roomCode: string; // Links scene to specific game room
 
   // Permissions and visibility
   visibility: 'private' | 'shared' | 'public'; // DM control over who can see
@@ -245,6 +263,19 @@ export interface DiceRollMessage extends BaseMessage {
   data: DiceRoll;
 }
 
+export interface ChatMessage extends BaseMessage {
+  type: 'chat-message';
+  data: {
+    id: string;
+    userId: string;
+    userName: string;
+    content: string;
+    messageType: 'text' | 'system' | 'dm-announcement' | 'whisper';
+    recipientId?: string; // For whispers
+    timestamp: number;
+  };
+}
+
 export interface ErrorMessage extends BaseMessage {
   type: 'error';
   data: {
@@ -257,6 +288,7 @@ export type WebSocketMessage =
   | EventMessage
   | StateMessage
   | DiceRollMessage
+  | ChatMessage
   | ErrorMessage;
 
 // Game events
@@ -413,38 +445,63 @@ export interface TokenDeleteEvent extends GameEvent {
   };
 }
 
-// Token Events
-export interface TokenPlaceEvent extends GameEvent {
-  type: 'token/place';
+// Chat Events
+export interface ChatMessageEvent extends GameEvent {
+  type: 'chat/message';
   data: {
-    sceneId: string;
-    token: PlacedToken;
+    message: ChatMessage['data'];
   };
 }
 
-export interface TokenMoveEvent extends GameEvent {
-  type: 'token/move';
+export interface ChatUserTypingEvent extends GameEvent {
+  type: 'chat/typing';
   data: {
-    sceneId: string;
-    tokenId: string;
-    position: { x: number; y: number };
-    rotation?: number;
+    userId: string;
+    userName: string;
+    isTyping: boolean;
   };
 }
 
-export interface TokenUpdateEvent extends GameEvent {
-  type: 'token/update';
+// Voice Chat Types
+export interface VoiceChannel {
+  id: string;
+  name: string;
+  participants: string[]; // User IDs
+  isActive: boolean;
+}
+
+export interface VoiceState {
+  channels: VoiceChannel[];
+  activeChannelId: string | null;
+  isMuted: boolean;
+  isDeafened: boolean;
+  audioDevices: MediaDeviceInfo[];
+  selectedInputDevice: string | null;
+  selectedOutputDevice: string | null;
+}
+
+// Voice Chat Events
+export interface VoiceChannelJoinEvent extends GameEvent {
+  type: 'voice/join';
   data: {
-    sceneId: string;
-    tokenId: string;
-    updates: Partial<PlacedToken>;
+    channelId: string;
+    userId: string;
   };
 }
 
-export interface TokenDeleteEvent extends GameEvent {
-  type: 'token/delete';
+export interface VoiceChannelLeaveEvent extends GameEvent {
+  type: 'voice/leave';
   data: {
-    sceneId: string;
-    tokenId: string;
+    channelId: string;
+    userId: string;
+  };
+}
+
+export interface VoiceStateUpdateEvent extends GameEvent {
+  type: 'voice/state';
+  data: {
+    userId: string;
+    isMuted: boolean;
+    isDeafened: boolean;
   };
 }

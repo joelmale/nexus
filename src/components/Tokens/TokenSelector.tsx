@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import { useTokenAssets } from '@/services/tokenAssets';
 import { useTokenInterfaceStrategy } from '@/hooks/useDeviceDetection';
 import type { Token, TokenCategory } from '@/types/token';
@@ -42,149 +42,156 @@ const TokenGrid: React.FC<TokenGridProps> = ({
   selectedToken,
   handleTokenClick,
 }) => (
-    <div
-      className="token-grid"
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${interfaceConfig.tokenGridColumns}, 1fr)`,
-        gap: '8px',
-        padding: '16px',
-        maxHeight: '60vh',
-        overflowY: 'auto',
-      }}
-    >
-      {filteredTokens.map((token) => (
+  <div
+    className="token-grid"
+    style={{
+      display: 'grid',
+      gridTemplateColumns: `repeat(${interfaceConfig.tokenGridColumns}, 1fr)`,
+      gap: '8px',
+      padding: '16px',
+      maxHeight: '60vh',
+      overflowY: 'auto',
+    }}
+  >
+    {filteredTokens.map((token) => (
+      <div
+        key={token.id}
+        className={`token-item ${selectedToken?.id === token.id ? 'selected' : ''}`}
+        onClick={() => handleTokenClick(token)}
+        style={{
+          border: '2px solid transparent',
+          borderColor: selectedToken?.id === token.id ? '#007bff' : '#ddd',
+          borderRadius: '8px',
+          padding: '8px',
+          cursor: 'pointer',
+          textAlign: 'center',
+          backgroundColor:
+            selectedToken?.id === token.id ? '#e3f2fd' : '#f9f9f9',
+          transition: 'all 0.2s ease',
+        }}
+        onMouseEnter={(e) => {
+          if (selectedToken?.id !== token.id) {
+            e.currentTarget.style.borderColor = '#007bff';
+            e.currentTarget.style.backgroundColor = '#f0f8ff';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (selectedToken?.id !== token.id) {
+            e.currentTarget.style.borderColor = '#ddd';
+            e.currentTarget.style.backgroundColor = '#f9f9f9';
+          }
+        }}
+      >
         <div
-          key={token.id}
-          className={`token-item ${selectedToken?.id === token.id ? 'selected' : ''}`}
-          onClick={() => handleTokenClick(token)}
           style={{
-            border: '2px solid transparent',
-            borderColor: selectedToken?.id === token.id ? '#007bff' : '#ddd',
-            borderRadius: '8px',
-            padding: '8px',
-            cursor: 'pointer',
-            textAlign: 'center',
-            backgroundColor:
-              selectedToken?.id === token.id ? '#e3f2fd' : '#f9f9f9',
-            transition: 'all 0.2s ease',
+            width: interfaceConfig.tokenSize === 'small' ? '40px' : '60px',
+            height: interfaceConfig.tokenSize === 'small' ? '40px' : '60px',
+            margin: '0 auto 8px',
+            backgroundImage: `url(${token.image})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            borderRadius: '50%',
+            border: '1px solid #ccc',
           }}
-          onMouseEnter={(e) => {
-            if (selectedToken?.id !== token.id) {
-              e.currentTarget.style.borderColor = '#007bff';
-              e.currentTarget.style.backgroundColor = '#f0f8ff';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (selectedToken?.id !== token.id) {
-              e.currentTarget.style.borderColor = '#ddd';
-              e.currentTarget.style.backgroundColor = '#f9f9f9';
-            }
+        />
+        <div
+          style={{
+            fontSize: interfaceConfig.tokenSize === 'small' ? '10px' : '12px',
+            fontWeight: 'bold',
+            color: '#333',
+            lineHeight: '1.2',
+            wordBreak: 'break-word',
           }}
         >
+          {token.name}
+        </div>
+        {token.size !== 'medium' && (
           <div
             style={{
-              width: interfaceConfig.tokenSize === 'small' ? '40px' : '60px',
-              height: interfaceConfig.tokenSize === 'small' ? '40px' : '60px',
-              margin: '0 auto 8px',
-              backgroundImage: `url(${token.image})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              borderRadius: '50%',
-              border: '1px solid #ccc',
-            }}
-          />
-          <div
-            style={{
-              fontSize: interfaceConfig.tokenSize === 'small' ? '10px' : '12px',
-              fontWeight: 'bold',
-              color: '#333',
-              lineHeight: '1.2',
-              wordBreak: 'break-word',
+              fontSize: '10px',
+              color: '#666',
+              marginTop: '2px',
             }}
           >
-            {token.name}
+            {token.size}
           </div>
-          {token.size !== 'medium' && (
-            <div
-              style={{
-                fontSize: '10px',
-                color: '#666',
-                marginTop: '2px',
-              }}
-            >
-              {token.size}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+        )}
+      </div>
+    ))}
+  </div>
 );
 
 interface CategoryTabsProps {
-    interfaceConfig: InterfaceConfig;
-    activeCategory: TokenCategory;
-    setActiveCategory: (category: TokenCategory) => void;
+  interfaceConfig: InterfaceConfig;
+  activeCategory: TokenCategory;
+  setActiveCategory: (category: TokenCategory) => void;
 }
 
-const CategoryTabs: React.FC<CategoryTabsProps> = ({ interfaceConfig, activeCategory, setActiveCategory }) => (
-    <div
-      className="category-tabs"
-      style={{ display: 'flex', borderBottom: '1px solid #ddd' }}
-    >
-      {TOKEN_CATEGORIES.slice(0, interfaceConfig.maxVisibleCategories).map(
-        (category) => (
-          <button
-            key={category.id}
-            onClick={() => setActiveCategory(category.id)}
-            style={{
-              flex: 1,
-              padding: '12px 8px',
-              border: 'none',
-              backgroundColor:
-                activeCategory === category.id ? '#007bff' : 'transparent',
-              color: activeCategory === category.id ? 'white' : '#333',
-              cursor: 'pointer',
-              fontSize: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <span>{category.icon}</span>
-            <span>{category.label}</span>
-          </button>
-        ),
-      )}
-    </div>
+const CategoryTabs: React.FC<CategoryTabsProps> = ({
+  interfaceConfig,
+  activeCategory,
+  setActiveCategory,
+}) => (
+  <div
+    className="category-tabs"
+    style={{ display: 'flex', borderBottom: '1px solid #ddd' }}
+  >
+    {TOKEN_CATEGORIES.slice(0, interfaceConfig.maxVisibleCategories).map(
+      (category) => (
+        <button
+          key={category.id}
+          onClick={() => setActiveCategory(category.id)}
+          style={{
+            flex: 1,
+            padding: '12px 8px',
+            border: 'none',
+            backgroundColor:
+              activeCategory === category.id ? '#007bff' : 'transparent',
+            color: activeCategory === category.id ? 'white' : '#333',
+            cursor: 'pointer',
+            fontSize: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          <span>{category.icon}</span>
+          <span>{category.label}</span>
+        </button>
+      ),
+    )}
+  </div>
 );
 
 interface SearchBarProps {
-    interfaceConfig: InterfaceConfig;
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
+  interfaceConfig: InterfaceConfig;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ interfaceConfig, searchQuery, setSearchQuery }) =>
-    interfaceConfig.enableSearch ? (
-      <div style={{ padding: '16px' }}>
-        <input
-          type="text"
-          placeholder="Search tokens..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-            fontSize: '14px',
-          }}
-        />
-      </div>
-    ) : null;
-
+const SearchBar: React.FC<SearchBarProps> = ({
+  interfaceConfig,
+  searchQuery,
+  setSearchQuery,
+}) =>
+  interfaceConfig.enableSearch ? (
+    <div style={{ padding: '16px' }}>
+      <input
+        type="text"
+        placeholder="Search tokens..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        style={{
+          width: '100%',
+          padding: '8px 12px',
+          border: '1px solid #ddd',
+          borderRadius: '4px',
+          fontSize: '14px',
+        }}
+      />
+    </div>
+  ) : null;
 
 export const TokenSelector: React.FC<TokenSelectorProps> = ({
   isOpen,
@@ -199,13 +206,16 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [showLibraryManager, setShowLibraryManager] = useState(false);
 
+  // Defer expensive search operations to prevent blocking UI
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
   const filteredTokens = useMemo(() => {
-    if (searchQuery.trim()) {
-      return searchTokens(searchQuery);
+    if (deferredSearchQuery.trim()) {
+      return searchTokens(deferredSearchQuery);
     }
 
     return getTokensByCategory(activeCategory);
-  }, [getTokensByCategory, searchTokens, searchQuery, activeCategory]);
+  }, [getTokensByCategory, searchTokens, deferredSearchQuery, activeCategory]);
 
   const handleTokenClick = (token: Token) => {
     onTokenSelect(token);
@@ -298,9 +308,22 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
             </div>
           </div>
 
-          <SearchBar interfaceConfig={interfaceConfig} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-          <CategoryTabs interfaceConfig={interfaceConfig} activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
-          <TokenGrid interfaceConfig={interfaceConfig} filteredTokens={filteredTokens} selectedToken={selectedToken} handleTokenClick={handleTokenClick} />
+          <SearchBar
+            interfaceConfig={interfaceConfig}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+          />
+          <CategoryTabs
+            interfaceConfig={interfaceConfig}
+            activeCategory={activeCategory}
+            setActiveCategory={setActiveCategory}
+          />
+          <TokenGrid
+            interfaceConfig={interfaceConfig}
+            filteredTokens={filteredTokens}
+            selectedToken={selectedToken}
+            handleTokenClick={handleTokenClick}
+          />
         </div>
       </div>
     );
@@ -367,10 +390,23 @@ export const TokenSelector: React.FC<TokenSelectorProps> = ({
           </div>
         </div>
 
-        <SearchBar interfaceConfig={interfaceConfig} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-        <CategoryTabs interfaceConfig={interfaceConfig} activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+        <SearchBar
+          interfaceConfig={interfaceConfig}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
+        <CategoryTabs
+          interfaceConfig={interfaceConfig}
+          activeCategory={activeCategory}
+          setActiveCategory={setActiveCategory}
+        />
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <TokenGrid interfaceConfig={interfaceConfig} filteredTokens={filteredTokens} selectedToken={selectedToken} handleTokenClick={handleTokenClick} />
+          <TokenGrid
+            interfaceConfig={interfaceConfig}
+            filteredTokens={filteredTokens}
+            selectedToken={selectedToken}
+            handleTokenClick={handleTokenClick}
+          />
         </div>
       </div>
     );

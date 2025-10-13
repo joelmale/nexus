@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 // import { useNavigate } from 'react-router-dom'; // Not used yet
 import { useGameStore, useSettings, useColorScheme } from '@/stores/gameStore';
+import { switchTheme } from '@/utils/themeManager';
 import {
   defaultColorSchemes,
   generateRandomColorScheme,
@@ -316,8 +317,11 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={settings.enableGlassmorphism}
-                onChange={(e) => {
-                  setEnableGlassmorphism(e.target.checked);
+                onChange={async (e) => {
+                  const enabled = e.target.checked;
+                  setEnableGlassmorphism(enabled);
+                  // Immediately switch theme for better UX
+                  await switchTheme(enabled ? 'glass' : 'solid');
                   setHasUnsavedChanges(true);
                 }}
               />
@@ -522,7 +526,10 @@ export const Settings: React.FC = () => {
               step="0.5"
               value={settings.diceDisappearTime / 1000}
               onChange={(e) =>
-                handleSettingChange('diceDisappearTime', parseFloat(e.target.value) * 1000)
+                handleSettingChange(
+                  'diceDisappearTime',
+                  parseFloat(e.target.value) * 1000,
+                )
               }
               className="setting-input"
             />
@@ -733,24 +740,25 @@ export const Settings: React.FC = () => {
             >
               <button
                 onClick={async () => {
-                  if (confirm('⚠️  This will:\n• Clear all game data (scenes, characters, etc.)\n• Disconnect from room\n• Reset to welcome screen\n\nThis cannot be undone. Continue?')) {
-                    console.log('🧹 Starting full reset...');
-
+                  if (
+                    confirm(
+                      '⚠️  This will:\n• Clear all game data (scenes, characters, etc.)\n• Disconnect from room\n• Reset to welcome screen\n\nThis cannot be undone. Continue?',
+                    )
+                  ) {
                     try {
                       // 1. Clear IndexedDB storage (scenes, characters, etc.)
-                      const { getLinearFlowStorage } = await import('@/services/linearFlowStorage');
+                      const { getLinearFlowStorage } = await import(
+                        '@/services/linearFlowStorage'
+                      );
                       const storage = getLinearFlowStorage();
                       await storage.clearGameData();
-                      console.log('✅ Cleared IndexedDB');
 
                       // 2. Clear game stores
                       useGameStore.getState().reset();
-                      console.log('✅ Reset gameStore');
 
                       // 3. Disconnect WebSocket and reset game store
                       const gameStore = useGameStore.getState();
                       await gameStore.leaveRoom(); // This calls resetToWelcome internally
-                      console.log('✅ Disconnected and reset gameStore');
 
                       // 4. Clear all localStorage
                       try {
@@ -764,15 +772,14 @@ export const Settings: React.FC = () => {
                       } catch (e) {
                         console.warn('Failed to clear localStorage:', e);
                       }
-                      console.log('✅ Cleared localStorage');
-
-                      console.log('🧹 Full reset completed - reloading to welcome screen');
 
                       // 5. Force reload to ensure completely clean state
                       window.location.href = '/lobby';
                     } catch (error) {
                       console.error('❌ Reset failed:', error);
-                      alert('Failed to reset. Please refresh the page manually.');
+                      alert(
+                        'Failed to reset. Please refresh the page manually.',
+                      );
                     }
                   }
                 }}
@@ -832,7 +839,6 @@ const CampaignBackupSection: React.FC = () => {
     setIsExporting(true);
     try {
       storage.downloadBackup();
-      console.log('📥 Campaign exported successfully');
     } catch (error) {
       console.error('Export failed:', error);
     } finally {
@@ -845,7 +851,6 @@ const CampaignBackupSection: React.FC = () => {
     try {
       await storage.uploadBackup();
       setStats(storage.getStats()); // Refresh stats
-      console.log('📤 Campaign imported successfully');
     } catch (error) {
       console.error('Import failed:', error);
     } finally {
@@ -867,12 +872,16 @@ const CampaignBackupSection: React.FC = () => {
             </div>
             <div className="stat-item">
               <span className="stat-label">Relationships:</span>
-              <span className="stat-value">{String(stats.relationships ?? 0)}</span>
+              <span className="stat-value">
+                {String(stats.relationships ?? 0)}
+              </span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Last Saved:</span>
               <span className="stat-value">
-                {stats.lastSaved && (typeof stats.lastSaved === 'string' || typeof stats.lastSaved === 'number')
+                {stats.lastSaved &&
+                (typeof stats.lastSaved === 'string' ||
+                  typeof stats.lastSaved === 'number')
                   ? new Date(stats.lastSaved).toLocaleString()
                   : 'Never'}
               </span>

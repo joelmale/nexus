@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { useTokenAssets } from '@/services/tokenAssets';
 import { TokenLibraryManager } from './TokenLibraryManager';
 import { TokenCreationPanel } from './TokenCreationPanel';
@@ -18,6 +18,10 @@ export const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenSelect }) => {
   const [showConfigPanel, setShowConfigPanel] = useState(false);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Defer expensive search operations to prevent blocking UI
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
   const [activeCategory, setActiveCategory] = useState<
     'all' | 'pc' | 'npc' | 'monster'
   >(() => {
@@ -56,8 +60,8 @@ export const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenSelect }) => {
     }
 
     // Filter by search (scoped to active category)
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    if (deferredSearchQuery.trim()) {
+      const query = deferredSearchQuery.toLowerCase();
       tokens = tokens.filter(
         (t) =>
           t.name.toLowerCase().includes(query) ||
@@ -66,7 +70,7 @@ export const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenSelect }) => {
     }
 
     return tokens;
-  }, [allTokens, activeCategory, searchQuery]);
+  }, [allTokens, activeCategory, deferredSearchQuery]);
 
   const handleTokenClick = (token: Token) => {
     if (onTokenSelect) {

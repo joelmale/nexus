@@ -12,12 +12,18 @@ import { useGameStore } from '@/stores/gameStore';
 import { NexusLogo } from './Assets';
 import { useAssetExists } from '@/utils/assets';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.png';
-import { applyMockDataToStorage, clearMockDataFromStorage } from '@/utils/mockDataGenerator';
+import {
+  applyMockDataToStorage,
+  clearMockDataFromStorage,
+} from '@/utils/mockDataGenerator';
 
 export const LinearWelcomePage: React.FC = () => {
-  const { setUser, joinRoomWithCode, dev_quickDM, dev_quickPlayer } = useGameStore();
+  const { setUser, joinRoomWithCode, dev_quickDM, dev_quickPlayer } =
+    useGameStore();
   const [playerName, setPlayerName] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'player' | 'dm' | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'player' | 'dm' | null>(
+    null,
+  );
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,7 +58,7 @@ export const LinearWelcomePage: React.FC = () => {
     }
 
     setError('');
-    setUser(playerName.trim(), 'player');
+    setUser({ name: playerName.trim(), type: 'player' });
   };
 
   const handleQuickJoin = async () => {
@@ -69,7 +75,7 @@ export const LinearWelcomePage: React.FC = () => {
     setError('');
 
     try {
-      setUser(playerName.trim(), 'player');
+      setUser({ name: playerName.trim(), type: 'player' });
       await joinRoomWithCode(roomCode.trim().toUpperCase());
     } catch (err) {
       setError('Failed to join room - room may not exist or be full');
@@ -86,79 +92,31 @@ export const LinearWelcomePage: React.FC = () => {
     }
 
     setError('');
-    setUser(playerName.trim(), 'dm');
+    setUser({ name: playerName.trim(), type: 'host' });
   };
 
   return (
     <div className="welcome-page">
       {/* Mock Data Toggle - Development Only */}
       {process.env.NODE_ENV === 'development' && (
-        <div style={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '10px 16px',
-          borderRadius: '8px',
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-        }}>
-          <span style={{
-            fontSize: '12px',
-            color: '#ffffff',
-            opacity: 0.7,
-            fontWeight: 500,
-          }}>
-            Mock Data
-          </span>
-          <label style={{
-            position: 'relative',
-            display: 'inline-block',
-            width: '44px',
-            height: '24px',
-            cursor: mockDataLoading ? 'wait' : 'pointer',
-            opacity: mockDataLoading ? 0.5 : 1,
-          }}>
+        <div className="dev-mock-data-toggle">
+          <span className="dev-mock-data-toggle__label">Mock Data</span>
+          <label
+            className={`dev-mock-data-toggle__switch ${mockDataLoading ? 'dev-mock-data-toggle__switch--loading' : ''}`}
+          >
             <input
               type="checkbox"
               checked={useMockData}
               onChange={(e) => handleMockDataToggle(e.target.checked)}
               disabled={mockDataLoading}
-              style={{ opacity: 0, width: 0, height: 0 }}
+              className="dev-mock-data-toggle__input"
             />
-            <span style={{
-              position: 'absolute',
-              cursor: 'pointer',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: useMockData ? '#4ade80' : '#374151',
-              transition: 'background-color 0.3s',
-              borderRadius: '24px',
-            }}>
-              <span style={{
-                position: 'absolute',
-                content: '""',
-                height: '18px',
-                width: '18px',
-                left: useMockData ? '23px' : '3px',
-                bottom: '3px',
-                backgroundColor: 'white',
-                transition: 'left 0.3s',
-                borderRadius: '50%',
-              }} />
+            <span className="dev-mock-data-toggle__slider">
+              <span className="dev-mock-data-toggle__knob" />
             </span>
           </label>
           {mockDataLoading && (
-            <span style={{
-              fontSize: '20px',
-              animation: 'spin 1s linear infinite',
-            }}>⏳</span>
+            <span className="dev-mock-data-toggle__spinner">⏳</span>
           )}
         </div>
       )}
@@ -175,7 +133,7 @@ export const LinearWelcomePage: React.FC = () => {
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
                 animationDelay: `${Math.random() * 4}s`,
-                animationDuration: `${4 + Math.random() * 4}s`
+                animationDuration: `${4 + Math.random() * 4}s`,
               }}
             ></div>
           ))}
@@ -194,9 +152,7 @@ export const LinearWelcomePage: React.FC = () => {
                 <h1 className="brand-title">Nexus VTT</h1>
               </div>
             )}
-            <p className="brand-tagline">
-              Your gateway to epic adventures
-            </p>
+            <p className="brand-tagline">Your gateway to epic adventures</p>
           </div>
 
           {error && (
@@ -250,7 +206,7 @@ export const LinearWelcomePage: React.FC = () => {
                       <button
                         onClick={handlePlayerSetup}
                         disabled={!playerName.trim() || loading}
-                        className="action-btn glass-button secondary"
+                        className="action-btn glass-button primary"
                       >
                         <span>🎭</span>
                         Character Setup
@@ -266,7 +222,9 @@ export const LinearWelcomePage: React.FC = () => {
                             <input
                               type="text"
                               value={roomCode}
-                              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                              onChange={(e) =>
+                                setRoomCode(e.target.value.toUpperCase())
+                              }
                               placeholder="Room Code"
                               maxLength={4}
                               className="glass-input room-code-input"
@@ -275,7 +233,9 @@ export const LinearWelcomePage: React.FC = () => {
                           </div>
                           <button
                             onClick={handleQuickJoin}
-                            disabled={!playerName.trim() || !roomCode.trim() || loading}
+                            disabled={
+                              !playerName.trim() || !roomCode.trim() || loading
+                            }
                             className="action-btn glass-button primary"
                           >
                             {loading ? (
@@ -338,9 +298,15 @@ export const LinearWelcomePage: React.FC = () => {
               <div className="dev-buttons">
                 <button
                   onClick={async () => {
-                    if (confirm('⚠️ This will clear all game data, disconnect, and start fresh. Continue?')) {
+                    if (
+                      confirm(
+                        '⚠️ This will clear all game data, disconnect, and start fresh. Continue?',
+                      )
+                    ) {
                       // Proper cleanup using gameStore
-                      const { useGameStore } = await import('@/stores/gameStore');
+                      const { useGameStore } = await import(
+                        '@/stores/gameStore'
+                      );
 
                       // Reset stores
                       useGameStore.getState().reset();
@@ -373,6 +339,15 @@ export const LinearWelcomePage: React.FC = () => {
                   title="Create test character and go to offline game"
                 >
                   👤 Quick Player (offline)
+                </button>
+                <button
+                  onClick={() => {
+                    useGameStore.getState().setView('admin');
+                  }}
+                  className="dev-btn glass-button secondary small"
+                  title="Access admin panel for character generation data"
+                >
+                  ⚙️ Admin Panel
                 </button>
               </div>
             </div>

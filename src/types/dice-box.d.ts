@@ -52,8 +52,14 @@ declare module '@3d-dice/dice-box' {
     config: DiceBoxConfig;
 
     init(): Promise<void>;
-    roll(notation: string | string[], options?: RollOptions): Promise<RollResult>;
-    add(notation: string | string[], options?: RollOptions): Promise<RollResult>;
+    roll(
+      notation: string | string[],
+      options?: RollOptions,
+    ): Promise<RollResult>;
+    add(
+      notation: string | string[],
+      options?: RollOptions,
+    ): Promise<RollResult>;
     clear(): void;
     hide(): void;
     show(): void;

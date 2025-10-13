@@ -16,7 +16,14 @@ import type {
   SessionMode,
   MultiplayerSession,
 } from '@/types/hybrid';
-import type { GameState, Scene, Token, Drawing, PlacedToken, DiceRoll } from '@/types/game';
+import type {
+  GameState,
+  Scene,
+  Token,
+  Drawing,
+  PlacedToken,
+  DiceRoll,
+} from '@/types/game';
 import { createIndexedDBAdapter } from './indexedDBAdapter';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -144,6 +151,7 @@ export class HybridStateManager {
     // Import the default state from your existing store
     // This would integrate with your existing initialState
     const baseState: GameState = {
+      view: 'welcome',
       user: {
         id: uuidv4(),
         name: '',
@@ -183,6 +191,7 @@ export class HybridStateManager {
         masterVolume: 75,
         autoRollInitiative: true,
         showOtherPlayersRolls: true,
+        diceDisappearTime: 3000,
         highlightActivePlayer: true,
         snapToGridByDefault: true,
         defaultGridSize: 50,
@@ -195,6 +204,20 @@ export class HybridStateManager {
         highContrast: false,
         screenReaderMode: false,
         keyboardNavigation: true,
+      },
+      chat: {
+        messages: [],
+        typingUsers: [],
+        unreadCount: 0,
+      },
+      voice: {
+        channels: [],
+        activeChannelId: null,
+        isMuted: false,
+        isDeafened: false,
+        audioDevices: [],
+        selectedInputDevice: null,
+        selectedOutputDevice: null,
       },
     };
 
@@ -517,7 +540,10 @@ export class HybridStateManager {
     action: GameAction,
     _state: PersistedGameState,
   ): Promise<ActionResult> {
-    const payload = action.payload as { sceneId: string; updates: Partial<Scene> };
+    const payload = action.payload as {
+      sceneId: string;
+      updates: Partial<Scene>;
+    };
 
     await this.setState((currentState) => {
       const sceneIndex = currentState.sceneState.scenes.findIndex(
@@ -822,7 +848,9 @@ export class HybridStateManager {
     action: GameAction,
     _state: PersistedGameState,
   ): Promise<ActionResult> {
-    const payload = action.payload as { roll: { id: string; expression: string; [key: string]: unknown } };
+    const payload = action.payload as {
+      roll: { id: string; expression: string; [key: string]: unknown };
+    };
 
     // Validate the dice roll
     if (!payload.roll || !payload.roll.id || !payload.roll.expression) {

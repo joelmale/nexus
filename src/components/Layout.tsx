@@ -2,15 +2,21 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { CharacterCreationProvider } from './CharacterCreationLauncher';
 import { LinearLayout } from './LinearLayout';
-import { useGameStore } from '@/stores/gameStore';
+import {
+  useGameStore,
+  useServerRoomCode,
+  useIsConnected,
+} from '@/stores/gameStore';
 import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 
 export const Layout: React.FC = () => {
   const params = useParams<{ sessionId?: string }>();
   const navigate = useNavigate();
-  const { view, user, roomCode, isConnectedToRoom, setView } =
-    useGameStore();
+  const { view, user, setView } = useGameStore();
+  const roomCode = useServerRoomCode();
+  const isConnectedToRoom = useIsConnected();
 
   // Add initial state logging, sync gameStore, and handle migration
   useEffect(() => {
@@ -21,7 +27,7 @@ export const Layout: React.FC = () => {
         .migrateFromLocalStorage()
         .then((stats) => {
           if (stats.migrated) {
-            console.log('🔄 Migration completed:', stats);
+            // Migration completed
           }
         })
         .catch((error) => {
@@ -35,7 +41,7 @@ export const Layout: React.FC = () => {
       try {
         const syncResult = await storage.syncScenesWithGameStore();
         if (syncResult.synced > 0) {
-          console.log('🔄 Auto-synced scenes to UI on app load:', syncResult);
+          // Auto-synced scenes to UI on app load
         }
       } catch (error) {
         console.warn('Failed to auto-sync scenes:', error);
@@ -47,21 +53,21 @@ export const Layout: React.FC = () => {
       const gameStore = useGameStore.getState();
       gameStore.setUser({
         name: user.name,
-        type: user.type === 'dm' ? 'host' : 'player',
+        type: user.type,
       });
-
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Simple recovery logic for linear flow
   useEffect(() => {
+    console.log('[Layout Effect] Running session recovery check...', { view, roomCode, isConnected: isConnectedToRoom, userName: user.name });
     // Check if user wants to force a new session (via ?new=true)
     const urlParams = new URLSearchParams(window.location.search);
     const forceNew = urlParams.get('new') === 'true';
 
     if (forceNew) {
-      console.log('🔄 Force new session requested - clearing stored session');
+      console.log('[Layout Effect] Force new session detected. Resetting.');
       useGameStore.getState().resetToWelcome();
       // Remove the query parameter
       navigate('/lobby', { replace: true });
@@ -76,21 +82,16 @@ export const Layout: React.FC = () => {
     //
     // IMPORTANT: Get fresh state to avoid stale closure values after resetToWelcome()
     const currentState = useGameStore.getState();
-    const hasValidSession = currentState.user.name && currentState.user.type && currentState.roomCode;
+    const hasValidSession =
+      currentState.user.name && currentState.user.type && roomCode;
 
     if (view === 'welcome' && hasValidSession) {
-      console.log('🔄 Auto-restoring session to game view', {
-        userName: currentState.user.name,
-        userType: currentState.user.type,
-        roomCode: currentState.roomCode,
-        isConnected: currentState.isConnectedToRoom,
-      });
-
+      console.log('[Layout Effect] Valid session found, but view is "welcome". Navigating to "game".');
       // Sync the user data to gameStore before going to game
       const gameStore = useGameStore.getState();
       gameStore.setUser({
         name: currentState.user.name,
-        type: currentState.user.type === 'dm' ? 'host' : 'player',
+        type: currentState.user.type,
       });
 
       useGameStore.getState().setView('game');
@@ -102,8 +103,7 @@ export const Layout: React.FC = () => {
   useEffect(() => {
     // URL → App State: If URL has sessionId but app isn't in game mode
     if (params.sessionId && view !== 'game') {
-      // Also set the roomCode to match the URL sessionId
-      useGameStore.setState({ roomCode: params.sessionId });
+      // Note: roomCode is derived from session state, not set directly
       setView('game');
       // Optionally: Load session data based on sessionId
       // const storage = getLinearFlowStorage();
@@ -125,14 +125,15 @@ export const Layout: React.FC = () => {
       // Not in game mode - ensure we're on /lobby
       if (currentPath !== '/lobby') {
         navigate('/lobby', { replace: true });
-        useGameStore.setState({ hasLeftRoom: false });
       }
     }
   }, [view, roomCode, navigate]);
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <LinearLayout />
+      <CharacterCreationProvider>
+        <LinearLayout />
+      </CharacterCreationProvider>
     </DndProvider>
   );
 };

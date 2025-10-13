@@ -6,7 +6,13 @@
  */
 
 import React, { useState } from 'react';
-import { useSession, useIsHost, useGameStore } from '@/stores/gameStore';
+import {
+  useSession,
+  useIsHost,
+  useGameStore,
+  useServerRoomCode,
+  useIsConnected,
+} from '@/stores/gameStore';
 import { webSocketService } from '@/utils/websocket';
 import type { Player } from '@/types/game';
 
@@ -47,7 +53,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player }) => {
 export const LobbyPanel: React.FC = () => {
   const session = useSession();
   const isHost = useIsHost();
-  const { roomCode, isConnectedToRoom, gameConfig, leaveRoom, createGameRoom } = useGameStore();
+  const { gameConfig, leaveRoom, createGameRoom } = useGameStore();
+  const roomCode = useServerRoomCode();
+  const isConnectedToRoom = useIsConnected();
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
   const [playerRoomCode, setPlayerRoomCode] = useState('');
@@ -59,19 +67,16 @@ export const LobbyPanel: React.FC = () => {
     try {
       if (isHost) {
         // DM: Create a new online room (don't clear existing data - preserve offline work)
-        console.log('🌐 Creating online game room as DM');
 
         const config = gameConfig || {
           name: 'New Campaign',
           description: 'Online game session',
           estimatedTime: '2',
           campaignType: 'oneshot' as const,
-          maxPlayers: 4
+          maxPlayers: 4,
         };
 
-        const newRoomCode = await createGameRoom(config, false); // false = don't clear data
-
-        console.log('✅ Successfully created online game - Room:', newRoomCode);
+        await createGameRoom(config, false); // false = don't clear data
       } else {
         // Player: Connect to existing room using entered room code
         const codeToJoin = playerRoomCode.trim().toUpperCase();
@@ -81,17 +86,9 @@ export const LobbyPanel: React.FC = () => {
           return;
         }
 
-        console.log('🌐 Connecting to online game as Player:', codeToJoin);
-
         await webSocketService.connect(codeToJoin, 'player');
 
-        // Update game store with the room code and connected status
-        useGameStore.setState({
-          roomCode: codeToJoin,
-          isConnectedToRoom: true
-        });
-
-        console.log('✅ Successfully connected to online game');
+        // Note: roomCode and connection status are derived from session state
       }
     } catch (err) {
       console.error('Failed to start online game:', err);
@@ -108,38 +105,48 @@ export const LobbyPanel: React.FC = () => {
 
     // Try to use Web Share API if available
     if (navigator.share) {
-      navigator.share({
-        title: 'Join my D&D game!',
-        text: `Join my game with room code: ${roomCode}`,
-        url,
-      }).catch((err) => {
-        console.log('Share cancelled or failed:', err);
-      });
+      navigator
+        .share({
+          title: 'Join my D&D game!',
+          text: `Join my game with room code: ${roomCode}`,
+          url,
+        })
+        .catch((_err) => {});
     } else {
       // Fallback to clipboard
-      navigator.clipboard.writeText(url).then(() => {
-        alert(`Room URL copied to clipboard!\n${url}`);
-      }).catch(() => {
-        alert(`Share this URL with your players:\n${url}\n\nRoom Code: ${roomCode}`);
-      });
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          alert(`Room URL copied to clipboard!\n${url}`);
+        })
+        .catch(() => {
+          alert(
+            `Share this URL with your players:\n${url}\n\nRoom Code: ${roomCode}`,
+          );
+        });
     }
   };
 
   const handleCopyRoomCode = () => {
     if (!roomCode) return;
 
-    navigator.clipboard.writeText(roomCode).then(() => {
-      alert(`Room code copied: ${roomCode}`);
-    }).catch(() => {
-      alert(`Room Code: ${roomCode}`);
-    });
+    navigator.clipboard
+      .writeText(roomCode)
+      .then(() => {
+        alert(`Room code copied: ${roomCode}`);
+      })
+      .catch(() => {
+        alert(`Room Code: ${roomCode}`);
+      });
   };
 
   return (
     <div className="lobby-panel">
       <div className="lobby-header">
         <h2>🎲 Game Lobby</h2>
-        <div className={`connection-status ${isConnectedToRoom ? 'online' : 'offline'}`}>
+        <div
+          className={`connection-status ${isConnectedToRoom ? 'online' : 'offline'}`}
+        >
           <span className="status-dot"></span>
           <span className="status-text">
             {isConnectedToRoom ? 'Online' : 'Offline'}
@@ -197,8 +204,8 @@ export const LobbyPanel: React.FC = () => {
           <div className="online-controls">
             <p className="help-text">
               {isHost
-                ? "Start an online game to allow players to join remotely."
-                : "Enter a room code to connect to the online game."}
+                ? 'Start an online game to allow players to join remotely.'
+                : 'Enter a room code to connect to the online game.'}
             </p>
 
             {/* Player: Room Code Input */}
@@ -207,7 +214,9 @@ export const LobbyPanel: React.FC = () => {
                 <input
                   type="text"
                   value={playerRoomCode}
-                  onChange={(e) => setPlayerRoomCode(e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    setPlayerRoomCode(e.target.value.toUpperCase())
+                  }
                   placeholder="Enter room code"
                   maxLength={6}
                   className="glass-input"
@@ -278,7 +287,9 @@ export const LobbyPanel: React.FC = () => {
         <ul className="instructions-list">
           {isHost ? (
             <>
-              <li>🎨 Prepare your game offline (create scenes, tokens, etc.)</li>
+              <li>
+                🎨 Prepare your game offline (create scenes, tokens, etc.)
+              </li>
               <li>🌐 Click "Start Online Game" when ready to go live</li>
               <li>📤 Share the room code or URL with your players</li>
               <li>👥 Players will appear in the party list when they join</li>

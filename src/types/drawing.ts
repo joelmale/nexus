@@ -73,6 +73,7 @@ export interface BaseDrawing {
   type: DrawingTool;
   style: DrawingStyle;
   layer: 'background' | 'tokens' | 'effects' | 'dm-only' | 'overlay';
+  roomCode: string; // Links drawing to specific game room
   createdAt: number;
   updatedAt: number;
   createdBy: string; // User ID who created this drawing

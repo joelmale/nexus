@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useCharacterCreation } from '@/stores/characterStore';
 import {
   generateRandomCharacter,
@@ -17,7 +17,7 @@ import type { Character, AbilityScores } from '@/types/character';
 
 interface CharacterCreationWizardProps {
   playerId: string;
-  onComplete: (characterId: string) => void;
+  onComplete: (characterId: string, character?: Character) => void;
   onCancel: () => void;
   isModal?: boolean;
 }
@@ -338,7 +338,7 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
                 max="20"
                 className="ability-input"
               />
-              <div className="ability-modifier">
+              <div className="ability-score-group__modifier">
                 {abilityData.modifier >= 0 ? '+' : ''}
                 {abilityData.modifier}
               </div>
@@ -392,6 +392,8 @@ const DetailsStep: React.FC<WizardStepProps> = ({
               }
               min="1"
               className="form-input"
+              placeholder="Enter armor class"
+              title="Armor Class"
             />
           </div>
 
@@ -525,6 +527,28 @@ export const CharacterCreationWizard: React.FC<
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
+  // Determine if export should be enabled
+  const canExport = useMemo(() => {
+    // Must be on final step
+    if (currentStep !== totalSteps) return false;
+
+    const character = creationState?.character;
+    if (!character) return false;
+
+    // Check all required fields are filled
+    return !!(
+      character.name?.trim() &&
+      character.race?.name &&
+      character.classes?.[0]?.name &&
+      character.abilities?.strength?.score &&
+      character.abilities?.dexterity?.score &&
+      character.abilities?.constitution?.score &&
+      character.abilities?.intelligence?.score &&
+      character.abilities?.wisdom?.score &&
+      character.abilities?.charisma?.score
+    );
+  }, [currentStep, totalSteps, creationState?.character]);
+
   // Initialize creation state when component mounts
   useEffect(() => {
     if (!creationState) {
@@ -540,14 +564,14 @@ export const CharacterCreationWizard: React.FC<
     });
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
       // Complete character creation
-      const characterId = completeCharacterCreation();
-      if (characterId) {
-        onComplete(characterId);
+      const result = await completeCharacterCreation();
+      if (result) {
+        onComplete(result.id, result.character);
       }
     }
   };
@@ -566,6 +590,36 @@ export const CharacterCreationWizard: React.FC<
   const handleRandomizeAll = () => {
     const randomChar = generateRandomCharacter(playerId);
     updateCreationState({ character: randomChar });
+  };
+
+  const handleExportCharacter = async () => {
+    try {
+      // Get the current character from creation state
+      const currentCharacter = creationState?.character;
+      if (!currentCharacter) {
+        alert(
+          'No character data available. Please complete character creation first.',
+        );
+        return;
+      }
+
+      // Export the character data directly as JSON
+      const exportData = JSON.stringify(currentCharacter, null, 2);
+      const blob = new Blob([exportData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nexus-character-${currentCharacter.name || 'unnamed'}-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      console.log('Character exported successfully:', currentCharacter.name);
+    } catch (error) {
+      console.error('Failed to export character:', error);
+      alert('Failed to export character. Please try again.');
+    }
   };
 
   // Validation for each step
@@ -614,10 +668,10 @@ export const CharacterCreationWizard: React.FC<
     : 'character-wizard-fullpage';
 
   return (
-    <div className={`character-creation-wizard ${containerClass}`}>
+    <div className={`character-creation-wizard ${containerClass} theme-solid`}>
       {isModal && <div className="modal-backdrop" onClick={handleCancel} />}
 
-      <div className="wizard-container character-sheet-layout">
+      <div className="wizard-container">
         {/* Header Bar */}
         <div className="wizard-header">
           {/* Header Left Navigation */}
@@ -675,6 +729,20 @@ export const CharacterCreationWizard: React.FC<
               disabled={!canProceedFromStep(currentStep)}
             >
               {currentStep === totalSteps ? 'Create Character' : 'Next →'}
+            </button>
+            <button
+              className="export-btn header-nav"
+              onClick={handleExportCharacter}
+              title={
+                !canExport
+                  ? currentStep === totalSteps
+                    ? 'Complete all required fields to export character'
+                    : 'Complete character creation to enable export'
+                  : 'Export character to JSON file'
+              }
+              disabled={!canExport}
+            >
+              💾 Export
             </button>
             <button className="cancel-btn" onClick={handleCancel}>
               ✕
@@ -768,7 +836,7 @@ export const CharacterCreationWizard: React.FC<
                         {ability.slice(0, 3).toUpperCase()}
                       </div>
                       <div className="ability-value">{score}</div>
-                      <div className="ability-modifier">
+                      <div className="ability-scores-preview__modifier">
                         {modifier >= 0 ? '+' : ''}
                         {modifier}
                       </div>

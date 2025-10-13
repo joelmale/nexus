@@ -1,5 +1,15 @@
-import type { WebSocketMessage, GameEvent, DiceRoll, DrawingCreateEvent, DrawingUpdateEvent, DrawingDeleteEvent, SessionCreatedEvent, SessionJoinedEvent } from '@/types/game';
+import type {
+  WebSocketMessage,
+  GameEvent,
+  DiceRoll,
+  DrawingCreateEvent,
+  DrawingUpdateEvent,
+  DrawingDeleteEvent,
+  SessionCreatedEvent,
+  SessionJoinedEvent,
+} from '@/types/game';
 import type { WebSocketCustomEvent } from '@/types/events';
+import type { ChatMessage } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
 
@@ -14,14 +24,19 @@ class WebSocketService extends EventTarget {
   private lastSessionJoinedEvent: SessionJoinedEvent['data'] | null = null;
 
   // Get WebSocket URL dynamically from environment
-  private getWebSocketUrl(roomCode?: string, userType?: 'host' | 'player'): string {
+  private getWebSocketUrl(
+    roomCode?: string,
+    userType?: 'host' | 'player',
+  ): string {
     // In Docker/K8s, use environment variable or default to 5000
     // In dev, we'll try multiple ports via fallback logic in connect()
     const wsPort = import.meta.env.VITE_WS_PORT || '5000';
     const wsHost = import.meta.env.VITE_WS_HOST || 'localhost';
     const wsUrl = `ws://${wsHost}:${wsPort}`;
     if (roomCode) {
-      return userType === 'host' ? `${wsUrl}?reconnect=${roomCode}` : `${wsUrl}?join=${roomCode}`;
+      return userType === 'host'
+        ? `${wsUrl}?reconnect=${roomCode}`
+        : `${wsUrl}?join=${roomCode}`;
     }
     return wsUrl;
   }
@@ -60,14 +75,14 @@ class WebSocketService extends EventTarget {
   // Try connecting to multiple ports (for dev environment)
   private async tryConnectWithFallback(
     roomCode?: string,
-    userType?: 'host' | 'player'
+    userType?: 'host' | 'player',
   ): Promise<WebSocket> {
     const isDev = import.meta.env.DEV;
     const basePorts = [
       import.meta.env.VITE_WS_PORT || '5000',
       '5001',
       '5002',
-      '5003'
+      '5003',
     ];
 
     // In production/docker, only try the configured port
@@ -81,7 +96,7 @@ class WebSocketService extends EventTarget {
         // Move discovered port to front
         portsToTry = [
           discoveredPort,
-          ...basePorts.filter(p => p !== discoveredPort)
+          ...basePorts.filter((p) => p !== discoveredPort),
         ];
       } else {
         // Fallback to checking cached port
@@ -91,7 +106,7 @@ class WebSocketService extends EventTarget {
             // Move last working port to the front
             portsToTry = [
               lastWorkingPort,
-              ...basePorts.filter(p => p !== lastWorkingPort)
+              ...basePorts.filter((p) => p !== lastWorkingPort),
             ];
           }
         } catch {
@@ -106,7 +121,9 @@ class WebSocketService extends EventTarget {
       try {
         const wsUrl = `ws://${wsHost}:${port}`;
         const url = roomCode
-          ? (userType === 'host' ? `${wsUrl}?reconnect=${roomCode}` : `${wsUrl}?join=${roomCode}`)
+          ? userType === 'host'
+            ? `${wsUrl}?reconnect=${roomCode}`
+            : `${wsUrl}?join=${roomCode}`
           : wsUrl;
 
         console.log(`🔌 Attempting WebSocket connection to ${wsUrl}...`);
@@ -178,10 +195,17 @@ class WebSocketService extends EventTarget {
         this.ws.onmessage = (event) => {
           try {
             const message: WebSocketMessage = JSON.parse(event.data);
-            console.log('🔌 [CLIENT] Raw WebSocket message received:', event.data);
+            console.log(
+              '🔌 [CLIENT] Raw WebSocket message received:',
+              event.data,
+            );
             this.handleMessage(message);
           } catch (error) {
-            console.error('🔌 [CLIENT] Failed to parse WebSocket message:', error, event.data);
+            console.error(
+              '🔌 [CLIENT] Failed to parse WebSocket message:',
+              error,
+              event.data,
+            );
           }
         };
 
@@ -189,7 +213,8 @@ class WebSocketService extends EventTarget {
           console.log('WebSocket disconnected:', event.code, event.reason);
           this.connectionPromise = null;
 
-          if (event.code !== 1000) { // Not a normal closure
+          if (event.code !== 1000) {
+            // Not a normal closure
             this.handleReconnect();
           }
         };
@@ -222,10 +247,16 @@ class WebSocketService extends EventTarget {
 
         // Session events will be handled by the gameStore's applyEvent method
 
-        if (message.data.name === 'session/created' && 'roomCode' in message.data) {
-          this.lastSessionCreatedEvent = { roomCode: message.data.roomCode as string };
+        if (
+          message.data.name === 'session/created' &&
+          'roomCode' in message.data
+        ) {
+          this.lastSessionCreatedEvent = {
+            roomCode: message.data.roomCode as string,
+          };
         } else if (message.data.name === 'session/joined') {
-          this.lastSessionJoinedEvent = message.data as unknown as SessionJoinedEvent['data'];
+          this.lastSessionJoinedEvent =
+            message.data as unknown as SessionJoinedEvent['data'];
         }
 
         const gameEvent: GameEvent = {
@@ -236,18 +267,24 @@ class WebSocketService extends EventTarget {
 
         // Also emit a specific event for the drawing synchronization
         if (message.data.name === 'drawing/create') {
-          this.dispatchEvent(new CustomEvent('drawingSync', {
-            detail: {
-              type: 'drawing/create',
-              data: message.data
-            }
-          }));
+          this.dispatchEvent(
+            new CustomEvent('drawingSync', {
+              detail: {
+                type: 'drawing/create',
+                data: message.data,
+              },
+            }),
+          );
         }
         break;
       }
 
       case 'dice-roll':
         gameStore.addDiceRoll(message.data);
+        break;
+
+      case 'chat-message':
+        gameStore.addChatMessage(message.data);
         break;
 
       case 'state':
@@ -264,17 +301,25 @@ class WebSocketService extends EventTarget {
         if (message.data.message === 'Room not found') {
           console.log('🗑️ Room not found - clearing stored session data');
           // Import synchronously since sessionPersistenceService is already available
-          import('@/services/sessionPersistence').then(({ sessionPersistenceService }) => {
-            sessionPersistenceService.clearAll();
-            // Reset the game store to initial state
-            gameStore.reset();
-            toast.error('Session Expired', { description: 'Your previous session has expired. Creating a new room.' });
-          }).catch(error => {
-            console.error('Failed to clear session data:', error);
-            // Still reset the game store even if clearing fails
-            gameStore.reset();
-            toast.error('Session Expired', { description: 'Your previous session has expired. Creating a new room.' });
-          });
+          import('@/services/sessionPersistence')
+            .then(({ sessionPersistenceService }) => {
+              sessionPersistenceService.clearAll();
+              // Reset the game store to initial state
+              gameStore.reset();
+              toast.error('Session Expired', {
+                description:
+                  'Your previous session has expired. Creating a new room.',
+              });
+            })
+            .catch((error) => {
+              console.error('Failed to clear session data:', error);
+              // Still reset the game store even if clearing fails
+              gameStore.reset();
+              toast.error('Session Expired', {
+                description:
+                  'Your previous session has expired. Creating a new room.',
+              });
+            });
         } else {
           toast.error('Server Error', { description: message.data.message });
         }
@@ -292,10 +337,13 @@ class WebSocketService extends EventTarget {
   private handleReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-      
-      console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`);
-      
+      const delay =
+        this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+
+      console.log(
+        `Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`,
+      );
+
       setTimeout(() => {
         const session = useGameStore.getState().session;
         if (session) {
@@ -307,7 +355,7 @@ class WebSocketService extends EventTarget {
     } else {
       console.error('Max reconnection attempts reached');
       useGameStore.getState().setSession(null);
-      
+
       // Reset for potential future connections
       this.reconnectAttempts = 0;
     }
@@ -332,8 +380,22 @@ class WebSocketService extends EventTarget {
     });
   }
 
+  sendChatMessage(message: ChatMessage['data']) {
+    console.log('💬 Sending chat message:', message.content);
+    this.sendMessage({
+      type: 'chat-message',
+      data: message,
+      timestamp: Date.now(),
+      src: useGameStore.getState().user.id,
+    } as any);
+  }
+
   // Send game state update to server for persistence
-  sendGameStateUpdate(partialState: { sceneState?: unknown; characters?: unknown[]; initiative?: unknown }) {
+  sendGameStateUpdate(partialState: {
+    sceneState?: unknown;
+    characters?: unknown[];
+    initiative?: unknown;
+  }) {
     console.log('📤 Sending game state update to server:', partialState);
     this.sendMessage({
       type: 'state',
@@ -344,7 +406,13 @@ class WebSocketService extends EventTarget {
   }
 
   // Specialized method for drawing synchronization
-  sendDrawingEvent(type: 'create' | 'update' | 'delete', data: DrawingCreateEvent['data'] | DrawingUpdateEvent['data'] | DrawingDeleteEvent['data']) {
+  sendDrawingEvent(
+    type: 'create' | 'update' | 'delete',
+    data:
+      | DrawingCreateEvent['data']
+      | DrawingUpdateEvent['data']
+      | DrawingDeleteEvent['data'],
+  ) {
     const drawingEvent: GameEvent = {
       type: `drawing/${type}`,
       data: data,
@@ -359,7 +427,10 @@ class WebSocketService extends EventTarget {
         return;
       }
 
-      const timeout = setTimeout(() => reject(new Error('Room creation timeout')), 10000);
+      const timeout = setTimeout(
+        () => reject(new Error('Room creation timeout')),
+        10000,
+      );
 
       const handler = (event: Event) => {
         const customEvent = event as CustomEvent;
@@ -381,7 +452,10 @@ class WebSocketService extends EventTarget {
         return;
       }
 
-      const timeout = setTimeout(() => reject(new Error('Room join timeout')), 10000);
+      const timeout = setTimeout(
+        () => reject(new Error('Room join timeout')),
+        10000,
+      );
 
       const handler = (event: Event) => {
         const customEvent = event as CustomEvent;
@@ -396,9 +470,11 @@ class WebSocketService extends EventTarget {
     });
   }
 
-  private sendMessage(message: Omit<WebSocketMessage, 'src'> & { src: string }) {
+  private sendMessage(
+    message: Omit<WebSocketMessage, 'src'> & { src: string },
+  ) {
     const messageStr = JSON.stringify(message);
-    
+
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(messageStr);
       console.log('✅ Message sent successfully');
@@ -406,7 +482,7 @@ class WebSocketService extends EventTarget {
       // Queue message for when connection is restored
       console.log('⏳ WebSocket not ready, queueing message');
       this.messageQueue.push(messageStr);
-      
+
       // Limit queue size to prevent memory issues
       if (this.messageQueue.length > 50) {
         this.messageQueue.shift();
@@ -433,7 +509,9 @@ class WebSocketService extends EventTarget {
   clearCachedPort(): void {
     try {
       localStorage.removeItem('nexus_ws_port');
-      console.log('✅ Cleared cached WebSocket port - next connection will discover server');
+      console.log(
+        '✅ Cleared cached WebSocket port - next connection will discover server',
+      );
     } catch (error) {
       console.warn('Failed to clear cached port:', error);
     }
@@ -447,11 +525,16 @@ class WebSocketService extends EventTarget {
     if (!this.ws) return 'disconnected';
 
     switch (this.ws.readyState) {
-      case WebSocket.CONNECTING: return 'connecting';
-      case WebSocket.OPEN: return 'connected';
-      case WebSocket.CLOSING: return 'closing';
-      case WebSocket.CLOSED: return 'closed';
-      default: return 'unknown';
+      case WebSocket.CONNECTING:
+        return 'connecting';
+      case WebSocket.OPEN:
+        return 'connected';
+      case WebSocket.CLOSING:
+        return 'closing';
+      case WebSocket.CLOSED:
+        return 'closed';
+      default:
+        return 'unknown';
     }
   }
 
@@ -485,6 +568,10 @@ declare global {
 
 if (import.meta.env.DEV) {
   window.webSocketService = webSocketService;
-  console.log('🔧 Debug: webSocketService available at window.webSocketService');
-  console.log('   - window.webSocketService.clearCachedPort() to clear port cache');
+  console.log(
+    '🔧 Debug: webSocketService available at window.webSocketService',
+  );
+  console.log(
+    '   - window.webSocketService.clearCachedPort() to clear port cache',
+  );
 }

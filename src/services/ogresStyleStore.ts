@@ -8,7 +8,10 @@
  * - Backup/restore capabilities
  */
 
-import { SerializationService, SerializingIndexedDBAdapter } from './serialization';
+import {
+  SerializationService,
+  SerializingIndexedDBAdapter,
+} from './serialization';
 import { createIndexedDBAdapter } from './indexedDBAdapter';
 import type { Scene, Token, Drawing } from '@/types/game';
 import { v4 as uuidv4 } from 'uuid';
@@ -62,7 +65,7 @@ export class OgresStyleStore {
     // Use default IndexedDB configuration for now
     const baseAdapter = createIndexedDBAdapter({
       dbName,
-      version: 1
+      version: 1,
     });
 
     this.storage = new SerializingIndexedDBAdapter(baseAdapter);
@@ -90,7 +93,7 @@ export class OgresStyleStore {
       relationships: new Map(),
       indexes: new Map(),
       lastSaved: 0,
-      version: 1
+      version: 1,
     };
   }
 
@@ -98,7 +101,11 @@ export class OgresStyleStore {
     try {
       console.log('📚 Ogres-style store: Starting initialization...');
       await this.loadFromStorage();
-      console.log('📚 Ogres-style store initialized with', this.state.entities.size, 'entities');
+      console.log(
+        '📚 Ogres-style store initialized with',
+        this.state.entities.size,
+        'entities',
+      );
     } catch (error) {
       console.error('📚 Ogres-style store: Failed to initialize store:', error);
     }
@@ -111,14 +118,17 @@ export class OgresStyleStore {
   /**
    * Create a new entity
    */
-  create<T extends Entity>(type: string, data: Omit<T, 'id' | 'type' | 'createdAt' | 'updatedAt'>): T {
+  create<T extends Entity>(
+    type: string,
+    data: Omit<T, 'id' | 'type' | 'createdAt' | 'updatedAt'>,
+  ): T {
     const now = Date.now();
     const entity: Entity = {
       id: uuidv4(),
       type,
       createdAt: now,
       updatedAt: now,
-      ...data
+      ...data,
     } as T;
 
     this.state.entities.set(entity.id, entity);
@@ -139,7 +149,7 @@ export class OgresStyleStore {
     const updatedEntity = {
       ...entity,
       ...updates,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     } as T;
 
     this.state.entities.set(id, updatedEntity);
@@ -168,10 +178,11 @@ export class OgresStyleStore {
     this.removeFromIndex(entity.type, id);
 
     // Remove related relationships
-    const relatedRelationships = Array.from(this.state.relationships.values())
-      .filter(rel => rel.sourceId === id || rel.targetId === id);
+    const relatedRelationships = Array.from(
+      this.state.relationships.values(),
+    ).filter((rel) => rel.sourceId === id || rel.targetId === id);
 
-    relatedRelationships.forEach(rel => {
+    relatedRelationships.forEach((rel) => {
       this.state.relationships.delete(rel.id);
     });
 
@@ -199,8 +210,8 @@ export class OgresStyleStore {
 
     // Apply where filters
     let results = Array.from(candidateIds)
-      .map(id => this.state.entities.get(id)!)
-      .filter(entity => {
+      .map((id) => this.state.entities.get(id)!)
+      .filter((entity) => {
         if (!query.where) return true;
 
         return Object.entries(query.where).every(([key, value]) => {
@@ -211,12 +222,18 @@ export class OgresStyleStore {
             const queryOp = value as Record<string, unknown>;
             if (queryOp.$eq !== undefined) return entityValue === queryOp.$eq;
             if (queryOp.$ne !== undefined) return entityValue !== queryOp.$ne;
-            if (queryOp.$gt !== undefined) return (entityValue as number) > (queryOp.$gt as number);
-            if (queryOp.$gte !== undefined) return (entityValue as number) >= (queryOp.$gte as number);
-            if (queryOp.$lt !== undefined) return (entityValue as number) < (queryOp.$lt as number);
-            if (queryOp.$lte !== undefined) return (entityValue as number) <= (queryOp.$lte as number);
-            if (queryOp.$in !== undefined) return (queryOp.$in as unknown[]).includes(entityValue);
-            if (queryOp.$nin !== undefined) return !(queryOp.$nin as unknown[]).includes(entityValue);
+            if (queryOp.$gt !== undefined)
+              return (entityValue as number) > (queryOp.$gt as number);
+            if (queryOp.$gte !== undefined)
+              return (entityValue as number) >= (queryOp.$gte as number);
+            if (queryOp.$lt !== undefined)
+              return (entityValue as number) < (queryOp.$lt as number);
+            if (queryOp.$lte !== undefined)
+              return (entityValue as number) <= (queryOp.$lte as number);
+            if (queryOp.$in !== undefined)
+              return (queryOp.$in as unknown[]).includes(entityValue);
+            if (queryOp.$nin !== undefined)
+              return !(queryOp.$nin as unknown[]).includes(entityValue);
           }
 
           return entityValue === value;
@@ -245,19 +262,21 @@ export class OgresStyleStore {
    * Get entities related to another entity
    */
   getRelated<T extends Entity>(entityId: string, relationType?: string): T[] {
-    const relationships = Array.from(this.state.relationships.values())
-      .filter(rel => {
-        const isRelated = rel.sourceId === entityId || rel.targetId === entityId;
+    const relationships = Array.from(this.state.relationships.values()).filter(
+      (rel) => {
+        const isRelated =
+          rel.sourceId === entityId || rel.targetId === entityId;
         const matchesType = !relationType || rel.type === relationType;
         return isRelated && matchesType;
-      });
+      },
+    );
 
-    const relatedIds = relationships.map(rel =>
-      rel.sourceId === entityId ? rel.targetId : rel.sourceId
+    const relatedIds = relationships.map((rel) =>
+      rel.sourceId === entityId ? rel.targetId : rel.sourceId,
     );
 
     return relatedIds
-      .map(id => this.state.entities.get(id))
+      .map((id) => this.state.entities.get(id))
       .filter(Boolean) as T[];
   }
 
@@ -268,13 +287,18 @@ export class OgresStyleStore {
   /**
    * Create a relationship between entities
    */
-  relate(sourceId: string, targetId: string, type: string, metadata?: unknown): Relationship {
+  relate(
+    sourceId: string,
+    targetId: string,
+    type: string,
+    metadata?: unknown,
+  ): Relationship {
     const relationship: Relationship = {
       id: uuidv4(),
       sourceId,
       targetId,
       type,
-      metadata
+      metadata,
     };
 
     this.state.relationships.set(relationship.id, relationship);
@@ -287,12 +311,12 @@ export class OgresStyleStore {
    * Remove a relationship
    */
   unrelate(sourceId: string, targetId: string, type?: string): boolean {
-    const relationship = Array.from(this.state.relationships.values())
-      .find(rel =>
+    const relationship = Array.from(this.state.relationships.values()).find(
+      (rel) =>
         rel.sourceId === sourceId &&
         rel.targetId === targetId &&
-        (!type || rel.type === type)
-      );
+        (!type || rel.type === type),
+    );
 
     if (relationship) {
       this.state.relationships.delete(relationship.id);
@@ -310,14 +334,19 @@ export class OgresStyleStore {
   /**
    * Create a scene with proper relationships
    */
-  createScene(sceneData: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>): Scene & Entity {
+  createScene(
+    sceneData: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Scene & Entity {
     const scene = this.create<Scene & Entity>('scene', sceneData);
 
     // Create relationships for tokens if provided
     if (sceneData.placedTokens) {
-      sceneData.placedTokens.forEach(token => {
+      sceneData.placedTokens.forEach((token) => {
         // Convert token to Entity-compatible format
-        const tokenData = { ...token } as Omit<Entity, 'id' | 'type' | 'createdAt' | 'updatedAt'>;
+        const tokenData = { ...token } as Omit<
+          Entity,
+          'id' | 'type' | 'createdAt' | 'updatedAt'
+        >;
         const tokenEntity = this.create<Entity>('token', tokenData);
         this.relate(scene.id, tokenEntity.id, 'contains');
       });
@@ -325,9 +354,12 @@ export class OgresStyleStore {
 
     // Create relationships for drawings if provided
     if (sceneData.drawings) {
-      sceneData.drawings.forEach(drawing => {
+      sceneData.drawings.forEach((drawing) => {
         // Convert drawing to Entity-compatible format
-        const drawingData = { ...drawing } as Omit<Entity, 'id' | 'type' | 'createdAt' | 'updatedAt'>;
+        const drawingData = { ...drawing } as Omit<
+          Entity,
+          'id' | 'type' | 'createdAt' | 'updatedAt'
+        >;
         const drawingEntity = this.create<Entity>('drawing', drawingData);
         this.relate(scene.id, drawingEntity.id, 'contains');
       });
@@ -351,11 +383,13 @@ export class OgresStyleStore {
 
     const relatedEntities = this.getRelated<Entity>(sceneId, 'contains');
 
-    const tokens = relatedEntities
-      .filter(entity => entity.type === 'token') as (Token & Entity)[];
+    const tokens = relatedEntities.filter(
+      (entity) => entity.type === 'token',
+    ) as (Token & Entity)[];
 
-    const drawings = relatedEntities
-      .filter(entity => entity.type === 'drawing') as (Drawing & Entity)[];
+    const drawings = relatedEntities.filter(
+      (entity) => entity.type === 'drawing',
+    ) as (Drawing & Entity)[];
 
     return { scene, tokens, drawings };
   }
@@ -386,9 +420,12 @@ export class OgresStyleStore {
       const stateToSave = {
         entities: Array.from(this.state.entities.entries()),
         relationships: Array.from(this.state.relationships.entries()),
-        indexes: Array.from(this.state.indexes.entries()).map(([type, ids]) => [type, Array.from(ids)]),
+        indexes: Array.from(this.state.indexes.entries()).map(([type, ids]) => [
+          type,
+          Array.from(ids),
+        ]),
         lastSaved: Date.now(),
-        version: this.state.version
+        version: this.state.version,
       };
 
       await this.storage.save('store-state', stateToSave);
@@ -412,14 +449,19 @@ export class OgresStyleStore {
         version?: number;
       }>('store-state');
       if (!saved) {
-        console.log('📂 Ogres-style store: No saved data found, starting with empty state');
+        console.log(
+          '📂 Ogres-style store: No saved data found, starting with empty state',
+        );
         return;
       }
 
       this.state.entities = new Map(saved.entities || []);
       this.state.relationships = new Map(saved.relationships || []);
       this.state.indexes = new Map(
-        (saved.indexes || []).map(([type, ids]: [string, string[]]) => [type, new Set(ids)])
+        (saved.indexes || []).map(([type, ids]: [string, string[]]) => [
+          type,
+          new Set(ids),
+        ]),
       );
       this.state.lastSaved = saved.lastSaved || 0;
       this.state.version = saved.version || 1;
@@ -427,7 +469,7 @@ export class OgresStyleStore {
       console.log('📂 Ogres-style store: Loaded from IndexedDB:', {
         entities: this.state.entities.size,
         relationships: this.state.relationships.size,
-        indexes: this.state.indexes.size
+        indexes: this.state.indexes.size,
       });
     } catch (error) {
       console.error('📂 Ogres-style store: Failed to load store:', error);
@@ -450,8 +492,8 @@ export class OgresStyleStore {
       metadata: {
         exportedAt: Date.now(),
         version: this.state.version,
-        entityCount: this.state.entities.size
-      }
+        entityCount: this.state.entities.size,
+      },
     };
 
     return SerializationService.createBackupData(backupData);
@@ -470,7 +512,10 @@ export class OgresStyleStore {
       this.state.indexes.clear();
 
       // Load backup data with proper type assertion
-      const backupData = data as { entities?: Array<[string, Entity]>; relationships?: Array<[string, Relationship]> };
+      const backupData = data as {
+        entities?: Array<[string, Entity]>;
+        relationships?: Array<[string, Relationship]>;
+      };
       this.state.entities = new Map(backupData.entities || []);
       this.state.relationships = new Map(backupData.relationships || []);
 
@@ -519,7 +564,7 @@ export class OgresStyleStore {
   private emit(event: string, data: Entity): void {
     const listeners = this.listeners.get(event);
     if (listeners) {
-      listeners.forEach(callback => callback(data));
+      listeners.forEach((callback) => callback(data));
     }
   }
 
@@ -553,7 +598,7 @@ export class OgresStyleStore {
       relationships: this.state.relationships.size,
       types: this.state.indexes.size,
       lastSaved: this.state.lastSaved,
-      isDirty: this.isDirty
+      isDirty: this.isDirty,
     };
   }
 }

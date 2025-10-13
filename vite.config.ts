@@ -1,11 +1,11 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
   // Load env variables
-  const isDev = command === 'serve'
+  const isDev = command === 'serve';
   return {
     plugins: [react()],
     resolve: {
@@ -20,11 +20,34 @@ export default defineConfig(({ command }) => {
     server: {
       port: parseInt(process.env.PORT || '5173'),
       host: true,
-      open: true
+      open: true,
     },
     build: {
       // Generate source maps for production builds if not in dev mode
       sourcemap: !isDev,
-    }
-  }
-})
+      // CSS code splitting and optimization
+      cssCodeSplit: true,
+      rollupOptions: {
+        output: {
+          // Separate CSS chunks for better caching with content hashing
+          assetFileNames: (assetInfo) => {
+            if (assetInfo.name?.endsWith('.css')) {
+              return 'assets/css/[name]-[hash][extname]';
+            }
+            return 'assets/[name]-[hash][extname]';
+          },
+          // Optimize chunk splitting for better caching
+          manualChunks: {
+            // Vendor chunks for better caching
+            vendor: ['react', 'react-dom', 'react-router-dom'],
+            ui: ['sonner', 'lucide-react'],
+          },
+        },
+      },
+    },
+    css: {
+      // Enable CSS source maps in development
+      devSourcemap: isDev,
+    },
+  };
+});

@@ -1,14 +1,16 @@
-/* Asset Browser Styles */
+/* ========================================================================== ASSET BROWSER CONTAINER ========================================================================== */
 
 .asset-browser {
+  padding: 1.5rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-lg);
   background: var(--glass-surface-strong);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius-lg);
-  padding: 1.5rem;
   box-shadow: var(--shadow-glass);
 }
+
+/* ========================================================================== HEADER SECTION ========================================================================== */
 
 .asset-browser-header {
   display: flex;
@@ -20,10 +22,10 @@
 }
 
 .asset-browser-header h3 {
+  margin: 0;
   font-size: 1.3rem;
   font-weight: 600;
   color: var(--glass-text);
-  margin: 0;
 }
 
 .cache-info {
@@ -33,6 +35,8 @@
   font-size: 0.85rem;
   color: var(--glass-text-muted);
 }
+
+/* ========================================================================== CONTROLS SECTION ========================================================================== */
 
 .asset-controls {
   display: flex;
@@ -49,13 +53,13 @@
 .search-input {
   width: 100%;
   padding: 0.75rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
   background: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius);
-  color: var(--glass-text);
   font-size: 0.9rem;
+  color: var(--glass-text);
   transition: all 0.3s ease;
 }
 
@@ -77,13 +81,13 @@
 .category-select {
   width: 100%;
   padding: 0.75rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
   background: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius);
-  color: var(--glass-text);
   font-size: 0.9rem;
+  color: var(--glass-text);
   transition: all 0.3s ease;
 }
 
@@ -94,7 +98,8 @@
   background: var(--glass-surface-hover);
 }
 
-/* Loading State */
+/* ========================================================================== LOADING STATE ========================================================================== */
+
 .asset-loading {
   display: flex;
   flex-direction: column;
@@ -107,19 +112,24 @@
 .loading-spinner {
   width: 40px;
   height: 40px;
+  margin-bottom: 1rem;
   border: 3px solid var(--glass-surface);
   border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-/* Asset Grid */
+/* ========================================================================== ASSET GRID & CARDS ========================================================================== */
+
 .asset-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -128,15 +138,15 @@
 }
 
 .asset-card {
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
   background: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius);
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
   box-shadow: var(--shadow-glass);
+  transition: all 0.3s ease;
 }
 
 .asset-card:hover {
@@ -169,14 +179,14 @@
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
+  color: white;
 }
 
 .asset-info {
@@ -184,10 +194,10 @@
 }
 
 .asset-name {
+  margin: 0 0 0.5rem 0;
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--glass-text);
-  margin: 0 0 0.5rem 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -202,17 +212,17 @@
   font-size: 0.75rem;
 }
 
-/* Load More */
+/* ========================================================================== FOOTER STATES ========================================================================== */
+
 .load-more {
-  text-align: center;
   margin-top: 2rem;
+  text-align: center;
 }
 
-/* No Assets State */
 .no-assets {
-  text-align: center;
   padding: 3rem;
   color: var(--glass-text-muted);
+  text-align: center;
 }
 
 .no-assets p {
@@ -221,4 +231,3 @@
 }
 
 /* Desktop/Tablet optimized asset browser - Mobile responsive design removed per requirements */
-

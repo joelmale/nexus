@@ -8,12 +8,12 @@
 export type GameMode = 'offline' | 'hosting' | 'joining' | 'live';
 
 export type GamePhase =
-  | 'preparation'    // Host working offline, building content
-  | 'ready'         // Host ready to go live, content prepared
-  | 'starting'      // Transition phase, connecting to server
-  | 'live'          // Active multiplayer session
-  | 'paused'        // Live session paused (host only)
-  | 'ended';        // Session ended
+  | 'preparation' // Host working offline, building content
+  | 'ready' // Host ready to go live, content prepared
+  | 'starting' // Transition phase, connecting to server
+  | 'live' // Active multiplayer session
+  | 'paused' // Live session paused (host only)
+  | 'ended'; // Session ended
 
 export interface GameLifecycleState {
   mode: GameMode;
@@ -53,7 +53,10 @@ export interface LiveGameConfig {
 export interface GameLifecycleEvents {
   'lifecycle/enterPreparation': { sessionId: string };
   'lifecycle/readyToStart': { sessionId: string; snapshot: GameStateSnapshot };
-  'lifecycle/startLive': { config: LiveGameConfig; snapshot: GameStateSnapshot };
+  'lifecycle/startLive': {
+    config: LiveGameConfig;
+    snapshot: GameStateSnapshot;
+  };
   'lifecycle/goLive': { roomCode: string; gameState: GameStateSnapshot };
   'lifecycle/pauseGame': { reason?: string };
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -79,7 +82,7 @@ export const VALID_TRANSITIONS: Record<GamePhase, GamePhase[]> = {
   starting: ['live', 'preparation'], // Can fall back if connection fails
   live: ['paused', 'ended'],
   paused: ['live', 'ended'],
-  ended: ['preparation'] // Can start new session
+  ended: ['preparation'], // Can start new session
 };
 
 // Permissions by phase
@@ -90,7 +93,7 @@ export const PHASE_PERMISSIONS = {
     canEditSettings: true,
     canInvitePlayers: false,
     canSyncToServer: false,
-    isLocalOnly: true
+    isLocalOnly: true,
   },
   ready: {
     canEditScenes: true,
@@ -98,7 +101,7 @@ export const PHASE_PERMISSIONS = {
     canEditSettings: true,
     canInvitePlayers: false,
     canSyncToServer: false,
-    isLocalOnly: true
+    isLocalOnly: true,
   },
   starting: {
     canEditScenes: false,
@@ -106,7 +109,7 @@ export const PHASE_PERMISSIONS = {
     canEditSettings: false,
     canInvitePlayers: false,
     canSyncToServer: true,
-    isLocalOnly: false
+    isLocalOnly: false,
   },
   live: {
     canEditScenes: true, // Host only
@@ -114,7 +117,7 @@ export const PHASE_PERMISSIONS = {
     canEditSettings: true,
     canInvitePlayers: true,
     canSyncToServer: true,
-    isLocalOnly: false
+    isLocalOnly: false,
   },
   paused: {
     canEditScenes: true,
@@ -122,7 +125,7 @@ export const PHASE_PERMISSIONS = {
     canEditSettings: true,
     canInvitePlayers: false,
     canSyncToServer: false,
-    isLocalOnly: false
+    isLocalOnly: false,
   },
   ended: {
     canEditScenes: false,
@@ -130,6 +133,6 @@ export const PHASE_PERMISSIONS = {
     canEditSettings: false,
     canInvitePlayers: false,
     canSyncToServer: false,
-    isLocalOnly: true
-  }
+    isLocalOnly: true,
+  },
 } as const;

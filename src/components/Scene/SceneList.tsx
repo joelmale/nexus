@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import type { Scene } from '@/types/game';
 
@@ -48,15 +48,21 @@ export const SceneList: React.FC<SceneListProps> = ({
             </span>
             {scene.backgroundImage && (
               <div className="scene-preview">
-                <img 
-                  src={scene.backgroundImage.url} 
-                  alt={scene.name}
-                  className="scene-thumbnail"
-                />
+                <Suspense
+                  fallback={
+                    <div className="scene-thumbnail-loading">Loading...</div>
+                  }
+                >
+                  <img
+                    src={scene.backgroundImage.url}
+                    alt={scene.name}
+                    className="scene-thumbnail"
+                  />
+                </Suspense>
               </div>
             )}
           </div>
-          
+
           {isHost && (
             <div className="scene-actions">
               {onSceneEdit && (
