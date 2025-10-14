@@ -46,15 +46,17 @@
    ========================================================================== */
 .layout-toolbar {
   position: absolute;
-  bottom: 0;
+  bottom: var(--spacing-4);
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-toolbar);
-  pointer-events: none; /* Allow clicks to pass through container */
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  gap: var(--spacing-4);
-  padding: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+.layout-toolbar > * {
+  flex: 0 0 auto; /* Prevent children from stretching */
 }
 
 #toolbar-info-banner {
@@ -65,7 +67,7 @@
   color: var(--glass-text);
   font-family: sans-serif;
   padding: 8px 16px;
-  margin: 0 8px 8px;
+  margin: 0 8px 0;
   border-radius: 6px;
   border: 1px solid var(--glass-border);
   min-height: 38px;
@@ -93,7 +95,7 @@
    ========================================================================== */
 .game-toolbar {
   display: grid;
-  grid-template-columns: repeat(13, 1fr);
+  grid-template-rows: auto auto;
   gap: 4px;
   padding: 4px;
   background-color: var(--glass-surface-strong);
@@ -102,6 +104,13 @@
   border: 1px solid var(--glass-border);
   border-radius: 8px;
   pointer-events: auto;
+  align-self: center;
+}
+
+.toolbar-row {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
 }
 
 /* ==========================================================================
@@ -112,14 +121,14 @@
   align-items: center;
   justify-content: center;
   height: 40px;
-  width: 100%;
+  width: 40px; /* Fixed width */
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
   color: var(--glass-text-muted);
   font-size: 16px;
   transition: all 0.15s ease;
-  aspect-ratio: unset;
+  aspect-ratio: 1 / 1; /* Make it square */
   box-shadow:
     inset 0 1px 1px rgba(255, 255, 255, 0.1),
     0 2px 4px rgba(0, 0, 0, 0.3);
@@ -198,21 +207,12 @@
   width: var(--toolbar-icon-width);
 
   /* Typography */
-  font-size: var(--toolbar-icon-size);
+  font-size: 32px;
   text-align: center;
 }
 
 .tool-label {
-  /* Positioning & Layout */
-  overflow: hidden;
-
-  /* Box Model */
-  white-space: nowrap;
-
-  /* Typography */
-  font-weight: var(--font-medium);
-  font-size: var(--toolbar-label-font-size);
-  text-overflow: ellipsis;
+  display: none;
 }
 
 /* ==========================================================================
@@ -528,4 +528,9 @@
 .solid-theme .style-controls input,
 .solid-theme .style-controls select {
   background: var(--surface-secondary);
+}
+
+.toolbar-btn[data-id='zoom-in'] .tool-icon,
+.toolbar-btn[data-id='zoom-out'] .tool-icon {
+  font-size: 16px;
 }

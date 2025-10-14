@@ -171,21 +171,23 @@ export const GameToolbar: React.FC = () => {
     return (
       <button
         key={tool.id}
+        data-id={tool.id}
         type="button"
-        className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''} ${tool.disabled ? 'disabled' : ''} ${tool.className || ''}`}
+        className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''} ${
+          tool.disabled ? 'disabled' : ''
+        } ${tool.className || ''}`}
         onClick={tool.action ? tool.action : () => setActiveTool(tool.id)}
         disabled={tool.disabled}
         aria-pressed={activeTool === tool.id}
         onMouseEnter={() => setHoveredTool(tool)}
       >
-        <span className="tool-icon">{tool.icon}</span>
-        <span className="tool-label">{tool.label}</span>
+        {tool.icon ? <span className="tool-icon">{tool.icon}</span> : tool.label}
       </button>
     );
   };
 
   return (
-    <div className="layout-toolbar">
+    <>
       <div id="toolbar-info-banner">
         {hoveredTool ? (
           <>
@@ -201,44 +203,19 @@ export const GameToolbar: React.FC = () => {
 
       <div
         ref={toolbarRef}
-        className="scene-canvas-toolbar"
+        className="game-toolbar"
         role="toolbar"
         onMouseLeave={() => setHoveredTool(null)}
       >
-        {/* Basic Tools Section */}
-        <div className="toolbar-section">
-          <div className="toolbar-section-label">Basic Tools</div>
-          <div className="toolbar-buttons">
-            {toolGroups[0].tools.map(renderToolButton)}
-          </div>
+        <div className="toolbar-row">
+          {toolGroups.flatMap(g => g.tools).map(renderToolButton)}
         </div>
-
-        {/* Drawing Shapes Section */}
-        <div className="toolbar-section">
-          <div className="toolbar-section-label">Drawing Shapes</div>
-          <div className="toolbar-buttons">
-            {toolGroups[1].tools.map(renderToolButton)}
-          </div>
-        </div>
-
-        {/* DM Tools Section */}
-        {isHost && dmToolGroup && (
-          <div className="toolbar-section">
-            <div className="toolbar-section-label">DM Tools</div>
-            <div className="toolbar-buttons">
-              {dmToolGroup.tools.map(renderToolButton)}
-            </div>
-          </div>
-        )}
-
-        {/* Camera Controls Section */}
-        <div className="toolbar-section">
-          <div className="toolbar-section-label">Camera</div>
-          <div className="toolbar-buttons">
-            {cameraControls.map(renderToolButton)}
-          </div>
+        <div className="toolbar-row">
+          {isHost && dmToolGroup && dmToolGroup.tools.map(renderToolButton)}
+          {cameraControls.map(renderToolButton)}
         </div>
       </div>
-    </div>
+    </>
   );
 };
+
