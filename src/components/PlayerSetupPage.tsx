@@ -9,7 +9,6 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
 import { useCharacters } from '@/stores/characterStore';
@@ -38,7 +37,6 @@ const convertToPlayerCharacter = (
 };
 
 export const PlayerSetupPage: React.FC = () => {
-  const navigate = useNavigate();
   const {
     user,
     getSavedCharacters,
@@ -47,6 +45,7 @@ export const PlayerSetupPage: React.FC = () => {
     joinRoomWithCode,
     exportCharacters,
     importCharacters,
+    resetToWelcome,
   } = useGameStore();
 
   const { characters: newCharacters } = useCharacters();
@@ -130,7 +129,7 @@ export const PlayerSetupPage: React.FC = () => {
       startCharacterCreation(
         user.id,
         'fullpage',
-        (characterId, character) => {
+        (characterId: string, character?: Character) => {
           // Use the character object passed directly, or fallback to state lookup
           const newCharacter =
             character || newCharacters.find((c) => c.id === characterId);
@@ -157,22 +156,24 @@ export const PlayerSetupPage: React.FC = () => {
       </div>
 
       <div className="setup-content">
-        <div className="setup-panel glass-panel has-corner-button">
-          <button
-            onClick={() => navigate('/lobby')}
-            className="back-button glass-button"
-            title="Back to Lobby"
-          >
-            ←
-          </button>
+        <div className="setup-panel glass-panel">
           <div className="setup-header">
             <div className="header-with-back">
               <button
-                onClick={() => navigate('/lobby')}
+                onClick={resetToWelcome}
                 className="back-button glass-button"
-                title="Back to Lobby"
+                title="Back to Welcome"
               >
-                ←
+                <svg width="24" height="24" fill="white" viewBox="0 0 24 24">
+                  <path
+                    d="M15 18l-6-6 6-6"
+                    stroke="white"
+                    strokeWidth="2"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </button>
               <div className="header-content">
                 <h1>⚔️ Player Setup</h1>

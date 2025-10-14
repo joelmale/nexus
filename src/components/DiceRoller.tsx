@@ -262,7 +262,7 @@ export const DiceRoller: React.FC = () => {
   return (
     <div className="dice-roller">
       {/* Section for user input and quick roll buttons */}
-      <div className="dice-input">
+      <div className="dice-roller__input">
         <div
           style={{
             display: 'flex',
@@ -290,14 +290,14 @@ export const DiceRoller: React.FC = () => {
             )}
             <button
               onClick={cycleDiceTheme}
-              className="theme-toggle-btn"
+              className="dice-roller__theme-toggle-btn"
               title={`Dice Theme: ${DICE_THEMES.find((t) => t.id === diceTheme)?.name || 'Default'}`}
             >
               🎲
             </button>
             <button
               onClick={toggleSound}
-              className="sound-toggle-btn"
+              className="dice-roller__sound-toggle-btn"
               title={isSoundMuted ? 'Unmute dice sounds' : 'Mute dice sounds'}
             >
               {isSoundMuted ? '🔇' : '🔊'}
@@ -305,23 +305,23 @@ export const DiceRoller: React.FC = () => {
           </div>
         </div>
 
-        <div className="roll-controls">
+        <div className="dice-roller__roll-controls">
           <input
             type="text"
             value={expression}
             onChange={(e) => setExpression(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Click dice below to build your roll..."
-            className="dice-expression"
+            className="dice-roller__expression"
           />
-          <button onClick={handleRoll} className="roll-btn">
+          <button onClick={handleRoll} className="dice-roller__roll-btn">
             Roll
           </button>
         </div>
 
-        {error && <div className="error">{error}</div>}
+        {error && <div className="dice-roller__error">{error}</div>}
 
-        <div className="roll-options">
+        <div className="dice-roller__roll-options">
           <label className="setting-toggle">
             <input
               type="checkbox"
@@ -358,7 +358,7 @@ export const DiceRoller: React.FC = () => {
           )}
         </div>
 
-        <div className="dice-builder">
+        <div className="dice-roller__dice-builder">
           <div
             style={{
               display: 'flex',
@@ -370,7 +370,7 @@ export const DiceRoller: React.FC = () => {
             <h3 style={{ margin: 0 }}>Build Your Roll</h3>
             <button
               onClick={clearQueue}
-              className="clear-queue-btn"
+              className="dice-roller__clear-queue-btn"
               title="Clear roll queue"
               style={{
                 background: 'rgba(239, 68, 68, 0.2)',
@@ -401,33 +401,33 @@ export const DiceRoller: React.FC = () => {
             ))}
           </div>
 
-          <div className="modifiers-section">
+          <div className="dice-roller__modifiers-section">
             <h4>Modifiers</h4>
-            <div className="modifier-controls">
+            <div className="dice-roller__modifier-controls">
               <button
                 onClick={() => addModifier(-5)}
-                className="modifier-btn"
+                className="dice-roller__modifier-btn"
                 title="Add -5 modifier"
               >
                 -5
               </button>
               <button
                 onClick={() => addModifier(-1)}
-                className="modifier-btn"
+                className="dice-roller__modifier-btn"
                 title="Add -1 modifier"
               >
                 -1
               </button>
               <button
                 onClick={() => addModifier(1)}
-                className="modifier-btn"
+                className="dice-roller__modifier-btn"
                 title="Add +1 modifier"
               >
                 +1
               </button>
               <button
                 onClick={() => addModifier(5)}
-                className="modifier-btn"
+                className="dice-roller__modifier-btn"
                 title="Add +5 modifier"
               >
                 +5
@@ -448,28 +448,28 @@ export const DiceRoller: React.FC = () => {
       </div>
 
       {/* Section for displaying the history of all dice rolls */}
-      <div className="dice-history">
+      <div className="dice-roller__history">
         <h3>Roll History</h3>
-        <div className="rolls-list" ref={rollsListRef}>
+        <div className="dice-roller__rolls-list" ref={rollsListRef}>
           {visibleRolls.length === 0 ? (
-            <p className="no-rolls">No dice rolls yet</p>
+            <p className="dice-roller__no-rolls">No dice rolls yet</p>
           ) : (
             visibleRolls.map((roll, index) => (
               <div
                 key={roll.id}
-                className={`dice-roll ${index === 0 ? 'new-roll' : ''} ${roll.isPrivate ? 'private' : ''}`}
+                className={`dice-roller__roll ${index === 0 ? 'dice-roller__roll--new' : ''} ${roll.isPrivate ? 'dice-roller__roll--private' : ''}`}
               >
-                <div className="roll-header">
-                  <span className="roller-name">{roll.userName}</span>
-                  <div className="roll-meta">
+                <div className="dice-roller__roll-header">
+                  <span className="dice-roller__roller-name">{roll.userName}</span>
+                  <div className="dice-roller__roll-meta">
                     {roll.isPrivate && (
-                      <span className="private-tag">Private</span>
+                      <span className="dice-roller__private-tag">Private</span>
                     )}
-                    <span className="roll-time">
+                    <span className="dice-roller__roll-time">
                       {new Date(roll.timestamp).toLocaleTimeString()}
                     </span>
                     <button
-                      className="reroll-btn"
+                      className="dice-roller__reroll-btn"
                       title={`Re-roll ${roll.expression}`}
                       onClick={() => setExpression(roll.expression)}
                     >
@@ -477,7 +477,7 @@ export const DiceRoller: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                <div className="roll-result">
+                <div className="dice-roller__roll-result">
                   <span
                     dangerouslySetInnerHTML={{ __html: formatDiceRoll(roll) }}
                   />

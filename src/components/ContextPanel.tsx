@@ -107,9 +107,9 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     <div className="context-panel" data-expanded={expanded}>
       {/* Panel Content */}
       {expanded && (
-        <div className="panel-content" role="tabpanel" ref={panelContentRef}>
+        <div className="context-panel__content" role="tabpanel" ref={panelContentRef}>
           <div
-            className="panel-body"
+            className="context-panel__body"
             data-testid="panel-body"
             style={{ overflowY: 'auto' }}
           >
@@ -133,8 +133,8 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
 
       {/* Collapsed state content - show icon when collapsed */}
       {!expanded && (
-        <div className="collapsed-content">
-          <div className="collapsed-icon">
+        <div className="context-panel__collapsed-content">
+          <div className="context-panel__collapsed-icon">
             {panels.find((p) => p.id === activePanel)?.icon}
           </div>
         </div>

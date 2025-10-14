@@ -63,7 +63,16 @@ export const DMSetupPage: React.FC = () => {
                 className="back-button glass-button"
                 title="Back to Welcome"
               >
-                ←
+                <svg width="24" height="24" fill="white" viewBox="0 0 24 24">
+                  <path
+                    d="M15 18l-6-6 6-6"
+                    stroke="white"
+                    strokeWidth="2"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </button>
               <div className="header-content">
                 <h1>👑 Dungeon Master Setup</h1>

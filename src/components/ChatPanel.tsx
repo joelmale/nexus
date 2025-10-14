@@ -50,23 +50,23 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isOwnMessage }) => {
 
   return (
     <div
-      className={`chat-message ${isOwnMessage ? 'own' : ''} ${message.messageType}`}
+      className={`chat-panel__message ${isOwnMessage ? 'chat-panel__message--own' : 'chat-panel__message--other'} ${message.messageType}`}
     >
-      <div className="message-header">
-        <span className="message-author">{message.userName}</span>
+      <div className="chat-panel__message-header">
+        <span className="chat-panel__message-author">{message.userName}</span>
         {message.messageType !== 'text' && (
-          <span className="message-type">
+          <span className="chat-panel__message-type">
             {getMessageTypeIcon(message.messageType)}{' '}
             {getMessageTypeLabel(message.messageType)}
           </span>
         )}
-        <span className="message-timestamp">
+        <span className="chat-panel__message-timestamp">
           {formatTimestamp(message.timestamp)}
         </span>
       </div>
-      <div className="message-content">{message.content}</div>
+      <div className="chat-panel__message-content">{message.content}</div>
       {message.messageType === 'whisper' && message.recipientId && (
-        <div className="message-recipient">To: {message.recipientId}</div>
+        <div className="chat-panel__message-recipient">To: {message.recipientId}</div>
       )}
     </div>
   );
@@ -189,9 +189,9 @@ export const ChatPanel: React.FC = () => {
         <h3>Chat</h3>
 
         {/* Messages Area */}
-        <div className="chat-messages">
+        <div className="chat-panel__messages">
           {visibleMessages.length === 0 ? (
-            <div className="chat-empty">
+            <div className="chat-panel__empty">
               <p>No messages yet. Start the conversation!</p>
             </div>
           ) : (
@@ -208,9 +208,9 @@ export const ChatPanel: React.FC = () => {
 
         {/* Typing Indicators */}
         {chat.typingUsers.length > 0 && (
-          <div className="typing-indicators">
+          <div className="chat-panel__typing-indicators">
             {chat.typingUsers.map((typingUser) => (
-              <span key={typingUser.userId} className="typing-user">
+              <span key={typingUser.userId} className="chat-panel__typing-user">
                 {typingUser.userName} is typing...
               </span>
             ))}
@@ -218,9 +218,9 @@ export const ChatPanel: React.FC = () => {
         )}
 
         {/* Message Input */}
-        <div className="chat-input-section">
+        <div className="chat-panel__input-section">
           {/* Message Type Selector */}
-          <div className="message-type-selector">
+          <div className="chat-panel__type-selector">
             <select
               value={messageType}
               onChange={(e) => {
@@ -229,7 +229,7 @@ export const ChatPanel: React.FC = () => {
                   setSelectedRecipient('');
                 }
               }}
-              className="message-type-select"
+              className="chat-panel__type-select"
             >
               <option value="text">Public</option>
               <option value="whisper">Whisper</option>
@@ -239,7 +239,7 @@ export const ChatPanel: React.FC = () => {
               <select
                 value={selectedRecipient}
                 onChange={(e) => setSelectedRecipient(e.target.value)}
-                className="recipient-select"
+                className="chat-panel__recipient-select"
               >
                 <option value="">Select recipient...</option>
                 {session.players
@@ -253,9 +253,9 @@ export const ChatPanel: React.FC = () => {
             )}
           </div>
 
-          <div className="chat-input-container">
+          <div className="chat-panel__input-container">
             <textarea
-              className="chat-input"
+              className="chat-panel__input"
               placeholder={
                 messageType === 'whisper'
                   ? selectedRecipient
@@ -271,7 +271,7 @@ export const ChatPanel: React.FC = () => {
               disabled={messageType === 'whisper' && !selectedRecipient}
             />
             <button
-              className="chat-send-btn"
+              className="chat-panel__send-btn"
               onClick={handleSendMessage}
               disabled={
                 !messageInput.trim() ||
@@ -286,7 +286,7 @@ export const ChatPanel: React.FC = () => {
           {/* DM Announcement Button (Host Only) */}
           {isHost && (
             <button
-              className="dm-announcement-btn"
+              className="chat-panel__announcement-btn"
               onClick={handleSendDMAnnouncement}
               disabled={!messageInput.trim()}
               title="Send DM Announcement"
@@ -298,7 +298,7 @@ export const ChatPanel: React.FC = () => {
 
         {/* Unread Count Badge */}
         {chat.unreadCount > 0 && (
-          <div className="unread-badge">{chat.unreadCount} unread</div>
+          <div className="chat-panel__unread-badge">{chat.unreadCount} unread</div>
         )}
       </div>
     </div>

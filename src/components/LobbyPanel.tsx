@@ -142,34 +142,34 @@ export const LobbyPanel: React.FC = () => {
 
   return (
     <div className="lobby-panel">
-      <div className="lobby-header">
+      <div className="lobby-panel__header">
         <h2>🎲 Game Lobby</h2>
         <div
-          className={`connection-status ${isConnectedToRoom ? 'online' : 'offline'}`}
+          className={`lobby-panel__connection-status ${isConnectedToRoom ? 'online' : 'offline'}`}
         >
-          <span className="status-dot"></span>
-          <span className="status-text">
+          <span className="lobby-panel__status-dot"></span>
+          <span className="lobby-panel__status-text">
             {isConnectedToRoom ? 'Online' : 'Offline'}
           </span>
         </div>
       </div>
 
       {error && (
-        <div className="error-message glass-panel error">
+        <div className="lobby-panel__error-message glass-panel error">
           <span className="error-icon">⚠️</span>
           {error}
         </div>
       )}
 
       {/* Room Information */}
-      <div className="lobby-section glass-panel">
+      <div className="lobby-panel__section glass-panel">
         <h3>Room Information</h3>
 
-        <div className="room-info-grid">
-          <div className="room-info-item">
+        <div className="lobby-panel__room-info-grid">
+          <div className="lobby-panel__room-info-item">
             <label>Room Code</label>
-            <div className="room-code-display">
-              <span className="code">{roomCode || 'N/A'}</span>
+            <div className="lobby-panel__room-code-display">
+              <span className="lobby-panel__code">{roomCode || 'N/A'}</span>
               <button
                 onClick={handleCopyRoomCode}
                 className="glass-button small"
@@ -181,17 +181,17 @@ export const LobbyPanel: React.FC = () => {
             </div>
           </div>
 
-          <div className="room-info-item">
+          <div className="lobby-panel__room-info-item">
             <label>Your Role</label>
-            <div className="role-badge">
+            <div className="lobby-panel__role-badge">
               {isHost ? (
                 <>
-                  <span className="role-icon">👑</span>
+                  <span className="lobby-panel__role-icon">👑</span>
                   Dungeon Master
                 </>
               ) : (
                 <>
-                  <span className="role-icon">⚔️</span>
+                  <span className="lobby-panel__role-icon">⚔️</span>
                   Player
                 </>
               )}
@@ -201,8 +201,8 @@ export const LobbyPanel: React.FC = () => {
 
         {/* Online Game Controls */}
         {!isConnectedToRoom ? (
-          <div className="online-controls">
-            <p className="help-text">
+          <div className="lobby-panel__online-controls">
+            <p className="lobby-panel__help-text">
               {isHost
                 ? 'Start an online game to allow players to join remotely.'
                 : 'Enter a room code to connect to the online game.'}
@@ -210,7 +210,7 @@ export const LobbyPanel: React.FC = () => {
 
             {/* Player: Room Code Input */}
             {!isHost && (
-              <div className="room-code-input-group">
+              <div className="lobby-panel__room-code-input-group">
                 <input
                   type="text"
                   value={playerRoomCode}
@@ -232,7 +232,7 @@ export const LobbyPanel: React.FC = () => {
             >
               {isConnecting ? (
                 <>
-                  <span className="loading-spinner"></span>
+                  <span className="lobby-panel__loading-spinner"></span>
                   Connecting...
                 </>
               ) : (
@@ -244,8 +244,8 @@ export const LobbyPanel: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="online-controls">
-            <p className="help-text success">
+          <div className="lobby-panel__online-controls">
+            <p className="lobby-panel__help-text success">
               ✅ Connected to online game server
             </p>
             {isHost && (
@@ -263,9 +263,9 @@ export const LobbyPanel: React.FC = () => {
 
       {/* Players List */}
       {session && (
-        <div className="lobby-section">
+        <div className="lobby-panel__section">
           <h3>Party Members ({session.players.length})</h3>
-          <div className="players-list">
+          <div className="lobby-panel__players-list">
             {session.players.map((player) => (
               <PlayerCard key={player.id} player={player} isHost={isHost} />
             ))}
@@ -274,7 +274,7 @@ export const LobbyPanel: React.FC = () => {
       )}
 
       {/* Leave Room */}
-      <div className="lobby-actions">
+      <div className="lobby-panel__actions">
         <button onClick={leaveRoom} className="glass-button danger">
           <span>🚪</span>
           Leave Room
@@ -282,9 +282,9 @@ export const LobbyPanel: React.FC = () => {
       </div>
 
       {/* Instructions */}
-      <div className="lobby-section glass-panel info">
+      <div className="lobby-panel__section glass-panel info">
         <h4>📖 How to Use</h4>
-        <ul className="instructions-list">
+        <ul className="lobby-panel__instructions-list">
           {isHost ? (
             <>
               <li>
