@@ -6,6 +6,7 @@ import {
   type DrawingTool,
 } from '@/types/drawing';
 import type { Camera, PlacedToken } from '@/types/game';
+import { useTokenStore } from '@/stores/tokenStore';
 import {
   useUser,
   useActiveScene,
@@ -23,6 +24,8 @@ import {
   isPointInCircle,
   gridSnap,
 } from '@/utils/mathUtils';
+import { tokenAssetManager } from '@/services/tokenAssets';
+import { getTokenPixelSize } from '@/types/token';
 
 interface DrawingToolsProps {
   activeTool:
@@ -339,6 +342,30 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     [activeScene, isHost, user.id],
   );
 
+  const getTokensAtPoint = useCallback(
+    (point: Point, radius: number = 5): string[] => {
+      const intersectedTokens: string[] = [];
+      placedTokens.forEach((token) => {
+        const tokenData = tokenAssetManager.getTokenById(token.tokenId);
+        if (!tokenData) return;
+        const tokenSize =
+          getTokenPixelSize(tokenData.size, _gridSize) * token.scale;
+        const tokenRadius = tokenSize / 2;
+        if (
+          isPointInCircle(
+            point,
+            { x: token.x, y: token.y },
+            tokenRadius + radius,
+          )
+        ) {
+          intersectedTokens.push(token.id);
+        }
+      });
+      return intersectedTokens;
+    },
+    [placedTokens, _gridSize],
+  );
+
   // Get drawings in selection box
   const getDrawingsInSelection = useCallback(
     (start: Point, end: Point): string[] => {
@@ -452,39 +479,43 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       } = {
         select: (event) => {
           const drawingsAtPoint = getDrawingsAtPoint(point, 25);
+          const tokensAtPoint = getTokensAtPoint(point, 5);
           const isMultiSelectModifier =
             event.shiftKey || event.metaKey || event.ctrlKey;
 
-          const drawingAtPoint = drawingsAtPoint[0];
-          if (drawingAtPoint) {
-            // Clicking on an object
+          const objectToSelect = drawingsAtPoint[0] || tokensAtPoint[0];
+
+          if (objectToSelect) {
+            const isToken = tokensAtPoint.includes(objectToSelect);
+
             if (isMultiSelectModifier) {
-              // Shift+click or Cmd/Ctrl+click: Add/remove from selection
-              const newSelection = selectedObjectIds.includes(drawingAtPoint)
-                ? selectedObjectIds.filter((id) => id !== drawingAtPoint)
-                : [...selectedObjectIds, drawingAtPoint];
+              const newSelection = selectedObjectIds.includes(objectToSelect)
+                ? selectedObjectIds.filter((id) => id !== objectToSelect)
+                : [...selectedObjectIds, objectToSelect];
               setSelection(newSelection);
+              // Multi-selection, so no single token toolbar
+              useTokenStore.getState().clearSelection();
             } else {
-              // Regular click: Select this object (or keep selection if already selected)
-              // If clicking on an already-selected object, don't change selection
-              // (this allows dragging to work via SelectionOverlay)
-              if (!selectedObjectIds.includes(drawingAtPoint)) {
-                setSelection([drawingAtPoint]);
+              // Single selection
+              setSelection([objectToSelect]);
+              if (isToken) {
+                useTokenStore.getState().selectToken(objectToSelect);
+              } else {
+                useTokenStore.getState().clearSelection();
               }
-              // Don't call defaultHandler - let SelectionOverlay handle dragging
-              return;
             }
           } else {
             // Clicking on empty space
             if (event.shiftKey) {
-              // Shift+drag on empty space: Start selection box
+              // Start selection box
               setSelectionBox({ start: point, end: point });
               setIsDrawing(true);
               setStartPoint(point);
               setCurrentPoint(point);
             } else {
-              // Regular click on empty space: Clear selection
+              // Clear all selections
               clearSelection();
+              useTokenStore.getState().clearSelection();
             }
           }
         },
@@ -732,6 +763,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       setSelection,
       clearSelection,
       getDrawingsAtPoint,
+      getTokensAtPoint,
       deleteAndSyncDrawing,
       eraserRadius,
       activeScene,

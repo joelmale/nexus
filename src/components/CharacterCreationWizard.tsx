@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useCharacterCreation } from '@/stores/characterStore';
 import {
   generateRandomCharacter,
@@ -30,6 +30,7 @@ interface WizardStepProps {
   canProceed: boolean;
   isFirstStep: boolean;
   isLastStep: boolean;
+  playerId: string;
 }
 
 // =============================================================================
@@ -44,9 +45,11 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
   canProceed: _canProceed,
   isFirstStep: _isFirstStep,
   isLastStep: _isLastStep,
+  playerId,
 }) => {
   const handleRandomizeAll = () => {
-    const randomChar = generateRandomCharacter(character.playerId || '');
+    // Use playerId from props instead of character state to ensure it's always available
+    const randomChar = generateRandomCharacter(playerId);
     updateCharacter({
       name: randomChar.name,
       race: randomChar.race,
@@ -278,6 +281,7 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
   canProceed: _canProceed,
   isFirstStep: _isFirstStep,
   isLastStep: _isLastStep,
+  playerId: _playerId,
 }) => {
   const handleRandomizeAbilities = () => {
     const newAbilities = randomizeAbilityScores();
@@ -369,6 +373,7 @@ const DetailsStep: React.FC<WizardStepProps> = ({
   canProceed: _canProceed,
   isFirstStep: _isFirstStep,
   isLastStep: _isLastStep,
+  playerId: _playerId,
 }) => {
   return (
     <div className="wizard-step details-step">
@@ -518,13 +523,20 @@ export const CharacterCreationWizard: React.FC<
 > = ({ playerId, onComplete, onCancel, isModal = false }) => {
   const {
     creationState,
-    startCharacterCreation,
     updateCreationState,
     completeCharacterCreation,
     cancelCharacterCreation,
+    startCharacterCreation,
   } = useCharacterCreation();
 
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Initialize character creation state when component mounts
+  useEffect(() => {
+    if (!creationState) {
+      startCharacterCreation(playerId, 'guided');
+    }
+  }, [creationState, startCharacterCreation, playerId]);
   const totalSteps = 3;
 
   // Determine if export should be enabled
@@ -549,12 +561,8 @@ export const CharacterCreationWizard: React.FC<
     );
   }, [currentStep, totalSteps, creationState?.character]);
 
-  // Initialize creation state when component mounts
-  useEffect(() => {
-    if (!creationState) {
-      startCharacterCreation(playerId, 'guided');
-    }
-  }, [playerId, creationState, startCharacterCreation]);
+  // Creation state should be initialized by the launcher
+  // Don't call startCharacterCreation here to avoid conflicts
 
   const character = creationState?.character || {};
 
@@ -649,6 +657,7 @@ export const CharacterCreationWizard: React.FC<
       canProceed: canProceedFromStep(currentStep),
       isFirstStep: currentStep === 1,
       isLastStep: currentStep === totalSteps,
+      playerId,
     };
 
     switch (currentStep) {

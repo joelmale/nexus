@@ -59,6 +59,9 @@ export const LinearWelcomePage: React.FC = () => {
 
     setError('');
     setUser({ name: playerName.trim(), type: 'player' });
+
+    // Navigate to player setup
+    useGameStore.getState().setView('player_setup');
   };
 
   const handleQuickJoin = async () => {

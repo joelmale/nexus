@@ -518,7 +518,7 @@
 
 .ability-name {
   font-size: 0.75rem;
-  color: var(--solid-text-muted);
+  color: var(--solid-text);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;

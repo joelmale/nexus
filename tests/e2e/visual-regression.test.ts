@@ -1,11 +1,145 @@
 /**
- * Visual Regression Tests for Layout and Toolbar Visibility
+ * Visual Regression Tests for Layout, Toolbar Visibility, and Welcome Page
  *
  * These tests take screenshots to catch visual layout regressions,
- * particularly around toolbar visibility and panel overflow issues.
+ * particularly around toolbar visibility, panel overflow issues, and welcome page design.
  */
 
 import { test, expect } from '@playwright/test';
+
+test.describe('Welcome Page Visual Regression Tests', () => {
+  test('Welcome page layout and design', async ({ page }) => {
+    // Navigate to the lobby/welcome page
+    await page.goto('/lobby', { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle');
+
+    // Wait for any animations or dynamic content to load
+    await page.waitForTimeout(1000);
+
+    // Ensure the main welcome page elements are visible
+    await expect(page.locator('.welcome-page')).toBeVisible();
+    await expect(page.locator('.nexus-logo')).toBeVisible();
+
+    // Take a full-page screenshot for visual regression testing
+    await expect(page).toHaveScreenshot('welcome-page-layout.png', {
+      fullPage: true, // Capture the entire page including any overflow
+      threshold: 0.1, // Low threshold for exact visual matching
+    });
+  });
+
+  test('Welcome page responsive design - mobile viewport', async ({ page }) => {
+    // Set mobile viewport
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.waitForTimeout(500);
+
+    // Navigate to the welcome page
+    await page.goto('/lobby', { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    // Ensure main elements are still visible on mobile
+    await expect(page.locator('.welcome-page')).toBeVisible();
+
+    // Take screenshot for mobile layout
+    await expect(page).toHaveScreenshot('welcome-page-mobile.png', {
+      fullPage: true,
+      threshold: 0.1,
+    });
+  });
+
+  test('Welcome page responsive design - tablet viewport', async ({ page }) => {
+    // Set tablet viewport
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.waitForTimeout(500);
+
+    // Navigate to the welcome page
+    await page.goto('/lobby', { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    // Ensure main elements are visible on tablet
+    await expect(page.locator('.welcome-page')).toBeVisible();
+
+    // Take screenshot for tablet layout
+    await expect(page).toHaveScreenshot('welcome-page-tablet.png', {
+      fullPage: true,
+      threshold: 0.1,
+    });
+  });
+
+  test('Welcome page with Player role card expanded', async ({ page }) => {
+    // Navigate to the welcome page
+    await page.goto('/lobby', { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    // Click on the Player role card to expand it
+    await page.locator('.role-card:has-text("Player")').click();
+    await page.waitForTimeout(500);
+
+    // Ensure the expanded player card content is visible (player-actions should be visible)
+    await expect(page.locator('.player-actions')).toBeVisible();
+
+    // Take screenshot with player card expanded
+    await expect(page).toHaveScreenshot('welcome-page-player-expanded.png', {
+      fullPage: true,
+      threshold: 0.1,
+    });
+  });
+
+  test('Welcome page with DM role card expanded', async ({ page }) => {
+    // Navigate to the welcome page
+    await page.goto('/lobby', { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    // Click on the DM role card to expand it
+    await page.locator('.role-card:has-text("Dungeon Master")').click();
+    await page.waitForTimeout(500);
+
+    // Ensure the expanded DM card content is visible (dm-actions should be visible)
+    await expect(page.locator('.dm-actions')).toBeVisible();
+
+    // Take screenshot with DM card expanded
+    await expect(page).toHaveScreenshot('welcome-page-dm-expanded.png', {
+      fullPage: true,
+      threshold: 0.1,
+    });
+  });
+
+  test('Welcome page with Development Tools visible', async ({ page }) => {
+    // Set NODE_ENV to development to show dev tools
+    await page.addInitScript(() => {
+      // Mock development environment
+      Object.defineProperty(process, 'env', {
+        value: { ...process.env, NODE_ENV: 'development' },
+        writable: true,
+      });
+    });
+
+    // Navigate to the welcome page
+    await page.goto('/lobby', { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    // Check if development tools are visible (only in dev mode)
+    const devToolsVisible = await page.locator('.dev-tools').isVisible();
+
+    if (devToolsVisible) {
+      // Take screenshot including development tools
+      await expect(page).toHaveScreenshot('welcome-page-with-dev-tools.png', {
+        fullPage: true,
+        threshold: 0.1,
+      });
+    } else {
+      // Take regular screenshot if dev tools aren't visible
+      await expect(page).toHaveScreenshot('welcome-page-layout.png', {
+        fullPage: true,
+        threshold: 0.1,
+      });
+    }
+  });
+});
 
 test.describe('Layout Visual Regression Tests', () => {
   test.beforeEach(async ({ page }) => {

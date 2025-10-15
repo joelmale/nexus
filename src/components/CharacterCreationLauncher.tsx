@@ -102,6 +102,11 @@ export const CharacterCreationProvider: React.FC<{
     />
   ) : null;
 
+  console.log(
+    '🚀 CharacterCreationProvider: LauncherComponent:',
+    LauncherComponent ? 'rendered' : 'null',
+  );
+
   return (
     <CharacterCreationContext.Provider
       value={{

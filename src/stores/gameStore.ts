@@ -271,8 +271,12 @@ const clearSessionFromStorage = (): void => {
 };
 
 // Read pre-game view from localStorage for persistence on refresh
-const preGameView = localStorage.getItem('nexus-pre-game-view') as AppView | null;
-console.log(`[Persistence] Found pre-game view in localStorage: '${preGameView}'`);
+const preGameView = localStorage.getItem(
+  'nexus-pre-game-view',
+) as AppView | null;
+console.log(
+  `[Persistence] Found pre-game view in localStorage: '${preGameView}'`,
+);
 
 const initialState: GameState & {
   view: AppView;
