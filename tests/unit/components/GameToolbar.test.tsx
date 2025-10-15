@@ -34,25 +34,40 @@ describe('GameToolbar', () => {
     expect(getByRole('toolbar')).toBeInTheDocument();
   });
 
-  it('should render in docked mode when floatingToolbar is false', () => {
+  it('should render with proper CSS classes', () => {
     const { container } = renderWithDnd(<GameToolbar />);
-    const toolbar = container.querySelector('.game-toolbar') as HTMLElement;
+    const toolbar = container.querySelector(
+      '.scene-canvas-toolbar',
+    ) as HTMLElement;
 
     expect(toolbar).toBeInTheDocument();
-    expect(toolbar.classList.contains('docked')).toBe(true);
-    expect(toolbar.classList.contains('floating')).toBe(false);
+    expect(toolbar.classList.contains('scene-canvas-toolbar')).toBe(true);
 
-    // Drag handle should not exist in docked mode
-    const dragHandle = container.querySelector('.toolbar-drag-handle');
-    expect(dragHandle).toBeNull();
+    // Check that toolbar sections are present
+    const sections = container.querySelectorAll('.toolbar-section');
+    expect(sections.length).toBeGreaterThan(0);
+
+    // Check that toolbar buttons are present
+    const buttons = container.querySelectorAll('.toolbar-btn');
+    expect(buttons.length).toBeGreaterThan(0);
   });
 
-  it('should have correct initial position in docked mode', () => {
+  it('should render toolbar sections correctly', () => {
     const { container } = renderWithDnd(<GameToolbar />);
-    const toolbar = container.querySelector('.game-toolbar') as HTMLElement;
 
-    // Initial position should be '0' (no unit) in docked mode
-    expect(toolbar.style.getPropertyValue('--tw-translate-x')).toBe('0');
-    expect(toolbar.style.getPropertyValue('--tw-translate-y')).toBe('0');
+    // Check for basic tools section
+    const basicSection = container.querySelector('.toolbar-section');
+    expect(basicSection).toBeInTheDocument();
+
+    // Check for section labels
+    const sectionLabels = container.querySelectorAll('.toolbar-section-label');
+    expect(sectionLabels.length).toBeGreaterThan(0);
+
+    // Check for toolbar buttons with proper structure
+    const toolbarButtons = container.querySelectorAll('.toolbar-btn');
+    toolbarButtons.forEach((button) => {
+      expect(button.querySelector('.tool-icon')).toBeInTheDocument();
+      expect(button.querySelector('.tool-label')).toBeInTheDocument();
+    });
   });
 });

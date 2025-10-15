@@ -238,3 +238,7 @@ tramp
 check-ports.sh.log
 organize-assets.sh.log
 start-dev.sh.log
+
+# Test results
+playwright-report/
+test-results/

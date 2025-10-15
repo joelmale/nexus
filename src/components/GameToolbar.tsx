@@ -5,19 +5,12 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { useDrag } from 'react-dnd';
 import {
   useGameStore,
   useIsHost,
   useCamera,
   useActiveTool,
 } from '@/stores/gameStore';
-import { Tooltip } from './Tooltip';
-
-interface Position {
-  x: number;
-  y: number;
-}
 
 interface ToolbarItem {
   id: string;
@@ -36,58 +29,13 @@ interface ToolbarGroup {
   tools: ToolbarItem[];
 }
 
-const TOOLBAR_TYPE = 'GAME_TOOLBAR';
-
 export const GameToolbar: React.FC = () => {
   const activeTool = useActiveTool();
-  const [isCompact, setIsCompact] = useState(false);
   const isHost = useIsHost();
-  const { updateCamera, settings, setActiveTool } = useGameStore();
+  const { updateCamera, setActiveTool } = useGameStore();
   const camera = useCamera();
-
-  const isFloating = settings.floatingToolbar ?? false;
-
-  const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
-  const positionRef = useRef<Position>({ x: 0, y: 0 });
   const toolbarRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    positionRef.current = position;
-  }, [position]);
-
-  const [{ isDragging }, dragRef, preview] = useDrag({
-    type: TOOLBAR_TYPE,
-    item: () => ({
-      type: TOOLBAR_TYPE,
-      initialPosition: { ...positionRef.current },
-    }),
-    collect: (monitor) => ({ isDragging: monitor.isDragging() }),
-    end: (item, monitor) => {
-      const differenceOffset = monitor.getDifferenceFromInitialOffset();
-      if (
-        differenceOffset &&
-        (differenceOffset.x !== 0 || differenceOffset.y !== 0)
-      ) {
-        const newPosition = {
-          x: item.initialPosition.x + differenceOffset.x,
-          y: item.initialPosition.y + differenceOffset.y,
-        };
-        setPosition(newPosition);
-      }
-    },
-  });
-
-  useEffect(() => {
-    if (toolbarRef.current) {
-      preview(toolbarRef.current, {
-        captureDraggingState: false,
-        anchorX: 0.5,
-        anchorY: 0.1,
-      });
-    }
-  }, [preview]);
-
-  const displayPosition = position;
+  const [hoveredTool, setHoveredTool] = useState<ToolbarItem | null>(null);
 
   const handleZoomIn = useCallback(
     () => updateCamera({ zoom: Math.min(5.0, camera.zoom * 1.2) }),
@@ -101,7 +49,6 @@ export const GameToolbar: React.FC = () => {
     () => updateCamera({ x: 0, y: 0, zoom: 1.0 }),
     [updateCamera],
   );
-  const handleDoubleClick = () => setPosition({ x: 0, y: 0 });
 
   const toolGroups: ToolbarGroup[] = useMemo(
     () => [
@@ -190,12 +137,6 @@ export const GameToolbar: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
-        e.preventDefault();
-        setIsCompact((prev) => !prev);
-        return;
-      }
-
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
@@ -226,139 +167,55 @@ export const GameToolbar: React.FC = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [setActiveTool, toolGroups, dmToolGroup]);
 
-  const renderToolButton = (tool: any) => {
-    const tooltipText = `${tool.label}${tool.shortcut ? `<span class="shortcut">${tool.shortcut}</span>` : ''}`;
+  const renderToolButton = (tool: ToolbarItem) => {
     return (
-      <Tooltip text={tooltipText} key={tool.id}>
-        <button
-          type="button"
-          className={`unstyled px-3 py-2 rounded-lg text-base transition-all duration-150 ${
-            activeTool === tool.id
-              ? 'bg-gradient-to-b from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/50 translate-y-0'
-              : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-white hover:shadow-lg active:translate-y-0.5 active:shadow-sm'
-          }`}
-          onClick={() => setActiveTool(tool.id)}
-          aria-pressed={activeTool === tool.id}
-        >
-          {tool.icon}
-        </button>
-      </Tooltip>
+      <button
+        key={tool.id}
+        data-id={tool.id}
+        type="button"
+        className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''} ${
+          tool.disabled ? 'disabled' : ''
+        } ${tool.className || ''}`}
+        onClick={tool.action ? tool.action : () => setActiveTool(tool.id)}
+        disabled={tool.disabled}
+        aria-pressed={activeTool === tool.id}
+        onMouseEnter={() => setHoveredTool(tool)}
+      >
+        {tool.icon ? <span className="tool-icon">{tool.icon}</span> : tool.label}
+      </button>
     );
   };
 
   return (
-    <div
-      ref={toolbarRef}
-      className={`game-toolbar ${isFloating ? 'floating' : 'docked'} ${position.x !== 0 || position.y !== 0 ? 'positioned' : ''} ${isCompact ? 'compact' : ''} ${isDragging ? 'dragging' : ''}`}
-      role="toolbar"
-      style={
-        {
-          '--tw-translate-x': isFloating ? `${displayPosition.x}px` : '0',
-          '--tw-translate-y': isFloating ? `${displayPosition.y}px` : '0',
-          opacity: isDragging ? 0.3 : 1,
-          transition: isDragging ? 'none' : 'all 0.2s ease',
-          pointerEvents: 'auto',
-        } as React.CSSProperties
-      }
-    >
-      {isFloating && (
-        <div className="toolbar-controls">
-          <div
-            ref={dragRef as unknown as React.Ref<HTMLDivElement>}
-            className="toolbar-drag-handle"
-            title="Drag to move | Double-click: reset position"
-            onDoubleClick={handleDoubleClick}
-            style={{
-              cursor: isDragging ? 'grabbing' : 'grab',
-              pointerEvents: 'auto',
-            }}
-          >
-            <span className="drag-dots">⋮⋮</span>
-          </div>
-          <button
-            type="button"
-            className="compact-toggle"
-            onClick={() => setIsCompact(!isCompact)}
-            title={`${isCompact ? 'Expand' : 'Compact'} toolbar (Ctrl+Shift+T)`}
-            aria-label={isCompact ? 'Expand toolbar' : 'Compact toolbar'}
-          >
-            <span className="compact-icon">{isCompact ? '⊞' : '⊟'}</span>
-          </button>
-        </div>
-      )}
-      <div className="toolbar-content">
-        {isFloating ? (
+    <>
+      <div id="toolbar-info-banner">
+        {hoveredTool ? (
           <>
-            <div className="flex gap-2 mb-2">
-              <div className="flex gap-1">
-                {toolGroups[0].tools.map(renderToolButton)}
-              </div>
-              <div className="w-px bg-gray-600" />
-              <div className="flex gap-1">
-                {toolGroups[1].tools.map(renderToolButton)}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              {isHost && dmToolGroup && (
-                <>
-                  <div className="flex gap-1">
-                    {dmToolGroup.tools.map(renderToolButton)}
-                  </div>
-                  <div className="w-px bg-gray-600" />
-                </>
-              )}
-              <div className="flex gap-1">
-                {cameraControls.map((control) => (
-                  <Tooltip
-                    text={`${control.label}${control.shortcut ? `<span class="shortcut">${control.shortcut}</span>` : ''}`}
-                    key={control.id}
-                  >
-                    <button
-                      type="button"
-                      className="unstyled px-3 py-2 rounded-lg text-sm transition-all duration-150 bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-gray-200 hover:shadow-lg active:translate-y-0.5 active:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      onClick={control.action}
-                      disabled={control.disabled}
-                    >
-                      {control.icon ? control.icon : control.label}
-                    </button>
-                  </Tooltip>
-                ))}
-              </div>
-            </div>
+            <span>{hoveredTool.tooltip || hoveredTool.label}</span>
+            {hoveredTool.shortcut && (
+              <span className="shortcut">{hoveredTool.shortcut}</span>
+            )}
           </>
         ) : (
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2 items-center">
-              {toolGroups[0].tools.map(renderToolButton)}
-              <div className="w-px h-8 bg-gray-600" />
-              {toolGroups[1].tools.map(renderToolButton)}
-            </div>
-            <div className="flex gap-2 items-center">
-              {isHost && dmToolGroup && (
-                <>
-                  {dmToolGroup.tools.map(renderToolButton)}
-                  <div className="w-px h-8 bg-gray-600" />
-                </>
-              )}
-              {cameraControls.map((control) => (
-                <Tooltip
-                  text={`${control.label}${control.shortcut ? `<span class="shortcut">${control.shortcut}</span>` : ''}`}
-                  key={control.id}
-                >
-                  <button
-                    type="button"
-                    className="unstyled px-3 py-2 rounded-lg text-sm transition-all duration-150 bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 shadow-md hover:from-gray-600 hover:to-gray-700 hover:text-gray-200 hover:shadow-lg active:translate-y-0.5 active:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={control.action}
-                    disabled={control.disabled}
-                  >
-                    {control.icon ? control.icon : control.label}
-                  </button>
-                </Tooltip>
-              ))}
-            </div>
-          </div>
+          <span>Hover over a tool for information.</span>
         )}
       </div>
-    </div>
+
+      <div
+        ref={toolbarRef}
+        className="game-toolbar"
+        role="toolbar"
+        onMouseLeave={() => setHoveredTool(null)}
+      >
+        <div className="toolbar-row">
+          {toolGroups.flatMap(g => g.tools).map(renderToolButton)}
+        </div>
+        <div className="toolbar-row">
+          {isHost && dmToolGroup && dmToolGroup.tools.map(renderToolButton)}
+          {cameraControls.map(renderToolButton)}
+        </div>
+      </div>
+    </>
   );
 };
+

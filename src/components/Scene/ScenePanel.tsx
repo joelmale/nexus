@@ -99,7 +99,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
   if (!safeScene) {
     return (
       <div className="scene-panel">
-        <div className="scene-panel-header">
+        <div className="scene-panel__header">
           <div className="scene-panel-header-top">
             <h3>Scene Management</h3>
             <button
@@ -111,8 +111,8 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
             </button>
           </div>
         </div>
-        <div className="scene-panel-content">
-          <div className="no-scene">
+        <div className="scene-panel__content">
+          <div className="scene-panel__empty-state">
             <p>
               No scene selected. Create or select a scene to manage its
               settings.
@@ -224,7 +224,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
   return (
     <div className="scene-panel">
-      <div className="scene-panel-header">
+      <div className="scene-panel__header">
         <div className="scene-panel-header-top">
           <h3>Scene Settings</h3>
           <button
@@ -235,7 +235,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
             📋 Manage All
           </button>
         </div>
-        <div className="scene-meta">
+        <div className="scene-panel__meta">
           <span className="scene-id">ID: {safeScene.id.slice(0, 8)}</span>
           <span className="scene-updated">
             Updated: {new Date(safeScene.updatedAt).toLocaleTimeString()}
@@ -243,9 +243,9 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
         </div>
       </div>
 
-      <div className="scene-panel-content">
+      <div className="scene-panel__content">
         {/* Basic Info Section */}
-        <section className="scene-section">
+        <section className="scene-panel__section">
           <h4
             onClick={() => toggleSection('basicInfo')}
             style={{
@@ -273,7 +273,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
           {expandedSections.basicInfo && (
             <>
               {/* Scene Name */}
-              <div className="scene-field">
+              <div className="scene-panel__field">
                 <label>Scene Name</label>
                 {editingName ? (
                   <input
@@ -286,11 +286,11 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                         handleNameSubmit(e.currentTarget.value);
                       if (e.key === 'Escape') setEditingName(false);
                     }}
-                    className="scene-name-input"
+                    className="scene-panel__field-input"
                   />
                 ) : (
                   <div
-                    className="scene-name-display"
+                    className="scene-panel__field-display"
                     onClick={() => setEditingName(true)}
                     title="Click to edit"
                   >
@@ -300,7 +300,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
               </div>
 
               {/* Scene Description */}
-              <div className="scene-field">
+              <div className="scene-panel__field">
                 <label>Description</label>
                 {editingDescription ? (
                   <textarea
@@ -310,13 +310,13 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                     onKeyDown={(e) => {
                       if (e.key === 'Escape') setEditingDescription(false);
                     }}
-                    className="scene-description-input"
+                    className="scene-panel__field-input scene-panel__field-input--multiline"
                     rows={3}
                     placeholder="Describe this safeScene..."
                   />
                 ) : (
                   <div
-                    className="scene-description-display"
+                    className="scene-panel__field-display scene-panel__field-display--multiline"
                     onClick={() => setEditingDescription(true)}
                     title="Click to edit"
                   >
@@ -329,7 +329,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
         </section>
 
         {/* Background Image Section */}
-        <section className="scene-section">
+        <section className="scene-panel__section">
           <h4
             onClick={() => toggleSection('backgroundImage')}
             style={{
@@ -356,7 +356,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
           {expandedSections.backgroundImage && (
             <>
-              <div className="scene-field">
+              <div className="scene-panel__field">
                 <label>Background Image URL</label>
                 <input
                   type="text"
@@ -377,11 +377,11 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                     }
                   }}
                   placeholder="https://example.com/map.jpg or paste image URL"
-                  className="scene-input"
+                  className="scene-panel__field-input"
                 />
               </div>
 
-              <div className="scene-field">
+              <div className="scene-panel__field">
                 <label>Or upload an image</label>
                 <input
                   type="file"
@@ -425,11 +425,11 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                 </small>
               </div>
 
-              <div className="scene-field">
+              <div className="scene-panel__field">
                 <label>Or browse default maps</label>
                 <button
                   onClick={() => setShowBaseMapBrowser(true)}
-                  className="btn btn-primary"
+                  className="btn btn--primary"
                   style={{ width: '100%' }}
                 >
                   🗺️ Browse Base Maps
@@ -438,7 +438,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
               {safeScene.backgroundImage && (
                 <>
-                  <div className="scene-field">
+                  <div className="scene-panel__field">
                     <label>Background Preview</label>
                     <div
                       style={{
@@ -456,7 +456,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                     />
                   </div>
 
-                  <div className="scene-field">
+                  <div className="scene-panel__field">
                     <label>
                       Scale:{' '}
                       {Math.round((safeScene.backgroundImage.scale || 1) * 100)}
@@ -474,11 +474,11 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                           scale: parseFloat(e.target.value),
                         })
                       }
-                      className="range-input"
+                      className="scene-panel__range-input"
                     />
                   </div>
 
-                  <div className="scene-field">
+                  <div className="scene-panel__field">
                     <button
                       onClick={() => {
                         if (window.confirm('Remove background image?')) {
@@ -497,7 +497,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
         </section>
 
         {/* Visibility Section */}
-        <section className="scene-section">
+        <section className="scene-panel__section">
           <h4
             onClick={() => toggleSection('visibility')}
             style={{
@@ -524,10 +524,10 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
           {expandedSections.visibility && (
             <>
-              <div className="scene-field">
+              <div className="scene-panel__field">
                 <label>Who can see this scene</label>
-                <div className="visibility-options">
-                  <label className="visibility-option">
+                <div className="scene-panel__visibility-options">
+                  <label className="scene-panel__visibility-option">
                     <input
                       type="radio"
                       name="visibility"
@@ -535,14 +535,14 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                       checked={safeScene.visibility === 'private'}
                       onChange={() => handleVisibilityChange('private')}
                     />
-                    <span className="visibility-icon">🔒</span>
-                    <div className="visibility-details">
+                    <span className="scene-panel__visibility-icon">🔒</span>
+                    <div className="scene-panel__visibility-details">
                       <strong>Private</strong>
                       <small>Only you can see this scene</small>
                     </div>
                   </label>
 
-                  <label className="visibility-option">
+                  <label className="scene-panel__visibility-option">
                     <input
                       type="radio"
                       name="visibility"
@@ -550,14 +550,14 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                       checked={safeScene.visibility === 'shared'}
                       onChange={() => handleVisibilityChange('shared')}
                     />
-                    <span className="visibility-icon">👥</span>
-                    <div className="visibility-details">
+                    <span className="scene-panel__visibility-icon">👥</span>
+                    <div className="scene-panel__visibility-details">
                       <strong>Shared</strong>
                       <small>Players can view when you share it</small>
                     </div>
                   </label>
 
-                  <label className="visibility-option">
+                  <label className="scene-panel__visibility-option">
                     <input
                       type="radio"
                       name="visibility"
@@ -565,8 +565,8 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                       checked={safeScene.visibility === 'public'}
                       onChange={() => handleVisibilityChange('public')}
                     />
-                    <span className="visibility-icon">🌐</span>
-                    <div className="visibility-details">
+                    <span className="scene-panel__visibility-icon">🌐</span>
+                    <div className="scene-panel__visibility-details">
                       <strong>Public</strong>
                       <small>All players can always see this scene</small>
                     </div>
@@ -574,8 +574,8 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                 </div>
               </div>
 
-              <div className="scene-field">
-                <label className="checkbox-label">
+              <div className="scene-panel__field">
+                <label className="scene-panel__checkbox-label">
                   <input
                     type="checkbox"
                     checked={safeScene.isEditable}
@@ -591,7 +591,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
         </section>
 
         {/* Grid Settings Section */}
-        <section className="scene-section">
+        <section className="scene-panel__section">
           <h4
             onClick={() => toggleSection('grid')}
             style={{
@@ -618,8 +618,8 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
           {expandedSections.grid && (
             <>
-              <div className="scene-field">
-                <label className="checkbox-label">
+              <div className="scene-panel__field">
+                <label className="scene-panel__checkbox-label">
                   <input
                     type="checkbox"
                     checked={safeScene.gridSettings.enabled}
@@ -633,7 +633,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
               {safeScene.gridSettings.enabled && (
                 <>
-                  <div className="scene-field">
+                  <div className="scene-panel__field">
                     <label>Grid size: {safeScene.gridSettings.size}px</label>
                     <input
                       type="range"
@@ -647,11 +647,11 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                           parseInt(e.target.value),
                         )
                       }
-                      className="range-input"
+                      className="scene-panel__range-input"
                     />
                   </div>
 
-                  <div className="scene-field">
+                  <div className="scene-panel__field">
                     <label>
                       Grid opacity:{' '}
                       {Math.round(safeScene.gridSettings.opacity * 100)}%
@@ -668,11 +668,11 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                           parseFloat(e.target.value),
                         )
                       }
-                      className="range-input"
+                      className="scene-panel__range-input"
                     />
                   </div>
 
-                  <div className="scene-field">
+                  <div className="scene-panel__field">
                     <label>Grid color</label>
                     <input
                       type="color"
@@ -680,12 +680,12 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                       onChange={(e) =>
                         handleGridSettingChange('color', e.target.value)
                       }
-                      className="color-input"
+                      className="scene-panel__color-input"
                     />
                   </div>
 
-                  <div className="scene-field">
-                    <label className="checkbox-label">
+                  <div className="scene-panel__field">
+                    <label className="scene-panel__checkbox-label">
                       <input
                         type="checkbox"
                         checked={safeScene.gridSettings.snapToGrid}
@@ -700,8 +700,8 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                     </label>
                   </div>
 
-                  <div className="scene-field">
-                    <label className="checkbox-label">
+                  <div className="scene-panel__field">
+                    <label className="scene-panel__checkbox-label">
                       <input
                         type="checkbox"
                         checked={safeScene.gridSettings.showToPlayers}
@@ -722,7 +722,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
         </section>
 
         {/* Lighting Settings Section */}
-        <section className="scene-section">
+        <section className="scene-panel__section">
           <h4
             onClick={() => toggleSection('lighting')}
             style={{
@@ -749,8 +749,8 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
           {expandedSections.lighting && (
             <>
-              <div className="scene-field">
-                <label className="checkbox-label">
+              <div className="scene-panel__field">
+                <label className="scene-panel__checkbox-label">
                   <input
                     type="checkbox"
                     checked={safeScene.lightingSettings.enabled}
@@ -764,7 +764,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
               {safeScene.lightingSettings.enabled && (
                 <>
-                  <div className="scene-field">
+                  <div className="scene-panel__field">
                     <label>
                       Ambient light:{' '}
                       {Math.round(
@@ -784,11 +784,11 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                           parseFloat(e.target.value),
                         )
                       }
-                      className="range-input"
+                      className="scene-panel__range-input"
                     />
                   </div>
 
-                  <div className="scene-field">
+                  <div className="scene-panel__field">
                     <label>
                       Darkness:{' '}
                       {Math.round(safeScene.lightingSettings.darkness * 100)}%
@@ -805,12 +805,12 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                           parseFloat(e.target.value),
                         )
                       }
-                      className="range-input"
+                      className="scene-panel__range-input"
                     />
                   </div>
 
-                  <div className="scene-field">
-                    <label className="checkbox-label">
+                  <div className="scene-panel__field">
+                    <label className="scene-panel__checkbox-label">
                       <input
                         type="checkbox"
                         checked={safeScene.lightingSettings.globalIllumination}
@@ -831,7 +831,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
         </section>
 
         {/* Danger Zone */}
-        <section className="scene-section danger-zone">
+        <section className="scene-panel__section scene-panel__danger-zone">
           <h4
             onClick={() => toggleSection('dangerZone')}
             style={{
@@ -894,7 +894,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                     deleteScene(safeScene.id);
                   }
                 }}
-                className="danger"
+                className="scene-panel__button scene-panel__button--danger"
               >
                 Delete Scene
               </button>

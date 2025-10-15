@@ -9,59 +9,57 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
 import { useCharacters } from '@/stores/characterStore';
-import type { PlayerCharacter } from '@/types/game';
+import { CharacterSheetPopup } from './CharacterSheetPopup';
 import type { Character } from '@/types/character';
+import type { PlayerCharacter } from '@/types/game';
+import '@/styles/character-sheet-parchment.css';
 
-// Convert between Character (new system) and PlayerCharacter (old system)
-const convertToPlayerCharacter = (
+// Convert Character to PlayerCharacter for gameStore compatibility
+const convertCharacterToPlayerCharacter = (
   character: Character,
-): Omit<PlayerCharacter, 'id' | 'createdAt' | 'playerId'> => {
+): PlayerCharacter => {
   return {
+    id: character.id,
     name: character.name,
-    race: character.race?.name || '',
-    class: character.classes?.[0]?.name || '',
-    background: character.background?.name || '',
+    race: character.race.name,
+    class: character.classes[0]?.name || '',
+    background: character.background.name,
     level: character.level,
     stats: {
-      strength: character.abilities?.strength?.score || 10,
-      dexterity: character.abilities?.dexterity?.score || 10,
-      constitution: character.abilities?.constitution?.score || 10,
-      intelligence: character.abilities?.intelligence?.score || 10,
-      wisdom: character.abilities?.wisdom?.score || 10,
-      charisma: character.abilities?.charisma?.score || 10,
+      strength: character.abilities.strength.score,
+      dexterity: character.abilities.dexterity.score,
+      constitution: character.abilities.constitution.score,
+      intelligence: character.abilities.intelligence.score,
+      wisdom: character.abilities.wisdom.score,
+      charisma: character.abilities.charisma.score,
     },
+    createdAt: character.createdAt,
+    playerId: character.playerId,
   };
 };
 
 export const PlayerSetupPage: React.FC = () => {
-  const navigate = useNavigate();
-  const {
-    user,
-    getSavedCharacters,
-    deleteCharacter,
-    createCharacter,
-    joinRoomWithCode,
-    exportCharacters,
-    importCharacters,
-  } = useGameStore();
+  const { user, joinRoomWithCode, resetToWelcome } = useGameStore();
 
-  const { characters: newCharacters } = useCharacters();
-  const { startCharacterCreation } = useCharacterCreationLauncher();
+  const { characters } = useCharacters();
+  const { startCharacterCreation, LauncherComponent } =
+    useCharacterCreationLauncher();
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
     null,
   );
+  const [popupCharacter, setPopupCharacter] = useState<Character | null>(null);
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const savedCharacters = getSavedCharacters();
-  const selectedCharacter = savedCharacters.find(
+  // Filter characters for the current user
+  const userCharacters = characters.filter((c) => c.playerId === user.id);
+  const selectedCharacter = userCharacters.find(
     (c) => c.id === selectedCharacterId,
   );
 
@@ -75,7 +73,10 @@ export const PlayerSetupPage: React.FC = () => {
     setError('');
 
     try {
-      await joinRoomWithCode(roomCode.trim().toUpperCase(), selectedCharacter);
+      const playerCharacter = selectedCharacter
+        ? convertCharacterToPlayerCharacter(selectedCharacter)
+        : undefined;
+      await joinRoomWithCode(roomCode.trim().toUpperCase(), playerCharacter);
     } catch {
       setError('Failed to join room - room may not exist or be full');
     } finally {
@@ -83,46 +84,18 @@ export const PlayerSetupPage: React.FC = () => {
     }
   };
 
-  const handleDeleteCharacter = (characterId: string) => {
-    if (confirm('Are you sure you want to delete this character?')) {
-      deleteCharacter(characterId);
-      if (selectedCharacterId === characterId) {
-        setSelectedCharacterId(null);
-      }
-    }
+  // TODO: Implement delete, export, import functionality for new Character type
+  const handleDeleteCharacter = () => {
+    // For now, just show a message that this feature is coming soon
+    alert('Character deletion will be implemented in a future update');
   };
 
   const handleExportCharacters = () => {
-    const data = exportCharacters();
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `nexus-characters-${user.name || 'player'}-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    alert('Character export will be implemented in a future update');
   };
 
-  const handleImportCharacters = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = e.target?.result as string;
-        importCharacters(data);
-        setError('');
-        alert('Characters imported successfully!');
-      } catch {
-        setError('Failed to import characters - invalid file format');
-      }
-    };
-    reader.readAsText(file);
+  const handleImportCharacters = () => {
+    alert('Character import will be implemented in a future update');
   };
 
   const handleCreateCharacter = () => {
@@ -130,17 +103,10 @@ export const PlayerSetupPage: React.FC = () => {
       startCharacterCreation(
         user.id,
         'fullpage',
-        (characterId, character) => {
-          // Use the character object passed directly, or fallback to state lookup
-          const newCharacter =
-            character || newCharacters.find((c) => c.id === characterId);
-
-          if (newCharacter) {
-            // Convert the new character to old format and save to appFlow store
-            const playerCharacter = convertToPlayerCharacter(newCharacter);
-            const oldCharacter = createCharacter(playerCharacter);
-            setSelectedCharacterId(oldCharacter.id);
-          }
+        (characterId: string) => {
+          // Character is already saved to characterStore by the wizard
+          // Just select the newly created character
+          setSelectedCharacterId(characterId);
         },
         () => {
           // Character creation cancelled
@@ -157,22 +123,24 @@ export const PlayerSetupPage: React.FC = () => {
       </div>
 
       <div className="setup-content">
-        <div className="setup-panel glass-panel has-corner-button">
-          <button
-            onClick={() => navigate('/lobby')}
-            className="back-button glass-button"
-            title="Back to Lobby"
-          >
-            ←
-          </button>
+        <div className="setup-panel glass-panel">
           <div className="setup-header">
             <div className="header-with-back">
               <button
-                onClick={() => navigate('/lobby')}
+                onClick={resetToWelcome}
                 className="back-button glass-button"
-                title="Back to Lobby"
+                title="Back to Welcome"
               >
-                ←
+                <svg width="24" height="24" fill="white" viewBox="0 0 24 24">
+                  <path
+                    d="M15 18l-6-6 6-6"
+                    stroke="white"
+                    strokeWidth="2"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </button>
               <div className="header-content">
                 <h1>⚔️ Player Setup</h1>
@@ -195,15 +163,16 @@ export const PlayerSetupPage: React.FC = () => {
           <div className="setup-section">
             <div className="section-header">
               <h2>🎭 Your Characters</h2>
-              {savedCharacters.length > 0 && (
+              {userCharacters.length > 0 && (
                 <div className="character-actions">
                   <button
                     onClick={handleExportCharacters}
                     className="glass-button secondary"
                     title="Export characters to file"
+                    disabled
                   >
                     <span>📤</span>
-                    Export
+                    Export (Soon)
                   </button>
 
                   <input
@@ -217,81 +186,62 @@ export const PlayerSetupPage: React.FC = () => {
                     onClick={() => fileInputRef.current?.click()}
                     className="glass-button secondary"
                     title="Import characters from file"
+                    disabled
                   >
                     <span>📥</span>
-                    Import
+                    Import (Soon)
                   </button>
                 </div>
               )}
             </div>
 
-            {savedCharacters.length === 0 ? (
+            {userCharacters.length === 0 ? (
               <div className="empty-state" style={{ textAlign: 'center' }}>
                 <div className="empty-icon">🎭</div>
                 <h3>No Characters Yet</h3>
                 <p>Create your first character to begin your adventure!</p>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    gap: '1rem',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <button
-                    onClick={handleCreateCharacter}
-                    className="glass-button primary"
-                  >
-                    <span>✨</span>
-                    Create First Character
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="glass-button secondary"
-                    title="Import characters from file"
-                  >
-                    <span>📥</span>
-                    Import Characters
-                  </button>
-                </div>
               </div>
             ) : (
               <div className="character-grid">
-                {savedCharacters
-                  .sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0))
-                  .map((character) => (
+                {userCharacters
+                  .sort(
+                    (a: Character, b: Character) => b.updatedAt - a.updatedAt,
+                  )
+                  .map((character: Character) => (
                     <div
                       key={character.id}
                       className={`character-card glass-panel ${
                         selectedCharacterId === character.id ? 'selected' : ''
                       }`}
-                      onClick={() => setSelectedCharacterId(character.id)}
+                      onClick={() => setPopupCharacter(character)}
                     >
                       <div className="character-info">
                         <h3>{character.name}</h3>
                         <p>
-                          Level {character.level} {character.race}{' '}
-                          {character.class}
+                          Level {character.level} {character.race.name}
+                          {character.race.subrace &&
+                            ` (${character.race.subrace})`}{' '}
+                          {character.classes[0]?.name}
                         </p>
                         <p className="character-background">
-                          {character.background}
+                          {character.background.name}
                         </p>
-                        {character.lastUsed && (
-                          <p className="last-used">
-                            Last used:{' '}
-                            {new Date(character.lastUsed).toLocaleDateString()}
-                          </p>
-                        )}
+                        <p className="last-used">
+                          Created:{' '}
+                          {new Date(character.createdAt).toLocaleDateString()}
+                        </p>
                       </div>
 
                       <div className="character-stats">
-                        {Object.entries(character.stats).map(
-                          ([stat, value]) => (
+                        {Object.entries(character.abilities).map(
+                          ([stat, ability]) => (
                             <div key={stat} className="stat-mini">
                               <span className="stat-name">
                                 {stat.substring(0, 3).toUpperCase()}
                               </span>
-                              <span className="stat-value">{value}</span>
+                              <span className="stat-value">
+                                {ability.score}
+                              </span>
                             </div>
                           ),
                         )}
@@ -301,7 +251,7 @@ export const PlayerSetupPage: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteCharacter(character.id);
+                            handleDeleteCharacter();
                           }}
                           className="delete-btn"
                           title="Delete character"
@@ -317,6 +267,37 @@ export const PlayerSetupPage: React.FC = () => {
                   ))}
               </div>
             )}
+
+            {/* Always visible Create Character button */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '1rem',
+                flexWrap: 'wrap',
+                marginTop: '1.5rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <button
+                onClick={handleCreateCharacter}
+                className="glass-button primary"
+              >
+                <span>✨</span>
+                {userCharacters.length === 0
+                  ? 'Create First Character'
+                  : 'Create New Character'}
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="glass-button secondary"
+                title="Import characters from file"
+              >
+                <span>📥</span>
+                Import Characters
+              </button>
+            </div>
           </div>
 
           {/* Room Join */}
@@ -366,13 +347,16 @@ export const PlayerSetupPage: React.FC = () => {
                 <div className="selected-character-info">
                   <p>
                     <strong>Joining as:</strong> {selectedCharacter.name}
-                    (Level {selectedCharacter.level} {selectedCharacter.race}{' '}
-                    {selectedCharacter.class})
+                    (Level {selectedCharacter.level}{' '}
+                    {selectedCharacter.race.name}
+                    {selectedCharacter.race.subrace &&
+                      ` (${selectedCharacter.race.subrace})`}{' '}
+                    {selectedCharacter.classes[0]?.name})
                   </p>
                 </div>
               )}
 
-              {!selectedCharacter && savedCharacters.length > 0 && (
+              {!selectedCharacter && userCharacters.length > 0 && (
                 <div className="character-hint">
                   <p>
                     💡 Select a character above to join with, or join without a
@@ -384,6 +368,18 @@ export const PlayerSetupPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Character Creation Launcher */}
+      {LauncherComponent}
+
+      {/* Character Sheet Popup */}
+      {popupCharacter && (
+        <CharacterSheetPopup
+          character={popupCharacter}
+          isOpen={true}
+          onClose={() => setPopupCharacter(null)}
+        />
+      )}
     </div>
   );
 };

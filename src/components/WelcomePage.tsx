@@ -5,11 +5,21 @@
  * enter their name, select their role (Player/DM), and begin their adventure.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { NexusLogo } from './Assets';
 import { useAssetExists } from '@/utils/assets';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.png';
+
+const particles = Array.from({ length: 15 }).map((_, i) => ({
+  id: i,
+  style: {
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    animationDelay: `${Math.random() * 4}s`,
+    animationDuration: `${4 + Math.random() * 4}s`,
+  },
+}));
 
 export const WelcomePage: React.FC = () => {
   const { setUser, startPreparation } = useGameStore();
@@ -19,18 +29,6 @@ export const WelcomePage: React.FC = () => {
   );
   const [error, setError] = useState('');
   const hasCustomLogo = useAssetExists('/assets/logos/nexus-logo.svg');
-
-  const particles = useMemo(() => {
-    return Array.from({ length: 15 }).map((_, i) => ({
-      id: i,
-      style: {
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        animationDelay: `${Math.random() * 4}s`,
-        animationDuration: `${4 + Math.random() * 4}s`,
-      },
-    }));
-  }, []);
 
   const handleBeginAdventure = () => {
     if (!playerName.trim()) {

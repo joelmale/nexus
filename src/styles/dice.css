@@ -446,8 +446,8 @@ Consolidated styles for dice rolling, animation, and 3D rendering.
   margin: 0 auto;
 }
 
-.dice-input,
-.dice-history {
+.dice-roller__input,
+.dice-roller__history {
   position: relative;
   overflow: hidden;
   padding: 1rem;
@@ -459,8 +459,8 @@ Consolidated styles for dice rolling, animation, and 3D rendering.
   box-shadow: var(--shadow-glass-lg);
 }
 
-.dice-input::before,
-.dice-history::before {
+.dice-roller__input::before,
+.dice-roller__history::before {
   content: '';
   position: absolute;
   top: 0;
@@ -475,22 +475,22 @@ Consolidated styles for dice rolling, animation, and 3D rendering.
   );
 }
 
-.dice-input h2,
-.dice-history h3 {
+.dice-roller__input h2,
+.dice-roller__history h3 {
   margin-bottom: 1.5rem;
   color: var(--glass-text);
   font-weight: 700;
   font-size: 1.5rem;
 }
 
-.roll-controls {
+.dice-roller__roll-controls {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   margin-bottom: 1rem;
 }
 
-.dice-expression {
+.dice-roller__expression {
   padding: 0.5rem;
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
@@ -502,11 +502,11 @@ Consolidated styles for dice rolling, animation, and 3D rendering.
   -webkit-backdrop-filter: var(--glass-blur);
 }
 
-.dice-expression::placeholder {
+.dice-roller__expression::placeholder {
   color: var(--glass-text-light);
 }
 
-.dice-expression:focus {
+.dice-roller__expression:focus {
   outline: none;
   border-color: rgba(255, 255, 255, 0.4);
   background: var(--glass-surface-hover);
@@ -515,7 +515,7 @@ Consolidated styles for dice rolling, animation, and 3D rendering.
     0 0 20px rgba(255, 255, 255, 0.2);
 }
 
-.roll-btn {
+.dice-roller__roll-btn {
   padding: 0.5rem 1rem;
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -529,12 +529,12 @@ Consolidated styles for dice rolling, animation, and 3D rendering.
   box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
 }
 
-.roll-btn:hover {
+.dice-roller__roll-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
 }
 
-.roll-options {
+.dice-roller__roll-options {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -602,11 +602,11 @@ input:checked + .slider:before {
   box-shadow: 0 0 8px rgba(var(--color-primary-rgb), 0.3);
 }
 
-.roll-results {
+.dice-roller__roll-results {
   margin-top: 1rem;
 }
 
-.roll-result {
+.dice-roller__roll-result {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -618,35 +618,35 @@ input:checked + .slider:before {
   transition: all 0.2s ease;
 }
 
-.roll-result:hover {
+.dice-roller__roll-result:hover {
   background: var(--glass-surface-hover);
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-.roll-expression {
+.dice-roller__roll-expression {
   font-family: 'JetBrains Mono', monospace;
   color: var(--glass-text);
   font-size: 0.9rem;
 }
 
-.roll-total {
+.dice-roller__roll-total {
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--color-primary);
 }
 
-.roll-details {
+.dice-roller__roll-details {
   margin-top: 0.25rem;
   font-size: 0.8rem;
   color: var(--glass-text-muted);
 }
 
-.dice-history {
+.dice-roller__history {
   overflow-y: auto;
   max-height: 300px;
 }
 
-.history-item {
+.dice-roller__history-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -654,27 +654,27 @@ input:checked + .slider:before {
   border-bottom: 1px solid var(--glass-border);
 }
 
-.history-item:last-child {
+.dice-roller__history-item:last-child {
   border-bottom: none;
 }
 
-.history-expression {
+.dice-roller__history-expression {
   font-family: 'JetBrains Mono', monospace;
   color: var(--glass-text);
   font-size: 0.85rem;
 }
 
-.history-total {
+.dice-roller__history-total {
   font-weight: 600;
   color: var(--color-primary);
 }
 
-.history-time {
+.dice-roller__history-time {
   font-size: 0.75rem;
   color: var(--glass-text-muted);
 }
 
-.clear-history-btn {
+.dice-roller__clear-history-btn {
   cursor: pointer;
   margin-top: 1rem;
   padding: 0.5rem 1rem;
@@ -686,7 +686,7 @@ input:checked + .slider:before {
   transition: all 0.2s ease;
 }
 
-.clear-history-btn:hover {
+.dice-roller__clear-history-btn:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.5);
 }
@@ -757,24 +757,24 @@ input:checked + .slider:before {
 /* ========================================================================== 4. DICE BUILDER & DIE TYPE BUTTONS (from dice-roller.css) ========================================================================== */
 
 /* Dice Builder Section */
-.dice-builder {
+.dice-roller__dice-builder {
   margin-top: 2rem;
 }
 
-.dice-builder h3 {
+.dice-roller__dice-builder h3 {
   font-size: 1.2rem;
   color: var(--glass-text-muted);
   font-weight: 600;
 }
 
 /* Clear Button */
-.clear-queue-btn:hover {
+.dice-roller__clear-queue-btn:hover {
   background: rgba(239, 68, 68, 0.3);
   border-color: rgba(239, 68, 68, 0.6);
   transform: scale(1.05);
 }
 
-.clear-queue-btn:active {
+.dice-roller__clear-queue-btn:active {
   transform: scale(0.95);
 }
 
@@ -852,26 +852,26 @@ input:checked + .slider:before {
 }
 
 /* Modifiers Section */
-.modifiers-section {
+.dice-roller__modifiers-section {
   margin-top: 1.5rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--glass-border);
 }
 
-.modifiers-section h4 {
+.dice-roller__modifiers-section h4 {
   margin: 0 0 0.75rem 0;
   font-size: 1rem;
   color: var(--glass-text-muted);
   font-weight: 600;
 }
 
-.modifier-controls {
+.dice-roller__modifier-controls {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
 }
 
-.modifier-btn {
+.dice-roller__modifier-btn {
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   border: 1px solid var(--glass-border);
@@ -889,7 +889,7 @@ input:checked + .slider:before {
   transition: all 0.2s ease;
 }
 
-.modifier-btn:hover {
+.dice-roller__modifier-btn:hover {
   transform: translateY(-2px);
   border-color: rgba(255, 255, 255, 0.3);
   background: var(--glass-surface-hover);
@@ -898,7 +898,7 @@ input:checked + .slider:before {
     0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.modifier-btn:active {
+.dice-roller__modifier-btn:active {
   transform: translateY(0);
   box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.2),
@@ -907,20 +907,20 @@ input:checked + .slider:before {
 
 /* ========================================================================== 5. ROLL HISTORY & RESULTS (from dice-roller.css) ========================================================================== */
 
-.rolls-list {
+.dice-roller__rolls-list {
   overflow-y: auto;
   max-height: 450px;
   padding-right: 0.5rem;
 }
 
-.no-rolls {
+.dice-roller__no-rolls {
   text-align: center;
   padding: 3rem;
   color: var(--glass-text-muted);
   font-style: italic;
 }
 
-.dice-roll {
+.dice-roller__roll {
   padding: 1.5rem;
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
@@ -932,30 +932,30 @@ input:checked + .slider:before {
   transition: all 0.3s ease;
 }
 
-.dice-roll:hover {
+.dice-roller__roll:hover {
   background: var(--glass-surface-hover);
   transform: translateX(5px);
   box-shadow: var(--shadow-glass);
 }
 
-.dice-roll.private {
+.dice-roller__roll--private {
   border-left: 4px solid var(--color-primary);
   padding-left: calc(1.5rem - 4px);
   background: rgba(99, 102, 241, 0.1);
 }
 
-.dice-roll.new-roll {
+.dice-roller__roll--new {
   animation: newRollFlash 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.roll-header {
+.dice-roller__roll-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.75rem;
 }
 
-.roller-name {
+.dice-roller__roller-name {
   font-weight: 700;
   color: var(--glass-text);
   background: linear-gradient(135deg, #fff 0%, #f0f9ff 100%);
@@ -964,7 +964,7 @@ input:checked + .slider:before {
   background-clip: text;
 }
 
-.roll-meta {
+.dice-roller__roll-meta {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -972,11 +972,11 @@ input:checked + .slider:before {
   color: var(--glass-text-light);
 }
 
-.roll-time {
+.dice-roller__roll-time {
   font-family: 'JetBrains Mono', monospace;
 }
 
-.private-tag {
+.dice-roller__private-tag {
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
   font-size: 0.7rem;
@@ -984,7 +984,7 @@ input:checked + .slider:before {
   color: white;
   background: var(--color-primary);
 }
-.reroll-btn {
+.dice-roller__reroll-btn {
   cursor: pointer;
   padding: 0.2rem;
   border: none;
@@ -995,7 +995,7 @@ input:checked + .slider:before {
   transition: all 0.2s ease;
 }
 
-.reroll-btn:hover {
+.dice-roller__reroll-btn:hover {
   color: var(--color-accent);
   transform: rotate(90deg);
 }
@@ -1014,31 +1014,31 @@ input:checked + .slider:before {
 }
 
 /* Styles for Advantage/Disadvantage and Critical Rolls */
-.roll-result .discarded-roll {
+.dice-roller__roll-result .discarded-roll {
   text-decoration: line-through;
   color: var(--glass-text-muted);
   opacity: 0.6;
 }
 
-.roll-result .kept-roll {
+.dice-roller__roll-result .kept-roll {
   font-weight: 700;
   color: var(--glass-text);
 }
 
-.roll-result .crit-success {
+.dice-roller__roll-result .crit-success {
   color: var(--color-success);
   font-weight: 700;
   text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
 }
 
-.roll-result .crit-failure {
+.dice-roller__roll-result .crit-failure {
   color: var(--color-error);
   font-weight: 700;
   text-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
-.roll-total.crit-success,
-.roll-total.crit-failure {
+.dice-roller__roll-total.crit-success,
+.dice-roller__roll-total.crit-failure {
   background: rgba(0, 0, 0, 0.2);
 }
 
@@ -1058,8 +1058,8 @@ input:checked + .slider:before {
 }
 
 /* Dice Panel Control Buttons */
-.theme-toggle-btn,
-.sound-toggle-btn {
+.dice-roller__theme-toggle-btn,
+.dice-roller__sound-toggle-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1077,8 +1077,8 @@ input:checked + .slider:before {
   transition: all 0.2s ease;
 }
 
-.theme-toggle-btn:before,
-.sound-toggle-btn:before {
+.dice-roller__theme-toggle-btn:before,
+.dice-roller__sound-toggle-btn:before {
   content: '';
   position: absolute;
   top: 0;
@@ -1093,8 +1093,8 @@ input:checked + .slider:before {
   );
 }
 
-.theme-toggle-btn:hover,
-.sound-toggle-btn:hover {
+.dice-roller__theme-toggle-btn:hover,
+.dice-roller__sound-toggle-btn:hover {
   transform: translateY(-2px);
   border-color: rgba(255, 255, 255, 0.3);
   background: var(--glass-surface-hover);
@@ -1103,8 +1103,8 @@ input:checked + .slider:before {
     inset 0 1px 1px rgba(255, 255, 255, 0.1);
 }
 
-.theme-toggle-btn:active,
-.sound-toggle-btn:active {
+.dice-roller__theme-toggle-btn:active,
+.dice-roller__sound-toggle-btn:active {
   transform: translateY(0);
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.2),

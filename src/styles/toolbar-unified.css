@@ -22,7 +22,7 @@
 }
 
 /* Compact Toolbar Mode */
-.scene-canvas-toolbar.compact {
+.game-toolbar.compact {
   --toolbar-padding: 3px;
   --toolbar-border-radius: 6px;
   --toolbar-min-width: 140px;
@@ -42,124 +42,116 @@
 /* Desktop/Tablet optimized toolbar - No mobile mode */
 
 /* ==========================================================================
-   MAIN TOOLBAR CONTAINER
+   TOOLBAR LAYOUT & INFO BANNER
    ========================================================================== */
-
-.scene-canvas-toolbar {
-  /* Positioning & Layout */
+.layout-toolbar {
   position: absolute;
+  bottom: var(--spacing-4);
+  left: 50%;
+  transform: translateX(-50%);
   z-index: var(--z-toolbar);
-  top: 10px;
-  left: 10px;
-  overflow: hidden;
-  overflow-y: auto;
-
-  /* Box Model */
-  min-width: var(--toolbar-min-width);
-  max-width: calc(100vw - 20px);
-  max-height: calc(100vh - 40px);
-  padding: var(--toolbar-padding);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--toolbar-border-radius);
-
-  /* Visuals */
-  background: var(--surface-primary);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-glass-lg);
-
-  /* Animation & Misc */
-  animation: slideIn var(--duration-300) ease-out;
-  transition: all var(--transition-base);
-}
-
-/* ==========================================================================
-   TOOLBAR SECTIONS
-   ========================================================================== */
-
-.toolbar-section {
-  /* Box Model */
-  margin-bottom: var(--toolbar-section-gap);
-}
-
-.toolbar-section:last-child {
-  /* Box Model */
-  margin-bottom: 0;
-}
-
-.toolbar-section-label {
-  /* Box Model */
-  margin-bottom: var(--toolbar-section-label-margin);
-  padding-left: var(--spacing-1);
-
-  /* Typography */
-  font-size: var(--toolbar-section-label-font-size);
-  font-weight: var(--font-semibold);
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: var(--toolbar-section-label-spacing);
-}
-
-.toolbar-buttons {
-  /* Positioning & Layout */
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  align-items: flex-start;
+  gap: 0;
+}
+.layout-toolbar > * {
+  flex: 0 0 auto; /* Prevent children from stretching */
+}
 
-  /* Box Model */
-  gap: var(--toolbar-button-gap);
-  border-radius: var(--toolbar-button-border-radius);
+#toolbar-info-banner {
+  box-sizing: border-box;
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  color: var(--glass-text);
+  font-family: sans-serif;
+  padding: 8px 16px;
+  margin: 0 8px 0;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  min-height: 38px;
+  display: flex;
+  left: 0;
+  align-items:flex-start;
+  justify-content: space-between;
+  transition: all 0.2s ease-out;
+  pointer-events: auto;
+}
+
+#toolbar-info-banner .shortcut {
+  background-color: var(--glass-surface);
+  color: var(--glass-text-muted);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--glass-border);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: monospace;
 }
 
 /* ==========================================================================
-   TOOLBAR BUTTONS
+   MAIN TOOLBAR CONTAINER (Modify this existing rule)
    ========================================================================== */
-
-.toolbar-btn {
-  /* Positioning & Layout */
-  display: flex;
-  align-items: center;
-  position: relative;
-  cursor: pointer;
-  user-select: none;
-
-  /* Box Model */
-  width: 100%;
-  gap: var(--spacing-2);
-  padding: var(--toolbar-button-padding);
-  border: 1px solid transparent;
-  border-radius: var(--toolbar-button-border-radius);
-
-  /* Typography */
-  color: var(--text-primary);
-  font-size: var(--toolbar-button-font-size);
-  text-align: left;
-
-  /* Visuals */
-  background: transparent;
-
-  /* Animation & Misc */
-  transition: all var(--transition-fast);
+.game-toolbar {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 4px;
+  padding: 4px;
+  background-color: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  pointer-events: auto;
+  align-self: center;
 }
 
-.toolbar-btn:hover:not(.disabled) {
-  /* Positioning & Layout */
-  transform: translateY(-1px);
+.toolbar-row {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+}
 
-  /* Visuals */
-  background: var(--surface-hover);
-  border-color: var(--border-primary);
-  box-shadow: var(--shadow-sm);
+/* ==========================================================================
+   TOOLBAR BUTTONS (Modify this existing rule)
+   ========================================================================== */
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  width: 40px; /* Fixed width */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+  color: var(--glass-text-muted);
+  font-size: 16px;
+  transition: all 0.15s ease;
+  aspect-ratio: 1 / 1; /* Make it square */
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.toolbar-btn:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.toolbar-btn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .toolbar-btn.active {
-  /* Visuals */
-  background: var(--color-primary);
+  background-color: var(--color-primary);
   border-color: var(--color-primary);
   color: white;
-  box-shadow:
-    0 0 8px rgba(var(--color-primary-rgb), 0.3),
-    inset 0 1px 2px rgba(255, 255, 255, 0.1);
 }
 
 .toolbar-btn.disabled {
@@ -215,21 +207,12 @@
   width: var(--toolbar-icon-width);
 
   /* Typography */
-  font-size: var(--toolbar-icon-size);
+  font-size: 32px;
   text-align: center;
 }
 
 .tool-label {
-  /* Positioning & Layout */
-  overflow: hidden;
-
-  /* Box Model */
-  white-space: nowrap;
-
-  /* Typography */
-  font-weight: var(--font-medium);
-  font-size: var(--toolbar-label-font-size);
-  text-overflow: ellipsis;
+  display: none;
 }
 
 /* ==========================================================================
@@ -500,7 +483,7 @@
    ============================================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-  .scene-canvas-toolbar,
+  .game-toolbar,
   .style-panel,
   .dm-panel,
   .toolbar-btn {
@@ -528,7 +511,7 @@
    THEME OVERRIDES
    ============================================================================= */
 
-.solid-theme .scene-canvas-toolbar,
+.solid-theme .game-toolbar,
 .solid-theme .style-panel,
 .solid-theme .dm-panel {
   backdrop-filter: none;
@@ -545,4 +528,9 @@
 .solid-theme .style-controls input,
 .solid-theme .style-controls select {
   background: var(--surface-secondary);
+}
+
+.toolbar-btn[data-id='zoom-in'] .tool-icon,
+.toolbar-btn[data-id='zoom-out'] .tool-icon {
+  font-size: 16px;
 }

@@ -104,6 +104,7 @@
 
   /* Visuals */
   background: rgba(0, 0, 0, 0.75);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 
@@ -124,6 +125,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--border-radius-xl);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }
 
@@ -1724,34 +1726,50 @@
 .back-button {
   /* Positioning & Layout */
   flex-shrink: 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  /* Box Model */
   width: 48px;
   height: 48px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
+  padding: 0.5rem 0.75rem;
+
+  /* Box Model */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+
+  /* Glassmorphic + 3D styling */
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 4px 8px rgba(0, 0, 0, 0.3);
 
   /* Typography */
   font-size: var(--text-3xl);
-  font-weight: bold;
+  font-weight: 600;
   color: white;
-
-  /* Visuals */
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  text-decoration: none;
 
   /* Animation & Misc */
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .back-button:hover {
   background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateX(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 6px 12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+.back-button:active {
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: translateY(1px);
 }
 
 .creation-header h1 {
@@ -1823,6 +1841,7 @@
 
   /* Visuals */
   background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 
   /* Animation & Misc */
@@ -1867,6 +1886,7 @@
 
   /* Visuals */
   background: rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
 }
 
@@ -1904,6 +1924,7 @@
 
   /* Visuals */
   background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 
   /* Animation & Misc */
@@ -2001,6 +2022,7 @@
 
   /* Visuals */
   background: rgba(255, 255, 255, 0.15);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 
@@ -2116,6 +2138,7 @@
 
   /* Visuals */
   background: rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 

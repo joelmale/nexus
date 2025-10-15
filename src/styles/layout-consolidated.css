@@ -527,12 +527,12 @@
   overflow: hidden;
 }
 
-.panel-content {
+.context-panel__content {
   flex: 1;
   overflow-y: auto;
 }
 
-.panel-body {
+.context-panel__body {
   padding: var(--spacing-6);
   display: flex;
   flex-direction: column;
@@ -540,7 +540,7 @@
   flex: 1;
 }
 
-.collapsed-content {
+.context-panel__collapsed-content {
   padding: var(--spacing-4);
   display: flex;
   flex-direction: column;
@@ -549,7 +549,7 @@
   height: 100%;
 }
 
-.collapsed-icon {
+.context-panel__collapsed-icon {
   font-size: var(--text-2xl);
   color: var(--text-muted);
 }
@@ -569,42 +569,42 @@
 }
 
 /* Lobby Panel Compact Spacing */
-.lobby-panel .panel-section {
+.lobby-panel__section {
   margin-bottom: var(--spacing-4);
 }
 
-.lobby-panel .panel-section h3 {
+.lobby-panel__section h3 {
   margin-bottom: var(--spacing-2);
   font-size: var(--text-lg);
 }
 
-.lobby-panel .online-controls {
+.lobby-panel__online-controls {
   margin-top: var(--spacing-2);
 }
 
-.lobby-panel .room-code-input-group {
+.lobby-panel__room-code-input-group {
   margin-bottom: var(--spacing-2);
 }
 
-.lobby-panel .help-text {
+.lobby-panel__help-text {
   margin-bottom: var(--spacing-3);
   font-size: var(--text-sm);
 }
 
-.lobby-panel .room-info-grid {
+.lobby-panel__room-info-grid {
   gap: var(--spacing-3);
   margin-bottom: var(--spacing-3);
 }
 
-.lobby-panel .room-info-item {
+.lobby-panel__room-info-item {
   margin-bottom: 0;
 }
 
-.lobby-panel .players-list {
+.lobby-panel__players-list {
   gap: var(--spacing-2);
 }
 
-.lobby-panel .lobby-actions {
+.lobby-panel__actions {
   margin-top: var(--spacing-3);
 }
 
@@ -633,19 +633,19 @@
 }
 
 /* Online controls compact layout */
-.lobby-panel .online-controls {
+.lobby-panel__online-controls {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
 }
 
-.lobby-panel .online-controls .help-text {
+.lobby-panel__online-controls .lobby-panel__help-text {
   margin: 0 0 var(--spacing-1) 0;
   font-size: var(--text-sm);
   line-height: 1.4;
 }
 
-.lobby-panel .room-code-input-group {
+.lobby-panel__room-code-input-group {
   margin: 0;
 }
 
@@ -658,18 +658,7 @@
    GAME TOOLBAR
    ============================================================================= */
 
-.layout-toolbar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: var(--z-toolbar);
-  pointer-events: none; /* Allow clicks to pass through container */
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  padding: var(--spacing-6);
-}
+
 
 .game-toolbar {
   display: flex;
