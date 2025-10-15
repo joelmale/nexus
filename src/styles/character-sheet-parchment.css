@@ -1,0 +1,532 @@
+/**
+ * Character Sheet Parchment Styling
+ *
+ * D&D-themed parchment scroll design with classic typography
+ * Breaks from glassmorphism for an authentic fantasy feel
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Bookman+Old+Style:ital,wght@0,400;0,700;1,400&display=swap');
+
+/* ==========================================================================
+   BACKDROP & MODAL STRUCTURE
+   ========================================================================== */
+
+.character-sheet-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.character-sheet-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+
+  /* Parchment Dimensions */
+  width: 95vw;
+  max-width: 1000px;
+  min-height: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+
+  /* Parchment Styling */
+  background:
+    radial-gradient(
+      circle at 20% 80%,
+      rgba(245, 222, 179, 0.95) 0%,
+      rgba(222, 184, 135, 0.9) 100%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(210, 180, 140, 0.8) 0%,
+      rgba(245, 222, 179, 0.9) 100%
+    ),
+    linear-gradient(
+      45deg,
+      rgba(139, 69, 19, 0.05) 0%,
+      transparent 50%,
+      rgba(139, 69, 19, 0.05) 100%
+    ),
+    url('/assets/images/parchment.svg');
+  background-repeat: repeat;
+  background-size: auto;
+
+  /* Border & Shadow */
+  border: 4px solid #8b4513;
+  border-radius: 12px;
+  box-shadow:
+    0 0 30px rgba(139, 69, 19, 0.4),
+    0 0 60px rgba(139, 69, 19, 0.2),
+    inset 0 0 20px rgba(245, 222, 179, 0.3);
+
+  /* Scroll Edges - pseudo-elements positioned relative to fixed parent */
+}
+
+.character-sheet-popup::before,
+.character-sheet-popup::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 24px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(139, 69, 19, 0.8) 30%,
+    rgba(139, 69, 19, 0.6) 70%,
+    transparent 100%
+  );
+  border-radius: 12px;
+}
+
+.character-sheet-popup::before {
+  left: -4px;
+}
+.character-sheet-popup::after {
+  right: -4px;
+}
+
+/* ==========================================================================
+   CLOSE BUTTON (WAX SEAL)
+   ========================================================================== */
+
+.character-sheet-close {
+  position: absolute;
+  top: 20px;
+  right: 40px;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 30%, #ffd700, #b8860b),
+    radial-gradient(circle, #8b0000, #654321);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 1002;
+  font-size: 24px;
+  color: #2f1b14;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.character-sheet-close:hover {
+  transform: scale(1.1);
+  box-shadow:
+    0 6px 12px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+}
+
+.character-sheet-close:active {
+  transform: scale(0.95);
+}
+
+/* ==========================================================================
+   TYPOGRAPHY & COLORS
+   ========================================================================== */
+
+.character-sheet-popup {
+  font-family: 'Bookman Old Style', 'Times New Roman', serif;
+  color: #000000;
+  line-height: 1.4;
+  padding: 1.25rem;
+}
+
+.character-name {
+  font-family: 'Libre Baskerville', 'Times New Roman', serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #000000;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: 1px;
+}
+
+.character-subtitle {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 0.95rem;
+  color: #000000;
+  text-align: center;
+  margin-bottom: 0.15rem;
+  font-weight: 400;
+}
+
+.character-alignment {
+  font-size: 0.8rem;
+  color: #000000;
+  text-align: center;
+  font-style: italic;
+}
+
+.section-header {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #000000;
+  margin: 0 0 0.5rem 0;
+  border-bottom: 2px solid #8b4513;
+  padding-bottom: 0.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.prof-bonus {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #000000;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* ==========================================================================
+   LAYOUT GRID
+   ========================================================================== */
+
+.character-sheet-header {
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+.character-sheet-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.character-section {
+  background: rgba(245, 222, 179, 0.3);
+  border: 1px solid rgba(139, 69, 19, 0.3);
+  border-radius: 8px;
+  padding: 0.75rem;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ==========================================================================
+   ABILITIES SECTION
+   ========================================================================== */
+
+.abilities-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.ability-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.15rem 0;
+  border-bottom: 1px solid rgba(139, 69, 19, 0.2);
+}
+
+.ability-item:last-child {
+  border-bottom: none;
+}
+
+.ability-name {
+  font-weight: bold;
+  font-size: 0.8rem;
+  color: #000000 !important;
+  min-width: 60px;
+}
+
+.ability-score {
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: bold;
+  color: rgb(169, 99, 0);
+  min-width: 30px;
+  text-align: center;
+}
+
+.ability-modifier {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #000000;
+  min-width: 40px;
+  text-align: right;
+}
+
+.ability-modifier.modifier-positive {
+  color: #22c55e; /* green-500 */
+}
+
+.ability-modifier.modifier-negative {
+  color: #ef4444; /* red-500 */
+}
+
+.ability-modifier.modifier-zero {
+  color: #000000; /* black */
+}
+
+/* ==========================================================================
+   COMBAT SECTION
+   ========================================================================== */
+
+.combat-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.combat-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  border: 1px solid rgba(139, 69, 19, 0.2);
+}
+
+.stat-label {
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.stat-value {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #000000;
+}
+
+/* ==========================================================================
+   SKILLS SECTION
+   ========================================================================== */
+
+.skills-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+}
+
+.skill-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.15rem 0;
+  font-size: 0.8rem;
+}
+
+.skill-name {
+  flex: 1;
+}
+
+.skill-modifier {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  color: #000000;
+  min-width: 30px;
+  text-align: right;
+}
+
+.more-skills {
+  font-style: italic;
+  color: #000000;
+  grid-column: span 2;
+}
+
+/* ==========================================================================
+   SPELLS SECTION
+   ========================================================================== */
+
+.spells-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.spell-info {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.spell-slots {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.spell-slot {
+  background: rgba(255, 255, 255, 0.4);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid rgba(139, 69, 19, 0.2);
+  font-size: 0.8rem;
+  font-family: 'Courier New', monospace;
+}
+
+/* ==========================================================================
+   EQUIPMENT & FEATURES SECTIONS
+   ========================================================================== */
+
+.equipment-list,
+.features-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.equipment-item,
+.feature-item {
+  background: rgba(255, 255, 255, 0.4);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid rgba(139, 69, 19, 0.2);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.more-items,
+.more-features {
+  font-style: italic;
+  color: #000000;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.character-sheet-popup {
+  animation: parchmentAppear 0.4s ease-out;
+}
+
+@keyframes parchmentAppear {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .character-sheet-popup {
+    width: 95vw;
+    padding: 1rem;
+  }
+
+  .character-sheet-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .character-name {
+    font-size: 1.8rem;
+  }
+
+  .character-subtitle {
+    font-size: 1rem;
+  }
+
+  .combat-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .skills-list {
+    grid-template-columns: 1fr;
+  }
+
+  .spell-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .character-sheet-popup {
+    width: 98vw;
+    padding: 0.75rem;
+    max-height: 95vh;
+  }
+
+  .character-name {
+    font-size: 1.5rem;
+  }
+
+  .character-sheet-grid {
+    gap: 0.75rem;
+  }
+
+  .character-section {
+    padding: 0.75rem;
+  }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .character-sheet-backdrop,
+  .character-sheet-popup {
+    animation: none;
+  }
+
+  .character-sheet-close {
+    transition: none;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .character-sheet-popup {
+    border: 4px solid #000;
+    background: #fff;
+  }
+
+  .character-name,
+  .character-sheet-popup,
+  .character-subtitle,
+  .character-alignment,
+  .section-header,
+  .prof-bonus,
+  .ability-score,
+  .ability-modifier,
+  .stat-value,
+  .skill-modifier,
+  .more-skills,
+  .more-items,
+  .more-features {
+    color: #000;
+  }
+
+  .section-header {
+    border-bottom-color: #000;
+  }
+}
