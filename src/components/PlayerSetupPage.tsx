@@ -275,7 +275,20 @@ export const PlayerSetupPage: React.FC = () => {
                       </div>
 
                       <div className="selection-indicator">
-                        {selectedCharacterId === character.id && <span>✓</span>}
+                        {selectedCharacterId === character.id ? (
+                          <span>✓</span>
+                        ) : (
+                          <input
+                            type="checkbox"
+                            checked={false}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              setSelectedCharacterId(character.id);
+                            }}
+                            className="character-select-checkbox"
+                            title="Select this character"
+                          />
+                        )}
                       </div>
                     </div>
                   ))}

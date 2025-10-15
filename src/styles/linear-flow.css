@@ -313,23 +313,54 @@
   width: 24px;
   height: 24px;
 
-  /* Visuals */
-  border-radius: 50%;
-  background: rgba(59, 130, 246, 0.8);
-
-  /* Typography */
-  color: white;
-  font-size: 0.9rem;
-  font-weight: bold;
-
   /* Animation & Misc */
-  opacity: 0;
+  opacity: 1;
   transition: opacity 0.3s ease;
 }
 
-.character-card.selected .selection-indicator {
-  /* Animation & Misc */
-  opacity: 1;
+.character-select-checkbox {
+  /* Reset default checkbox styling */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  /* Box Model */
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+
+  /* Positioning */
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  /* Position within selection-indicator */
+  position: relative;
+}
+
+.character-select-checkbox:hover {
+  border-color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.character-select-checkbox:checked {
+  background: rgba(59, 130, 246, 0.8);
+  border-color: rgba(59, 130, 246, 1);
+}
+
+.character-select-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: bold;
 }
 
 /* ========================================================================== EMPTY STATE ========================================================================== */
@@ -1121,6 +1152,7 @@
 
   /* Typography */
   font-size: 0.85rem !important;
+  color: white !important;
   white-space: nowrap;
 }
 
