@@ -347,12 +347,13 @@
   transform: scale(1.1);
 }
 
-.character-select-checkbox:checked {
+.character-select-checkbox:active {
   background: rgba(59, 130, 246, 0.8);
   border-color: rgba(59, 130, 246, 1);
+  transform: scale(0.95);
 }
 
-.character-select-checkbox:checked::after {
+.character-select-checkbox:active::after {
   content: '✓';
   position: absolute;
   top: 50%;

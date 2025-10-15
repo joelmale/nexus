@@ -280,8 +280,7 @@ export const PlayerSetupPage: React.FC = () => {
                         ) : (
                           <input
                             type="checkbox"
-                            checked={false}
-                            onChange={(e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
                               setSelectedCharacterId(character.id);
                             }}
