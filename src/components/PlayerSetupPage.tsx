@@ -44,7 +44,7 @@ const convertCharacterToPlayerCharacter = (
 export const PlayerSetupPage: React.FC = () => {
   const { user, joinRoomWithCode, resetToWelcome } = useGameStore();
 
-  const { characters } = useCharacters();
+  const { characters, deleteCharacter } = useCharacters();
   const { startCharacterCreation, LauncherComponent } =
     useCharacterCreationLauncher();
 
@@ -84,10 +84,24 @@ export const PlayerSetupPage: React.FC = () => {
     }
   };
 
-  // TODO: Implement delete, export, import functionality for new Character type
-  const handleDeleteCharacter = () => {
-    // For now, just show a message that this feature is coming soon
-    alert('Character deletion will be implemented in a future update');
+  const handleDeleteCharacter = (characterId: string) => {
+    if (
+      window.confirm(
+        'Are you sure you want to delete this character? This action cannot be undone.',
+      )
+    ) {
+      deleteCharacter(characterId);
+
+      // Clear selection if the deleted character was selected
+      if (selectedCharacterId === characterId) {
+        setSelectedCharacterId(null);
+      }
+
+      // Close popup if the deleted character was being viewed
+      if (popupCharacter?.id === characterId) {
+        setPopupCharacter(null);
+      }
+    }
   };
 
   const handleExportCharacters = () => {
@@ -251,7 +265,7 @@ export const PlayerSetupPage: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteCharacter();
+                            handleDeleteCharacter(character.id);
                           }}
                           className="delete-btn"
                           title="Delete character"
@@ -261,7 +275,19 @@ export const PlayerSetupPage: React.FC = () => {
                       </div>
 
                       <div className="selection-indicator">
-                        {selectedCharacterId === character.id && <span>✓</span>}
+                        {selectedCharacterId === character.id ? (
+                          <span>✓</span>
+                        ) : (
+                          <input
+                            type="checkbox"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCharacterId(character.id);
+                            }}
+                            className="character-select-checkbox"
+                            title="Select this character"
+                          />
+                        )}
                       </div>
                     </div>
                   ))}
