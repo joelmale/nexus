@@ -562,6 +562,25 @@ export function generateRandomCharacter(playerId: string): Partial<Character> {
             : 12,
     ) + abilities.constitution.modifier;
 
+  // Generate proficiencies based on class
+  const weaponProficiencies = getWeaponProficienciesForClass(
+    characterClass.name,
+  );
+  const armorProficiencies = getArmorProficienciesForClass(characterClass.name);
+  const toolProficiencies = getToolProficienciesForBackground(background.name);
+
+  // Generate additional languages (1-2 extra beyond racial)
+  const additionalLanguages = generateAdditionalLanguages(race.languages);
+
+  // Generate basic equipment
+  const equipment = generateStartingEquipment(
+    characterClass.name,
+    background.name,
+  );
+
+  // Generate features
+  const features = generateRacialFeatures(race);
+
   return {
     id: crypto.randomUUID(),
     playerId,
@@ -586,13 +605,13 @@ export function generateRandomCharacter(playerId: string): Partial<Character> {
     speed: 30,
     proficiencyBonus,
     passivePerception: 10 + abilities.wisdom.modifier,
-    languageProficiencies: race.languages,
-    toolProficiencies: [],
-    weaponProficiencies: [],
-    armorProficiencies: [],
-    features: [],
+    languageProficiencies: [...race.languages, ...additionalLanguages],
+    toolProficiencies,
+    weaponProficiencies,
+    armorProficiencies,
+    features,
     attacks: [],
-    equipment: [],
+    equipment,
     spells: [],
     personalityTraits: [],
     ideals: [],
@@ -605,6 +624,236 @@ export function generateRandomCharacter(playerId: string): Partial<Character> {
     updatedAt: Date.now(),
     version: '1.0',
   };
+}
+
+// =============================================================================
+// PROFICIENCY GENERATION HELPERS
+// =============================================================================
+
+/**
+ * Get weapon proficiencies for a character class
+ */
+function getWeaponProficienciesForClass(className: string): string[] {
+  const proficiencies: Record<string, string[]> = {
+    Barbarian: ['Simple Weapons', 'Martial Weapons'],
+    Bard: [
+      'Simple Weapons',
+      'Hand Crossbows',
+      'Longswords',
+      'Rapiers',
+      'Shortswords',
+    ],
+    Cleric: ['Simple Weapons'],
+    Druid: ['Simple Weapons'],
+    Fighter: ['Simple Weapons', 'Martial Weapons'],
+    Monk: ['Simple Weapons', 'Shortswords'],
+    Paladin: ['Simple Weapons', 'Martial Weapons'],
+    Ranger: ['Simple Weapons', 'Martial Weapons'],
+    Rogue: [
+      'Simple Weapons',
+      'Hand Crossbows',
+      'Longswords',
+      'Rapiers',
+      'Shortswords',
+    ],
+    Sorcerer: [
+      'Daggers',
+      'Darts',
+      'Slings',
+      'Quarterstaffs',
+      'Light Crossbows',
+    ],
+    Warlock: ['Simple Weapons'],
+    Wizard: ['Daggers', 'Darts', 'Slings', 'Quarterstaffs', 'Light Crossbows'],
+  };
+  return proficiencies[className] || ['Simple Weapons'];
+}
+
+/**
+ * Get armor proficiencies for a character class
+ */
+function getArmorProficienciesForClass(className: string): string[] {
+  const proficiencies: Record<string, string[]> = {
+    Barbarian: ['Light Armor', 'Medium Armor', 'Shields'],
+    Bard: ['Light Armor'],
+    Cleric: ['Light Armor', 'Medium Armor', 'Shields'],
+    Druid: ['Light Armor', 'Medium Armor', 'Shields'], // non-metal
+    Fighter: ['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'],
+    Monk: [],
+    Paladin: ['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'],
+    Ranger: ['Light Armor', 'Medium Armor', 'Shields'],
+    Rogue: ['Light Armor'],
+    Sorcerer: [],
+    Warlock: ['Light Armor'],
+    Wizard: [],
+  };
+  return proficiencies[className] || [];
+}
+
+/**
+ * Get tool proficiencies for a background
+ */
+function getToolProficienciesForBackground(backgroundName: string): string[] {
+  const proficiencies: Record<string, string[]> = {
+    Acolyte: [],
+    Criminal: ["Thieves' Tools"],
+    'Folk Hero': ["One type of artisan's tools", 'Vehicles (land)'],
+    Noble: ['One gaming set of your choice'],
+    Sage: [],
+    Soldier: ['One gaming set of your choice', 'Vehicles (land)'],
+    Charlatan: ["One type of artisan's tools", 'Disguise Kit', 'Forgery Kit'],
+    Entertainer: ['One musical instrument of your choice', 'Disguise Kit'],
+    'Guild Artisan': ["One type of artisan's tools"],
+    Hermit: [],
+    Outlander: ['One musical instrument of your choice'],
+    Sailor: ["Navigator's Tools", 'Vehicles (water)'],
+  };
+  return proficiencies[backgroundName] || [];
+}
+
+/**
+ * Generate additional languages beyond racial languages
+ */
+function generateAdditionalLanguages(existingLanguages: string[]): string[] {
+  const allLanguages = [
+    'Elvish',
+    'Dwarvish',
+    'Halfling',
+    'Draconic',
+    'Gnomish',
+    'Orc',
+    'Infernal',
+    'Celestial',
+    'Abyssal',
+    'Primordial',
+    'Sylvan',
+    'Undercommon',
+    'Giant',
+    'Goblin',
+  ];
+
+  // Filter out languages already known
+  const availableLanguages = allLanguages.filter(
+    (lang) => !existingLanguages.includes(lang),
+  );
+
+  // Choose 0-2 additional languages
+  const numAdditional = Math.floor(Math.random() * 3); // 0, 1, or 2
+  const additionalLanguages: string[] = [];
+
+  for (let i = 0; i < numAdditional && availableLanguages.length > 0; i++) {
+    const randomIndex = Math.floor(Math.random() * availableLanguages.length);
+    additionalLanguages.push(availableLanguages.splice(randomIndex, 1)[0]);
+  }
+
+  return additionalLanguages;
+}
+
+/**
+ * Generate starting equipment based on class and background
+ */
+function generateStartingEquipment(
+  className: string,
+  _backgroundName: string,
+): any[] {
+  // Simplified equipment generation - in a full implementation this would be more comprehensive
+  const equipment: any[] = [];
+
+  // Add some basic equipment
+  equipment.push({
+    id: 'backpack',
+    name: 'Backpack',
+    quantity: 1,
+    type: 'other',
+  });
+  equipment.push({
+    id: 'waterskin',
+    name: 'Waterskin',
+    quantity: 1,
+    type: 'other',
+  });
+  equipment.push({
+    id: 'rations',
+    name: 'Rations (10 days)',
+    quantity: 10,
+    type: 'consumable',
+  });
+
+  // Add class-specific equipment
+  switch (className) {
+    case 'Fighter':
+      equipment.push({
+        id: 'chain-mail',
+        name: 'Chain Mail',
+        quantity: 1,
+        type: 'armor',
+      });
+      equipment.push({
+        id: 'longsword',
+        name: 'Longsword',
+        quantity: 1,
+        type: 'weapon',
+      });
+      break;
+    case 'Wizard':
+      equipment.push({
+        id: 'spellbook',
+        name: 'Spellbook',
+        quantity: 1,
+        type: 'other',
+      });
+      equipment.push({
+        id: 'dagger',
+        name: 'Dagger',
+        quantity: 1,
+        type: 'weapon',
+      });
+      break;
+    case 'Rogue':
+      equipment.push({
+        id: 'leather-armor',
+        name: 'Leather Armor',
+        quantity: 1,
+        type: 'armor',
+      });
+      equipment.push({
+        id: 'rapier',
+        name: 'Rapier',
+        quantity: 1,
+        type: 'weapon',
+      });
+      break;
+    default:
+      equipment.push({
+        id: 'common-clothes',
+        name: 'Common Clothes',
+        quantity: 1,
+        type: 'other',
+      });
+  }
+
+  return equipment;
+}
+
+/**
+ * Generate racial features
+ */
+function generateRacialFeatures(race: any): any[] {
+  const features: any[] = [];
+
+  // Add basic racial traits
+  if (race.traits) {
+    race.traits.forEach((trait: string) => {
+      features.push({
+        id: `racial-${trait.toLowerCase().replace(/\s+/g, '-')}`,
+        name: trait,
+        source: 'race',
+        description: `${trait} racial trait.`,
+      });
+    });
+  }
+
+  return features;
 }
 
 // =============================================================================

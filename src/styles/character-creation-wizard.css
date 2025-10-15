@@ -647,6 +647,147 @@
 }
 
 /* =============================================================================
+   PROFICIENCY GRID STYLES
+   ============================================================================= */
+
+.proficiency-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.proficiency-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--solid-bg-primary);
+  border: 1px solid var(--solid-border);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.proficiency-item:hover {
+  background: var(--wizard-surface, var(--glass-surface-hover));
+  border-color: var(--color-primary);
+}
+
+.proficiency-item input[type='checkbox'] {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.proficiency-label {
+  font-size: 0.875rem;
+  color: var(--wizard-text);
+  flex: 1;
+}
+
+/* =============================================================================
+   EQUIPMENT & FEATURES STYLES
+   ============================================================================= */
+
+.equipment-list,
+.features-list,
+.attacks-list {
+  margin-top: 1rem;
+}
+
+.equipment-item,
+.feature-item,
+.attack-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--solid-bg-primary);
+  border: 1px solid var(--solid-border);
+  border-radius: var(--border-radius);
+  margin-bottom: 0.5rem;
+}
+
+.equipment-name,
+.feature-name,
+.attack-name {
+  font-weight: 500;
+  color: var(--solid-text);
+}
+
+.equipment-quantity {
+  font-size: 0.875rem;
+  color: var(--solid-text-muted);
+  background: var(--solid-bg-secondary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.feature-description {
+  font-size: 0.875rem;
+  color: var(--solid-text-muted);
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.attack-details {
+  font-size: 0.875rem;
+  color: var(--solid-text-muted);
+}
+
+.no-equipment,
+.no-features,
+.no-attacks {
+  font-style: italic;
+  color: var(--solid-text-muted);
+  text-align: center;
+  padding: 2rem;
+}
+
+/* =============================================================================
+   SPELLCASTING & FINAL DETAILS STYLES
+   ============================================================================= */
+
+.spellcasting-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.info-value {
+  font-weight: 600;
+  color: var(--solid-text);
+  padding: 0.5rem;
+  background: var(--solid-bg-secondary);
+  border-radius: var(--border-radius);
+  text-align: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--wizard-text);
+}
+
+.checkbox-label input[type='checkbox'] {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.form-help {
+  font-size: 0.875rem;
+  color: var(--solid-text-muted);
+  margin-bottom: 0.5rem;
+  font-style: italic;
+}
+
+/* =============================================================================
    SOLID THEME OVERRIDES
    ============================================================================= */
 
