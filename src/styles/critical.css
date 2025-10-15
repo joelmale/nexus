@@ -8,6 +8,16 @@
 /* Import the centralized CSS reset */
 @import './reset.css';
 
+/* Button Text Color Variable */
+:root {
+  --button-text-color: white;
+}
+
+.glass-button.primary,
+.glass-button.secondary {
+  color: var(--button-text-color);
+}
+
 /* ==========================================================================
    BASE STYLES (Critical)
    ========================================================================== */
@@ -146,7 +156,6 @@ body::before {
   /* Visuals */
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: white;
 }
 
 .glass-button.primary:hover {
