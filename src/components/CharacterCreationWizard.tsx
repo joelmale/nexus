@@ -13,6 +13,7 @@ import {
   getAvailableBackgrounds,
   getAvailableAlignments,
 } from '@/utils/characterGenerator';
+import { getDataManager } from '@/utils/dataManager';
 import type { Character, AbilityScores } from '@/types/character';
 
 interface CharacterCreationWizardProps {
@@ -515,6 +516,396 @@ const DetailsStep: React.FC<WizardStepProps> = ({
 };
 
 // =============================================================================
+// STEP 4: PROFICIENCIES & LANGUAGES
+// =============================================================================
+
+const ProficienciesStep: React.FC<WizardStepProps> = ({
+  character,
+  updateCharacter,
+  onNext: _onNext,
+  onPrevious: _onPrevious,
+  canProceed: _canProceed,
+  isFirstStep: _isFirstStep,
+  isLastStep: _isLastStep,
+  playerId: _playerId,
+}) => {
+  const dataManager = getDataManager();
+
+  // D&D 5e Standard Languages
+  const DND_LANGUAGES = [
+    'Common',
+    'Elvish',
+    'Dwarvish',
+    'Halfling',
+    'Draconic',
+    'Gnomish',
+    'Orc',
+    'Infernal',
+    'Celestial',
+    'Abyssal',
+    'Primordial',
+    'Sylvan',
+    'Undercommon',
+    'Giant',
+    'Goblin',
+    'Deep Speech',
+  ];
+
+  const tools = dataManager.getTools();
+
+  const handleLanguageToggle = (language: string) => {
+    const currentLanguages = character.languageProficiencies || ['Common'];
+    const newLanguages = currentLanguages.includes(language)
+      ? currentLanguages.filter((l) => l !== language)
+      : [...currentLanguages, language];
+
+    // Always keep Common
+    if (!newLanguages.includes('Common')) {
+      newLanguages.unshift('Common');
+    }
+
+    updateCharacter({ languageProficiencies: newLanguages });
+  };
+
+  const handleToolToggle = (toolId: string) => {
+    const currentTools = character.toolProficiencies || [];
+    const newTools = currentTools.includes(toolId)
+      ? currentTools.filter((t) => t !== toolId)
+      : [...currentTools, toolId];
+
+    updateCharacter({ toolProficiencies: newTools });
+  };
+
+  const handleWeaponProficiencyToggle = (proficiency: string) => {
+    const currentProficiencies = character.weaponProficiencies || [];
+    const newProficiencies = currentProficiencies.includes(proficiency)
+      ? currentProficiencies.filter((p) => p !== proficiency)
+      : [...currentProficiencies, proficiency];
+
+    updateCharacter({ weaponProficiencies: newProficiencies });
+  };
+
+  const handleArmorProficiencyToggle = (proficiency: string) => {
+    const currentProficiencies = character.armorProficiencies || [];
+    const newProficiencies = currentProficiencies.includes(proficiency)
+      ? currentProficiencies.filter((p) => p !== proficiency)
+      : [...currentProficiencies, proficiency];
+
+    updateCharacter({ armorProficiencies: newProficiencies });
+  };
+
+  const currentLanguages = character.languageProficiencies || ['Common'];
+  const currentTools = character.toolProficiencies || [];
+  const currentWeaponProficiencies = character.weaponProficiencies || [];
+  const currentArmorProficiencies = character.armorProficiencies || [];
+
+  return (
+    <div className="wizard-step proficiencies-step">
+      <div className="step-header">
+        <h2>Proficiencies & Languages</h2>
+      </div>
+
+      <div className="form-grid">
+        {/* Languages */}
+        <div className="form-section">
+          <h3>Languages</h3>
+          <p className="form-help">
+            Select additional languages your character knows. Common is always
+            included.
+          </p>
+          <div className="proficiency-grid">
+            {DND_LANGUAGES.map((language) => (
+              <label key={language} className="proficiency-item">
+                <input
+                  type="checkbox"
+                  checked={currentLanguages.includes(language)}
+                  onChange={() => handleLanguageToggle(language)}
+                  disabled={language === 'Common'}
+                />
+                <span className="proficiency-label">{language}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Tool Proficiencies */}
+        <div className="form-section">
+          <h3>Tool Proficiencies</h3>
+          <p className="form-help">
+            Select tools your character is proficient with.
+          </p>
+          <div className="proficiency-grid">
+            {tools.map((tool) => (
+              <label key={tool.id} className="proficiency-item">
+                <input
+                  type="checkbox"
+                  checked={currentTools.includes(tool.name)}
+                  onChange={() => handleToolToggle(tool.name)}
+                />
+                <span className="proficiency-label">{tool.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Weapon Proficiencies */}
+        <div className="form-section">
+          <h3>Weapon Proficiencies</h3>
+          <p className="form-help">
+            Select weapon categories your character is proficient with.
+          </p>
+          <div className="proficiency-grid">
+            {['Simple Weapons', 'Martial Weapons'].map((proficiency) => (
+              <label key={proficiency} className="proficiency-item">
+                <input
+                  type="checkbox"
+                  checked={currentWeaponProficiencies.includes(proficiency)}
+                  onChange={() => handleWeaponProficiencyToggle(proficiency)}
+                />
+                <span className="proficiency-label">{proficiency}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Armor Proficiencies */}
+        <div className="form-section">
+          <h3>Armor Proficiencies</h3>
+          <p className="form-help">
+            Select armor categories your character is proficient with.
+          </p>
+          <div className="proficiency-grid">
+            {['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'].map(
+              (proficiency) => (
+                <label key={proficiency} className="proficiency-item">
+                  <input
+                    type="checkbox"
+                    checked={currentArmorProficiencies.includes(proficiency)}
+                    onChange={() => handleArmorProficiencyToggle(proficiency)}
+                  />
+                  <span className="proficiency-label">{proficiency}</span>
+                </label>
+              ),
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// STEP 5: EQUIPMENT & FEATURES
+// =============================================================================
+
+const EquipmentFeaturesStep: React.FC<WizardStepProps> = ({
+  character,
+  updateCharacter: _updateCharacter,
+  onNext: _onNext,
+  onPrevious: _onPrevious,
+  canProceed: _canProceed,
+  isFirstStep: _isFirstStep,
+  isLastStep: _isLastStep,
+  playerId: _playerId,
+}) => {
+  return (
+    <div className="wizard-step equipment-features-step">
+      <div className="step-header">
+        <h2>Equipment & Features</h2>
+      </div>
+
+      <div className="form-grid">
+        {/* Starting Equipment */}
+        <div className="form-section">
+          <h3>Starting Equipment</h3>
+          <p className="form-help">
+            Equipment is automatically assigned based on your class and
+            background choices.
+          </p>
+          <div className="equipment-list">
+            {character.equipment?.length ? (
+              character.equipment.map((item, index) => (
+                <div key={index} className="equipment-item">
+                  <span className="equipment-name">{item.name}</span>
+                  <span className="equipment-quantity">×{item.quantity}</span>
+                </div>
+              ))
+            ) : (
+              <p className="no-equipment">
+                No equipment assigned yet. Complete class and background
+                selection first.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Racial Features */}
+        <div className="form-section">
+          <h3>Racial Features</h3>
+          <div className="features-list">
+            {character.race?.traits?.length ? (
+              character.race.traits.map((trait, index) => (
+                <div key={index} className="feature-item">
+                  <span className="feature-name">{trait}</span>
+                </div>
+              ))
+            ) : (
+              <p className="no-features">No racial traits available.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Class Features */}
+        <div className="form-section">
+          <h3>Class Features</h3>
+          <div className="features-list">
+            {character.features?.length ? (
+              character.features.map((feature, index) => (
+                <div key={index} className="feature-item">
+                  <span className="feature-name">{feature.name}</span>
+                  <span className="feature-description">
+                    {feature.description}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="no-features">No class features available yet.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Attacks */}
+        <div className="form-section">
+          <h3>Attacks</h3>
+          <div className="attacks-list">
+            {character.attacks?.length ? (
+              character.attacks.map((attack, index) => (
+                <div key={index} className="attack-item">
+                  <span className="attack-name">{attack.name}</span>
+                  <span className="attack-details">
+                    {attack.damage.dice} {attack.damage.type} • {attack.range}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="no-attacks">No attacks configured yet.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// STEP 6: SPELLS & FINAL DETAILS
+// =============================================================================
+
+const FinalDetailsStep: React.FC<WizardStepProps> = ({
+  character,
+  updateCharacter,
+  onNext: _onNext,
+  onPrevious: _onPrevious,
+  canProceed: _canProceed,
+  isFirstStep: _isFirstStep,
+  isLastStep: _isLastStep,
+  playerId: _playerId,
+}) => {
+  // Check if character is a spellcaster
+  const isSpellcaster = character.classes?.[0]?.spellcasting?.type !== 'none';
+
+  return (
+    <div className="wizard-step final-details-step">
+      <div className="step-header">
+        <h2>Spells & Final Details</h2>
+      </div>
+
+      <div className="form-grid">
+        {/* Spellcasting (if applicable) */}
+        {isSpellcaster && (
+          <div className="form-section">
+            <h3>Spellcasting</h3>
+            <div className="spellcasting-info">
+              <div className="form-group">
+                <label>Spellcasting Ability</label>
+                <span className="info-value">
+                  {character.spellcasting?.ability || 'Not set'}
+                </span>
+              </div>
+              <div className="form-group">
+                <label>Spell Save DC</label>
+                <span className="info-value">
+                  {character.spellcasting?.spellSaveDC || 'Not calculated'}
+                </span>
+              </div>
+              <div className="form-group">
+                <label>Spell Attack Bonus</label>
+                <span className="info-value">
+                  {character.spellcasting?.spellAttackBonus
+                    ? (character.spellcasting.spellAttackBonus >= 0
+                        ? '+'
+                        : '') + character.spellcasting.spellAttackBonus
+                    : 'Not calculated'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Experience Points */}
+        <div className="form-section">
+          <h3>Experience & Status</h3>
+          <div className="form-group">
+            <label htmlFor="experience-points">Experience Points</label>
+            <input
+              type="number"
+              id="experience-points"
+              value={character.experiencePoints || 0}
+              onChange={(e) =>
+                updateCharacter({
+                  experiencePoints: parseInt(e.target.value) || 0,
+                })
+              }
+              min="0"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={character.inspiration || false}
+                onChange={(e) =>
+                  updateCharacter({ inspiration: e.target.checked })
+                }
+              />
+              <span>Inspiration</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div className="form-section">
+          <h3>Character Notes</h3>
+          <div className="form-group">
+            <label htmlFor="character-notes">Additional Notes</label>
+            <textarea
+              id="character-notes"
+              value={character.notes || ''}
+              onChange={(e) => updateCharacter({ notes: e.target.value })}
+              placeholder="Any additional notes about your character..."
+              className="form-textarea"
+              rows={4}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
 // MAIN WIZARD COMPONENT
 // =============================================================================
 
@@ -537,7 +928,7 @@ export const CharacterCreationWizard: React.FC<
       startCharacterCreation(playerId, 'guided');
     }
   }, [creationState, startCharacterCreation, playerId]);
-  const totalSteps = 3;
+  const totalSteps = 6;
 
   // Determine if export should be enabled
   const canExport = useMemo(() => {
@@ -643,6 +1034,12 @@ export const CharacterCreationWizard: React.FC<
         return !!character.abilities;
       case 3:
         return true; // Details are optional
+      case 4:
+        return true; // Proficiencies are optional
+      case 5:
+        return true; // Equipment & features are optional
+      case 6:
+        return true; // Final details are optional
       default:
         return false;
     }
@@ -667,6 +1064,12 @@ export const CharacterCreationWizard: React.FC<
         return <AbilityScoresStep {...stepProps} />;
       case 3:
         return <DetailsStep {...stepProps} />;
+      case 4:
+        return <ProficienciesStep {...stepProps} />;
+      case 5:
+        return <EquipmentFeaturesStep {...stepProps} />;
+      case 6:
+        return <FinalDetailsStep {...stepProps} />;
       default:
         return null;
     }
@@ -709,6 +1112,9 @@ export const CharacterCreationWizard: React.FC<
                         {i + 1 === 1 && 'Core'}
                         {i + 1 === 2 && 'Abilities'}
                         {i + 1 === 3 && 'Details'}
+                        {i + 1 === 4 && 'Proficiencies'}
+                        {i + 1 === 5 && 'Equipment'}
+                        {i + 1 === 6 && 'Final'}
                       </div>
                     </div>
                   ))}
