@@ -9,59 +9,42 @@ Before you begin, ensure you have the following installed:
 - **Node.js:** Version 18 or higher.
 - **npm:** Usually comes with Node.js.
 - **Git:** For cloning the repository.
+- **Docker Desktop:** Must be installed and running.
 
-## Installation
+## Development Setup
 
-1. **Clone the repository:**
+1.  **Clone the Repository**
+    ```bash
+    git clone https://github.com/your-username/nexus-vtt.git
+    cd nexus-vtt
+    ```
 
-   ```bash
-   git clone https://github.com/your-username/nexus-vtt.git
-   cd nexus-vtt
-   ```
+2.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
 
-2. **Install dependencies:**
+3.  **Configure Environment**
+    Create a new file named `.env.local` in the project root and add the database connection string:
+    ```
+    DATABASE_URL="postgres://nexus:password@localhost:5432/nexus"
+    ```
 
-   ```bash
-   npm install
-   ```
+4.  **Start Development Database**
+    In a separate terminal, run the following command to start the PostgreSQL container:
+    ```bash
+    docker compose -f docker/docker-compose.dev.yml up -d postgres-dev
+    ```
 
-## Running the Application
-
-Nexus VTT consists of two main parts: a frontend React application and a backend WebSocket server. You need to run both for the application to work correctly.
-
-### Automatic Setup
-
-The easiest way to get started is to use the interactive setup script:
-
-```bash
-npm run setup
-```
-
-This script will check for available ports, provide you with the exact commands to run, and can even start both servers for you.
-
-### Manual Setup
-
-If you prefer to run the servers manually, you can use the following commands in two separate terminals:
-
-**Terminal 1: Frontend (React App)**
-
-```bash
-npm run dev
-```
-
-This will start the frontend development server, typically on `http://localhost:5173`.
-
-**Terminal 2: Backend (WebSocket Server)**
-
-```bash
-npm run server:dev
-```
-
-This will start the WebSocket server, typically on `ws://localhost:5000/ws`.
+5.  **Run the Application**
+    Once the database is running, use this command to start the frontend and backend servers:
+    ```bash
+    npm run start:all
+    ```
 
 ## Usage
 
-Once both servers are running, you can open your browser to the frontend URL and start using the application.
+Once the application is running, you can open your browser to the frontend URL (typically `http://localhost:5173`) and start using the application.
 
 ### Creating a Game
 

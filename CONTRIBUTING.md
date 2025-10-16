@@ -4,17 +4,36 @@ Thank you for your interest in contributing to Nexus VTT! This document provides
 
 ## Getting Started
 
-1. Fork the repository
-2. Clone your fork locally
-3. Install dependencies: `npm install`
-4. Start the development environment:
-   ```bash
-   # Terminal 1: Frontend
-   npm run dev
-   
-   # Terminal 2: Backend
-   npm run server:dev
-   ```
+### Prerequisites
+- Node.js 18+ and npm
+- Docker Desktop (must be installed and running)
+
+### Setup
+1.  **Fork and Clone**
+    Fork the repository and clone it to your local machine.
+
+2.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
+
+3.  **Configure Environment**
+    Create a `.env.local` file in the project root and add the database connection string:
+    ```
+    DATABASE_URL="postgres://nexus:password@localhost:5432/nexus"
+    ```
+
+4.  **Start Development Database**
+    In a separate terminal, run the following command to start the PostgreSQL container:
+    ```bash
+    docker compose -f docker/docker-compose.dev.yml up -d postgres-dev
+    ```
+
+5.  **Run the Application**
+    Once the database is running, use this command to start the frontend and backend servers:
+    ```bash
+    npm run start:all
+    ```
 
 ## Project Structure
 
@@ -49,6 +68,32 @@ Thank you for your interest in contributing to Nexus VTT! This document provides
 2. Make your changes with clear, descriptive commits
 3. Test your changes thoroughly
 4. Push to your fork and create a pull request
+
+## Commit Messages
+
+This project uses a simplified version of the [Conventional Commits](https://www.conventionalcommits.org/) specification. The format is enforced by a pre-commit hook.
+
+The format is:
+`<type>: <A short summary of the change>`
+
+Where `<type>` must be one of the following:
+*   `feat`: A new feature
+*   `fix`: A bug fix
+*   `improvement`: An improvement to an existing feature
+*   `docs`: Documentation only changes
+*   `style`: Code style changes (formatting, etc.)
+*   `test`: Adding or fixing tests
+*   `ci`: Changes to our CI configuration and scripts
+*   `chore`: Routine tasks or maintenance
+
+**Example:**
+```
+feat: Add user login via OAuth
+
+- Add passport.js for authentication.
+- Create new /auth/google and /auth/discord routes.
+- Update welcome page with login buttons.
+```
 
 ## Reporting Issues
 

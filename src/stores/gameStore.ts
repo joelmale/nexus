@@ -61,6 +61,7 @@ interface PendingUpdate {
 }
 
 interface GameStore extends GameState {
+  isAuthenticated: boolean;
   // Core Actions
   setUser: (user: Partial<User>) => void;
   setSession: (session: Session | null) => void;
@@ -68,6 +69,11 @@ interface GameStore extends GameState {
   setActiveTab: (tab: TabType) => void;
   applyEvent: (event: GameEvent) => void;
   reset: () => void;
+
+  // Auth Actions
+  login: (user: User) => void;
+  logout: () => void;
+  checkAuth: () => Promise<void>;
 
   // App Flow Actions (from appFlowStore)
   view: AppView;
@@ -326,6 +332,7 @@ const initialState: GameState & {
   selectedCharacter: undefined,
 
   // Game State
+  isAuthenticated: false,
   user: {
     id: getBrowserId(),
     name: '',
@@ -616,7 +623,7 @@ const eventHandlers: Record<string, EventHandler> = {
   },
   'session/created': (state, data) => {
     console.log('Creating session with data:', data);
-    const eventData = data as SessionCreatedEvent['data'];
+    const eventData = data as SessionCreatedEvent['data'] & { campaignScenes?: unknown[] };
     state.session = {
       roomCode: eventData.roomCode,
       hostId: state.user.id,
@@ -633,7 +640,17 @@ const eventHandlers: Record<string, EventHandler> = {
     state.user.type = 'host';
     state.user.connected = true;
     state.activeTab = 'scenes';
-    if (state.sceneState.scenes.length === 0) {
+
+    // Load campaign scenes if provided, otherwise create default scene
+    if (eventData.campaignScenes && Array.isArray(eventData.campaignScenes) && eventData.campaignScenes.length > 0) {
+      console.log(`📚 Loading ${eventData.campaignScenes.length} campaign scenes into game state`);
+      state.sceneState.scenes = eventData.campaignScenes as Scene[];
+      // Set first scene as active
+      if (state.sceneState.scenes.length > 0) {
+        state.sceneState.activeSceneId = state.sceneState.scenes[0].id;
+      }
+    } else if (state.sceneState.scenes.length === 0) {
+      // Create default scene only if no campaign scenes and no existing scenes
       const defaultScene: Scene = {
         id: uuidv4(),
         name: 'Scene 1',
@@ -952,6 +969,29 @@ export const useGameStore = create<GameStore>()(
     return {
       ...initialState,
 
+      // Auth Actions
+      login: (user) => {
+        set({ user, isAuthenticated: true, view: 'dashboard' });
+      },
+      logout: async () => {
+        await fetch('/auth/logout');
+        set({ user: initialState.user, isAuthenticated: false, view: 'welcome' });
+      },
+      checkAuth: async () => {
+        try {
+          const response = await fetch('/auth/me');
+          if (response.ok) {
+            const user = await response.json();
+            get().login(user);
+          } else {
+            set({ isAuthenticated: false });
+          }
+        } catch (error) {
+          console.error('Auth check failed', error);
+          set({ isAuthenticated: false });
+        }
+      },
+
       setUser: (userData) => {
         if (process.env.NODE_ENV === 'development') {
           console.log('👤 setUser:', userData);
@@ -1182,7 +1222,8 @@ export const useGameStore = create<GameStore>()(
           console.log('🎮 Creating game room with WebSocket connection');
 
           // Connect to WebSocket (host mode) - server will generate room code
-          await webSocketService.connect(undefined, 'host');
+          // Pass campaign ID if provided in config
+          await webSocketService.connect(undefined, 'host', config.campaignId);
 
           // Wait for session/created event from server
           const session = await webSocketService.waitForSessionCreated();

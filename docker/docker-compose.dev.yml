@@ -70,9 +70,24 @@ services:
   #   networks:
   #     - nexus-dev
 
+  # PostgreSQL for development
+  postgres-dev:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=nexus
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=nexus
+    ports:
+      - "5432:5432"
+    networks:
+      - nexus-dev
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+
 networks:
   nexus-dev:
     driver: bridge
 
 volumes:
   redis-dev-data:
+  postgres-dev-data:

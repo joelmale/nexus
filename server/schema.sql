@@ -1,99 +1,93 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Rooms/Sessions table
-CREATE TABLE rooms (
-  code VARCHAR(4) PRIMARY KEY,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  last_activity TIMESTAMPTZ DEFAULT NOW(),
-  status VARCHAR(20) DEFAULT 'active',
-  primary_host_id UUID NOT NULL,
-  CONSTRAINT status_check CHECK (status IN ('active', 'hibernating', 'abandoned'))
+-- Users Table
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    "avatarUrl" TEXT,
+    provider VARCHAR(50) NOT NULL, -- 'google', 'discord', 'guest'
+    "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+    "updatedAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Hosts table (for co-host support)
-CREATE TABLE hosts (
-  room_code VARCHAR(4) REFERENCES rooms(code) ON DELETE CASCADE,
-  user_id UUID NOT NULL,
-  permissions JSONB NOT NULL DEFAULT '{}',
-  is_primary BOOLEAN DEFAULT FALSE,
-  added_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (room_code, user_id)
+-- Campaigns Table
+CREATE TABLE campaigns (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    "dmId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    scenes JSONB,
+    "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+    "updatedAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Game state storage (with JSONB for efficient querying)
-CREATE TABLE game_states (
-  room_code VARCHAR(4) PRIMARY KEY REFERENCES rooms(code) ON DELETE CASCADE,
-  state_data JSONB NOT NULL,
-  version INTEGER DEFAULT 1,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+-- Characters Table
+CREATE TABLE characters (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    "ownerId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    data JSONB,
+    "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+    "updatedAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Players table
+-- Sessions Table (replaces 'rooms')
+CREATE TABLE sessions (
+    id VARCHAR(25) PRIMARY KEY, -- CUIDs are 25 chars
+    "joinCode" VARCHAR(10) UNIQUE NOT NULL,
+    "campaignId" UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    "primaryHostId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'active',
+    "gameState" JSONB,
+    "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+    "lastActivity" TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT status_check CHECK (status IN ('active', 'hibernating', 'abandoned'))
+);
+
+-- Players Table (associates users with sessions)
 CREATE TABLE players (
-  id UUID NOT NULL,
-  room_code VARCHAR(4) REFERENCES rooms(code) ON DELETE CASCADE,
-  name VARCHAR(100) NOT NULL,
-  connected BOOLEAN DEFAULT TRUE,
-  last_seen TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (id, room_code)
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    "sessionId" VARCHAR(25) NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    "characterId" UUID REFERENCES characters(id) ON DELETE SET NULL, -- Optional character link
+    "isConnected" BOOLEAN DEFAULT TRUE,
+    "lastSeen" TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE ("userId", "sessionId")
 );
 
--- Connection events log (for debugging/analytics)
-CREATE TABLE connection_events (
-  id SERIAL PRIMARY KEY,
-  room_code VARCHAR(4) REFERENCES rooms(code) ON DELETE CASCADE,
-  user_id UUID,
-  event_type VARCHAR(50) NOT NULL,
-  timestamp TIMESTAMPTZ DEFAULT NOW(),
-  metadata JSONB
+-- Hosts Table (for Co-DM support)
+CREATE TABLE hosts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    "sessionId" VARCHAR(25) NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    permissions JSONB,
+    "isPrimary" BOOLEAN DEFAULT FALSE,
+    UNIQUE ("userId", "sessionId")
 );
 
 -- Indexes for performance
-CREATE INDEX idx_rooms_status ON rooms(status);
-CREATE INDEX idx_rooms_last_activity ON rooms(last_activity);
-CREATE INDEX idx_rooms_created_at ON rooms(created_at);
-CREATE INDEX idx_players_room ON players(room_code);
-CREATE INDEX idx_players_connected ON players(connected);
-CREATE INDEX idx_connection_events_room ON connection_events(room_code);
-CREATE INDEX idx_connection_events_timestamp ON connection_events(timestamp);
-CREATE INDEX idx_game_states_updated_at ON game_states(updated_at);
+CREATE INDEX idx_campaigns_dmId ON campaigns("dmId");
+CREATE INDEX idx_characters_ownerId ON characters("ownerId");
+CREATE INDEX idx_sessions_campaignId ON sessions("campaignId");
+CREATE INDEX idx_sessions_primaryHostId ON sessions("primaryHostId");
+CREATE INDEX idx_players_userId ON players("userId");
+CREATE INDEX idx_players_sessionId ON players("sessionId");
+CREATE INDEX idx_players_characterId ON players("characterId");
+CREATE INDEX idx_hosts_userId ON hosts("userId");
+CREATE INDEX idx_hosts_sessionId ON hosts("sessionId");
 
--- Function to update last_activity automatically
-CREATE OR REPLACE FUNCTION update_room_activity()
+-- Trigger function to update 'updatedAt' timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-  UPDATE rooms SET last_activity = NOW() WHERE code = NEW.room_code;
-  RETURN NEW;
+   NEW."updatedAt" = NOW();
+   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ language 'plpgsql';
 
--- Trigger to auto-update room activity
-CREATE TRIGGER update_room_activity_on_game_state
-AFTER INSERT OR UPDATE ON game_states
-FOR EACH ROW EXECUTE FUNCTION update_room_activity();
-
--- Function to clean up old abandoned rooms
-CREATE OR REPLACE FUNCTION cleanup_old_rooms(hours_old INTEGER DEFAULT 24)
-RETURNS INTEGER AS $$
-DECLARE
-  deleted_count INTEGER;
-BEGIN
-  DELETE FROM rooms
-  WHERE status = 'abandoned'
-    AND last_activity < NOW() - (hours_old || ' hours')::INTERVAL;
-
-  GET DIAGNOSTICS deleted_count = ROW_COUNT;
-  RETURN deleted_count;
-END;
-$$ LANGUAGE plpgsql;
-
--- View for room statistics
-CREATE VIEW room_stats AS
-SELECT
-  status,
-  COUNT(*) as room_count,
-  AVG(EXTRACT(EPOCH FROM (NOW() - created_at))) as avg_age_seconds,
-  SUM((SELECT COUNT(*) FROM players p WHERE p.room_code = r.code AND p.connected = true)) as total_players
-FROM rooms r
-GROUP BY status;
+-- Apply trigger to tables
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_campaigns_updated_at BEFORE UPDATE ON campaigns FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_characters_updated_at BEFORE UPDATE ON characters FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();

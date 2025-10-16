@@ -25,8 +25,8 @@
 
 ### 🏗️ **Hybrid Architecture**
 - **Client-side authority** - game logic runs in host's browser
-- **Minimal server** - just routes messages between players
-- **No database required** - state persists locally via IndexedDB
+- **Minimal server** - routes messages and persists session data
+- **PostgreSQL Backend** - Game sessions are persisted in a database for resilience.
 - **Lightning fast** - instant responses, zero server lag
 
 ### 🛠️ **Developer-Friendly**
@@ -39,25 +39,44 @@
 
 ### Prerequisites
 - **Node.js 18+** and npm
+- **Docker Desktop** - Must be installed and running.
 - Modern web browser (Chrome, Firefox, Safari, Edge)
 
 ### Installation & Setup
 
-```bash
-# Clone the repository
-git clone https://github.com/your-username/nexus-vtt.git
-cd nexus-vtt
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/your-username/nexus-vtt.git
+    cd nexus-vtt
+    ```
 
-# Install all dependencies
-npm install
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
 
-# Start everything with one command
-npm run start:all
-```
+3.  **Configure Environment**
+    Create a new file named `.env.local` in the root of the project and add the following line. This file is for your local secrets and is ignored by Git.
+    ```
+    DATABASE_URL="postgres://nexus:password@localhost:5432/nexus"
+    ```
+
+4.  **Start the Database**
+    In a separate terminal, start the PostgreSQL database container.
+    ```bash
+    docker compose -f docker/docker-compose.dev.yml up -d postgres-dev
+    ```
+
+5.  **Run the Application**
+    Once the database is running, start the development servers.
+    ```bash
+    npm run start:all
+    ```
 
 The setup will start:
+- ✅ **PostgreSQL Database** on port 5432
 - ✅ **Frontend** on http://localhost:5173
-- ✅ **Backend Server** on http://localhost:5000 (WebSocket + Assets)
+- ✅ **Backend Server** on http://localhost:5001
 
 ### Alternative Setup Methods
 
@@ -178,7 +197,7 @@ npm run preview          # Preview production build
 
 #### 🔌 **Development - Backend/WebSocket**
 ```bash
-npm run server:dev       # Start WebSocket server (port 5000)
+npm run server:dev       # Start WebSocket server (port 5001)
 npm run server:dev:5001  # Start WebSocket server on port 5001
 npm run server:dev:5002  # Start WebSocket server on port 5002
 npm run server:dev:8080  # Start WebSocket server on port 8080

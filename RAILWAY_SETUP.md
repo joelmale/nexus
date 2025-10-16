@@ -1,243 +1,60 @@
 # Railway.app Setup Guide for Nexus VTT
 
-## Quick Setup (5 minutes)
+This guide explains how to deploy Nexus VTT to Railway using the multi-container Docker setup.
 
-### Step 1: Deploy to Railway
+## Overview
 
-1. Go to [Railway.app](https://railway.app)
-2. Click "Login" and use GitHub
-3. Click "New Project" → "Deploy from GitHub repo"
-4. Select `joelmale/nexus`
-5. Railway will start building automatically
+The application is deployed as three separate services on Railway:
+1.  **frontend:** A static Nginx server for the React UI.
+2.  **backend:** The Node.js WebSocket server.
+3.  **postgres:** A PostgreSQL database for session persistence.
 
-### Step 2: Configure Environment Variables
+Railway will build and deploy these services automatically based on the `railway.json` configuration file.
 
-In your Railway project dashboard:
+## Deployment Steps
 
-1. Click on your service
-2. Go to "Variables" tab
-3. Add these variables:
+### 1. Create the Project
+1.  Go to [Railway.app](https://railway.app) and log in with GitHub.
+2.  Click "New Project" -> "Deploy from GitHub repo".
+3.  Select your `nexus-vtt` repository.
+4.  **Immediately after creation, go to the project "Settings" tab and check "Private Networking".** This allows the services to communicate with each other.
 
-```
-NODE_ENV=production
-PORT=5000
-```
+Railway will begin deploying the `frontend` and `backend` services as defined in `railway.json`.
 
-**Important:** Railway automatically provides a `PORT` variable, but we set it explicitly for consistency.
+### 2. Add a Database
+1.  In your Railway project, click "New" -> "Database" -> "Add PostgreSQL".
+2.  Railway will create a new `postgres` service.
 
-### Step 3: Generate Public Domain
+### 3. Link the Database to the Backend
+1.  Go to your `backend` service in Railway.
+2.  Go to the "Variables" tab.
+3.  You should see a `DATABASE_URL` variable has been automatically added. Railway does this when it detects a database and a service that can use it.
+4.  If it's not there, you can add it manually by referencing the postgres service.
 
-1. In your service, go to "Settings" tab
-2. Scroll to "Networking" section
-3. Click "Generate Domain"
-4. You'll get a URL like: `https://nexus-vtt-production.up.railway.app`
+### 4. Configure Environment Variables
+The `backend` service needs one more environment variable to function correctly.
 
-### Step 4: Update WebSocket URL (Important!)
+1.  In the `backend` service "Variables" tab, add a new variable:
+    *   `CORS_ORIGIN`: Set this to the public URL of your `frontend` service (e.g., `https://nexus-frontend-production.up.railway.app`). You can get this URL from the "Settings" tab of the `frontend` service.
 
-After you get your domain, add this environment variable:
+The `frontend` service does not require any additional environment variables.
 
-```
-VITE_WS_URL=wss://your-generated-domain.railway.app
-```
-
-Replace `your-generated-domain` with your actual Railway domain.
-
-### Step 5: Redeploy
-
-1. Click "Deploy" to trigger a new deployment with the updated variables
-2. Wait 2-3 minutes for build to complete
+### 5. Accessing Your Application
+Once everything is deployed:
+- The URL for your application is the public domain of the **`frontend`** service.
+- The `backend` service does not need a public domain, as the frontend will communicate with it over the private network.
 
 ---
 
 ## Troubleshooting
 
-### "Application failed to respond"
+### Services Can't Connect
+- **Symptom:** Frontend loads, but can't connect to the WebSocket.
+- **Fix:** Ensure you have enabled "Private Networking" in the project's settings tab.
 
-**Cause:** Server might not be listening on the correct port
+### Backend Fails to Deploy
+- **Symptom:** The `backend` service shows a deployment error.
+- **Fix:** Check the deployment logs. The most common issue is a missing `DATABASE_URL`. Ensure the PostgreSQL service is running and linked correctly.
 
-**Fix:**
-1. Check that `PORT=5000` is set in variables
-2. Make sure server is starting correctly in logs
-3. Check that your server binds to `0.0.0.0` not `localhost`
-
-### Build fails
-
-**Cause:** Missing dependencies or build command issues
-
-**Fix:**
-1. Check build logs for errors
-2. Ensure `build:all` script exists in package.json
-3. Try manually setting build command in Railway settings:
-   ```
-   npm install && npm run build:all
-   ```
-
-### WebSocket connection failed
-
-**Cause:** Frontend trying to connect to wrong WebSocket URL
-
-**Fix:**
-1. Ensure `VITE_WS_URL` is set to `wss://your-domain.railway.app`
-2. Note: Use `wss://` (secure WebSocket) not `ws://`
-3. Redeploy after updating
-
-### Port 1573 doesn't work
-
-**Cause:** Railway assigns ports automatically via `$PORT` variable
-
-**Fix:**
-- Don't try to manually set port to 1573
-- Use `PORT=5000` in environment variables
-- Railway handles the external port mapping automatically
-- Your app listens on port 5000 internally
-- Railway exposes it on port 443 (HTTPS) externally
-
----
-
-## Understanding Railway Networking
-
-Railway's networking works differently than traditional hosting:
-
-```
-Internet (HTTPS/443) → Railway Proxy → Your App (PORT 5000)
-```
-
-- **External:** Users access via HTTPS (port 443)
-- **Internal:** Your app runs on PORT from env variable
-- **Domain:** Railway provides `*.railway.app` domain
-- **SSL:** Automatic HTTPS, no configuration needed
-
-You don't need to specify port 1573 or any specific port. Railway handles this automatically.
-
----
-
-## Checking Deployment Status
-
-### View Logs
-1. Go to your service in Railway
-2. Click "Deployments" tab
-3. Click the latest deployment
-4. View logs in real-time
-
-### Check Health
-Once deployed, check:
-- **Frontend:** `https://your-app.railway.app`
-- **Health:** `https://your-app.railway.app/health`
-- **WebSocket:** Should connect automatically when you open the app
-
----
-
-## Environment Variables Reference
-
-Required variables:
-
-```bash
-NODE_ENV=production
-PORT=5000
-VITE_WS_URL=wss://your-app.railway.app
-```
-
-Optional variables (for future features):
-
-```bash
-# Database (if you add one later)
-DATABASE_URL=postgresql://...
-
-# Session secrets (generate random strings)
-SESSION_SECRET=your-random-secret-here
-JWT_SECRET=another-random-secret-here
-
-# CORS (if needed)
-CORS_ORIGIN=https://your-app.railway.app
-```
-
----
-
-## Complete Setup Checklist
-
-- [ ] Project deployed to Railway
-- [ ] Environment variables set (`NODE_ENV`, `PORT`)
-- [ ] Public domain generated
-- [ ] `VITE_WS_URL` set to Railway domain
-- [ ] Redeployed with new variables
-- [ ] Can access frontend at Railway URL
-- [ ] WebSocket connects (check browser console)
-- [ ] Can create and join sessions
-
----
-
-## Custom Domain (Optional)
-
-If you want to use your own domain:
-
-1. In Railway, go to Settings → Domains
-2. Click "Custom Domain"
-3. Enter your domain (e.g., `nexus.yourdomain.com`)
-4. Add CNAME record in your DNS:
-   ```
-   CNAME nexus.yourdomain.com → your-app.railway.app
-   ```
-5. Wait for DNS propagation (5-60 minutes)
-6. Update `VITE_WS_URL` to use your custom domain
-7. Redeploy
-
----
-
-## Monitoring & Maintenance
-
-### Check Resource Usage
-- Railway dashboard shows CPU/Memory usage
-- Free tier: $5 credit/month
-- Typical usage: ~$0.50-2/month for light testing
-
-### View Metrics
-- Deployments tab shows build/deploy history
-- Metrics tab shows resource usage over time
-
-### Auto-Deploy
-- Railway auto-deploys when you push to GitHub
-- Disable in Settings → Auto-Deploy if needed
-
----
-
-## Testing Multi-User
-
-Once deployed:
-
-1. **DM:** Open your Railway URL
-2. **DM:** Create a session, get room code
-3. **Players:** Share Railway URL + room code
-4. **Players:** Join using the room code
-
-All users should connect to the same instance automatically.
-
----
-
-## Common Railway Issues
-
-### "Service Unavailable"
-- Wait 30 seconds, Railway might be starting
-- Check deployment logs for errors
-
-### "Build Failed"
-- Check logs for specific error
-- Ensure all dependencies are in package.json
-- Try clearing cache: Redeploy with "Clear cache" option
-
-### "WebSocket Connection Failed"
-- Ensure `VITE_WS_URL` uses `wss://` not `ws://`
-- Check browser console for exact error
-- Verify domain matches Railway-provided domain
-
----
-
-## Support
-
-If you encounter issues:
-
-1. Check Railway logs first
-2. Check browser console (F12)
-3. Verify all environment variables are set
-4. Try redeploying
-
-Railway community: [discord.gg/railway](https://discord.gg/railway)
+### Frontend/Backend Naming
+- If your services are not named `frontend` and `backend`, you may need to adjust the `CORS_ORIGIN` variable and any other inter-service communication URLs.

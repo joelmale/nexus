@@ -286,7 +286,10 @@ class IntelligentStarter {
         cwd: path.join(__dirname, ".."),
         prefix: "🔌 [BACKEND]",
         color: colors.magenta,
-        env: { PORT: ports.websocket.toString() },
+        env: { 
+          PORT: ports.websocket.toString(),
+          DATABASE_URL: process.env.DATABASE_URL
+        },
       },
       {
         name: "Frontend",

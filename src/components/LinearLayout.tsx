@@ -10,6 +10,7 @@ import { useGameStore, useServerRoomCode } from '@/stores/gameStore';
 import { LinearWelcomePage } from './LinearWelcomePage';
 import { PlayerSetupPage } from './PlayerSetupPage';
 import { DMSetupPage } from './DMSetupPage';
+import { Dashboard } from './Dashboard';
 import { LinearGameLayout } from './LinearGameLayout'; // Clean game layout for linear flow
 import { AdminPage } from './AdminPage';
 import {
@@ -22,6 +23,13 @@ const LinearLayoutContent: React.FC = () => {
   const roomCode = useServerRoomCode();
   const navigate = useNavigate();
   const { LauncherComponent } = useCharacterCreationLauncher();
+
+  React.useEffect(() => {
+    const { isAuthenticated, view, setView } = useGameStore.getState();
+    if (isAuthenticated && view === 'welcome') {
+      setView('dashboard');
+    }
+  }, [user.id]);
 
   // Add debugging for view changes
 
@@ -60,6 +68,9 @@ const LinearLayoutContent: React.FC = () => {
 
       case 'dm_setup':
         return <DMSetupPage />;
+
+      case 'dashboard':
+        return <Dashboard />;
 
       case 'game': {
         // Safety check: Don't render game if user state is invalid
