@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import type { HostPermissions } from './types';
 
 interface DatabaseConfig {
@@ -112,6 +113,8 @@ export class DatabaseService {
       console.log('🗄️ Schema not found, creating tables...');
 
       // Read and execute schema.sql
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
       const schemaPath = path.join(__dirname, 'schema.sql');
 
       if (fs.existsSync(schemaPath)) {
@@ -440,16 +443,25 @@ export class DatabaseService {
 // =============================================================================
 
 export function createDatabaseService(config?: DatabaseConfig): DatabaseService {
-  // Use environment variables if config not provided
-  const dbConfig: DatabaseConfig = config || {
-    connectionString: process.env.VITE_DATABASE_URL || process.env.DATABASE_URL,
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : undefined,
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    ssl: process.env.DB_SSL === 'true',
-  };
+  let dbConfig: DatabaseConfig;
+
+  if (config) {
+    dbConfig = config;
+  } else if (process.env.VITE_DATABASE_URL || process.env.DATABASE_URL) {
+    dbConfig = {
+      connectionString: process.env.VITE_DATABASE_URL || process.env.DATABASE_URL,
+      ssl: process.env.DB_SSL === 'true',
+    };
+  } else {
+    dbConfig = {
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : undefined,
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      ssl: process.env.DB_SSL === 'true',
+    };
+  }
 
   return new DatabaseService(dbConfig);
 }
