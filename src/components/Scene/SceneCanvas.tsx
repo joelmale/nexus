@@ -19,6 +19,7 @@ import {
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
 import { DrawingTools } from './DrawingTools';
+import { RemoteCursors } from './RemoteCursors';
 import { DrawingRenderer } from './DrawingRenderer';
 import { SelectionOverlay } from './SelectionOverlay';
 import { DrawingPropertiesPanel } from './DrawingPropertiesPanel';
@@ -47,6 +48,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     updateCamera,
     placeToken,
     moveToken,
+    moveTokenOptimistic,
     getSceneTokens,
     user,
     setSelection,
@@ -313,20 +315,10 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       const newX = token.x + deltaX / camera.zoom;
       const newY = token.y + deltaY / camera.zoom;
 
-      // Don't snap during drag - just move freely
-      moveToken(scene.id, tokenId, { x: newX, y: newY });
-
-      // Broadcast over WebSocket
-      webSocketService.sendEvent({
-        type: 'token/move',
-        data: {
-          sceneId: scene.id,
-          tokenId,
-          position: { x: newX, y: newY },
-        },
-      });
+      // Optimistic update - move locally first, then send to server
+      moveTokenOptimistic(scene.id, tokenId, { x: newX, y: newY });
     },
-    [scene.id, camera.zoom, getSceneTokens, moveToken],
+    [scene.id, camera.zoom, getSceneTokens, moveToken, moveTokenOptimistic],
   );
 
   const handleTokenMoveEnd = useCallback(
@@ -344,21 +336,11 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
         // Only update if position changed after snapping
         if (snappedX !== token.x || snappedY !== token.y) {
-          moveToken(scene.id, tokenId, { x: snappedX, y: snappedY });
-
-          // Broadcast the final snapped position
-          webSocketService.sendEvent({
-            type: 'token/move',
-            data: {
-              sceneId: scene.id,
-              tokenId,
-              position: { x: snappedX, y: snappedY },
-            },
-          });
+          moveTokenOptimistic(scene.id, tokenId, { x: snappedX, y: snappedY });
         }
       }
     },
-    [scene.id, safeGridSettings, getSceneTokens, moveToken],
+    [scene.id, safeGridSettings, getSceneTokens, moveToken, moveTokenOptimistic],
   );
 
   // Determine cursor based on active tool and state
@@ -551,6 +533,9 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
             </g>
           </svg>
         </TokenDropZone>
+
+        {/* Remote cursors overlay */}
+        <RemoteCursors sceneId={scene.id} />
       </div>
     </CanvasErrorBoundary>
   );

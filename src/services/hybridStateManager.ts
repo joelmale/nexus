@@ -219,6 +219,15 @@ export class HybridStateManager {
         selectedInputDevice: null,
         selectedOutputDevice: null,
       },
+      connection: {
+        isConnected: false,
+        quality: 'disconnected',
+        latency: 0,
+        packetLoss: 0,
+        lastUpdate: 0,
+        reconnectAttempts: 0,
+      },
+      entityVersions: new Map(),
     };
 
     return {

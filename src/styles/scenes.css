@@ -32,7 +32,7 @@
   justify-content: center;
   user-select: none;
   cursor: pointer;
-  
+
   /* Box Model */
   width: 24px;
   height: 24px;
@@ -113,7 +113,7 @@
   flex-shrink: 0;
   user-select: none;
   cursor: pointer;
-  
+
   /* Box Model */
   min-width: 120px;
   max-width: 240px;
@@ -1974,4 +1974,74 @@
 .drawing-properties__slider::-moz-range-thumb:hover {
   transform: scale(1.2);
   box-shadow: 0 0 8px rgba(var(--color-primary-rgb), 0.5);
+}
+
+/* ==========================================================================
+   REMOTE CURSORS
+   ========================================================================== */
+
+.remote-cursors-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: var(--z-cursors);
+}
+
+.remote-cursor {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  animation: cursor-fade-in 0.2s ease-out;
+}
+
+.cursor-pointer {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 12px solid var(--color-primary);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  animation: cursor-pulse 2s ease-in-out infinite;
+}
+
+.cursor-label {
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-top: 2px;
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-sm);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes cursor-fade-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes cursor-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }

@@ -113,6 +113,7 @@ body::before {
 
   /* Visuals */
   background: var(--surface-primary);
+  -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-glass);
 }
@@ -136,6 +137,7 @@ body::before {
   text-decoration: none;
 
   /* Visuals */
+  -webkit-backdrop-filter: var(--glass-blur-subtle);
   background: var(--surface-primary);
   backdrop-filter: var(--glass-blur-subtle);
 
@@ -310,6 +312,7 @@ body::before {
 .solid-theme .glass-panel,
 .solid-theme .glass-button {
   /* Visuals */
+  -webkit-backdrop-filter: none;
   backdrop-filter: none;
   box-shadow: var(--shadow-default);
 }

@@ -18,6 +18,7 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
   z-index: 1000;
   animation: fadeIn 0.3s ease-out;
@@ -303,7 +304,7 @@
   font-family: 'Courier New', monospace;
   font-size: 0.9rem;
   font-weight: bold;
-  color: #000000;
+  color: #ffffff;
 }
 
 /* ==========================================================================

@@ -18,6 +18,7 @@ export interface Player extends User {
 export interface Session {
   roomCode: string;
   hostId: string;
+  coHostIds?: string[]; // IDs of co-hosts
   // Use the more specific Player type which includes permissions
   players: Player[];
   status: 'connecting' | 'connected' | 'disconnected';
@@ -110,6 +111,12 @@ export interface GameState {
 
   // Voice
   voice: VoiceState;
+
+  // Connection Quality
+  connection: ConnectionState;
+
+  // Version tracking for conflict resolution
+  entityVersions: Map<string, number>;
 }
 
 export type TabType = 'lobby' | 'dice' | 'scenes' | 'tokens' | 'settings';
@@ -284,12 +291,30 @@ export interface ErrorMessage extends BaseMessage {
   };
 }
 
+export interface HeartbeatMessage extends BaseMessage {
+  type: 'heartbeat';
+  data: {
+    type: 'ping' | 'pong';
+    id: string;
+    serverTime?: number;
+  };
+}
+
+export interface UpdateConfirmationMessage extends BaseMessage {
+  type: 'update-confirmed';
+  data: {
+    updateId: string;
+  };
+}
+
 export type WebSocketMessage =
   | EventMessage
   | StateMessage
   | DiceRollMessage
   | ChatMessage
-  | ErrorMessage;
+  | ErrorMessage
+  | HeartbeatMessage
+  | UpdateConfirmationMessage;
 
 // Game events
 export interface GameEvent {
@@ -425,6 +450,7 @@ export interface TokenMoveEvent extends GameEvent {
     tokenId: string;
     position: { x: number; y: number };
     rotation?: number;
+    expectedVersion?: number; // For conflict resolution
   };
 }
 
@@ -434,6 +460,7 @@ export interface TokenUpdateEvent extends GameEvent {
     sceneId: string;
     tokenId: string;
     updates: Partial<PlacedToken>;
+    expectedVersion?: number; // For conflict resolution
   };
 }
 
@@ -442,6 +469,7 @@ export interface TokenDeleteEvent extends GameEvent {
   data: {
     sceneId: string;
     tokenId: string;
+    expectedVersion?: number; // For conflict resolution
   };
 }
 
@@ -480,6 +508,15 @@ export interface VoiceState {
   selectedOutputDevice: string | null;
 }
 
+export interface ConnectionState {
+  isConnected: boolean;
+  quality: 'excellent' | 'good' | 'poor' | 'critical' | 'disconnected';
+  latency: number;
+  packetLoss: number;
+  lastUpdate: number;
+  reconnectAttempts: number;
+}
+
 // Voice Chat Events
 export interface VoiceChannelJoinEvent extends GameEvent {
   type: 'voice/join';
@@ -503,5 +540,69 @@ export interface VoiceStateUpdateEvent extends GameEvent {
     userId: string;
     isMuted: boolean;
     isDeafened: boolean;
+  };
+}
+
+export interface UpdateConfirmedEvent extends GameEvent {
+  type: 'update-confirmed';
+  data: {
+    updateId: string;
+  };
+}
+
+export interface CursorUpdateEvent extends GameEvent {
+  type: 'cursor/update';
+  data: {
+    userId: string;
+    userName: string;
+    position: { x: number; y: number };
+    sceneId: string;
+  };
+}
+
+export interface HostChangedEvent extends GameEvent {
+  type: 'session/host-changed';
+  data: {
+    oldHostId?: string;
+    newHostId: string;
+    reason: 'host-disconnected' | 'manual-transfer';
+    message: string;
+  };
+}
+
+export interface CoHostAddedEvent extends GameEvent {
+  type: 'session/cohost-added';
+  data: {
+    coHostId: string;
+    message: string;
+  };
+}
+
+export interface CoHostRemovedEvent extends GameEvent {
+  type: 'session/cohost-removed';
+  data: {
+    coHostId: string;
+    message: string;
+  };
+}
+
+export interface HostTransferEvent extends GameEvent {
+  type: 'host/transfer';
+  data: {
+    targetUserId: string;
+  };
+}
+
+export interface AddCoHostEvent extends GameEvent {
+  type: 'host/add-cohost';
+  data: {
+    targetUserId: string;
+  };
+}
+
+export interface RemoveCoHostEvent extends GameEvent {
+  type: 'host/remove-cohost';
+  data: {
+    targetUserId: string;
   };
 }

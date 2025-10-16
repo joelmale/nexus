@@ -21,6 +21,7 @@ import {
   validateDiceRollRequest,
   type DiceRollRequest,
 } from './diceRoller.js';
+import { DatabaseService, createDatabaseService } from './database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,6 +43,7 @@ class NexusServer {
   private app: express.Application;
   private httpServer: ReturnType<typeof express.application.listen>;
   private manifest: AssetManifest | null = null;
+  private db: DatabaseService;
 
   // Configuration
   private readonly ASSETS_PATH =
@@ -55,8 +57,15 @@ class NexusServer {
   private readonly HIBERNATION_TIMEOUT = 10 * 60 * 1000; // 10 minutes
   private readonly ABANDONMENT_TIMEOUT = 60 * 60 * 1000; // 1 hour
 
+  // Heartbeat settings
+  private readonly HEARTBEAT_INTERVAL = 30 * 1000; // 30 seconds
+  private readonly HEARTBEAT_TIMEOUT = 10 * 1000; // 10 seconds timeout
+  private readonly MAX_CONSECUTIVE_MISSES = 3; // Max missed pongs before considering connection poor
+  private heartbeatTimer: NodeJS.Timeout | null = null;
+
   constructor(port: number) {
     this.port = port;
+    this.db = createDatabaseService();
 
     // Create Express app
     this.app = express();
@@ -100,6 +109,54 @@ class NexusServer {
 
     // Load asset manifest
     this.loadManifest();
+    this.initialize();
+  }
+
+  private async initialize() {
+    try {
+      await this.db.initialize();
+      await this.loadRoomsFromDatabase();
+      console.log('✅ Server initialization complete');
+    } catch (error) {
+      console.error('❌ Server initialization failed:', error);
+      process.exit(1);
+    }
+  }
+
+  private async loadRoomsFromDatabase() {
+    try {
+      const rooms = await this.db.listActiveRooms();
+
+      for (const roomRecord of rooms) {
+        const gameState = await this.db.loadGameState(roomRecord.code);
+        const players = await this.db.getRoomPlayers(roomRecord.code);
+
+        // Restore room to memory (without active connections)
+        const room: Room = {
+          code: roomRecord.code,
+          host: roomRecord.primary_host_id,
+          coHosts: new Set(), // This will be populated from the hosts table
+          players: new Set(players.map(p => p.id)),
+          connections: new Map(),
+          created: new Date(roomRecord.created_at).getTime(),
+          lastActivity: new Date(roomRecord.last_activity).getTime(),
+          status: roomRecord.status,
+          gameState: gameState || undefined,
+          entityVersions: new Map(),
+        };
+
+        this.rooms.set(roomRecord.code, room);
+
+        // If hibernating, restart timer
+        if (room.status === 'hibernating') {
+          this.hibernateRoom(room.code);
+        }
+      }
+
+      console.log(`📦 Loaded ${rooms.length} rooms from database`);
+    } catch (error) {
+      console.error('❌ Failed to load rooms from database:', error);
+    }
   }
 
   private setupHealthRoutes() {
@@ -343,9 +400,14 @@ class NexusServer {
     const connection: Connection = {
       id: uuid,
       ws: ws,
+      consecutiveMisses: 0,
+      connectionQuality: 'excellent',
     };
 
     this.connections.set(uuid, connection);
+
+    // Start heartbeat for new connections
+    this.startHeartbeatForConnection(connection);
 
     const host = params.get('host');
     const join = params.get('join')?.toUpperCase();
@@ -381,7 +443,7 @@ class NexusServer {
     });
   }
 
-  private handleHostConnection(connection: Connection, hostRoomCode?: string) {
+  private async handleHostConnection(connection: Connection, hostRoomCode?: string) {
     const roomCode = hostRoomCode || this.generateRoomCode();
 
     if (this.rooms.has(roomCode)) {
@@ -392,16 +454,28 @@ class NexusServer {
     const room: Room = {
       code: roomCode,
       host: connection.id,
+      coHosts: new Set(),
       players: new Set([connection.id]),
       connections: new Map([[connection.id, connection.ws]]),
       created: Date.now(),
       lastActivity: Date.now(),
       status: 'active',
+      entityVersions: new Map(),
     };
 
     this.rooms.set(roomCode, room);
     connection.room = roomCode;
     connection.user = { name: 'Host', type: 'host' };
+
+    // Persist to database
+    try {
+      await this.db.createRoom(roomCode, connection.id);
+      await this.db.addPlayer(connection.id, roomCode, 'Host');
+      await this.db.logConnectionEvent(roomCode, connection.id, 'host_created');
+    } catch (error) {
+      console.error('Failed to persist room to database:', error);
+      // Should we send an error to the client?
+    }
 
     // Send consistent field names
     this.sendMessage(connection, {
@@ -411,6 +485,16 @@ class NexusServer {
         roomCode, // Use roomCode for consistency
         room: roomCode, // Keep both for backward compatibility
         uuid: connection.id,
+        hostId: connection.id,
+        coHostIds: Array.from(room.coHosts),
+        players: [{
+          id: connection.id,
+          name: connection.user?.name || 'Host',
+          type: 'host',
+          color: 'blue',
+          connected: true,
+          canEditScenes: true,
+        }],
       },
       timestamp: Date.now(),
     });
@@ -524,8 +608,20 @@ class NexusServer {
         room: roomCode, // Keep both for backward compatibility
         uuid: connection.id,
         hostId: room.host,
+        coHostIds: Array.from(room.coHosts),
         roomStatus: room.status,
         gameState: room.gameState, // Send saved game state if available
+        players: Array.from(room.players).map(playerId => {
+          const conn = this.connections.get(playerId);
+          return {
+            id: playerId,
+            name: conn?.user?.name || 'Unknown',
+            type: playerId === room.host ? 'host' : (room.coHosts.has(playerId) ? 'host' : 'player'),
+            color: 'blue', // Default color
+            connected: true,
+            canEditScenes: playerId === room.host || room.coHosts.has(playerId),
+          };
+        }),
       },
       timestamp: Date.now(),
     });
@@ -566,6 +662,18 @@ class NexusServer {
       `📨 Message from ${fromUuid} in room ${connection.room}: ${message.type}`,
     );
 
+    // Handle heartbeat messages
+    if (message.type === 'heartbeat') {
+      const heartbeatData = message.data as {
+        type: 'ping' | 'pong';
+        id: string;
+      };
+      if (heartbeatData.type === 'pong') {
+        this.handleHeartbeatPong(fromUuid, heartbeatData.id);
+      }
+      return; // Don't route heartbeat messages to rooms
+    }
+
     // Handle dice roll requests (server-authoritative)
     if (
       message.type === 'event' &&
@@ -579,6 +687,21 @@ class NexusServer {
       return;
     }
 
+    // Handle host management events
+    if (message.type === 'event') {
+      const eventName = message.data?.name;
+      if (eventName === 'host/transfer') {
+        this.handleHostTransfer(fromUuid, connection, room, message.data);
+        return;
+      } else if (eventName === 'host/add-cohost') {
+        this.handleAddCoHost(fromUuid, connection, room, message.data);
+        return;
+      } else if (eventName === 'host/remove-cohost') {
+        this.handleRemoveCoHost(fromUuid, connection, room, message.data);
+        return;
+      }
+    }
+
     // Handle game state updates
     if (
       message.type === 'event' &&
@@ -588,6 +711,59 @@ class NexusServer {
         connection.room,
         message.data as unknown as GameState,
       );
+    }
+
+    // Handle conflict resolution for token events
+    if (
+      message.type === 'event' &&
+      ['token/move', 'token/update', 'token/delete'].includes(
+        (message.data as any)?.name,
+      )
+    ) {
+      const eventData = message.data as any;
+      const entityId = eventData.tokenId;
+      const expectedVersion = eventData.expectedVersion;
+
+      if (entityId && expectedVersion !== undefined) {
+        const currentVersion = room.entityVersions.get(entityId) || 0;
+
+        // Check for version conflict
+        if (expectedVersion < currentVersion) {
+          console.warn(
+            `⚠️ Version conflict detected for ${entityId}: expected ${expectedVersion}, current ${currentVersion}`,
+          );
+
+          // Send conflict rejection to client
+          this.sendMessage(connection, {
+            type: 'error',
+            data: {
+              message: `Update rejected due to version conflict for ${entityId} (expected v${expectedVersion}, current v${currentVersion})`,
+              code: 409, // Conflict status code
+            },
+            timestamp: Date.now(),
+          });
+
+          // Don't route this conflicting update
+          return;
+        }
+
+        // Update version on successful update
+        room.entityVersions.set(entityId, expectedVersion + 1);
+      }
+    }
+
+    // Send confirmation for optimistic updates (but not for cursor events)
+    if (
+      message.type === 'event' &&
+      (message.data as any)?.updateId &&
+      (message.data as any)?.name !== 'cursor/update'
+    ) {
+      // Send confirmation back to originating client
+      this.sendMessage(connection, {
+        type: 'update-confirmed',
+        data: { updateId: (message.data as any).updateId },
+        timestamp: Date.now(),
+      });
     }
 
     // Handle chat messages
@@ -699,7 +875,7 @@ class NexusServer {
     });
   }
 
-  private updateRoomGameState(
+  private async updateRoomGameState(
     roomCode: string,
     gameStateUpdate: Partial<GameState>,
   ) {
@@ -730,7 +906,13 @@ class NexusServer {
       room.gameState.initiative = gameStateUpdate.initiative;
     }
 
-    console.log(`💾 Game state updated for room ${roomCode}`);
+    // Persist to database
+    try {
+      await this.db.saveGameState(roomCode, room.gameState);
+      console.log(`💾 Game state updated and persisted for room ${roomCode}`);
+    } catch (error) {
+      console.error('Failed to persist game state:', error);
+    }
   }
 
   private broadcastToRoom(
@@ -765,7 +947,7 @@ class NexusServer {
     });
   }
 
-  private handleDisconnect(uuid: string) {
+  private async handleDisconnect(uuid: string) {
     const connection = this.connections.get(uuid);
     if (!connection?.room) {
       this.connections.delete(uuid);
@@ -778,23 +960,78 @@ class NexusServer {
       return;
     }
 
+    try {
+      await this.db.removePlayer(uuid, connection.room);
+      await this.db.logConnectionEvent(connection.room, uuid, 'disconnected');
+    } catch (error) {
+      console.error('Failed to update player status in database:', error);
+    }
+
     if (room.host === uuid) {
-      // Host left - hibernate room instead of destroying immediately
-      console.log(`🏠 Host left, hibernating room: ${connection.room}`);
+      // Host left - attempt automatic host transfer
+      console.log(
+        `👑 Host left room ${connection.room}, attempting automatic transfer`,
+      );
 
-      this.hibernateRoom(connection.room);
+      const newHost = this.selectNewHost(room, uuid);
+      if (newHost) {
+        // Transfer host privileges
+        room.host = newHost;
+        room.coHosts.delete(uuid); // Remove old host from co-hosts if they were one
 
-      // Notify remaining players about hibernation
-      this.broadcastToRoom(connection.room, {
-        type: 'event',
-        data: {
-          name: 'session/hibernated',
-          message:
-            'Host disconnected. Room will remain available for 10 minutes.',
-          reconnectWindow: this.HIBERNATION_TIMEOUT,
-        },
-        timestamp: Date.now(),
-      });
+        try {
+          await this.db.updateRoomHost(connection.room, newHost);
+        } catch (error) {
+          console.error('Failed to update host in database:', error);
+        }
+
+        // Update the new host's connection info
+        const newHostConnection = this.connections.get(newHost);
+        if (newHostConnection) {
+          newHostConnection.user = {
+            name: newHostConnection.user?.name || 'Host',
+            type: 'host',
+          };
+        }
+
+        console.log(
+          `👑 Host transferred to: ${newHost} in room ${connection.room}`,
+        );
+
+        // Notify all players about the host change
+        this.broadcastToRoom(connection.room, {
+          type: 'event',
+          data: {
+            name: 'session/host-changed',
+            newHostId: newHost,
+            reason: 'host-disconnected',
+            message:
+              'The host has disconnected. Host privileges have been transferred.',
+          },
+          timestamp: Date.now(),
+        });
+
+        // Update room activity and continue normally
+        room.lastActivity = Date.now();
+      } else {
+        // No suitable host found, hibernate room
+        console.log(
+          `🏠 No suitable host found, hibernating room: ${connection.room}`,
+        );
+        this.hibernateRoom(connection.room);
+
+        // Notify remaining players about hibernation
+        this.broadcastToRoom(connection.room, {
+          type: 'event',
+          data: {
+            name: 'session/hibernated',
+            message:
+              'Host disconnected and no players available to take over. Room will remain available for 10 minutes.',
+            reconnectWindow: this.HIBERNATION_TIMEOUT,
+          },
+          timestamp: Date.now(),
+        });
+      }
     } else {
       // Player left - notify others and update room
       console.log(`👋 Player left room ${connection.room}: ${uuid}`);
@@ -811,14 +1048,25 @@ class NexusServer {
     }
 
     this.connections.delete(uuid);
+
+    // Stop heartbeat if no connections remain
+    if (this.connections.size === 0) {
+      this.stopHeartbeat();
+    }
   }
 
-  private hibernateRoom(roomCode: string) {
+  private async hibernateRoom(roomCode: string) {
     const room = this.rooms.get(roomCode);
     if (!room || room.status === 'hibernating') return;
 
     room.status = 'hibernating';
     room.lastActivity = Date.now();
+
+    try {
+      await this.db.updateRoomStatus(roomCode, 'hibernating');
+    } catch (error) {
+      console.error('Failed to update room status to hibernating in db', error);
+    }
 
     // Clear existing hibernation timer if any
     if (room.hibernationTimer) {
@@ -835,11 +1083,18 @@ class NexusServer {
     );
   }
 
-  private abandonRoom(roomCode: string) {
+  private async abandonRoom(roomCode: string) {
     const room = this.rooms.get(roomCode);
     if (!room) return;
 
     console.log(`🗑️ Abandoning room: ${roomCode}`);
+
+    try {
+      await this.db.updateRoomStatus(roomCode, 'abandoned');
+      await this.db.logConnectionEvent(roomCode, '', 'room_abandoned');
+    } catch (error) {
+      console.error('Failed to update room status to abandoned in db', error);
+    }
 
     // Clear hibernation timer
     if (room.hibernationTimer) {
@@ -852,13 +1107,23 @@ class NexusServer {
       this.connections.delete(connUuid);
     });
 
-    // Remove room
+    // Remove from memory
     this.rooms.delete(roomCode);
+
+    // Schedule deletion from database
+    setTimeout(async () => {
+      try {
+        await this.db.deleteRoom(roomCode);
+        console.log(`🗑️ Deleted abandoned room from database: ${roomCode}`);
+      } catch (error) {
+        console.error('Failed to delete room from database:', error);
+      }
+    }, this.ABANDONMENT_TIMEOUT);
   }
 
   private attemptRoomRecovery(
     roomCode: string,
-    connection: Connection,
+    _connection: Connection,
   ): boolean {
     const room = this.rooms.get(roomCode);
     if (!room) return false;
@@ -886,7 +1151,7 @@ class NexusServer {
         data: {
           name: 'session/reactivated',
           message: 'Room has been reactivated.',
-          reconnectedBy: connection.id,
+          reconnectedBy: _connection.id,
         },
         timestamp: Date.now(),
       });
@@ -895,6 +1160,149 @@ class NexusServer {
     }
 
     return room.status === 'active';
+  }
+
+  private selectNewHost(room: Room, excludeUuid?: string): string | null {
+    // Priority order for new host selection:
+    // 1. Existing co-hosts (if any)
+    // 2. Players who have been in the room longest
+    // 3. Any remaining player
+
+    const candidates = Array.from(room.players).filter(uuid => uuid !== excludeUuid);
+
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    // First, check if there are any co-hosts
+    for (const candidate of candidates) {
+      if (room.coHosts.has(candidate)) {
+        return candidate;
+      }
+    }
+
+    // If no co-hosts, select the first candidate (they've been in the room)
+    return candidates[0];
+  }
+
+  private handleHostTransfer(fromUuid: string, connection: Connection, room: Room, data: any) {
+    // Only current host can transfer host privileges
+    if (room.host !== fromUuid) {
+      this.sendError(connection, 'Only the current host can transfer host privileges');
+      return;
+    }
+
+    const targetUserId = data.targetUserId;
+    if (!targetUserId || !room.players.has(targetUserId)) {
+      this.sendError(connection, 'Invalid target user for host transfer');
+      return;
+    }
+
+    // Transfer host privileges
+    const oldHost = room.host;
+    room.host = targetUserId;
+    room.coHosts.delete(targetUserId); // Remove from co-hosts if they were one
+
+    // Update connection info
+    const oldHostConnection = this.connections.get(oldHost);
+    const newHostConnection = this.connections.get(targetUserId);
+
+    if (oldHostConnection) {
+      oldHostConnection.user = { name: oldHostConnection.user?.name || 'Player', type: 'player' };
+    }
+    if (newHostConnection) {
+      newHostConnection.user = { name: newHostConnection.user?.name || 'Host', type: 'host' };
+    }
+
+    console.log(`👑 Manual host transfer in room ${room.code}: ${oldHost} -> ${targetUserId}`);
+
+    // Notify all players about the host change
+    this.broadcastToRoom(room.code, {
+      type: 'event',
+      data: {
+        name: 'session/host-changed',
+        oldHostId: oldHost,
+        newHostId: targetUserId,
+        reason: 'manual-transfer',
+        message: 'Host privileges have been transferred.',
+      },
+      timestamp: Date.now(),
+    });
+  }
+
+  private handleAddCoHost(fromUuid: string, connection: Connection, room: Room, data: any) {
+    // Only current host can add co-hosts
+    if (room.host !== fromUuid) {
+      this.sendError(connection, 'Only the current host can add co-hosts');
+      return;
+    }
+
+    const targetUserId = data.targetUserId;
+    if (!targetUserId || !room.players.has(targetUserId)) {
+      this.sendError(connection, 'Invalid target user for co-host addition');
+      return;
+    }
+
+    if (room.coHosts.has(targetUserId)) {
+      this.sendError(connection, 'User is already a co-host');
+      return;
+    }
+
+    room.coHosts.add(targetUserId);
+
+    // Update connection info to reflect co-host status
+    const targetConnection = this.connections.get(targetUserId);
+    if (targetConnection) {
+      targetConnection.user = { name: targetConnection.user?.name || 'Co-Host', type: 'host' };
+    }
+
+    console.log(`👥 Added co-host in room ${room.code}: ${targetUserId}`);
+
+    // Notify all players about the co-host addition
+    this.broadcastToRoom(room.code, {
+      type: 'event',
+      data: {
+        name: 'session/cohost-added',
+        coHostId: targetUserId,
+        message: 'A new co-host has been added to the session.',
+      },
+      timestamp: Date.now(),
+    });
+  }
+
+  private handleRemoveCoHost(fromUuid: string, connection: Connection, room: Room, data: any) {
+    // Only current host can remove co-hosts
+    if (room.host !== fromUuid) {
+      this.sendError(connection, 'Only the current host can remove co-hosts');
+      return;
+    }
+
+    const targetUserId = data.targetUserId;
+    if (!targetUserId || !room.coHosts.has(targetUserId)) {
+      this.sendError(connection, 'Invalid target user for co-host removal');
+      return;
+    }
+
+    room.coHosts.delete(targetUserId);
+
+    // Update connection info to reflect player status
+    const targetConnection = this.connections.get(targetUserId);
+    if (targetConnection) {
+      targetConnection.user = { name: targetConnection.user?.name || 'Player', type: 'player' };
+    }
+
+    console.log(`👥 Removed co-host in room ${room.code}: ${targetUserId}`);
+
+    // Notify all players about the co-host removal
+    this.broadcastToRoom(room.code, {
+      type: 'event',
+      data: {
+        name: 'session/cohost-removed',
+        coHostId: targetUserId,
+        message: 'A co-host has been removed from the session.',
+      },
+      timestamp: Date.now(),
+    });
   }
 
   private generateRoomCode(): string {
@@ -911,9 +1319,107 @@ class NexusServer {
     return result;
   }
 
+  // Heartbeat methods
+  private startHeartbeat() {
+    if (this.heartbeatTimer) return; // Already running
+
+    console.log('💓 Starting heartbeat mechanism');
+    this.heartbeatTimer = setInterval(() => {
+      this.connections.forEach((connection) => {
+        this.sendHeartbeatPing(connection);
+      });
+    }, this.HEARTBEAT_INTERVAL);
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+      console.log('💓 Stopped heartbeat mechanism');
+    }
+  }
+
+  private startHeartbeatForConnection(_connection: Connection) {
+    // Start heartbeat if this is the first connection
+    if (this.connections.size === 1) {
+      this.startHeartbeat();
+    }
+  }
+
+  private sendHeartbeatPing(connection: Connection) {
+    const pingId = uuidv4();
+    connection.lastPing = Date.now();
+    connection.pendingPing = pingId;
+
+    this.sendMessage(connection, {
+      type: 'heartbeat',
+      data: { type: 'ping', id: pingId },
+      timestamp: Date.now(),
+    });
+
+    // Set timeout for pong response
+    setTimeout(() => {
+      if (connection.pendingPing === pingId) {
+        // Missed pong - handle as unresponsive
+        this.handleMissedPong(connection.id);
+      }
+    }, this.HEARTBEAT_TIMEOUT);
+  }
+
+  private handleHeartbeatPong(fromUuid: string, pongId: string) {
+    const connection = this.connections.get(fromUuid);
+    if (!connection || connection.pendingPing !== pongId) return;
+
+    const responseTime = Date.now() - (connection.lastPing || 0);
+    connection.lastPong = Date.now();
+    connection.pendingPing = undefined;
+    connection.consecutiveMisses = 0; // Reset consecutive misses
+
+    // Update connection quality based on response time
+    this.updateConnectionQuality(connection, responseTime);
+  }
+
+  private handleMissedPong(uuid: string) {
+    const connection = this.connections.get(uuid);
+    if (!connection) return;
+
+    connection.consecutiveMisses += 1;
+    connection.pendingPing = undefined;
+
+    // Update quality based on consecutive misses
+    if (connection.consecutiveMisses >= this.MAX_CONSECUTIVE_MISSES) {
+      connection.connectionQuality = 'critical';
+      console.warn(
+        `⚠️ Connection ${uuid} has critical quality (${connection.consecutiveMisses} missed pings)`,
+      );
+    } else if (connection.consecutiveMisses >= 2) {
+      connection.connectionQuality = 'poor';
+    } else if (connection.consecutiveMisses >= 1) {
+      connection.connectionQuality = 'good';
+    }
+  }
+
+  private updateConnectionQuality(
+    connection: Connection,
+    responseTime: number,
+  ) {
+    if (responseTime < 100) {
+      connection.connectionQuality = 'excellent';
+    } else if (responseTime < 500) {
+      connection.connectionQuality = 'good';
+    } else if (responseTime < 2000) {
+      connection.connectionQuality = 'poor';
+    } else {
+      connection.connectionQuality = 'critical';
+    }
+  }
+
   // Cleanup method for graceful shutdown
-  public shutdown() {
+  public async shutdown() {
     console.log('🛑 Shutting down Nexus server...');
+
+    // Stop heartbeat mechanism
+    this.stopHeartbeat();
 
     // Clear all hibernation timers
     this.rooms.forEach((room) => {
@@ -930,6 +1436,14 @@ class NexusServer {
     // Clear all data
     this.rooms.clear();
     this.connections.clear();
+
+    // Close database
+    try {
+      await this.db.close();
+      console.log('✅ Database closed');
+    } catch (error) {
+      console.error('Failed to close database:', error);
+    }
 
     // Close the WebSocket server
     this.wss.close(() => {
