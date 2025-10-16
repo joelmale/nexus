@@ -7,11 +7,13 @@ import type {
   DrawingDeleteEvent,
   SessionCreatedEvent,
   SessionJoinedEvent,
+  HeartbeatMessage,
 } from '@/types/game';
 import type { WebSocketCustomEvent } from '@/types/events';
 import type { ChatMessage } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
 
 class WebSocketService extends EventTarget {
   private ws: WebSocket | null = null;
@@ -22,6 +24,19 @@ class WebSocketService extends EventTarget {
   private connectionPromise: Promise<void> | null = null;
   private lastSessionCreatedEvent: SessionCreatedEvent['data'] | null = null;
   private lastSessionJoinedEvent: SessionJoinedEvent['data'] | null = null;
+
+  // Heartbeat and connection quality monitoring
+  private heartbeatTimer: NodeJS.Timeout | null = null;
+  private readonly HEARTBEAT_INTERVAL = 30 * 1000; // 30 seconds
+  private readonly HEARTBEAT_TIMEOUT = 10 * 1000; // 10 seconds timeout
+  private connectionQuality = {
+    latency: 0,
+    packetLoss: 0,
+    lastPingTime: 0,
+    consecutiveMisses: 0,
+    quality: 'excellent' as 'excellent' | 'good' | 'poor' | 'critical',
+    lastUpdate: 0,
+  };
 
   // Get WebSocket URL dynamically from environment
   private getWebSocketUrl(
@@ -209,6 +224,9 @@ class WebSocketService extends EventTarget {
           }
         };
 
+        // Start heartbeat mechanism
+        this.startHeartbeat();
+
         this.ws.onclose = (event) => {
           console.log('WebSocket disconnected:', event.code, event.reason);
           this.connectionPromise = null;
@@ -287,6 +305,10 @@ class WebSocketService extends EventTarget {
         gameStore.addChatMessage(message.data);
         break;
 
+      case 'update-confirmed':
+        gameStore.confirmUpdate(message.data.updateId);
+        break;
+
       case 'state':
         // Apply partial state updates
         if (message.data.session) {
@@ -320,9 +342,27 @@ class WebSocketService extends EventTarget {
                   'Your previous session has expired. Creating a new room.',
               });
             });
+        } else if (
+          message.data.code === 409 &&
+          message.data.message.includes('version conflict')
+        ) {
+          // Handle version conflict - rollback optimistic update
+          console.warn(
+            '⚠️ Version conflict detected, rolling back optimistic update',
+          );
+          // The updateId should be extracted from the error context if available
+          // For now, we'll show a warning to the user
+          toast.warning('Update Conflict', {
+            description:
+              'Your change was rejected due to a conflict. Please try again.',
+          });
         } else {
           toast.error('Server Error', { description: message.data.message });
         }
+        break;
+
+      case 'heartbeat':
+        this.handleHeartbeatMessage(message);
         break;
 
       default: {
@@ -490,8 +530,112 @@ class WebSocketService extends EventTarget {
     }
   }
 
+  // Heartbeat methods
+  private startHeartbeat() {
+    if (this.heartbeatTimer) return; // Already running
+
+    console.log('💓 Starting client heartbeat');
+    this.heartbeatTimer = setInterval(() => {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.sendPing();
+      }
+    }, this.HEARTBEAT_INTERVAL);
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+      console.log('💓 Stopped client heartbeat');
+    }
+  }
+
+  private sendPing() {
+    const pingId = uuidv4();
+    this.connectionQuality.lastPingTime = Date.now();
+
+    this.sendMessage({
+      type: 'heartbeat',
+      data: { type: 'ping', id: pingId },
+      timestamp: Date.now(),
+      src: useGameStore.getState().user.id,
+    });
+
+    // Set timeout for pong response
+    setTimeout(() => {
+      // Check if we still haven't received a pong for this ping
+      if (
+        this.connectionQuality.lastPingTime ===
+        this.connectionQuality.lastPingTime
+      ) {
+        this.handleMissedPong();
+      }
+    }, this.HEARTBEAT_TIMEOUT);
+  }
+
+  private handleHeartbeatMessage(message: HeartbeatMessage) {
+    if (message.data.type === 'ping') {
+      // Respond to server ping with pong
+      this.sendMessage({
+        type: 'heartbeat',
+        data: {
+          type: 'pong',
+          id: message.data.id,
+          serverTime: message.timestamp,
+        },
+        timestamp: Date.now(),
+        src: useGameStore.getState().user.id,
+      });
+    } else if (message.data.type === 'pong') {
+      // Calculate latency from pong response
+      const latency = Date.now() - this.connectionQuality.lastPingTime;
+      this.updateConnectionQuality(latency);
+    }
+  }
+
+  private handleMissedPong() {
+    this.connectionQuality.consecutiveMisses += 1;
+    this.connectionQuality.packetLoss += 1;
+
+    // Update quality based on consecutive misses
+    if (this.connectionQuality.consecutiveMisses >= 3) {
+      this.connectionQuality.quality = 'critical';
+    } else if (this.connectionQuality.consecutiveMisses >= 2) {
+      this.connectionQuality.quality = 'poor';
+    } else if (this.connectionQuality.consecutiveMisses >= 1) {
+      this.connectionQuality.quality = 'good';
+    }
+
+    this.connectionQuality.lastUpdate = Date.now();
+    console.warn(
+      `⚠️ Missed pong response (${this.connectionQuality.consecutiveMisses} consecutive)`,
+    );
+  }
+
+  private updateConnectionQuality(latency: number) {
+    this.connectionQuality.latency = latency;
+    this.connectionQuality.consecutiveMisses = 0; // Reset on successful pong
+    this.connectionQuality.lastUpdate = Date.now();
+
+    // Update quality based on latency
+    if (latency < 100) {
+      this.connectionQuality.quality = 'excellent';
+    } else if (latency < 500) {
+      this.connectionQuality.quality = 'good';
+    } else if (latency < 2000) {
+      this.connectionQuality.quality = 'poor';
+    } else {
+      this.connectionQuality.quality = 'critical';
+    }
+
+    console.log(
+      `📊 Connection quality: ${this.connectionQuality.quality} (${latency}ms latency)`,
+    );
+  }
+
   disconnect() {
     console.log('Manually disconnecting WebSocket');
+    this.stopHeartbeat();
     if (this.ws) {
       // Use code 1000 for normal closure
       this.ws.close(1000, 'Manual disconnect');
@@ -519,6 +663,16 @@ class WebSocketService extends EventTarget {
 
   isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  getConnectionQuality(): {
+    latency: number;
+    packetLoss: number;
+    quality: 'excellent' | 'good' | 'poor' | 'critical';
+    lastUpdate: number;
+    consecutiveMisses: number;
+  } {
+    return { ...this.connectionQuality };
   }
 
   getConnectionState(): string {

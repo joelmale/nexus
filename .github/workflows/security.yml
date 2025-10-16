@@ -56,19 +56,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@master
-        continue-on-error: true # Don't fail the build on vulnerabilities
+      - name: Set up Snyk CLI
+        uses: snyk/actions/setup@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high --sarif-file-output=snyk.sarif
 
-      - name: Upload Snyk results to GitHub Security
+      - name: Run Snyk Code (SAST)
+        run: snyk code test --sarif-file-output=snyk-code.sarif || true
+
+      - name: Run Snyk Open Source (SCA)
+        run: snyk test --sarif-file-output=snyk-oss.sarif || true
+
+      - name: Upload Snyk Code results
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
         with:
-          sarif_file: snyk.sarif
+          sarif_file: snyk-code.sarif
+          category: snyk-code
+
+      - name: Upload Snyk Open Source results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk-oss.sarif
+          category: snyk-oss
 
   # Container Scanning
   container-scan:

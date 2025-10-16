@@ -229,11 +229,11 @@ export const SceneTabs: React.FC<SceneTabsProps> = React.memo(
           onScroll={updateScrollButtons}
         >
           {visibleScenes.map((scene) => (
-            <div
+            <button
               key={scene.id}
               className={getSceneStatusClass(scene)}
               role="tab"
-              aria-selected={scene.id === activeSceneId}
+              aria-selected={scene.id === activeSceneId ? 'true' : 'false'}
               draggable={isHost}
               onClick={() => setActiveScene(scene.id)}
               onContextMenu={(e) => handleTabContextMenu(scene, e)}
@@ -243,6 +243,8 @@ export const SceneTabs: React.FC<SceneTabsProps> = React.memo(
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, scene.id)}
               onDragEnd={handleDragEnd}
+              type="button"
+              tabIndex={0}
             >
               {/* Scene name and visibility indicator */}
               {isHost && (
@@ -264,6 +266,8 @@ export const SceneTabs: React.FC<SceneTabsProps> = React.memo(
                   onKeyDown={(e) => handleRenameKeyDown(e, scene.id)}
                   onBlur={() => handleRenameSubmit(scene.id)}
                   onClick={(e) => e.stopPropagation()}
+                  title="Edit scene name"
+                  placeholder="Enter scene name"
                 />
               ) : (
                 <span className="scene-name" title={scene.description}>
@@ -273,35 +277,36 @@ export const SceneTabs: React.FC<SceneTabsProps> = React.memo(
 
               {/* Delete button for DM only */}
               {isHost && scenes.length > 1 && (
-                <button
-                  className="delete-scene"
-                  onClick={(e) => handleDeleteScene(scene.id, e)}
-                  title="Delete scene"
-                  type="button"
-                >
-                  ×
-                </button>
+                <span>
+                  <button
+                    className="delete-scene"
+                    onClick={(e) => handleDeleteScene(scene.id, e)}
+                    title="Delete scene"
+                    type="button"
+                  >
+                    ×
+                  </button>
+                </span>
               )}
 
               {/* Active indicator */}
               {scene.id === activeSceneId && (
                 <div className="active-indicator" />
               )}
-            </div>
+            </button>
           ))}
 
           {/* Add New Scene Tab - DM only */}
           {isHost && (
-            <div className="scene-tab new-scene-tab" role="tab">
-              <button
-                type="button"
-                onClick={handleCreateScene}
-                title="Create new scene"
-                className="new-scene-button"
-              >
-                +
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleCreateScene}
+              title="Create new scene"
+              className="scene-tab new-scene-tab new-scene-button"
+              role="tab"
+            >
+              +
+            </button>
           )}
         </div>
 

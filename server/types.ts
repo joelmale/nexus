@@ -12,6 +12,7 @@ export interface GameState {
 export interface Room {
   code: string;
   host: string;
+  coHosts: Set<string>; // Support for multiple co-hosts
   players: Set<string>;
   connections: Map<string, WebSocket>;
   created: number;
@@ -19,6 +20,7 @@ export interface Room {
   status: 'active' | 'hibernating' | 'abandoned';
   hibernationTimer?: NodeJS.Timeout;
   gameState?: GameState;
+  entityVersions: Map<string, number>;
 }
 
 export interface Connection {
@@ -29,6 +31,12 @@ export interface Connection {
     name: string;
     type: 'host' | 'player';
   };
+  // Heartbeat and connection quality tracking
+  lastPing?: number;
+  lastPong?: number;
+  pendingPing?: string;
+  consecutiveMisses: number;
+  connectionQuality: 'excellent' | 'good' | 'poor' | 'critical';
 }
 
 export interface BaseServerMessage {
@@ -61,8 +69,26 @@ export interface ServerErrorMessage extends BaseServerMessage {
   };
 }
 
+export interface ServerHeartbeatMessage extends BaseServerMessage {
+  type: 'heartbeat';
+  data: {
+    type: 'ping' | 'pong';
+    id: string;
+    serverTime?: number;
+  };
+}
+
+export interface ServerUpdateConfirmationMessage extends BaseServerMessage {
+  type: 'update-confirmed';
+  data: {
+    updateId: string;
+  };
+}
+
 // Union type for all possible server messages
 export type ServerMessage =
   | ServerEventMessage
   | ServerDiceRollResultMessage
-  | ServerErrorMessage;
+  | ServerErrorMessage
+  | ServerHeartbeatMessage
+  | ServerUpdateConfirmationMessage;

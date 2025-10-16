@@ -27,6 +27,7 @@ import { PlayerBar } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
 import { GeneratorPanel } from './Generator/GeneratorPanel';
 import { DiceBox3D } from './DiceBox3D';
+import ConnectionStatus from './ConnectionStatus';
 import { applyColorScheme } from '@/utils/colorSchemes';
 
 export const LinearGameLayout: React.FC = () => {
@@ -259,6 +260,7 @@ export const LinearGameLayout: React.FC = () => {
             </div>
           </div>
           <div className="header-right">
+            <ConnectionStatus showDetails={false} />
             <button onClick={leaveRoom} className="glass-button secondary">
               <span>🚪</span>
               Leave Room
@@ -269,6 +271,7 @@ export const LinearGameLayout: React.FC = () => {
         <div className="game-setup-content">
           <div className="setup-panel glass-panel">
             <div className="player-waiting">
+              <ConnectionStatus showDetails={true} className="mb-4" />
               <h2>⏳ Waiting for DM</h2>
               <p>The Dungeon Master is setting up the game...</p>
               <div className="waiting-animation">
