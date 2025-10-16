@@ -38,7 +38,7 @@ const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
     },
   },
   solid: {
-    className: 'theme-solid',
+    className: 'solid-theme',
     cssFile: 'theme-solid.css',
     variables: {
       // Solid theme overrides are handled in CSS
@@ -89,9 +89,10 @@ export async function switchTheme(theme: ThemeType): Promise<void> {
   }
 
   // Apply theme class to body
+  // Remove any existing theme classes (both old 'theme-*' and new '*-theme' patterns)
   document.body.className = document.body.className
     .split(' ')
-    .filter((cls) => !cls.startsWith('theme-'))
+    .filter((cls) => !cls.startsWith('theme-') && !cls.endsWith('-theme'))
     .concat(config.className)
     .filter(Boolean)
     .join(' ');

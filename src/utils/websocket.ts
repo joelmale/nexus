@@ -42,18 +42,28 @@ class WebSocketService extends EventTarget {
   private getWebSocketUrl(
     roomCode?: string,
     userType?: 'host' | 'player',
+    campaignId?: string,
   ): string {
-    // In Docker/K8s, use environment variable or default to 5000
+    // In Docker/K8s, use environment variable or default to 5001
     // In dev, we'll try multiple ports via fallback logic in connect()
-    const wsPort = import.meta.env.VITE_WS_PORT || '5000';
+    const wsPort = import.meta.env.VITE_WS_PORT || '5001';
     const wsHost = import.meta.env.VITE_WS_HOST || 'localhost';
     const wsUrl = `ws://${wsHost}:${wsPort}`;
+
+    const params = new URLSearchParams();
     if (roomCode) {
-      return userType === 'host'
-        ? `${wsUrl}?reconnect=${roomCode}`
-        : `${wsUrl}?join=${roomCode}`;
+      if (userType === 'host') {
+        params.set('reconnect', roomCode);
+      } else {
+        params.set('join', roomCode);
+      }
     }
-    return wsUrl;
+    if (campaignId) {
+      params.set('campaignId', campaignId);
+    }
+
+    const queryString = params.toString();
+    return queryString ? `${wsUrl}?${queryString}` : wsUrl;
   }
 
   // 🔍 Discover which port the server is running on via HTTP health check
@@ -61,7 +71,7 @@ class WebSocketService extends EventTarget {
     const isDev = import.meta.env.DEV;
     if (!isDev) return null; // Only do discovery in development
 
-    const basePorts = ['5000', '5001', '5002', '5003'];
+    const basePorts = ['5001', '5002', '5003', '5004'];
     const wsHost = import.meta.env.VITE_WS_HOST || 'localhost';
 
     console.log('🔍 Discovering server via HTTP health checks...');
@@ -91,13 +101,14 @@ class WebSocketService extends EventTarget {
   private async tryConnectWithFallback(
     roomCode?: string,
     userType?: 'host' | 'player',
+    campaignId?: string,
   ): Promise<WebSocket> {
     const isDev = import.meta.env.DEV;
     const basePorts = [
-      import.meta.env.VITE_WS_PORT || '5000',
-      '5001',
+      import.meta.env.VITE_WS_PORT || '5001',
       '5002',
       '5003',
+      '5004',
     ];
 
     // In production/docker, only try the configured port
@@ -135,13 +146,24 @@ class WebSocketService extends EventTarget {
     for (const port of portsToTry) {
       try {
         const wsUrl = `ws://${wsHost}:${port}`;
-        const url = roomCode
-          ? userType === 'host'
-            ? `${wsUrl}?reconnect=${roomCode}`
-            : `${wsUrl}?join=${roomCode}`
-          : wsUrl;
 
-        console.log(`🔌 Attempting WebSocket connection to ${wsUrl}...`);
+        // Build URL with query parameters
+        const params = new URLSearchParams();
+        if (roomCode) {
+          if (userType === 'host') {
+            params.set('reconnect', roomCode);
+          } else {
+            params.set('join', roomCode);
+          }
+        }
+        if (campaignId) {
+          params.set('campaignId', campaignId);
+        }
+
+        const queryString = params.toString();
+        const url = queryString ? `${wsUrl}?${queryString}` : wsUrl;
+
+        console.log(`🔌 Attempting WebSocket connection to ${url}...`);
 
         const ws = await this.attemptConnection(url, port);
         console.log(`✅ Connected to WebSocket on port ${port}`);
@@ -184,7 +206,7 @@ class WebSocketService extends EventTarget {
     });
   }
 
-  connect(roomCode?: string, userType?: 'host' | 'player'): Promise<void> {
+  connect(roomCode?: string, userType?: 'host' | 'player', campaignId?: string): Promise<void> {
     // Prevent multiple simultaneous connection attempts
     if (this.connectionPromise) {
       return this.connectionPromise;
@@ -193,7 +215,7 @@ class WebSocketService extends EventTarget {
     this.connectionPromise = (async () => {
       try {
         // Try connecting with fallback to multiple ports in dev
-        this.ws = await this.tryConnectWithFallback(roomCode, userType);
+        this.ws = await this.tryConnectWithFallback(roomCode, userType, campaignId);
 
         console.log('WebSocket connected successfully');
         this.reconnectAttempts = 0;

@@ -37,6 +37,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={<Navigate to="/lobby" replace />} />
         <Route path="/lobby" element={<Layout />} />
+        <Route path="/dashboard" element={<Layout />} />
         <Route path="/game/:sessionId" element={<Layout />} />
       </Routes>
       <Toaster />

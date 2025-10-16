@@ -76,7 +76,7 @@
 The setup will start:
 - ✅ **PostgreSQL Database** on port 5432
 - ✅ **Frontend** on http://localhost:5173
-- ✅ **Backend Server** on http://localhost:5000 (or the next available port)
+- ✅ **Backend Server** on http://localhost:5001
 
 ### Alternative Setup Methods
 
@@ -197,7 +197,7 @@ npm run preview          # Preview production build
 
 #### 🔌 **Development - Backend/WebSocket**
 ```bash
-npm run server:dev       # Start WebSocket server (port 5000)
+npm run server:dev       # Start WebSocket server (port 5001)
 npm run server:dev:5001  # Start WebSocket server on port 5001
 npm run server:dev:5002  # Start WebSocket server on port 5002
 npm run server:dev:8080  # Start WebSocket server on port 8080

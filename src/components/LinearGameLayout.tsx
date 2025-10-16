@@ -297,11 +297,7 @@ export const LinearGameLayout: React.FC = () => {
     <div
       className="game-layout"
       data-panel-expanded={panelExpanded}
-      style={
-        {
-          '--sidebar-width': `${panelExpanded ? sidebarWidth : 60}px`,
-        } as React.CSSProperties
-      }
+      data-sidebar-width={panelExpanded ? sidebarWidth : 60}
     >
       {/* Game Header */}
       <div className="layout-header">
@@ -313,43 +309,47 @@ export const LinearGameLayout: React.FC = () => {
           {/* Horizontal Panel Tabs */}
           <ul className="horizontal-panel-tabs" role="tablist">
             {panels.map((panel) => (
-              <li key={panel.id} className="horizontal-panel-tab" role="tab">
-                <label>
-                  <input
-                    type="radio"
-                    name="panel"
-                    value={panel.id}
-                    checked={activePanel === panel.id}
-                    onChange={() => setActivePanel(panel.id)}
-                  />
-                  <span className="panel-icon">{panel.icon}</span>
-                  <span className="panel-label">{panel.label}</span>
-                </label>
-              </li>
+              <React.Fragment key={panel.id}>
+                <input
+                  type="radio"
+                  name="panel"
+                  id={`panel-radio-${panel.id}`}
+                  value={panel.id}
+                  checked={activePanel === panel.id}
+                  onChange={() => setActivePanel(panel.id)}
+                  style={{ display: 'none' }}
+                />
+                <li className="horizontal-panel-tab" role="tab">
+                  <label htmlFor={`panel-radio-${panel.id}`}>
+                    <span className="panel-icon">{panel.icon}</span>
+                    <span className="panel-label">{panel.label}</span>
+                  </label>
+                </li>
+              </React.Fragment>
             ))}
-
-            {/* Collapse/Expand Toggle */}
-            <li className="horizontal-panel-toggle" role="tab">
-              <button
-                type="button"
-                onClick={() => setPanelExpanded(!panelExpanded)}
-                title={panelExpanded ? 'Collapse panel' : 'Expand panel'}
-              >
-                <span className="toggle-icon">{panelExpanded ? '»' : '«'}</span>
-              </button>
-            </li>
-
-            {/* Leave Room Button */}
-            <li className="header-action">
-              <button
-                onClick={leaveRoom}
-                className="glass-button secondary small"
-                title="Leave Room"
-              >
-                🚪
-              </button>
-            </li>
           </ul>
+
+          {/* Collapse/Expand Toggle */}
+          <div className="horizontal-panel-toggle">
+            <button
+              type="button"
+              onClick={() => setPanelExpanded(!panelExpanded)}
+              title={panelExpanded ? 'Collapse panel' : 'Expand panel'}
+            >
+              <span className="toggle-icon">{panelExpanded ? '»' : '«'}</span>
+            </button>
+          </div>
+
+          {/* Leave Room Button */}
+          <div className="header-action">
+            <button
+              onClick={leaveRoom}
+              className="glass-button secondary small"
+              title="Leave Room"
+            >
+              🚪
+            </button>
+          </div>
         </div>
       </div>
 
@@ -361,7 +361,7 @@ export const LinearGameLayout: React.FC = () => {
         </div>
 
         {/* Scene Content */}
-        <div className="scene-content" style={{ position: 'relative' }}>
+        <div className="scene-content scene-content-relative">
           {activeScene ? (
             <SceneCanvas scene={activeScene} />
           ) : (
@@ -417,26 +417,9 @@ export const LinearGameLayout: React.FC = () => {
         </Suspense>
       </div>
 
-      {/* Floating Generator Overlay */}
       {activePanel === 'generator' && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '75px', // 15px from header (60 + 15)
-            left: '25px',
-            right: '25px',
-            bottom: '25px',
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-            borderRadius: '12px',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
-            zIndex: 9999,
-            padding: '40px',
-            boxSizing: 'border-box',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <div style={{ flex: 1, minHeight: 0 }}>
+        <div className="generator-overlay">
+          <div className="generator-overlay-content">
             <GeneratorPanel onSwitchToScenes={() => setActivePanel('scene')} />
           </div>
         </div>

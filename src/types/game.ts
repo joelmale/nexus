@@ -6,6 +6,9 @@ export type { PlacedToken, Token, Drawing };
 export interface User {
   id: string;
   name: string;
+  email?: string;
+  avatarUrl?: string;
+  provider?: string;
   type: 'host' | 'player';
   color: string;
   connected: boolean;
@@ -52,7 +55,8 @@ export type AppView =
   | 'player_setup'
   | 'dm_setup'
   | 'game'
-  | 'admin';
+  | 'admin'
+  | 'dashboard';
 
 export interface PlayerCharacter {
   id: string;
@@ -80,6 +84,7 @@ export interface GameConfig {
   estimatedTime: string;
   campaignType: 'campaign' | 'oneshot';
   maxPlayers: number;
+  campaignId?: string; // Optional campaign ID for linking session to existing campaign
 }
 
 export interface ChatState {

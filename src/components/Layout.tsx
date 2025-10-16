@@ -18,6 +18,10 @@ export const Layout: React.FC = () => {
   const roomCode = useServerRoomCode();
   const isConnectedToRoom = useIsConnected();
 
+  useEffect(() => {
+    useGameStore.getState().checkAuth();
+  }, []);
+
   // Add initial state logging, sync gameStore, and handle migration
   useEffect(() => {
     // Check for and perform localStorage migration to IndexedDB

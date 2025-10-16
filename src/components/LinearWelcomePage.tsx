@@ -17,8 +17,15 @@ import {
   clearMockDataFromStorage,
 } from '@/utils/mockDataGenerator';
 
+interface Campaign {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+}
+
 export const LinearWelcomePage: React.FC = () => {
-  const { setUser, joinRoomWithCode, dev_quickDM, dev_quickPlayer } =
+  const { setUser, joinRoomWithCode, createGameRoom, dev_quickDM, dev_quickPlayer, isAuthenticated } =
     useGameStore();
   const [playerName, setPlayerName] = useState('');
   const [selectedRole, setSelectedRole] = useState<'player' | 'dm' | null>(
@@ -30,6 +37,70 @@ export const LinearWelcomePage: React.FC = () => {
   const [useMockData, setUseMockData] = useState(false);
   const [mockDataLoading, setMockDataLoading] = useState(false);
   const hasCustomLogo = useAssetExists('/assets/logos/nexus-logo.svg');
+
+  // Campaign selection state
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<string>('');
+  const [campaignsLoading, setCampaignsLoading] = useState(false);
+  const [characters, setCharacters] = useState<{ id: string; name: string; data: any }[]>([]);
+  const [selectedCharacter, setSelectedCharacter] = useState<string>('');
+  const [charactersLoading, setCharactersLoading] = useState(false);
+
+  /**
+   * Fetch user's campaigns when DM role is selected and user is authenticated
+   */
+  React.useEffect(() => {
+    const fetchCampaigns = async () => {
+      if (selectedRole !== 'dm' || !isAuthenticated) {
+        return;
+      }
+
+      setCampaignsLoading(true);
+      try {
+        const response = await fetch('/api/campaigns');
+        if (!response.ok) {
+          throw new Error('Failed to fetch campaigns');
+        }
+        const data = await response.json();
+        setCampaigns(data);
+      } catch (err) {
+        console.error('Failed to fetch campaigns:', err);
+        setError('Failed to load campaigns');
+      } finally {
+        setCampaignsLoading(false);
+      }
+    };
+
+    fetchCampaigns();
+  }, [selectedRole, isAuthenticated]);
+
+  /**
+   * Fetch user's characters when Player role is selected and user is authenticated
+   */
+  React.useEffect(() => {
+    const fetchCharacters = async () => {
+      if (selectedRole !== 'player' || !isAuthenticated) {
+        return;
+      }
+
+      setCharactersLoading(true);
+      try {
+        const response = await fetch('/api/characters');
+        if (!response.ok) {
+          throw new Error('Failed to fetch characters');
+        }
+        const data = await response.json();
+        setCharacters(data);
+      } catch (err) {
+        console.error('Failed to fetch characters:', err);
+        setError('Failed to load characters');
+      } finally {
+        setCharactersLoading(false);
+      }
+    };
+
+    fetchCharacters();
+  }, [selectedRole, isAuthenticated]);
 
   // Handle mock data toggle
   const handleMockDataToggle = async (enabled: boolean) => {
@@ -51,19 +122,53 @@ export const LinearWelcomePage: React.FC = () => {
     }
   };
 
-  const handlePlayerSetup = () => {
+  /**
+   * Handles player setup - creates guest user if not authenticated
+   */
+  const handlePlayerSetup = async () => {
     if (!playerName.trim()) {
       setError('Please enter your name');
       return;
     }
 
+    setLoading(true);
     setError('');
-    setUser({ name: playerName.trim(), type: 'player' });
 
-    // Navigate to player setup
-    useGameStore.getState().setView('player_setup');
+    try {
+      // Create guest user if not authenticated
+      const { isAuthenticated } = useGameStore.getState();
+      if (!isAuthenticated) {
+        const response = await fetch('/api/guest-users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name: playerName.trim() }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create guest user');
+        }
+
+        const guestUser = await response.json();
+        console.log('Guest user created:', guestUser);
+      }
+
+      setUser({ name: playerName.trim(), type: 'player' });
+
+      // Navigate to player setup
+      useGameStore.getState().setView('player_setup');
+    } catch (err) {
+      console.error('Failed to create guest user:', err);
+      setError('Failed to set up player. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  /**
+   * Handles quick join - creates guest user and joins room directly
+   */
   const handleQuickJoin = async () => {
     if (!playerName.trim()) {
       setError('Please enter your name');
@@ -78,6 +183,25 @@ export const LinearWelcomePage: React.FC = () => {
     setError('');
 
     try {
+      // Create guest user if not authenticated
+      const { isAuthenticated } = useGameStore.getState();
+      if (!isAuthenticated) {
+        const response = await fetch('/api/guest-users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name: playerName.trim() }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create guest user');
+        }
+
+        const guestUser = await response.json();
+        console.log('Guest user created:', guestUser);
+      }
+
       setUser({ name: playerName.trim(), type: 'player' });
       await joinRoomWithCode(roomCode.trim().toUpperCase());
     } catch (err) {
@@ -88,14 +212,67 @@ export const LinearWelcomePage: React.FC = () => {
     }
   };
 
-  const handleDMSetup = () => {
+  /**
+   * Handles DM setup - creates guest user if not authenticated, then creates game
+   * For authenticated users, requires campaign selection
+   * For guest users, auto-creates a campaign
+   */
+  const handleDMSetup = async () => {
     if (!playerName.trim()) {
       setError('Please enter your name');
       return;
     }
 
+    const { isAuthenticated } = useGameStore.getState();
+
+    // Check if authenticated user has selected a campaign
+    if (isAuthenticated && !selectedCampaign) {
+      setError('Please select a campaign or create a new one');
+      return;
+    }
+
+    setLoading(true);
     setError('');
-    setUser({ name: playerName.trim(), type: 'host' });
+
+    try {
+      // Create guest user if not authenticated
+      if (!isAuthenticated) {
+        const response = await fetch('/api/guest-users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name: playerName.trim() }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create guest user');
+        }
+
+        const guestUser = await response.json();
+        console.log('Guest user created:', guestUser);
+      }
+
+      // Set user in store
+      setUser({ name: playerName.trim(), type: 'host' });
+
+      // Create game room with campaign ID (passed to WebSocket connection)
+      const gameConfig = {
+        name: 'Quick Session',
+        description: 'DM-hosted game session',
+        estimatedTime: '2-4 hours',
+        campaignType: 'campaign' as const,
+        maxPlayers: 6,
+        campaignId: isAuthenticated ? selectedCampaign : undefined,
+      };
+
+      await createGameRoom(gameConfig);
+    } catch (err) {
+      console.error('Failed to create game:', err);
+      setError('Failed to set up game. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -145,6 +322,29 @@ export const LinearWelcomePage: React.FC = () => {
 
       <div className="welcome-content">
         <div className="welcome-panel glass-panel">
+          {/* Account Menu - Upper Right */}
+          <div className="account-menu">
+            <button className="account-bubble glass-panel" title="Login with OAuth">
+              <span className="account-icon">👤</span>
+            </button>
+            <div className="account-dropdown glass-panel">
+              <div className="account-dropdown-header">
+                <span className="dropdown-title">Sign In</span>
+              </div>
+              <a href="/auth/google" className="account-option">
+                <span className="option-icon google-icon">G</span>
+                <span className="option-text">Google</span>
+              </a>
+              <a href="/auth/discord" className="account-option">
+                <span className="option-icon discord-icon">D</span>
+                <span className="option-text">Discord</span>
+              </a>
+              <div className="account-dropdown-footer">
+                <span className="dropdown-hint">Save campaigns & progress</span>
+              </div>
+            </div>
+          </div>
+
           {/* Brand Section */}
           <div className="brand-section">
             {hasCustomLogo ? (
@@ -206,6 +406,45 @@ export const LinearWelcomePage: React.FC = () => {
                   {/* Player Action Buttons */}
                   {selectedRole === 'player' && (
                     <div className="player-actions">
+                      {/* Character Selection for Authenticated Users */}
+                      {isAuthenticated && (
+                        <div className="campaign-selection">
+                          <label htmlFor="character-select" className="campaign-label">
+                            Select Character (Optional)
+                          </label>
+                          {charactersLoading ? (
+                            <div className="loading-state">
+                              <span className="loading-spinner"></span>
+                              Loading characters...
+                            </div>
+                          ) : characters.length > 0 ? (
+                            <select
+                              id="character-select"
+                              value={selectedCharacter}
+                              onChange={(e) => setSelectedCharacter(e.target.value)}
+                              className="glass-input campaign-dropdown"
+                              disabled={loading}
+                            >
+                              <option value="">-- Select a character or create new --</option>
+                              {characters.map((character) => (
+                                <option key={character.id} value={character.id}>
+                                  {character.name}
+                                  {character.data?.class ? ` (${character.data.class})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <p className="no-campaigns-hint">
+                              No saved characters yet. You can create one from the{' '}
+                              <a href="/dashboard" className="dashboard-link">
+                                dashboard
+                              </a>
+                              {' '}or continue as a new character.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       <button
                         onClick={handlePlayerSetup}
                         disabled={!playerName.trim() || loading}
@@ -278,9 +517,51 @@ export const LinearWelcomePage: React.FC = () => {
                   {/* DM Action Button */}
                   {selectedRole === 'dm' && (
                     <div className="dm-actions">
+                      {/* Campaign Selection for Authenticated Users */}
+                      {isAuthenticated && (
+                        <div className="campaign-selection">
+                          <label htmlFor="campaign-select" className="campaign-label">
+                            Select Campaign
+                          </label>
+                          {campaignsLoading ? (
+                            <div className="loading-state">
+                              <span className="loading-spinner"></span>
+                              Loading campaigns...
+                            </div>
+                          ) : campaigns.length > 0 ? (
+                            <select
+                              id="campaign-select"
+                              value={selectedCampaign}
+                              onChange={(e) => setSelectedCampaign(e.target.value)}
+                              className="glass-input campaign-dropdown"
+                              disabled={loading}
+                            >
+                              <option value="">-- Select a campaign --</option>
+                              {campaigns.map((campaign) => (
+                                <option key={campaign.id} value={campaign.id}>
+                                  {campaign.name}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <p className="no-campaigns-hint">
+                              No campaigns yet. Create one from the{' '}
+                              <a href="/dashboard" className="dashboard-link">
+                                dashboard
+                              </a>
+                              .
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       <button
                         onClick={handleDMSetup}
-                        disabled={!playerName.trim() || loading}
+                        disabled={
+                          !playerName.trim() ||
+                          loading ||
+                          (isAuthenticated && !selectedCampaign)
+                        }
                         className="action-btn glass-button primary"
                       >
                         <span>🎲</span>

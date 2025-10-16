@@ -49,7 +49,7 @@ Nexus VTT uses a monorepo structure with two main services for development:
     -   **Purpose:** Renders the UI and contains all client-side game logic.
 
 2.  **Backend** (Node.js + Express + WebSocket)
-    -   **Port:** 5000 (default)
+    -   **Port:** 5001 (default)
     -   **Path:** `server/`
     -   **Purpose:** Real-time message relay, session persistence, and serving assets.
 
