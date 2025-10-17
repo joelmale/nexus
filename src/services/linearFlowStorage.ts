@@ -1,16 +1,16 @@
 /**
  * Linear Flow Storage Bridge
  *
- * Connects the Linear Flow (appFlowStore) with the Ogres-style entity store
+ * Connects the Linear Flow (appFlowStore) with the entity store
  * Provides migration from localStorage to IndexedDB + proper serialization
  */
 
-import { getOgresStore } from './ogresStyleStore';
+import { getEntityStore } from './entityStore';
 import type { Scene, Token, Drawing } from '@/types/game';
 import type { PlayerCharacter, GameConfig } from '@/types/game';
 
 export class LinearFlowStorage {
-  private store = getOgresStore();
+  private store = getEntityStore();
 
   // Debug helper: migrate drawing data from localStorage
   async migrateDrawingData(): Promise<{
@@ -157,7 +157,7 @@ export class LinearFlowStorage {
       localStorage.removeItem('nexus-sessions');
 
       // Delete IndexedDB databases
-      const dbNames = ['nexus-ogres-store', 'nexus-vtt'];
+      const dbNames = ['nexus-entity-store', 'nexus-vtt'];
       for (const dbName of dbNames) {
         try {
           await new Promise<void>((resolve) => {

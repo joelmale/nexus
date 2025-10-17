@@ -49,14 +49,7 @@ export interface DiceRoll {
   isPrivate?: boolean; // If true, only visible to the roller and the DM
 }
 
-// Navigation & Flow Types (from appFlowStore)
-export type AppView =
-  | 'welcome'
-  | 'player_setup'
-  | 'dm_setup'
-  | 'game'
-  | 'admin'
-  | 'dashboard';
+
 
 export interface PlayerCharacter {
   id: string;
@@ -94,8 +87,7 @@ export interface ChatState {
 }
 
 export interface GameState {
-  // Navigation (from appFlowStore)
-  view: AppView;
+
 
   // User & Session (merged from both stores)
   user: User;

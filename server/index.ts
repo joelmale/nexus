@@ -136,11 +136,11 @@ class NexusServer {
   private setupAuthRoutes(): void {
     this.app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
     this.app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
-      res.redirect('/dashboard');
+      res.redirect('http://localhost:5173/dashboard');
     });
     this.app.get('/auth/discord', passport.authenticate('discord'));
     this.app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => {
-      res.redirect('/dashboard');
+      res.redirect('http://localhost:5173/dashboard');
     });
     this.app.get('/auth/logout', (req, res, next) => {
       req.logout((err) => {

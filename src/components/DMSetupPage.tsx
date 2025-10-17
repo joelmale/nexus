@@ -8,11 +8,13 @@
  */
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import type { GameConfig } from '@/types/game';
 
 export const DMSetupPage: React.FC = () => {
-  const { user, createGameRoom, resetToWelcome } = useGameStore();
+  const { user, createGameRoom } = useGameStore();
+  const navigate = useNavigate();
   const [gameConfig, setGameConfig] = useState<GameConfig>({
     name: '',
     description: '',
@@ -33,7 +35,8 @@ export const DMSetupPage: React.FC = () => {
     setError('');
 
     try {
-      await createGameRoom(gameConfig);
+      const roomCode = await createGameRoom(gameConfig);
+      navigate(`/lobby/game/${roomCode}`);
     } catch (err) {
       setError('Failed to create game room');
       console.error(err);
@@ -44,6 +47,10 @@ export const DMSetupPage: React.FC = () => {
 
   const handleConfigChange = (updates: Partial<GameConfig>) => {
     setGameConfig((prev) => ({ ...prev, ...updates }));
+  };
+
+  const handleBack = () => {
+    navigate('/lobby');
   };
 
   const isFormValid = gameConfig.name.trim().length > 0;
@@ -59,7 +66,7 @@ export const DMSetupPage: React.FC = () => {
           <div className="setup-header">
             <div className="header-with-back">
               <button
-                onClick={resetToWelcome}
+                onClick={handleBack}
                 className="back-button glass-button"
                 title="Back to Welcome"
               >

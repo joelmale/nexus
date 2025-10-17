@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useSession, useIsHost, useGameStore } from '@/stores/gameStore';
+import { useNavigate } from 'react-router-dom';
+import { useSession, useIsHost } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import { CharacterSheet } from './CharacterSheet';
@@ -104,7 +105,7 @@ export const PlayerPanel: React.FC = () => {
   const { addEntry, rollInitiativeForAll, startCombat } = useInitiativeStore();
   const [, setShowCharacterSheet] = useState(false);
   const { LauncherComponent } = useCharacterCreationLauncher();
-  const { setView } = useGameStore();
+  const navigate = useNavigate();
 
   const players = session?.players ?? [];
 
@@ -145,7 +146,7 @@ export const PlayerPanel: React.FC = () => {
 
   const handleCreateCharacter = () => {
     // Navigate to player setup page for character creation
-    setView('player_setup');
+    navigate('/lobby/player-setup');
   };
 
   const handleViewCharacter = (characterId: string) => {
@@ -183,6 +184,7 @@ export const PlayerPanel: React.FC = () => {
     // Roll initiative for all entries and start combat
     rollInitiativeForAll();
     startCombat();
+    // TODO: Switch to initiative tab programmatically
   };
 
   // Show character sheet if one is active

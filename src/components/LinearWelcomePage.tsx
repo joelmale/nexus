@@ -8,6 +8,7 @@
  */
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { NexusLogo } from './Assets';
 import { useAssetExists } from '@/utils/assets';
@@ -27,6 +28,7 @@ interface Campaign {
 export const LinearWelcomePage: React.FC = () => {
   const { setUser, joinRoomWithCode, dev_quickDM, dev_quickPlayer, isAuthenticated } =
     useGameStore();
+  const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
   const [selectedRole, setSelectedRole] = useState<'player' | 'dm' | null>(
     null,
@@ -156,7 +158,7 @@ export const LinearWelcomePage: React.FC = () => {
       } else {
         setUser({ name: playerName.trim(), type: 'player' });
       }
-      useGameStore.getState().setView('player_setup');
+      navigate('/lobby/player-setup');
     } catch (err) {
       console.error('Failed to create guest user:', err);
       setError('Failed to set up player. Please try again.');
@@ -203,7 +205,8 @@ export const LinearWelcomePage: React.FC = () => {
       } else {
         setUser({ name: playerName.trim(), type: 'player' });
       }
-      await joinRoomWithCode(roomCode.trim().toUpperCase());
+      const joinedRoomCode = await joinRoomWithCode(roomCode.trim().toUpperCase());
+      navigate(`/lobby/game/${joinedRoomCode}`);
     } catch (err) {
       setError('Failed to join room - room may not exist or be full');
       console.error(err);
@@ -257,8 +260,7 @@ export const LinearWelcomePage: React.FC = () => {
         setUser({ name: playerName.trim(), type: 'host' });
       }
 
-      // Navigate to DM setup page where user can configure game details
-      // DMSetupPage will handle createGameRoom() after user fills out the form
+      navigate('/lobby/dm-setup');
     } catch (err) {
       console.error('Failed to create game:', err);
       setError('Failed to set up game. Please try again.');
@@ -618,7 +620,7 @@ export const LinearWelcomePage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    useGameStore.getState().setView('admin');
+                    navigate('/admin');
                   }}
                   className="dev-btn glass-button secondary small"
                   title="Access admin panel for character generation data"

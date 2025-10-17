@@ -2,7 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { Layout } from './components/Layout';
+import { Providers } from './components/Providers';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { LinearWelcomePage } from './components/LinearWelcomePage';
+import { PlayerSetupPage } from './components/PlayerSetupPage';
+import { DMSetupPage } from './components/DMSetupPage';
+import { LinearGameLayout } from './components/LinearGameLayout';
+import { Dashboard } from './components/Dashboard';
+import { AdminPage } from './components/AdminPage';
 import './styles/critical-bundle.css';
 import {
   loadUtilityStyles,
@@ -34,12 +41,36 @@ const loadNonCriticalStyles = async () => {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/lobby" replace />} />
-        <Route path="/lobby" element={<Layout />} />
-        <Route path="/dashboard" element={<Layout />} />
-        <Route path="/game/:sessionId" element={<Layout />} />
-      </Routes>
+      <Providers>
+        <Routes>
+          {/* Root redirect */}
+          <Route path="/" element={<Navigate to="/lobby" replace />} />
+
+          {/* Lobby routes - linear flow for creating/joining games */}
+          <Route path="/lobby" element={<LinearWelcomePage />} />
+          <Route path="/lobby/player-setup" element={<PlayerSetupPage />} />
+          <Route path="/lobby/dm-setup" element={<DMSetupPage />} />
+          <Route
+            path="/lobby/game/:roomCode"
+            element={
+              <ProtectedRoute requireUser requireSession>
+                <LinearGameLayout />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* User dashboard (authenticated users) */}
+          <Route path="/dashboard" element={<Dashboard />} />
+
+          {/* Admin panel (development only) */}
+          {process.env.NODE_ENV === 'development' && (
+            <Route path="/admin" element={<AdminPage />} />
+          )}
+
+          {/* Fallback - redirect unknown routes to lobby */}
+          <Route path="*" element={<Navigate to="/lobby" replace />} />
+        </Routes>
+      </Providers>
       <Toaster />
     </BrowserRouter>
   </React.StrictMode>,
