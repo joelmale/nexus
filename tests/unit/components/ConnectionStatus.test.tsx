@@ -85,7 +85,7 @@ describe('ConnectionStatus', () => {
   it('should show disconnected state when not connected', () => {
     mockWebSocketService.isConnected.mockReturnValue(false);
 
-    render(<ConnectionStatus />);
+    render(<ConnectionStatus showDetails={true} />);
 
     const statusIcon = screen.getByTitle(/disconnected/i);
     expect(statusIcon).toBeDefined();

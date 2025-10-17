@@ -18,6 +18,17 @@ export const Layout: React.FC = () => {
   const roomCode = useServerRoomCode();
   const isConnectedToRoom = useIsConnected();
 
+  // Clear persisted view when navigating directly to /lobby
+  useEffect(() => {
+    if (window.location.pathname === '/lobby') {
+      localStorage.removeItem('nexus-pre-game-view');
+      // If view was persisted and we're on /lobby, reset to welcome
+      if (view !== 'welcome' && view !== 'dashboard') {
+        setView('welcome');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     useGameStore.getState().checkAuth();
   }, []);

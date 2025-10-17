@@ -605,9 +605,9 @@ export class LinearFlowStorage {
     // Clear sessions
     this.clearSession();
 
-    // Clear gameStore in-memory state
-    const { useGameStore } = await import('@/stores/gameStore');
-    useGameStore.getState().reset();
+    // Note: With PostgreSQL architecture, we DON'T reset the user here.
+    // User data comes from the database or guest session and should persist.
+    // Only clear session-specific state, not user identity.
 
     // Force save to persist the cleared state
     await this.forceSave();

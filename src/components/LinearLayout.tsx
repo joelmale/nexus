@@ -43,12 +43,14 @@ const LinearLayoutContent: React.FC = () => {
       if (process.env.NODE_ENV === 'development') {
         console.warn(
           '⚠️ Invalid game state detected - redirecting to welcome',
-          {
+          JSON.stringify({
             hasName: !!user.name,
+            userName: user.name,
             hasType: !!user.type,
-            hasRoomCode: !!roomCode,
             userType: user.type,
-          },
+            hasRoomCode: !!roomCode,
+            roomCode: roomCode,
+          }, null, 2)
         );
       }
       // Reset to welcome and navigate to /lobby URL

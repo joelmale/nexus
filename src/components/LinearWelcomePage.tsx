@@ -25,7 +25,7 @@ interface Campaign {
 }
 
 export const LinearWelcomePage: React.FC = () => {
-  const { setUser, joinRoomWithCode, createGameRoom, dev_quickDM, dev_quickPlayer, isAuthenticated } =
+  const { setUser, joinRoomWithCode, dev_quickDM, dev_quickPlayer, isAuthenticated } =
     useGameStore();
   const [playerName, setPlayerName] = useState('');
   const [selectedRole, setSelectedRole] = useState<'player' | 'dm' | null>(
@@ -152,11 +152,10 @@ export const LinearWelcomePage: React.FC = () => {
 
         const guestUser = await response.json();
         console.log('Guest user created:', guestUser);
+        setUser({ ...guestUser, type: 'player' });
+      } else {
+        setUser({ name: playerName.trim(), type: 'player' });
       }
-
-      setUser({ name: playerName.trim(), type: 'player' });
-
-      // Navigate to player setup
       useGameStore.getState().setView('player_setup');
     } catch (err) {
       console.error('Failed to create guest user:', err);
@@ -200,9 +199,10 @@ export const LinearWelcomePage: React.FC = () => {
 
         const guestUser = await response.json();
         console.log('Guest user created:', guestUser);
+        setUser({ ...guestUser, type: 'player' });
+      } else {
+        setUser({ name: playerName.trim(), type: 'player' });
       }
-
-      setUser({ name: playerName.trim(), type: 'player' });
       await joinRoomWithCode(roomCode.trim().toUpperCase());
     } catch (err) {
       setError('Failed to join room - room may not exist or be full');
@@ -251,22 +251,14 @@ export const LinearWelcomePage: React.FC = () => {
 
         const guestUser = await response.json();
         console.log('Guest user created:', guestUser);
+        setUser({ ...guestUser, type: 'host' });
+      } else {
+        // Set user in store for authenticated users
+        setUser({ name: playerName.trim(), type: 'host' });
       }
 
-      // Set user in store
-      setUser({ name: playerName.trim(), type: 'host' });
-
-      // Create game room with campaign ID (passed to WebSocket connection)
-      const gameConfig = {
-        name: 'Quick Session',
-        description: 'DM-hosted game session',
-        estimatedTime: '2-4 hours',
-        campaignType: 'campaign' as const,
-        maxPlayers: 6,
-        campaignId: isAuthenticated ? selectedCampaign : undefined,
-      };
-
-      await createGameRoom(gameConfig);
+      // Navigate to DM setup page where user can configure game details
+      // DMSetupPage will handle createGameRoom() after user fills out the form
     } catch (err) {
       console.error('Failed to create game:', err);
       setError('Failed to set up game. Please try again.');

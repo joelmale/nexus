@@ -673,9 +673,16 @@ class NexusServer {
   private handleConnection(ws: WebSocket, req: IncomingMessage) {
     const request = req as any;
     const user = request.session?.passport?.user;
+    const guestUser = request.session?.guestUser;
+    const url = new URL(req.url!, 'ws://localhost');
+    const params = url.searchParams;
+    const userIdFromQuery = params.get('userId');
 
-    const uuid = user ? user.id : uuidv4();
-    console.log(`📡 New connection: ${uuid}` + (user ? ` (Authenticated as ${user.name})` : ' (Guest)'));
+    // Priority: authenticated user > guest user > query param > new UUID
+    const uuid = user?.id || guestUser?.id || userIdFromQuery || uuidv4();
+    const displayName = user?.name || guestUser?.name || 'Guest';
+    const userType = user ? 'Authenticated' : guestUser ? 'Guest' : 'Anonymous';
+    console.log(`📡 New connection: ${uuid} (${userType} as ${displayName})`);
 
     const connection: Connection = {
       id: uuid,
@@ -685,9 +692,6 @@ class NexusServer {
     };
 
     this.connections.set(uuid, connection);
-
-    const url = new URL(req.url!, 'ws://localhost');
-    const params = url.searchParams;
 
     this.startHeartbeatForConnection(connection);
 

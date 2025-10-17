@@ -62,6 +62,12 @@ class WebSocketService extends EventTarget {
       params.set('campaignId', campaignId);
     }
 
+    // Add user ID to the query parameters
+    const userId = useGameStore.getState().user.id;
+    if (userId) {
+      params.set('userId', userId);
+    }
+
     const queryString = params.toString();
     return queryString ? `${wsUrl}?${queryString}` : wsUrl;
   }

@@ -291,6 +291,13 @@ const loadSessionFromStorage = (): Partial<GameStore> | null => {
 
     console.log('📂 Loaded session from localStorage:', session);
 
+    // Validate that we have a valid userName before restoring
+    if (!session.userName || !session.userType) {
+      console.log('⚠️ Stored session has invalid user data, ignoring');
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+
     return {
       user: {
         name: session.userName,
@@ -325,6 +332,7 @@ const initialState: GameState & {
   view: AppView;
   gameConfig?: GameConfig;
   selectedCharacter?: PlayerCharacter;
+  isAuthenticated: boolean;
 } = {
   // App Flow State (from appFlowStore)
   view: preGameView || 'welcome',
@@ -475,11 +483,11 @@ const MOCK_SESSION: Session = {
   status: 'connected',
 };
 
-// Try to restore session from localStorage
+// Store the restored session but DON'T mutate initialState
+// The store will merge it during creation to avoid corrupting initialState
 const restoredSession = loadSessionFromStorage();
 if (restoredSession) {
-  Object.assign(initialState, restoredSession);
-  console.log('✅ Restored session on app load');
+  console.log('✅ Loaded session from storage (will merge during store creation)');
 }
 
 type EventHandler = (state: GameState, data: unknown) => void;
@@ -968,6 +976,8 @@ export const useGameStore = create<GameStore>()(
 
     return {
       ...initialState,
+      // Merge restored session without mutating initialState
+      ...(restoredSession || {}),
 
       // Auth Actions
       login: (user) => {
@@ -1201,19 +1211,22 @@ export const useGameStore = create<GameStore>()(
 
       createGameRoom: async (
         config: GameConfig,
-        clearExistingData: boolean = true,
+        clearExistingData: boolean = false, // Default false with PostgreSQL - scenes come from DB
       ) => {
         try {
-          // Clear previous game data to start fresh (unless preserving for dev/mock data)
+          // With PostgreSQL architecture, scenes and user data come from the database.
+          // IndexedDB clearing is only needed for legacy/development scenarios.
           const storage = getLinearFlowStorage();
 
           if (clearExistingData) {
             await storage.clearGameData();
           } else if (process.env.NODE_ENV === 'development') {
             const existingScenes = storage.getScenes();
-            console.log(
-              `🎮 Preserving ${existingScenes.length} existing scenes`,
-            );
+            if (existingScenes.length > 0) {
+              console.log(
+                `🎮 Found ${existingScenes.length} IndexedDB scenes (legacy/dev data)`,
+              );
+            }
           }
 
           // Import webSocketService
@@ -1239,28 +1252,11 @@ export const useGameStore = create<GameStore>()(
           });
 
           // Save session to localStorage for refresh recovery
+          // Note: session is already set by the session/created event handler
           saveSessionToStorage(get());
 
-          // Update session
-          const { user } = get();
-          get().setSession({
-            roomCode,
-            hostId: user.id || '',
-            players: [
-              {
-                ...user,
-                id: user.id || '',
-                canEditScenes: true,
-                connected: true,
-                type: 'host',
-                color: user.color || 'blue',
-              },
-            ],
-            status: 'connected',
-          });
-
-          // Sync scenes from entity store to gameStore (in case mock data exists)
-          await storage.syncScenesWithGameStore();
+          // Note: Scenes are loaded from PostgreSQL via session/created event.
+          // No need to sync from IndexedDB (legacy system) as it would overwrite DB scenes.
 
           return roomCode;
         } catch (error) {
