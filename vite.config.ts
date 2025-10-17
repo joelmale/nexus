@@ -21,6 +21,20 @@ export default defineConfig(({ command }) => {
       port: parseInt(process.env.PORT || '5173'),
       host: true,
       open: true,
+      proxy: {
+        '/api': {
+          target: 'http://localhost:5001',
+          changeOrigin: true,
+        },
+        '/auth': {
+          target: 'http://localhost:5001',
+          changeOrigin: true,
+        },
+        '/ws': {
+          target: 'ws://localhost:5001',
+          ws: true,
+        },
+      },
     },
     build: {
       // Generate source maps for production builds if not in dev mode

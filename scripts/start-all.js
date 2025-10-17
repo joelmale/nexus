@@ -98,7 +98,7 @@ class IntelligentStarter {
     this.isShuttingDown = false;
     this.defaultPorts = {
       frontend: 5173,
-      websocket: 5000,
+      websocket: 5001,
     };
   }
 

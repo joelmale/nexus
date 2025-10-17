@@ -16,7 +16,7 @@ afterEach(() => {
 // Mock window.matchMedia for tests that use media queries
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -109,7 +109,9 @@ const localStorageMock = {
     delete localStorageData[key];
   },
   clear: () => {
-    Object.keys(localStorageData).forEach(key => delete localStorageData[key]);
+    Object.keys(localStorageData).forEach(
+      (key) => delete localStorageData[key],
+    );
   },
   get length() {
     return Object.keys(localStorageData).length;
@@ -132,7 +134,9 @@ const sessionStorageMock = {
     delete sessionStorageData[key];
   },
   clear: () => {
-    Object.keys(sessionStorageData).forEach(key => delete sessionStorageData[key]);
+    Object.keys(sessionStorageData).forEach(
+      (key) => delete sessionStorageData[key],
+    );
   },
   get length() {
     return Object.keys(sessionStorageData).length;
@@ -147,7 +151,7 @@ global.sessionStorage = sessionStorageMock as unknown as Storage;
 // Setup test environment variables
 beforeAll(() => {
   process.env.NODE_ENV = 'test';
-  process.env.VITE_WS_URL = 'ws://localhost:5000/ws';
+  process.env.VITE_WS_URL = 'ws://localhost:5001/ws';
 });
 
 // Cleanup after all tests
@@ -175,7 +179,8 @@ afterAll(() => {
 });
 
 // Export common test utilities
-export const waitForAsync = () => new Promise(resolve => setTimeout(resolve, 0));
+export const waitForAsync = () =>
+  new Promise((resolve) => setTimeout(resolve, 0));
 
 export const mockWebSocketMessage = (ws: WebSocket, data: unknown) => {
   const messageEvent = new MessageEvent('message', {
