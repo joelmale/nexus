@@ -151,7 +151,7 @@ export class HybridStateManager {
     // Import the default state from your existing store
     // This would integrate with your existing initialState
     const baseState: GameState = {
-      view: 'welcome',
+      // Note: 'view' removed - using URL-based routing now
       user: {
         id: uuidv4(),
         name: '',

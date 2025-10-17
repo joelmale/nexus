@@ -1,8 +1,11 @@
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import { immer } from 'zustand/middleware/immer';
+import { enableMapSet } from 'immer';
+
+enableMapSet();
+
 import type {
-  AppView,
   PlayerCharacter,
   GameConfig,
   GameState,
@@ -45,8 +48,6 @@ import type {
   CoHostAddedEvent,
   CoHostRemovedEvent,
 } from '@/types/game';
-import type { GamePhase, LiveGameConfig } from '@/types/gameLifecycle';
-import { PHASE_PERMISSIONS } from '@/types/gameLifecycle';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultColorSchemes, applyColorScheme } from '@/utils/colorSchemes';
 import { drawingPersistenceService } from '@/services/drawingPersistence';
@@ -76,14 +77,12 @@ interface GameStore extends GameState {
   checkAuth: () => Promise<void>;
 
   // App Flow Actions (from appFlowStore)
-  view: AppView;
   gameConfig?: GameConfig;
   selectedCharacter?: PlayerCharacter;
-  setView: (view: AppView) => void;
   joinRoomWithCode: (
     roomCode: string,
     character?: PlayerCharacter,
-  ) => Promise<void>;
+  ) => Promise<string>;
   createGameRoom: (
     config: GameConfig,
     clearExistingData?: boolean,
@@ -102,15 +101,7 @@ interface GameStore extends GameState {
   exportCharacters: () => string;
   importCharacters: (jsonData: string) => void;
 
-  // Lifecycle Actions (from gameLifecycleStore)
-  startPreparation: () => void;
-  markReadyToStart: () => void;
-  startGoingLive: (config: LiveGameConfig) => Promise<string>;
-  goLive: (roomCode: string) => void;
-  pauseGame: (reason?: string) => void;
-  resumeGame: () => void;
-  endGame: (reason?: string, saveSnapshot?: boolean) => void;
-  joinLiveGame: (roomCode: string) => Promise<void>;
+  // Note: Lifecycle system removed - games now start online immediately
   leaveGame: () => void;
 
   // Scene Actions
@@ -320,22 +311,14 @@ const clearSessionFromStorage = (): void => {
   console.log('🗑️ Cleared session from localStorage');
 };
 
-// Read pre-game view from localStorage for persistence on refresh
-const preGameView = localStorage.getItem(
-  'nexus-pre-game-view',
-) as AppView | null;
-console.log(
-  `[Persistence] Found pre-game view in localStorage: '${preGameView}'`,
-);
+
 
 const initialState: GameState & {
-  view: AppView;
   gameConfig?: GameConfig;
   selectedCharacter?: PlayerCharacter;
   isAuthenticated: boolean;
 } = {
   // App Flow State (from appFlowStore)
-  view: preGameView || 'welcome',
   gameConfig: undefined,
   selectedCharacter: undefined,
 
@@ -438,7 +421,7 @@ const initialState: GameState & {
   // Version tracking for conflict resolution
   entityVersions: new Map(),
 };
-console.log(`[Persistence] Initial view set to: '${initialState.view}'`);
+
 
 // --- Mock Data for Development (can be toggled via settings) ---
 const MOCK_PLAYERS: Player[] = [
@@ -981,11 +964,11 @@ export const useGameStore = create<GameStore>()(
 
       // Auth Actions
       login: (user) => {
-        set({ user, isAuthenticated: true, view: 'dashboard' });
+        set({ user, isAuthenticated: true });
       },
       logout: async () => {
         await fetch('/auth/logout');
-        set({ user: initialState.user, isAuthenticated: false, view: 'welcome' });
+        set({ user: initialState.user, isAuthenticated: false });
       },
       checkAuth: async () => {
         try {
@@ -1002,30 +985,24 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
+      /**
+       * Update user data in the store
+       *
+       * Note: This no longer automatically changes views. Components should
+       * use React Router's navigate() to change pages after setting user data.
+       *
+       * @param userData - Partial user data to merge
+       */
       setUser: (userData) => {
         if (process.env.NODE_ENV === 'development') {
           console.log('👤 setUser:', userData);
         }
-        let nextView: AppView | null = null;
+
         set((state) => {
           Object.assign(state.user, userData);
-
-          // Determine next view based on user data
-          if (userData.name && userData.type) {
-            nextView = userData.type === 'player' ? 'player_setup' : 'dm_setup';
-          }
         });
 
-        // Call setView to handle navigation and persistence centrally
-        if (nextView) {
-          get().setView(nextView);
-        }
-
-        // Save session if we have a room code
-        const currentState = get();
-        if (currentState.session?.roomCode) {
-          saveSessionToStorage(currentState);
-        }
+        // Navigation is now handled by components using React Router
       },
 
       setSession: (session) => {
@@ -1074,27 +1051,19 @@ export const useGameStore = create<GameStore>()(
       },
 
       // App Flow Actions (from appFlowStore)
-      setView: (view: AppView) => {
-        const from = get().view;
-        if (from === view) return; // Avoid unnecessary sets
-        console.log(`[State] Changing view from '${from}' to '${view}'`);
-        set({ view });
 
-        // Persist pre-game view to localStorage to survive refreshes
-        if (view === 'player_setup' || view === 'dm_setup') {
-          localStorage.setItem('nexus-pre-game-view', view);
-          console.log(`[Persistence] Saved view '${view}' to localStorage.`);
-        } else {
-          // Clean up when moving to welcome or into the actual game
-          localStorage.removeItem('nexus-pre-game-view');
-          console.log(`[Persistence] Cleared pre-game-view from localStorage.`);
-        }
-      },
 
+      /**
+       * Join an existing game room via WebSocket
+       *
+       * @param roomCode - The room code to join
+       * @param character - Optional character to join with
+       * @returns The joined room code
+       */
       joinRoomWithCode: async (
         roomCode: string,
         character?: PlayerCharacter,
-      ) => {
+      ): Promise<string> => {
         try {
           // Import webSocketService
           const { webSocketService } = await import('@/utils/websocket');
@@ -1116,7 +1085,6 @@ export const useGameStore = create<GameStore>()(
 
           // Update state
           set((state) => {
-            state.view = 'game';
             if (character) {
               state.selectedCharacter = character;
             }
@@ -1203,12 +1171,21 @@ export const useGameStore = create<GameStore>()(
             );
             localStorage.setItem('nexus-characters', JSON.stringify(updated));
           }
+
+          return roomCode;
         } catch (error) {
           console.error('Failed to join room:', error);
           throw error;
         }
       },
 
+      /**
+       * Create a new game room via WebSocket
+       *
+       * @param config - Game configuration
+       * @param clearExistingData - Whether to clear IndexedDB data (legacy)
+       * @returns The created room code
+       */
       createGameRoom: async (
         config: GameConfig,
         clearExistingData: boolean = false, // Default false with PostgreSQL - scenes come from DB
@@ -1247,7 +1224,6 @@ export const useGameStore = create<GameStore>()(
           // Update state
           set((state) => {
             state.gameConfig = config;
-            state.view = 'game';
             state.user.connected = true;
           });
 
@@ -1290,28 +1266,30 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
+      /**
+       * Reset to welcome screen
+       *
+       * With URL-based routing, we use window.location to navigate to /lobby
+       * This ensures a full reset of the application state
+       */
       resetToWelcome: () => {
-        console.log('🔄 Resetting to welcome screen. Called from:');
-        console.trace(); // Log stack trace to find the caller
+        console.log('🔄 Resetting to welcome screen');
 
         set((state) => {
-          state.view = 'welcome';
-          state.user.name = '';
-          state.user.type = 'player';
-          state.user.connected = false;
+          // Clear session data
           state.session = null;
-          state.gameConfig = undefined;
-          state.selectedCharacter = undefined;
+          state.user = {
+            ...initialState.user,
+            id: getBrowserId(),
+          };
+          state.connection = initialState.connection;
         });
 
         // Clear persisted session
         clearSessionFromStorage();
-        // Also clear the pre-game view
-        localStorage.removeItem('nexus-pre-game-view');
 
-        console.log(
-          '✅ Reset complete - cleared user, room, and connection state',
-        );
+        // Navigate to lobby using window.location for full reset
+        window.location.href = '/lobby';
       },
 
       // Character Management Actions (from appFlowStore)
@@ -1427,63 +1405,7 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
-      // Lifecycle Actions (from gameLifecycleStore)
-      startPreparation: () => {
-        get().setView('dm_setup'); // Centralize view change
-        set((state) => {
-          state.user.type = 'host';
-          state.user.connected = false;
-          state.session = null;
-          console.log('🎯 Started preparation phase');
-        });
-      },
-
-      markReadyToStart: () => {
-        set((state) => {
-          state.view = 'game';
-          // User stays disconnected until they actually go live
-          console.log('✅ Marked ready to start live game');
-        });
-      },
-
-      startGoingLive: async (config: LiveGameConfig) => {
-        // Convert LiveGameConfig to GameConfig
-        const gameConfig: GameConfig = {
-          name: config.gameTitle || 'Untitled Campaign',
-          description: config.gameDescription || '',
-          estimatedTime: '2-4 hours', // Default
-          campaignType: 'campaign', // Default
-          maxPlayers: config.maxPlayers,
-        };
-
-        // Reuse existing createGameRoom logic
-        return await get().createGameRoom(gameConfig);
-      },
-
-      goLive: (roomCode: string) => {
-        // This is handled by createGameRoom, but we can add explicit logic if needed
-        console.log(`🚀 Game is now live! Room code: ${roomCode}`);
-      },
-
-      pauseGame: (reason?: string) => {
-        // For now, just log - full pause/resume can be implemented later
-        console.log('⏸️ Game paused', reason);
-      },
-
-      resumeGame: () => {
-        console.log('▶️ Game resumed');
-      },
-
-      endGame: (reason?: string, _saveSnapshot?: boolean) => {
-        // Use existing leaveRoom logic
-        get().leaveRoom();
-        console.log('🏁 Game ended', reason);
-      },
-
-      joinLiveGame: async (roomCode: string) => {
-        // Reuse existing joinRoomWithCode logic
-        return await get().joinRoomWithCode(roomCode);
-      },
+      // Note: Lifecycle system removed - use createGameRoom/joinRoomWithCode directly
 
       leaveGame: () => {
         // Use existing leaveRoom logic
@@ -2390,7 +2312,6 @@ export const useGameStore = create<GameStore>()(
         set((state) => {
           state.gameConfig = config;
           state.user.connected = false; // ❌ Not connected - offline mode
-          state.view = 'game';
         });
 
         console.log(
@@ -2445,7 +2366,6 @@ export const useGameStore = create<GameStore>()(
         const offlineRoomCode = autoJoinRoom || 'OFFLINE';
         set((state) => {
           state.user.connected = false; // ❌ NOT connected - offline mode
-          state.view = 'game';
         });
         console.log(
           `✅ DEV: Quick player in offline game - Room: ${offlineRoomCode}`,
@@ -2767,49 +2687,7 @@ export const useDrawingActions = () =>
     })),
   );
 
-// App Flow selectors (from appFlowStore)
-export const useView = () => useGameStore((state) => state.view);
-export const useGameConfig = () => useGameStore((state) => state.gameConfig);
-export const useSelectedCharacter = () =>
-  useGameStore((state) => state.selectedCharacter);
 
-// Lifecycle selectors (derived from gameStore state)
-export const useGamePhase = (): GamePhase => {
-  return useGameStore((state) => {
-    if (state.view === 'welcome') return 'preparation';
-    if (state.view === 'player_setup' || state.view === 'dm_setup')
-      return 'preparation';
-    if (state.view === 'game' && !state.user.connected) return 'ready';
-    if (state.view === 'game' && state.user.connected && state.session)
-      return 'live';
-    return 'preparation';
-  });
-};
-
-export const useGameMode = () => {
-  return useGameStore((state) => {
-    if (!state.user.connected) return 'offline';
-    if (state.session?.hostId === state.user.id) return 'hosting';
-    return 'live'; // joined as player
-  });
-};
-
-export const useLifecyclePermissions = () => {
-  const phase = useGamePhase();
-  return PHASE_PERMISSIONS[phase];
-};
-
-export const useIsOnline = () => {
-  const mode = useGameMode();
-  return mode === 'hosting' || mode === 'live';
-};
-
-export const useCanGoLive = () => {
-  return useGameStore(
-    (state) =>
-      state.view === 'game' && !state.user.connected && !!state.session,
-  );
-};
 
 export const useServerRoomCode = () => {
   return useGameStore((state) => state.session?.roomCode || null);

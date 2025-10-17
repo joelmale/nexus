@@ -49,18 +49,18 @@ interface StoreState {
   version: number;
 }
 
-export class OgresStyleStore {
+export class EntityStore {
   private storage: SerializingIndexedDBAdapter;
   private state: StoreState;
-  private saveThrottle: number = 2000; // 2 seconds like Ogres
+  private saveThrottle: number = 2000; // 2 seconds (Throttled)
   private saveTimer: NodeJS.Timeout | null = null;
   private isDirty: boolean = false;
 
   // Event system
   private listeners: Map<string, Set<(entity: Entity) => void>> = new Map();
 
-  constructor(dbName: string = 'nexus-ogres-store') {
-    console.log('📚 Ogres-style store: Creating with database name:', dbName);
+  constructor(dbName: string = 'nexus-entity-store') {
+    console.log('📚 Entity store: Creating with database name:', dbName);
 
     // Use default IndexedDB configuration for now
     const baseAdapter = createIndexedDBAdapter({
@@ -477,7 +477,7 @@ export class OgresStyleStore {
   }
 
   // =============================================================================
-  // BACKUP/RESTORE (Ogres-style)
+  // BACKUP/RESTORE
   // =============================================================================
 
   /**
@@ -604,11 +604,11 @@ export class OgresStyleStore {
 }
 
 // Global store instance (singleton)
-let globalStore: OgresStyleStore | null = null;
+let globalStore: EntityStore | null = null;
 
-export function getOgresStore(): OgresStyleStore {
+export function getEntityStore(): EntityStore {
   if (!globalStore) {
-    globalStore = new OgresStyleStore();
+    globalStore = new EntityStore();
   }
   return globalStore;
 }

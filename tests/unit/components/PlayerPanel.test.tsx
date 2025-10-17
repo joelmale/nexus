@@ -1,4 +1,4 @@
-import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { within } from '@testing-library/react';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -29,6 +29,14 @@ vi.mock('@/components/CharacterCreationLauncher', () => ({
 vi.mock('@/stores/initiativeStore', () => ({
   useInitiativeStore: vi.fn(),
 }));
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: vi.fn(),
+  };
+});
 
 // Mock the CharacterSheet component
 vi.mock('@/components/CharacterSheet', () => ({
@@ -130,14 +138,13 @@ describe('PlayerPanel', () => {
     isActive: false,
   };
 
-  const mockGameStoreActions = {
-    setView: vi.fn(),
-  };
+  const mockNavigate = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Default mock implementations
+    vi.mocked(useNavigate).mockReturnValue(mockNavigate);
     vi.mocked(useSession).mockReturnValue(mockSession);
     vi.mocked(useIsHost).mockReturnValue(false);
     vi.mocked(useCharacters).mockReturnValue({
@@ -149,7 +156,7 @@ describe('PlayerPanel', () => {
     vi.mocked(useInitiativeStore).mockReturnValue(mockInitiativeActions);
     vi.mocked(useCharacterCreationLauncher).mockReturnValue(mockLauncher);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(useGameStore).mockReturnValue(mockGameStoreActions as any);
+    vi.mocked(useGameStore).mockReturnValue({} as any);
   });
 
   describe('Component Rendering', () => {
@@ -250,7 +257,7 @@ describe('PlayerPanel', () => {
       const createButton = screen.getByText('➕ New Character');
       fireEvent.click(createButton);
 
-      expect(mockGameStoreActions.setView).toHaveBeenCalledWith('player_setup');
+      expect(mockNavigate).toHaveBeenCalledWith('/lobby/player-setup');
     });
 
     it('should handle character view click', () => {

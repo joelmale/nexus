@@ -1,429 +1,89 @@
 /**
- * Linear Game Layout Component
+ * Game layout component for active game sessions
  *
- * Clean game interface without routing logic for use in linear flow
+ * Handles:
+ * - Loading game session from URL parameter
+ * - Session recovery on page refresh
+ * - WebSocket reconnection
+ * - Invalid/expired session handling
  */
-
-import React, {
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-  Suspense,
-} from 'react';
-import {
-  useActiveScene,
-  useScenes,
-  useSettings,
-  useColorScheme,
-  useGameStore,
-  useServerRoomCode,
-  useIsConnected,
-} from '@/stores/gameStore';
-import { SceneCanvas } from './Scene/SceneCanvas';
-import { SceneTabs } from './Scene/SceneTabs';
-import { GameToolbar } from './GameToolbar';
-import { PlayerBar } from './PlayerBar';
-import { ContextPanel } from './ContextPanel';
-import { GeneratorPanel } from './Generator/GeneratorPanel';
-import { DiceBox3D } from './DiceBox3D';
-import ConnectionStatus from './ConnectionStatus';
-import { applyColorScheme } from '@/utils/colorSchemes';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useGameStore } from '@/stores/gameStore';
+import { GameUI } from './GameUI'; // Assuming GameUI is the main game interface
 
 export const LinearGameLayout: React.FC = () => {
-  const activeScene = useActiveScene();
-  const scenes = useScenes();
-  const settings = useSettings();
-  const colorScheme = useColorScheme();
-  const { user, leaveRoom } = useGameStore();
-  const roomCode = useServerRoomCode();
-  const isConnectedToRoom = useIsConnected();
+  const { roomCode } = useParams<{ roomCode: string }>();
+  const navigate = useNavigate();
+  const { session, user } = useGameStore();
+  const [isRecovering, setIsRecovering] = useState(true);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
 
-  // Add debugging for game layout mounting and auto-reconnect WebSocket
   useEffect(() => {
-    // Auto-reconnect WebSocket if we have a room code AND we're supposed to be connected
-    // Skip auto-reconnect for offline mode (when isConnectedToRoom is false)
-    let isCancelled = false; // Guard against React Strict Mode double-mount
-
-    const reconnectIfNeeded = async () => {
-      if (isCancelled || !roomCode || !user.type) return; // Early exit if cancelled
-
-      // IMPORTANT: Skip auto-reconnect if we're in offline mode
-      // dev_quickDM and dev_quickPlayer set isConnectedToRoom to false
-      if (!isConnectedToRoom) {
-        // Offline mode detected - skipping WebSocket auto-reconnect
+    const recoverSession = async () => {
+      if (!roomCode) {
+        console.error('No room code in URL');
+        navigate('/lobby');
         return;
       }
 
-      const { webSocketService: wsService } = await import('@/utils/websocket');
+      try {
+        // Check if we already have this session loaded
+        if (session?.roomCode === roomCode) {
+          console.log('✅ Session already loaded:', roomCode);
+          setIsRecovering(false);
+          return;
+        }
 
-      // Check again after async import (component might have unmounted)
-      if (isCancelled) return;
+        // Try to recover from localStorage
+        const stored = localStorage.getItem('nexus-active-session');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.roomCode === roomCode) {
+            console.log('🔄 Recovering session from localStorage:', roomCode);
 
-      if (!wsService.isConnected()) {
-        try {
-          const userType = user.type;
-          await wsService.connect(roomCode, userType);
-        } catch (error) {
-          if (!isCancelled) {
-            console.error('❌ Auto-reconnection failed:', error);
+            // Reconnect to WebSocket with room code
+            const { webSocketService } = await import('@/utils/websocket');
+            await webSocketService.connect(roomCode, user.type);
+
+            setIsRecovering(false);
+            return;
           }
         }
+
+        // No recoverable session - redirect to lobby
+        console.warn('⚠️ No recoverable session for room:', roomCode);
+        setRecoveryError('Session expired or invalid');
+        setTimeout(() => navigate('/lobby'), 2000);
+
+      } catch (error) {
+        console.error('Failed to recover session:', error);
+        setRecoveryError('Failed to reconnect to game');
+        setTimeout(() => navigate('/lobby'), 2000);
       }
-
-      // Listen for WebSocket messages to handle "Room not found" error
-      const handleWebSocketMessage = (event: Event) => {
-        const customEvent = event as CustomEvent;
-        const message = customEvent.detail;
-
-        if (
-          message.type === 'error' &&
-          message.data?.message === 'Room not found'
-        ) {
-          // Navigate back to welcome screen
-          const { resetToWelcome } = useGameStore.getState();
-          resetToWelcome();
-        }
-      };
-
-      wsService.addEventListener('message', handleWebSocketMessage);
-
-      return () => {
-        wsService.removeEventListener('message', handleWebSocketMessage);
-      };
     };
 
-    reconnectIfNeeded();
+    recoverSession();
+  }, [roomCode, navigate, session, user.type]);
 
-    return () => {
-      isCancelled = true; // Cancel any pending async operations
-    };
-  }, [roomCode, user.type, isConnectedToRoom]);
-
-  // Use appFlowStore for host detection instead of old gameStore
-  const isHost = user.type === 'host';
-
-  // Debug logging for host status
-  useEffect(() => {
-    // Safety check: If we have no user but we're in game view, something is wrong
-    if (!user.name || !user.type) {
-      console.warn(
-        '⚠️ LinearGameLayout rendered with invalid user state - should be on welcome screen',
-      );
-    }
-  }, [user.type, isHost, user.name, roomCode]);
-
-  const [panelExpanded, setPanelExpanded] = useState(true);
-  const [activePanel, setActivePanel] = useState<
-    | 'tokens'
-    | 'scene'
-    | 'props'
-    | 'generator'
-    | 'initiative'
-    | 'dice'
-    | 'chat'
-    | 'sounds'
-    | 'lobby'
-    | 'settings'
-  >(isHost ? 'scene' : 'lobby');
-  const [sidebarWidth, setSidebarWidth] = useState(300);
-
-  // Apply color scheme on mount and when it changes
-  useEffect(() => {
-    applyColorScheme(colorScheme);
-  }, [colorScheme]);
-
-  // Apply theme based on glassmorphism setting using theme manager
-  useEffect(() => {
-    import('@/utils/themeManager').then(({ switchTheme }) => {
-      const targetTheme = settings.enableGlassmorphism ? 'glass' : 'solid';
-      switchTheme(targetTheme);
-    });
-  }, [settings.enableGlassmorphism]);
-
-  // Resize functionality
-  const isResizing = useRef(false);
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  const startMouseX = useRef(0);
-  const startWidth = useRef(0);
-
-  const handleResizeStart = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const handle = e.currentTarget as HTMLElement;
-
-      isResizing.current = true;
-      startMouseX.current = e.clientX;
-      startWidth.current = sidebarWidth;
-
-      // Add dragging class for visual feedback
-      handle.classList.add('dragging');
-
-      // Set cursor and prevent text selection globally
-      document.body.style.cursor = 'ew-resize';
-      document.body.style.userSelect = 'none';
-      document.body.style.pointerEvents = 'none';
-
-      const handleMouseMove = (e: MouseEvent) => {
-        if (!isResizing.current) return;
-
-        requestAnimationFrame(() => {
-          const deltaX = startMouseX.current - e.clientX;
-          const newWidth = startWidth.current + deltaX;
-
-          const minWidth = panelExpanded ? 250 : 60;
-          const maxWidth = 500;
-
-          const constrainedWidth = Math.max(
-            minWidth,
-            Math.min(maxWidth, newWidth),
-          );
-          setSidebarWidth(constrainedWidth);
-        });
-      };
-
-      const handleMouseUp = () => {
-        if (!isResizing.current) return;
-
-        isResizing.current = false;
-
-        handle.classList.remove('dragging');
-
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        document.body.style.pointerEvents = '';
-
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.removeEventListener('mouseleave', handleMouseUp);
-
-        document.removeEventListener('pointermove', handleMouseMove);
-        document.removeEventListener('pointerup', handleMouseUp);
-        document.removeEventListener('pointercancel', handleMouseUp);
-      };
-
-      document.addEventListener('mousemove', handleMouseMove, {
-        passive: false,
-      });
-      document.addEventListener('mouseup', handleMouseUp, { passive: false });
-      document.addEventListener('mouseleave', handleMouseUp, {
-        passive: false,
-      });
-
-      document.addEventListener('pointermove', handleMouseMove, {
-        passive: false,
-      });
-      document.addEventListener('pointerup', handleMouseUp, {
-        passive: false,
-      });
-      document.addEventListener('pointercancel', handleMouseUp, {
-        passive: false,
-      });
-    },
-    [sidebarWidth, panelExpanded],
-  );
-
-  const handleContentWidthChange = useCallback((width: number) => {
-    if (width > 0) {
-      setSidebarWidth(width);
-    }
-  }, []);
-
-  const panels = [
-    { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
-    { id: 'scene' as const, icon: '🖼', label: 'Scene' },
-    ...(isHost ? [{ id: 'props' as const, icon: '📦', label: 'Props' }] : []),
-    ...(isHost
-      ? [{ id: 'generator' as const, icon: '🗺️', label: 'Generator' }]
-      : []),
-    { id: 'initiative' as const, icon: '⏱', label: 'Initiative' },
-    { id: 'dice' as const, icon: '🎲', label: 'Dice' },
-    { id: 'chat' as const, icon: '💬', label: 'Chat' },
-    ...(isHost ? [{ id: 'sounds' as const, icon: '🔊', label: 'Sounds' }] : []),
-    { id: 'lobby' as const, icon: '🏠', label: 'Lobby' },
-    { id: 'settings' as const, icon: '⚙️', label: 'Settings' },
-  ];
-
-  // Show waiting screen only for players when no scene exists
-  if (!activeScene && !isHost) {
+  if (isRecovering) {
     return (
-      <div className="linear-game-layout">
-        <div className="game-header">
-          <div className="header-left">
-            <div className="room-info">
-              <h2>🎲 Game Room: {roomCode}</h2>
-              <p>
-                Welcome, <strong>{user.name}</strong>!
-              </p>
-            </div>
-          </div>
-          <div className="header-right">
-            <ConnectionStatus showDetails={false} />
-            <button onClick={leaveRoom} className="glass-button secondary">
-              <span>🚪</span>
-              Leave Room
-            </button>
-          </div>
-        </div>
-
-        <div className="game-setup-content">
-          <div className="setup-panel glass-panel">
-            <div className="player-waiting">
-              <ConnectionStatus showDetails={true} className="mb-4" />
-              <h2>⏳ Waiting for DM</h2>
-              <p>The Dungeon Master is setting up the game...</p>
-              <div className="waiting-animation">
-                <div className="loading-dots">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="session-recovery">
+        <div className="spinner" />
+        <p>Reconnecting to game...</p>
       </div>
     );
   }
 
-  // Handle case where DM has no scenes yet - show full interface but with empty scene
-  if (!activeScene && isHost) {
-    // DM sees full interface even without scenes - they can create scenes via the scene panel
+  if (recoveryError) {
+    return (
+      <div className="session-error">
+        <p>{recoveryError}</p>
+        <p>Redirecting to lobby...</p>
+      </div>
+    );
   }
 
-  return (
-    <div
-      className="game-layout"
-      data-panel-expanded={panelExpanded}
-      data-sidebar-width={panelExpanded ? sidebarWidth : 60}
-    >
-      {/* Game Header */}
-      <div className="layout-header">
-        <div className="header-left">
-          <PlayerBar />
-        </div>
-
-        <div className="header-right">
-          {/* Horizontal Panel Tabs */}
-          <ul className="horizontal-panel-tabs" role="tablist">
-            {panels.map((panel) => (
-              <React.Fragment key={panel.id}>
-                <input
-                  type="radio"
-                  name="panel"
-                  id={`panel-radio-${panel.id}`}
-                  value={panel.id}
-                  checked={activePanel === panel.id}
-                  onChange={() => setActivePanel(panel.id)}
-                  style={{ display: 'none' }}
-                />
-                <li className="horizontal-panel-tab" role="tab">
-                  <label htmlFor={`panel-radio-${panel.id}`}>
-                    <span className="panel-icon">{panel.icon}</span>
-                    <span className="panel-label">{panel.label}</span>
-                  </label>
-                </li>
-              </React.Fragment>
-            ))}
-          </ul>
-
-          {/* Collapse/Expand Toggle */}
-          <div className="horizontal-panel-toggle">
-            <button
-              type="button"
-              onClick={() => setPanelExpanded(!panelExpanded)}
-              title={panelExpanded ? 'Collapse panel' : 'Expand panel'}
-            >
-              <span className="toggle-icon">{panelExpanded ? '»' : '«'}</span>
-            </button>
-          </div>
-
-          {/* Leave Room Button */}
-          <div className="header-action">
-            <button
-              onClick={leaveRoom}
-              className="glass-button secondary small"
-              title="Leave Room"
-            >
-              🚪
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Game Canvas with Scene Tabs */}
-      <div className="layout-scene">
-        {/* Browser-Style Scene Tab Bar */}
-        <div className="scene-tab-bar">
-          <SceneTabs scenes={scenes} activeSceneId={activeScene?.id || ''} />
-        </div>
-
-        {/* Scene Content */}
-        <div className="scene-content scene-content-relative">
-          {activeScene ? (
-            <SceneCanvas scene={activeScene} />
-          ) : (
-            <div className="empty-scene-state">
-              <div className="empty-scene-content">
-                <h3>🎲 Ready to Create Your First Scene</h3>
-                <p>
-                  Use the Scene panel on the right to create and configure your
-                  first scene.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* 3D Dice Box - positioned top-right of scene */}
-          <DiceBox3D />
-        </div>
-
-        {/* Floating Toolbar */}
-        <div className="layout-toolbar">
-          <Suspense
-            fallback={
-              <div className="toolbar-skeleton">Loading toolbar...</div>
-            }
-          >
-            <GameToolbar />
-          </Suspense>
-        </div>
-      </div>
-
-      {/* Resizable Context Panel */}
-      <div
-        ref={sidebarRef}
-        className={`layout-panel`}
-        data-expanded={panelExpanded}
-      >
-        {/* Resize Handle */}
-        <div
-          className="sidebar-resize-handle"
-          onMouseDown={handleResizeStart}
-        />
-
-        <Suspense
-          fallback={<div className="panel-skeleton">Loading panel...</div>}
-        >
-          <ContextPanel
-            activePanel={activePanel}
-            onPanelChange={setActivePanel}
-            expanded={panelExpanded}
-            onToggleExpanded={() => setPanelExpanded(!panelExpanded)}
-            onContentWidthChange={handleContentWidthChange}
-          />
-        </Suspense>
-      </div>
-
-      {activePanel === 'generator' && (
-        <div className="generator-overlay">
-          <div className="generator-overlay-content">
-            <GeneratorPanel onSwitchToScenes={() => setActivePanel('scene')} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  // Render actual game UI
+  return <GameUI />;
 };

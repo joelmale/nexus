@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
 import { useCharacters } from '@/stores/characterStore';
@@ -42,7 +43,8 @@ const convertCharacterToPlayerCharacter = (
 };
 
 export const PlayerSetupPage: React.FC = () => {
-  const { user, joinRoomWithCode, resetToWelcome } = useGameStore();
+  const { user, joinRoomWithCode } = useGameStore();
+  const navigate = useNavigate();
 
   const { characters, deleteCharacter } = useCharacters();
   const { startCharacterCreation, LauncherComponent } =
@@ -76,7 +78,8 @@ export const PlayerSetupPage: React.FC = () => {
       const playerCharacter = selectedCharacter
         ? convertCharacterToPlayerCharacter(selectedCharacter)
         : undefined;
-      await joinRoomWithCode(roomCode.trim().toUpperCase(), playerCharacter);
+      const joinedRoomCode = await joinRoomWithCode(roomCode.trim().toUpperCase(), playerCharacter);
+      navigate(`/lobby/game/${joinedRoomCode}`);
     } catch {
       setError('Failed to join room - room may not exist or be full');
     } finally {
@@ -112,6 +115,10 @@ export const PlayerSetupPage: React.FC = () => {
     alert('Character import will be implemented in a future update');
   };
 
+  const handleBack = () => {
+    navigate('/lobby');
+  };
+
   const handleCreateCharacter = () => {
     if (user.id) {
       startCharacterCreation(
@@ -141,7 +148,7 @@ export const PlayerSetupPage: React.FC = () => {
           <div className="setup-header">
             <div className="header-with-back">
               <button
-                onClick={resetToWelcome}
+                onClick={handleBack}
                 className="back-button glass-button"
                 title="Back to Welcome"
               >

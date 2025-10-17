@@ -35,6 +35,19 @@
 - **Intelligent port management** - auto-resolves conflicts
 - **Comprehensive debugging** tools and logging
 
+## Routing
+
+The application uses React Router for URL-based routing.
+Each major view has its own URL:
+
+- `/lobby` - Create or join games
+- `/lobby/dm-setup` - Configure DM game
+- `/lobby/player-setup` - Configure player
+- `/lobby/game/:roomCode` - Active game
+- `/dashboard` - User dashboard
+
+See [docs/routing-architecture.md](docs/routing-architecture.md) for details.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
