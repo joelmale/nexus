@@ -12,24 +12,28 @@
 ## ✨ Features
 
 ### 🎨 **Stunning Glassmorphism Design**
+
 - **Translucent glass panels** with backdrop blur effects
-- **Smooth animations** and interactive hover states  
+- **Smooth animations** and interactive hover states
 - **Modern gradient backgrounds** with floating particles
 - **Responsive design** for desktop, tablet, and mobile
 
 ### 🎲 **Real-time Multiplayer Gaming**
+
 - **Instant session creation** with 4-character room codes
 - **Host/Player roles** - DM controls, players participate
 - **Live dice rolling** with full expression support (2d6+3, 1d20, etc.)
 - **Real-time synchronization** across all connected players
 
 ### 🏗️ **Hybrid Architecture**
+
 - **Client-side authority** - game logic runs in host's browser
 - **Minimal server** - routes messages and persists session data
 - **PostgreSQL Backend** - Game sessions are persisted in a database for resilience.
 - **Lightning fast** - instant responses, zero server lag
 
 ### 🛠️ **Developer-Friendly**
+
 - **Modern TypeScript** codebase with full type safety
 - **Hot module reloading** for rapid development
 - **Intelligent port management** - auto-resolves conflicts
@@ -51,6 +55,7 @@ See [docs/routing-architecture.md](docs/routing-architecture.md) for details.
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - **Node.js 18+** and npm
 - **Docker Desktop** - Must be installed and running.
 - Modern web browser (Chrome, Firefox, Safari, Edge)
@@ -58,24 +63,28 @@ See [docs/routing-architecture.md](docs/routing-architecture.md) for details.
 ### Installation & Setup
 
 1.  **Clone the repository**
+
     ```bash
     git clone https://github.com/your-username/nexus-vtt.git
     cd nexus-vtt
     ```
 
 2.  **Install dependencies**
+
     ```bash
     npm install
     ```
 
 3.  **Configure Environment**
     Create a new file named `.env.local` in the root of the project and add the following line. This file is for your local secrets and is ignored by Git.
+
     ```
     DATABASE_URL="postgres://nexus:password@localhost:5432/nexus"
     ```
 
 4.  **Start the Database**
     In a separate terminal, start the PostgreSQL database container.
+
     ```bash
     docker compose -f docker/docker-compose.dev.yml up -d postgres-dev
     ```
@@ -87,6 +96,7 @@ See [docs/routing-architecture.md](docs/routing-architecture.md) for details.
     ```
 
 The setup will start:
+
 - ✅ **PostgreSQL Database** on port 5432
 - ✅ **Frontend** on http://localhost:5173
 - ✅ **Backend Server** on http://localhost:5001
@@ -105,18 +115,21 @@ npm run server:dev   # Backend server (WebSocket + Assets)
 ## 🎯 Usage
 
 ### Creating a Game
+
 1. **Enter your name** in the lobby
-2. **Click "Host Game"** - you'll get a room code like "BOT1" 
+2. **Click "Host Game"** - you'll get a room code like "BOT1"
 3. **Share the room code** with your players
 4. **Start playing!** Use the dice roller and prepare for upcoming features
 
 ### Joining a Game
+
 1. **Enter your name** in the lobby
 2. **Enter the room code** from your DM
-3. **Click "Join Game"** 
+3. **Click "Join Game"**
 4. **You're connected!** Roll dice and interact with other players
 
 ### Current Features (MVCR Complete)
+
 - ✅ **Session Management** - Create/join games with room codes
 - ✅ **Multi-tab Interface** - Lobby, Dice, Scenes, Settings
 - ✅ **Real-time Dice Roller** - Full expression parsing with shared results
@@ -148,6 +161,7 @@ nexus-vtt/
 ## 🎨 Asset Management
 
 ### Adding Your Graphics
+
 ```bash
 # Process your asset collection
 node scripts/process-assets.js /path/to/your/assets ./asset-server/assets
@@ -160,6 +174,7 @@ cd asset-server && npm run dev
 ```
 
 ### Supported Asset Types
+
 - **Maps**: Dungeons, cities, wilderness, interiors, battlemaps
 - **Tokens**: Characters, monsters, objects, NPCs
 - **Art**: Character portraits, scene art, concept art
@@ -167,6 +182,7 @@ cd asset-server && npm run dev
 - **Reference**: Rules, charts, tables, guides
 
 ### Asset Processing Features
+
 - **WebP Conversion**: Reduces file sizes by ~40% while maintaining quality
 - **Thumbnail Generation**: 300x300 previews for fast browsing
 - **Smart Categorization**: Automatic organization by content type
@@ -174,7 +190,9 @@ cd asset-server && npm run dev
 - **Standardized Structure**: Organized folder hierarchy
 
 ### Asset Browser Integration
+
 The Scene Editor includes a professional asset browser:
+
 - 🔍 **Search and filter** by name, category, or tags
 - 📁 **Category organization** with subcategories
 - 🖼️ **Thumbnail grid** for quick visual selection
@@ -186,6 +204,7 @@ The Scene Editor includes a professional asset browser:
 ### Available Scripts
 
 #### 🚀 **Quick Start Commands**
+
 ```bash
 npm run start:all        # Start all servers (frontend + backend + assets) - Full development
 npm run dev              # Start frontend only - Quick UI development
@@ -195,11 +214,13 @@ npm run start:full      # Start with named process output
 ```
 
 #### 📋 **When to Use Which Command**
+
 - **`npm run dev`** - Frontend only, perfect for UI work and offline preparation mode
 - **`npm run start:all`** - Full stack, needed for multiplayer features and WebSocket server
 - **`npm run setup`** - First time setup with intelligent port conflict resolution
 
 #### 🖥️ **Development - Frontend**
+
 ```bash
 npm run dev              # Start frontend only (port 5173) - Quick UI development
 npm run dev:3000         # Start frontend on port 3000
@@ -209,6 +230,7 @@ npm run preview          # Preview production build
 ```
 
 #### 🔌 **Development - Backend/WebSocket**
+
 ```bash
 npm run server:dev       # Start WebSocket server (port 5001)
 npm run server:dev:5001  # Start WebSocket server on port 5001
@@ -218,6 +240,7 @@ npm run server:test      # Run server in test mode
 ```
 
 #### 🏗️ **Build Commands**
+
 ```bash
 npm run build           # Production build (frontend)
 npm run build:server    # Build server TypeScript
@@ -227,6 +250,7 @@ npm run server:start    # Start production server (after build)
 ```
 
 #### 🧪 **Testing & Quality**
+
 ```bash
 # Type Checking & Linting
 npm run type-check      # TypeScript validation only
@@ -249,6 +273,7 @@ npm run test:visual     # Visual regression testing
 ```
 
 #### 🐳 **Docker Commands**
+
 ```bash
 npm run docker:dev      # Start development environment
 npm run docker:dev:build # Build and start dev environment
@@ -260,6 +285,7 @@ npm run docker:setup   # Full Docker environment setup
 ```
 
 #### 🎨 **Asset Management**
+
 ```bash
 npm run organize-assets # Organize asset directory structure
 npm run update-assets  # Update asset references in code
@@ -271,6 +297,7 @@ npm install sharp      # Install image processing library
 ```
 
 #### 🔧 **Development Tools**
+
 ```bash
 npm run validate-layout # Validate CSS layout rules
 npm run validate-env   # Validate environment configuration
@@ -279,6 +306,7 @@ npm run dev:quick      # Quick development start (alias)
 ```
 
 #### 📦 **Legacy & Utility**
+
 ```bash
 npm run prepare        # Husky git hooks setup (auto-run on install)
 ```
@@ -286,6 +314,7 @@ npm run prepare        # Husky git hooks setup (auto-run on install)
 ### Architecture Deep Dive
 
 #### Frontend (React + TypeScript)
+
 - **Zustand + Immer**: Immutable state management with reactive updates
 - **WebSocket Service**: Robust connection handling with auto-reconnect
 - **Asset Manager**: Smart caching and lazy loading for images
@@ -293,12 +322,14 @@ npm run prepare        # Husky git hooks setup (auto-run on install)
 - **Type Safety**: Full TypeScript coverage with strict mode
 
 #### Backend (Node.js + WebSocket)
+
 - **Minimal Relay**: ~300 lines of code, just routes messages
 - **Room Management**: 4-character codes, host/player roles
 - **No Game Logic**: All logic runs in host browser
 - **Port Intelligence**: Auto-detects conflicts, suggests alternatives
 
 #### Asset Server (Express.js + Sharp)
+
 - **Image Processing**: Converts all images to optimized WebP format
 - **Smart Caching**: HTTP caching headers and client-side IndexedDB
 - **RESTful API**: Search, categorization, and metadata endpoints
@@ -306,11 +337,12 @@ npm run prepare        # Husky git hooks setup (auto-run on install)
 - **CORS Support**: Cross-origin requests for development
 
 #### State Synchronization
+
 ```typescript
 // Host browser: Source of truth
 Host makes change → Generate event → Send to server → Broadcast to players
 
-// Player browsers: Apply updates  
+// Player browsers: Apply updates
 Receive event → Update local state → Re-render UI
 
 // Asset Server: Serve optimized content
@@ -323,30 +355,35 @@ Receive message → Route to room members → No processing
 ## 🚧 Roadmap
 
 ### Phase 1: Scene Management (In Progress)
+
 - [x] **Interactive battle maps** with background images
-- [x] **Grid system** with customizable spacing and snapping  
+- [x] **Grid system** with customizable spacing and snapping
 - [ ] **Pan and zoom** controls for navigation
 - [ ] **Scene switching** for multiple encounters
 
 ### Phase 2: Token System
+
 - [ ] **Character and NPC tokens** with drag-and-drop movement
 - [ ] **Token library** for organizing character art
 - [ ] **Health and status tracking** with visual indicators
 - [ ] **Multi-select** and group movement
 
-### Phase 3: Initiative & Combat  
+### Phase 3: Initiative & Combat
+
 - [ ] **Initiative tracker** with automatic turn management
 - [ ] **Combat flow** with round counting and turn indicators
 - [ ] **Status effects** and condition management
 - [ ] **Integrated dice rolling** for attacks and saves
 
 ### Phase 4: Drawing & Measurement
+
 - [ ] **Drawing tools** for tactical annotations
 - [ ] **Measurement tools** for distance and area
 - [ ] **Real-time collaboration** on drawings
 - [ ] **Layer management** for organization
 
 ### Phase 5: Advanced Features
+
 - [ ] **Fog of war** and dynamic lighting
 - [ ] **Hex grid support** and grid-less mode
 - [ ] **Session persistence** and save/load
@@ -358,18 +395,19 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
 
 ### Test Coverage Overview
 
-| Category | Tests | Files | Coverage |
-|----------|-------|-------|----------|
-| **Unit Tests** | 252 | 15 | Utils, Stores, Services, Types |
-| **Component Tests** | 16 | 3 | UI Components |
-| **E2E Tests** | 2 | 2 | Visual & Layout |
-| **Total** | **270** | **18** | **100% Pass Rate** |
+| Category            | Tests   | Files  | Coverage                       |
+| ------------------- | ------- | ------ | ------------------------------ |
+| **Unit Tests**      | 252     | 15     | Utils, Stores, Services, Types |
+| **Component Tests** | 16      | 3      | UI Components                  |
+| **E2E Tests**       | 2       | 2      | Visual & Layout                |
+| **Total**           | **270** | **18** | **100% Pass Rate**             |
 
 ### NIST 800-53 Control Mapping
 
 #### **SI (System and Information Integrity)**
 
 **SI-10: Information Input Validation**
+
 - `dice.test.ts` (15 tests)
   - Validates dice expression parsing (e.g., `2d6+3`, `1d20`)
   - Rejects invalid expressions (trailing operators, malformed syntax)
@@ -377,6 +415,7 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
   - Tests whitespace handling and edge cases
 
 **SI-11: Error Handling**
+
 - `assetManager.test.ts` (7 tests)
   - Handles network failures gracefully
   - Returns empty manifests on fetch errors
@@ -391,6 +430,7 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
   - Validates error recovery mechanisms
 
 **SI-7: Software, Firmware, and Information Integrity**
+
 - `mathUtils.test.ts` (32 tests)
   - Validates geometric calculations (distance, collision detection)
   - Tests grid snapping and coordinate transformations
@@ -399,13 +439,15 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
 #### **AC (Access Control)**
 
 **AC-2: Account Management**
-- `gameLifecycleStore.test.ts` (24 tests)
+
+- `gameStore.test.ts` (19 tests)
   - Tests host/player role assignment
   - Validates session creation and joining
   - Tests phase transition controls (lobby → live → paused)
   - Prevents invalid state transitions
 
 **AC-3: Access Enforcement**
+
 - `gameStore.test.ts` (19 tests)
   - Tests role-based permissions (host vs player)
   - Validates user action authorization
@@ -414,12 +456,14 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
 #### **AU (Audit and Accountability)**
 
 **AU-2: Event Logging**
+
 - `websocket.test.ts` (6 tests)
   - Tests WebSocket connection event tracking
   - Validates message send/receive logging
   - Tests connection state transitions
 
 **AU-9: Protection of Audit Information**
+
 - `sessionPersistence.test.ts` (24 tests)
   - Tests activity timestamp tracking
   - Validates session statistics collection
@@ -428,6 +472,7 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
 #### **SC (System and Communications Protection)**
 
 **SC-8: Transmission Confidentiality and Integrity**
+
 - `websocket.test.ts` (6 tests)
   - Tests WebSocket connection establishment
   - Validates message queuing when disconnected
@@ -435,6 +480,7 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
   - Ensures message integrity during transmission
 
 **SC-23: Session Authenticity**
+
 - `sessionPersistence.test.ts` (24 tests)
   - Validates session structure and format
   - Tests session expiration (5-minute timeout)
@@ -444,18 +490,21 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
 #### **CM (Configuration Management)**
 
 **CM-2: Baseline Configuration**
+
 - `characterStore.test.ts` (25 tests)
   - Tests character data structure validation
   - Validates default character attributes
   - Tests character creation wizard flow
 
 **CM-3: Configuration Change Control**
-- `gameLifecycleStore.test.ts` (24 tests)
+
+- `gameStore.test.ts` (19 tests)
   - Tests controlled state transitions
   - Validates phase change authorization
   - Tests rollback on invalid transitions
 
 **CM-6: Configuration Settings**
+
 - `colorSchemes.test.ts` (7 tests)
   - Tests theme configuration
   - Validates color scheme settings
@@ -464,6 +513,7 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
 #### **CP (Contingency Planning)**
 
 **CP-9: Information System Backup**
+
 - `sessionPersistence.test.ts` (24 tests)
   - Tests session save/load operations
   - Validates game state persistence
@@ -471,6 +521,7 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
   - Validates backup version compatibility
 
 **CP-10: Information System Recovery**
+
 - `sessionPersistence.test.ts` (24 tests)
   - Tests session recovery from localStorage
   - Validates reconnection capability
@@ -480,12 +531,14 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
 #### **IA (Identification and Authentication)**
 
 **IA-2: Identification and Authentication**
+
 - `gameStore.test.ts` (19 tests)
   - Tests user identification via room codes
   - Validates player name requirements
   - Tests session authentication
 
 **IA-11: Re-authentication**
+
 - `sessionPersistence.test.ts` (24 tests)
   - Tests reconnection authentication
   - Validates session timeout handling
@@ -494,12 +547,14 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
 #### **SI (System and Information Integrity) - UI/UX**
 
 **SI-12: Information Handling and Retention**
+
 - `character.test.ts` (17 tests)
   - Validates character data type definitions
   - Tests data structure integrity
   - Ensures type safety across application
 
 **Component Integrity Tests**
+
 - `CharacterSheet.test.tsx` (24 tests) - UI rendering integrity
 - `PlayerPanel.test.tsx` (25 tests) - Player list consistency
 - `InitiativeTracker.test.tsx` (12 tests) - Turn order integrity
@@ -508,6 +563,7 @@ Nexus VTT maintains a comprehensive test suite of **270 tests** across **18 test
 - `ContextPanel.test.tsx` (1 test) - Layout constraints
 
 **Visual Regression & Layout Validation**
+
 - `visual-regression.test.ts` - Prevents UI regressions
 - `layout.test.ts` - Validates CSS layout rules and constraints
 
@@ -530,6 +586,7 @@ npm test -- sessionPersistence.test.ts
 ### Continuous Integration
 
 All tests run automatically on:
+
 - ✅ Pre-commit hooks (via Husky)
 - ✅ Pull request validation
 - ✅ CI/CD pipeline
@@ -537,16 +594,16 @@ All tests run automatically on:
 
 ### Security Testing Summary
 
-| Control Family | Tests | Risk Coverage |
-|----------------|-------|---------------|
-| **SI** - System Integrity | 90 | Input validation, error handling, data integrity |
-| **AC** - Access Control | 43 | Role management, authorization |
-| **AU** - Audit & Accountability | 30 | Logging, tracking, session monitoring |
-| **SC** - Communications Protection | 30 | WebSocket security, message integrity |
-| **CM** - Configuration Management | 56 | State management, version control |
-| **CP** - Contingency Planning | 48 | Data persistence, recovery, backup |
-| **IA** - Authentication | 43 | User identification, session auth |
-| **Total** | **270** | **Comprehensive coverage** |
+| Control Family                     | Tests   | Risk Coverage                                    |
+| ---------------------------------- | ------- | ------------------------------------------------ |
+| **SI** - System Integrity          | 90      | Input validation, error handling, data integrity |
+| **AC** - Access Control            | 43      | Role management, authorization                   |
+| **AU** - Audit & Accountability    | 30      | Logging, tracking, session monitoring            |
+| **SC** - Communications Protection | 30      | WebSocket security, message integrity            |
+| **CM** - Configuration Management  | 56      | State management, version control                |
+| **CP** - Contingency Planning      | 48      | Data persistence, recovery, backup               |
+| **IA** - Authentication            | 43      | User identification, session auth                |
+| **Total**                          | **270** | **Comprehensive coverage**                       |
 
 ### Quality Metrics
 
@@ -568,8 +625,9 @@ We welcome contributions! Here's how to get started:
 6. **Open** a Pull Request
 
 ### Development Guidelines
+
 - **Follow TypeScript best practices** with strict typing
-- **Maintain glassmorphism design consistency** 
+- **Maintain glassmorphism design consistency**
 - **Test on multiple browsers** and screen sizes
 - **Update documentation** for new features
 - **Keep the hybrid architecture** - minimal server, client authority
@@ -602,4 +660,4 @@ Nexus VTT is inspired by the brilliant architecture of [Ogres VTT](https://githu
 
 **Built with ❤️ for the tabletop gaming community**
 
-*Ready to revolutionize your virtual game nights? Start rolling! 🎲*
+_Ready to revolutionize your virtual game nights? Start rolling! 🎲_
