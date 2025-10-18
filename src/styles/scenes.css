@@ -476,7 +476,7 @@
 
 .scene-panel__visibility-options {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: var(--spacing-3);
 }
 
@@ -1031,6 +1031,7 @@
   background: rgba(0, 0, 0, 0.5);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1224,7 +1225,6 @@
   padding: var(--spacing-8);
   text-align: center;
   border: 2px dashed var(--glass-border);
-  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: var(--glass-blur);
   border-radius: var(--border-radius-lg);
   transition: all var(--transition-fast);
@@ -1277,6 +1277,7 @@
   /* Visuals */
   background: var(--glass-surface);
   -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

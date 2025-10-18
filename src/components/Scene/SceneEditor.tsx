@@ -4,6 +4,7 @@ import { useSceneImages, sceneUtils } from '@/utils/sceneUtils';
 import { AssetBrowser } from '@/components/AssetBrowser';
 import { BaseMapBrowser } from './BaseMapBrowser';
 import { assetManager, type AssetMetadata } from '@/utils/assetManager';
+import { ErrorBoundary } from '../ErrorBoundary';
 import type { BaseMap } from '@/services/baseMapAssets';
 import type { Scene } from '@/types/game';
 
@@ -283,7 +284,15 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
 
                   <button
                     className="btn btn--primary"
-                    onClick={() => setShowBaseMapBrowser(true)}
+                    onClick={() => {
+                      console.log(
+                        '🗺️ SceneEditor: Browse Base Maps button clicked',
+                      );
+                      setShowBaseMapBrowser(true);
+                      console.log(
+                        '🗺️ SceneEditor: showBaseMapBrowser set to true',
+                      );
+                    }}
                     disabled={isUploading}
                   >
                     Browse Base Maps
@@ -400,10 +409,16 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
             </div>
           }
         >
-          <BaseMapBrowser
-            onSelect={handleBaseMapSelect}
-            onClose={() => setShowBaseMapBrowser(false)}
-          />
+          <ErrorBoundary
+            fallback={
+              <div className="error">Failed to load base map browser</div>
+            }
+          >
+            <BaseMapBrowser
+              onSelect={handleBaseMapSelect}
+              onClose={() => setShowBaseMapBrowser(false)}
+            />
+          </ErrorBoundary>
         </Suspense>
       )}
 
@@ -423,8 +438,9 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
               <div className="asset-browser-header">
                 <h3>Choose Background Image</h3>
                 <button
-                  className="btn btn-small"
-                  onClick={() => setShowAssetBrowser(false)}
+                  className="btn btn--primary"
+                  onClick={() => setShowBaseMapBrowser(true)}
+                  disabled={isUploading}
                 >
                   ✕
                 </button>
