@@ -50,6 +50,24 @@
   min-width: 200px;
 }
 
+.asset-browser-search {
+  margin-bottom: 1rem;
+}
+
+.asset-browser-filters {
+  padding: 8px 16px;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.asset-browser-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
 .search-input {
   width: 100%;
   padding: 0.75rem;
@@ -216,6 +234,25 @@
 }
 
 /* ========================================================================== FOOTER STATES ========================================================================== */
+
+.asset-browser-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-top: 1px solid var(--glass-border);
+  margin-top: 1rem;
+}
+
+.asset-count {
+  font-size: 0.9rem;
+  color: var(--glass-text-muted);
+}
+
+.asset-actions {
+  display: flex;
+  gap: 0.75rem;
+}
 
 .load-more {
   margin-top: 2rem;

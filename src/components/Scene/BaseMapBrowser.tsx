@@ -24,12 +24,17 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
 
   useEffect(() => {
     const initializeMaps = async () => {
-      await baseMapAssetManager.initialize();
-      const defaultMaps = baseMapAssetManager.getAllMaps();
-      const generatedMaps = dungeonMapService.getAsBaseMaps();
-      const allMaps = [...generatedMaps, ...defaultMaps];
-      setMaps(allMaps);
-      setIsLoading(false);
+      try {
+        await baseMapAssetManager.initialize();
+        const defaultMaps = baseMapAssetManager.getAllMaps();
+        const generatedMaps = dungeonMapService.getAsBaseMaps();
+        const allMaps = [...generatedMaps, ...defaultMaps];
+        setMaps(allMaps);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to initialize base map browser:', error);
+        setIsLoading(false);
+      }
     };
 
     initializeMaps();
@@ -75,10 +80,20 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
     setFavoritesVersion((v) => v + 1);
   };
 
+  console.log(
+    '🗺️ BaseMapBrowser: Rendering with maps:',
+    maps.length,
+    'isLoading:',
+    isLoading,
+  );
+
   return (
     <Portal>
       <div className="asset-browser-overlay" onClick={onClose}>
-        <div className="asset-browser-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="asset-browser-modal"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="asset-browser-header">
             <h2>🗺️ Default Base Maps</h2>
             <button className="btn btn-small" onClick={onClose}>
@@ -128,11 +143,11 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
             style={{ overflowY: 'auto', flex: 1 }}
           >
             {isLoading ? (
-              <div className="asset-browser-loading">
+              <div className="asset-loading">
                 <p>Loading base maps...</p>
               </div>
             ) : filteredMaps.length === 0 ? (
-              <div className="asset-browser-empty">
+              <div className="no-assets">
                 <p>No maps found</p>
                 {searchQuery && (
                   <button
@@ -144,11 +159,11 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
                 )}
               </div>
             ) : (
-              <div className="asset-browser-grid">
+              <div className="asset-grid">
                 {filteredMaps.map((map) => (
                   <div
                     key={map.id}
-                    className={`asset-browser-item ${selectedMap?.id === map.id ? 'selected' : ''}`}
+                    className={`asset-card ${selectedMap?.id === map.id ? 'selected' : ''}`}
                     onClick={() => handleMapClick(map)}
                     style={{
                       border:

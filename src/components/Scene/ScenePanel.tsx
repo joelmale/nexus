@@ -3,6 +3,7 @@ import { useGameStore, useIsHost } from '@/stores/gameStore';
 import type { Scene } from '@/types/game';
 import { SceneManagement } from './SceneManagement';
 import { BaseMapBrowser } from './BaseMapBrowser';
+import { ErrorBoundary } from '../ErrorBoundary';
 import type { BaseMap } from '@/services/baseMapAssets';
 
 interface ScenePanelProps {
@@ -428,7 +429,15 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
               <div className="scene-panel__field">
                 <label>Or browse default maps</label>
                 <button
-                  onClick={() => setShowBaseMapBrowser(true)}
+                  onClick={() => {
+                    console.log(
+                      '🗺️ ScenePanel: Browse Base Maps button clicked',
+                    );
+                    setShowBaseMapBrowser(true);
+                    console.log(
+                      '🗺️ ScenePanel: showBaseMapBrowser set to true',
+                    );
+                  }}
                   className="btn btn--primary"
                   style={{ width: '100%' }}
                 >
@@ -480,12 +489,9 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
                   <div className="scene-panel__field">
                     <button
-                      onClick={() => {
-                        if (window.confirm('Remove background image?')) {
-                          handleFieldUpdate('backgroundImage', undefined);
-                        }
-                      }}
-                      className="danger-outline"
+                      onClick={() => setShowBaseMapBrowser(true)}
+                      className="btn btn--primary"
+                      style={{ width: '100%' }}
                     >
                       🗑️ Remove Background
                     </button>
@@ -905,10 +911,16 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
       {/* Base Map Browser Modal */}
       {showBaseMapBrowser && (
-        <BaseMapBrowser
-          onSelect={handleBaseMapSelect}
-          onClose={() => setShowBaseMapBrowser(false)}
-        />
+        <ErrorBoundary
+          fallback={
+            <div className="error">Failed to load base map browser</div>
+          }
+        >
+          <BaseMapBrowser
+            onSelect={handleBaseMapSelect}
+            onClose={() => setShowBaseMapBrowser(false)}
+          />
+        </ErrorBoundary>
       )}
     </div>
   );

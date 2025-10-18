@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Test Docker Compose configuration
 # Run tests with: docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
 
