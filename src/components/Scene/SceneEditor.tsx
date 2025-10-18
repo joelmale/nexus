@@ -282,7 +282,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
                   <span className="or-divider">or</span>
 
                   <button
-                    className="btn btn-primary"
+                    className="btn btn--primary"
                     onClick={() => setShowBaseMapBrowser(true)}
                     disabled={isUploading}
                   >
@@ -292,7 +292,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
                   <span className="or-divider">or</span>
 
                   <button
-                    className="btn btn-primary"
+                    className="btn btn--primary"
                     onClick={() => setShowAssetBrowser(true)}
                     disabled={isUploading}
                   >
@@ -385,7 +385,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
           <button className="btn btn-secondary" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn-primary" onClick={handleSave}>
+          <button className="btn btn--primary" onClick={handleSave}>
             Save Scene
           </button>
         </div>

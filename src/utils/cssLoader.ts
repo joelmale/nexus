@@ -371,18 +371,26 @@ export function preloadCSS(
 }
 
 /**
- * Strategic preloading based on user behavior patterns
+ * Strategic preloading based on current page/route context
  */
-export const preloadCriticalStyles = () => {
-  // Preload styles likely to be needed soon based on common user flows
-  preloadCSS(
-    [
-      'character-creation-wizard.css', // Most common action after setup
-      'scenes.css', // Main game interface
-      'dice.css', // Always needed for gaming
-    ],
-    { priority: 'high', caller: 'critical-preload' },
-  );
+export const preloadCriticalStyles = (
+  context?: 'lobby' | 'game' | 'character-setup' | 'dm-setup',
+) => {
+  // Only preload styles that are likely to be needed based on current context
+  const preloadMap = {
+    lobby: [], // No preloading on lobby - wait for user intent
+    game: ['scenes.css', 'dice.css'], // Game interface needs these immediately
+    'character-setup': ['character-creation-wizard.css', 'character.css'],
+    'dm-setup': ['scenes.css', 'dice.css'], // DM setup leads to game
+  };
+
+  const stylesToPreload = preloadMap[context || 'lobby'] || [];
+  if (stylesToPreload.length > 0) {
+    preloadCSS(stylesToPreload, {
+      priority: 'high',
+      caller: `critical-preload-${context}`,
+    });
+  }
 };
 
 export const preloadOnUserIntent = (

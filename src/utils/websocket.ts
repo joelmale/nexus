@@ -13,7 +13,6 @@ import type { WebSocketCustomEvent } from '@/types/events';
 import type { ChatMessage } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
-import { v4 as uuidv4 } from 'uuid';
 
 class WebSocketService extends EventTarget {
   private ws: WebSocket | null = null;
@@ -212,7 +211,11 @@ class WebSocketService extends EventTarget {
     });
   }
 
-  connect(roomCode?: string, userType?: 'host' | 'player', campaignId?: string): Promise<void> {
+  connect(
+    roomCode?: string,
+    userType?: 'host' | 'player',
+    campaignId?: string,
+  ): Promise<void> {
     // Prevent multiple simultaneous connection attempts
     if (this.connectionPromise) {
       return this.connectionPromise;
@@ -221,7 +224,11 @@ class WebSocketService extends EventTarget {
     this.connectionPromise = (async () => {
       try {
         // Try connecting with fallback to multiple ports in dev
-        this.ws = await this.tryConnectWithFallback(roomCode, userType, campaignId);
+        this.ws = await this.tryConnectWithFallback(
+          roomCode,
+          userType,
+          campaignId,
+        );
 
         console.log('WebSocket connected successfully');
         this.reconnectAttempts = 0;
@@ -560,14 +567,19 @@ class WebSocketService extends EventTarget {
 
   // Heartbeat methods
   private startHeartbeat() {
-    if (this.heartbeatTimer) return; // Already running
+    // DISABLE CLIENT HEARTBEAT - let server handle heartbeat monitoring
+    // Client only responds to server pings, doesn't initiate its own
+    console.log('💓 Client heartbeat disabled - using server heartbeat only');
+    return;
 
-    console.log('💓 Starting client heartbeat');
-    this.heartbeatTimer = setInterval(() => {
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        this.sendPing();
-      }
-    }, this.HEARTBEAT_INTERVAL);
+    // Original client heartbeat code (disabled):
+    // if (this.heartbeatTimer) return; // Already running
+    // console.log('💓 Starting client heartbeat');
+    // this.heartbeatTimer = setInterval(() => {
+    //   if (this.ws?.readyState === WebSocket.OPEN) {
+    //     this.sendPing();
+    //   }
+    // }, this.HEARTBEAT_INTERVAL);
   }
 
   private stopHeartbeat() {
@@ -579,26 +591,29 @@ class WebSocketService extends EventTarget {
   }
 
   private sendPing() {
-    const pingId = uuidv4();
-    this.connectionQuality.lastPingTime = Date.now();
+    // DISABLED: Client doesn't send pings anymore - only responds to server pings
+    console.warn('⚠️ sendPing called but client heartbeat is disabled');
+    return;
 
-    this.sendMessage({
-      type: 'heartbeat',
-      data: { type: 'ping', id: pingId },
-      timestamp: Date.now(),
-      src: useGameStore.getState().user.id,
-    });
-
-    // Set timeout for pong response
-    setTimeout(() => {
-      // Check if we still haven't received a pong for this ping
-      if (
-        this.connectionQuality.lastPingTime ===
-        this.connectionQuality.lastPingTime
-      ) {
-        this.handleMissedPong();
-      }
-    }, this.HEARTBEAT_TIMEOUT);
+    // Original ping sending code (disabled):
+    // const pingId = uuidv4();
+    // this.connectionQuality.lastPingTime = Date.now();
+    // this.sendMessage({
+    //   type: 'heartbeat',
+    //   data: { type: 'ping', id: pingId },
+    //   timestamp: Date.now(),
+    //   src: useGameStore.getState().user.id,
+    // });
+    // // Set timeout for pong response
+    // setTimeout(() => {
+    //   // Check if we still haven't received a pong for this ping
+    //   if (
+    //     this.connectionQuality.lastPingTime ===
+    //     this.connectionQuality.lastPingTime
+    //   ) {
+    //     this.handleMissedPong();
+    //   }
+    // }, this.HEARTBEAT_TIMEOUT);
   }
 
   private handleHeartbeatMessage(message: HeartbeatMessage) {
@@ -614,30 +629,34 @@ class WebSocketService extends EventTarget {
         timestamp: Date.now(),
         src: useGameStore.getState().user.id,
       });
-    } else if (message.data.type === 'pong') {
-      // Calculate latency from pong response
-      const latency = Date.now() - this.connectionQuality.lastPingTime;
+
+      // Update connection quality based on server ping timing
+      const latency = Date.now() - message.timestamp;
       this.updateConnectionQuality(latency);
     }
+    // Removed pong handling since client doesn't send pings anymore
   }
 
   private handleMissedPong() {
-    this.connectionQuality.consecutiveMisses += 1;
-    this.connectionQuality.packetLoss += 1;
+    // DISABLED: Client doesn't send pings anymore, so no missed pongs to handle
+    console.warn('⚠️ handleMissedPong called but client heartbeat is disabled');
+    return;
 
-    // Update quality based on consecutive misses
-    if (this.connectionQuality.consecutiveMisses >= 3) {
-      this.connectionQuality.quality = 'critical';
-    } else if (this.connectionQuality.consecutiveMisses >= 2) {
-      this.connectionQuality.quality = 'poor';
-    } else if (this.connectionQuality.consecutiveMisses >= 1) {
-      this.connectionQuality.quality = 'good';
-    }
-
-    this.connectionQuality.lastUpdate = Date.now();
-    console.warn(
-      `⚠️ Missed pong response (${this.connectionQuality.consecutiveMisses} consecutive)`,
-    );
+    // Original missed pong handling (disabled):
+    // this.connectionQuality.consecutiveMisses += 1;
+    // this.connectionQuality.packetLoss += 1;
+    // // Update quality based on consecutive misses
+    // if (this.connectionQuality.consecutiveMisses >= 3) {
+    //   this.connectionQuality.quality = 'critical';
+    // } else if (this.connectionQuality.consecutiveMisses >= 2) {
+    //   this.connectionQuality.quality = 'poor';
+    // } else if (this.connectionQuality.consecutiveMisses >= 1) {
+    //   this.connectionQuality.quality = 'good';
+    // }
+    // this.connectionQuality.lastUpdate = Date.now();
+    // console.warn(
+    //   `⚠️ Missed pong response (${this.connectionQuality.consecutiveMisses} consecutive)`,
+    // );
   }
 
   private updateConnectionQuality(latency: number) {

@@ -13,10 +13,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { NexusLogo } from './Assets';
 import { useAssetExists } from '@/utils/assets';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.png';
-import {
-  applyMockDataToStorage,
-  clearMockDataFromStorage,
-} from '@/utils/mockDataGenerator';
+import { preloadOnUserIntent } from '@/utils/cssLoader';
 
 interface Campaign {
   id: string;
@@ -26,27 +23,83 @@ interface Campaign {
 }
 
 export const LinearWelcomePage: React.FC = () => {
-  const { setUser, joinRoomWithCode, dev_quickDM, dev_quickPlayer, isAuthenticated } =
-    useGameStore();
+  const {
+    setUser,
+    joinRoomWithCode,
+    dev_quickDM,
+    dev_quickPlayer,
+    isAuthenticated,
+    session,
+    attemptSessionRecovery,
+  } = useGameStore();
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
   const [selectedRole, setSelectedRole] = useState<'player' | 'dm' | null>(
     null,
   );
+
+  // Preload styles based on user intent
+  const handleRoleSelection = (role: 'player' | 'dm') => {
+    setSelectedRole(role);
+    // Preload styles for the selected role
+    if (role === 'player') {
+      preloadOnUserIntent('character-creation');
+    } else if (role === 'dm') {
+      preloadOnUserIntent('scene-editing');
+    }
+  };
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [useMockData, setUseMockData] = useState(false);
-  const [mockDataLoading, setMockDataLoading] = useState(false);
   const hasCustomLogo = useAssetExists('/assets/logos/nexus-logo.svg');
 
   // Campaign selection state
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<string>('');
   const [campaignsLoading, setCampaignsLoading] = useState(false);
-  const [characters, setCharacters] = useState<{ id: string; name: string; data: any }[]>([]);
+  const [characters, setCharacters] = useState<
+    { id: string; name: string; data: any }[]
+  >([]);
   const [selectedCharacter, setSelectedCharacter] = useState<string>('');
   const [charactersLoading, setCharactersLoading] = useState(false);
+
+  // Auto-navigate to game if session exists, or attempt recovery if needed
+  React.useEffect(() => {
+    const recoverAndNavigate = async () => {
+      if (session?.roomCode) {
+        console.log(
+          '🔄 Found existing session, navigating to game:',
+          session.roomCode,
+        );
+        navigate(`/lobby/game/${session.roomCode}`);
+        return;
+      }
+
+      // Check if we have stored session data that needs recovery
+      const stored = localStorage.getItem('nexus-active-session');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed.roomCode) {
+            console.log(
+              '🔄 Attempting session recovery for room:',
+              parsed.roomCode,
+            );
+            const recovered = await attemptSessionRecovery();
+            if (recovered) {
+              console.log(
+                '✅ Session recovered, navigation will happen on next render',
+              );
+            }
+          }
+        } catch (error) {
+          console.error('Failed to recover session from localStorage:', error);
+        }
+      }
+    };
+
+    recoverAndNavigate();
+  }, [session, navigate, attemptSessionRecovery]);
 
   /**
    * Fetch user's campaigns when DM role is selected and user is authenticated
@@ -103,26 +156,6 @@ export const LinearWelcomePage: React.FC = () => {
 
     fetchCharacters();
   }, [selectedRole, isAuthenticated]);
-
-  // Handle mock data toggle
-  const handleMockDataToggle = async (enabled: boolean) => {
-    setMockDataLoading(true);
-    try {
-      if (enabled) {
-        await applyMockDataToStorage({
-          userId: 'mock-dm-user',
-          userName: 'Mock DM',
-        });
-      } else {
-        await clearMockDataFromStorage();
-      }
-      setUseMockData(enabled);
-    } catch (error) {
-      console.error('Failed to toggle mock data:', error);
-    } finally {
-      setMockDataLoading(false);
-    }
-  };
 
   /**
    * Handles player setup - creates guest user if not authenticated
@@ -205,7 +238,9 @@ export const LinearWelcomePage: React.FC = () => {
       } else {
         setUser({ name: playerName.trim(), type: 'player' });
       }
-      const joinedRoomCode = await joinRoomWithCode(roomCode.trim().toUpperCase());
+      const joinedRoomCode = await joinRoomWithCode(
+        roomCode.trim().toUpperCase(),
+      );
       navigate(`/lobby/game/${joinedRoomCode}`);
     } catch (err) {
       setError('Failed to join room - room may not exist or be full');
@@ -271,30 +306,6 @@ export const LinearWelcomePage: React.FC = () => {
 
   return (
     <div className="welcome-page">
-      {/* Mock Data Toggle - Development Only */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="dev-mock-data-toggle">
-          <span className="dev-mock-data-toggle__label">Mock Data</span>
-          <label
-            className={`dev-mock-data-toggle__switch ${mockDataLoading ? 'dev-mock-data-toggle__switch--loading' : ''}`}
-          >
-            <input
-              type="checkbox"
-              checked={useMockData}
-              onChange={(e) => handleMockDataToggle(e.target.checked)}
-              disabled={mockDataLoading}
-              className="dev-mock-data-toggle__input"
-            />
-            <span className="dev-mock-data-toggle__slider">
-              <span className="dev-mock-data-toggle__knob" />
-            </span>
-          </label>
-          {mockDataLoading && (
-            <span className="dev-mock-data-toggle__spinner">⏳</span>
-          )}
-        </div>
-      )}
-
       <div className="welcome-background">
         <img src={DnDTeamBackground} alt="D&D Adventure Party" />
         <div className="background-overlay"></div>
@@ -318,7 +329,10 @@ export const LinearWelcomePage: React.FC = () => {
         <div className="welcome-panel glass-panel">
           {/* Account Menu - Upper Right */}
           <div className="account-menu">
-            <button className="account-bubble glass-panel" title="Login with OAuth">
+            <button
+              className="account-bubble glass-panel"
+              title="Login with OAuth"
+            >
               <span className="account-icon">👤</span>
             </button>
             <div className="account-dropdown glass-panel">
@@ -385,7 +399,7 @@ export const LinearWelcomePage: React.FC = () => {
                 <div className="role-card-group">
                   <div
                     className={`role-card glass-panel ${selectedRole === 'player' ? 'selected' : ''}`}
-                    onClick={() => setSelectedRole('player')}
+                    onClick={() => handleRoleSelection('player')}
                   >
                     <div className="role-icon">⚔️</div>
                     <div className="role-info">
@@ -403,7 +417,10 @@ export const LinearWelcomePage: React.FC = () => {
                       {/* Character Selection for Authenticated Users */}
                       {isAuthenticated && (
                         <div className="campaign-selection">
-                          <label htmlFor="character-select" className="campaign-label">
+                          <label
+                            htmlFor="character-select"
+                            className="campaign-label"
+                          >
                             Select Character (Optional)
                           </label>
                           {charactersLoading ? (
@@ -415,25 +432,32 @@ export const LinearWelcomePage: React.FC = () => {
                             <select
                               id="character-select"
                               value={selectedCharacter}
-                              onChange={(e) => setSelectedCharacter(e.target.value)}
+                              onChange={(e) =>
+                                setSelectedCharacter(e.target.value)
+                              }
                               className="glass-input campaign-dropdown"
                               disabled={loading}
                             >
-                              <option value="">-- Select a character or create new --</option>
+                              <option value="">
+                                -- Select a character or create new --
+                              </option>
                               {characters.map((character) => (
                                 <option key={character.id} value={character.id}>
                                   {character.name}
-                                  {character.data?.class ? ` (${character.data.class})` : ''}
+                                  {character.data?.class
+                                    ? ` (${character.data.class})`
+                                    : ''}
                                 </option>
                               ))}
                             </select>
                           ) : (
                             <p className="no-campaigns-hint">
-                              No saved characters yet. You can create one from the{' '}
+                              No saved characters yet. You can create one from
+                              the{' '}
                               <a href="/dashboard" className="dashboard-link">
                                 dashboard
-                              </a>
-                              {' '}or continue as a new character.
+                              </a>{' '}
+                              or continue as a new character.
                             </p>
                           )}
                         </div>
@@ -496,7 +520,7 @@ export const LinearWelcomePage: React.FC = () => {
                 <div className="role-card-group">
                   <div
                     className={`role-card glass-panel ${selectedRole === 'dm' ? 'selected' : ''}`}
-                    onClick={() => setSelectedRole('dm')}
+                    onClick={() => handleRoleSelection('dm')}
                   >
                     <div className="role-icon">👑</div>
                     <div className="role-info">
@@ -514,7 +538,10 @@ export const LinearWelcomePage: React.FC = () => {
                       {/* Campaign Selection for Authenticated Users */}
                       {isAuthenticated && (
                         <div className="campaign-selection">
-                          <label htmlFor="campaign-select" className="campaign-label">
+                          <label
+                            htmlFor="campaign-select"
+                            className="campaign-label"
+                          >
                             Select Campaign
                           </label>
                           {campaignsLoading ? (
@@ -526,7 +553,9 @@ export const LinearWelcomePage: React.FC = () => {
                             <select
                               id="campaign-select"
                               value={selectedCampaign}
-                              onChange={(e) => setSelectedCampaign(e.target.value)}
+                              onChange={(e) =>
+                                setSelectedCampaign(e.target.value)
+                              }
                               className="glass-input campaign-dropdown"
                               disabled={loading}
                             >
@@ -575,48 +604,18 @@ export const LinearWelcomePage: React.FC = () => {
               <h4 className="dev-title">⚡ Development Tools</h4>
               <div className="dev-buttons">
                 <button
-                  onClick={async () => {
-                    if (
-                      confirm(
-                        '⚠️ This will clear all game data, disconnect, and start fresh. Continue?',
-                      )
-                    ) {
-                      // Proper cleanup using gameStore
-                      const { useGameStore } = await import(
-                        '@/stores/gameStore'
-                      );
-
-                      // Reset stores
-                      useGameStore.getState().reset();
-                      await useGameStore.getState().leaveRoom();
-
-                      // Clear localStorage items
-                      localStorage.removeItem('nexus-active-session');
-                      localStorage.removeItem('nexus_ws_port');
-                      localStorage.removeItem('nexus_dice_theme');
-
-                      // Reload to ensure clean state
-                      window.location.href = '/lobby';
-                    }
-                  }}
-                  className="dev-btn glass-button secondary small"
-                  title="Clear all session data and start completely fresh"
-                >
-                  🔄 Force New Session
-                </button>
-                <button
                   onClick={() => dev_quickDM()}
                   className="dev-btn glass-button secondary small"
                   title="Start as DM in offline mode - prepare game, then go online"
                 >
-                  🎮 Quick DM (offline)
+                  🎮 Quick DM
                 </button>
                 <button
                   onClick={() => dev_quickPlayer()}
                   className="dev-btn glass-button secondary small"
                   title="Create test character and go to offline game"
                 >
-                  👤 Quick Player (offline)
+                  👤 Quick Player
                 </button>
                 <button
                   onClick={() => {

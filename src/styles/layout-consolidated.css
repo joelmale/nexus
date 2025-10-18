@@ -26,6 +26,8 @@
     'scene panel';
   background: var(--bg-primary);
   overflow: hidden;
+  /* Smooth transition for width changes */
+  transition: grid-template-columns 0.1s ease-out;
 }
 
 /* Collapsed sidebar state - minimal width */
@@ -54,8 +56,8 @@
   align-items: center;
   justify-content: space-between;
   background: var(--surface-primary);
-  backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border-primary);
   padding: var(--spacing-2) var(--spacing-4);
   z-index: var(--z-sticky);
@@ -131,8 +133,8 @@
   align-items: center;
   background: var(--surface-primary);
   border-bottom: 1px solid var(--border-primary);
-  backdrop-filter: var(--glass-blur-subtle);
   -webkit-backdrop-filter: var(--glass-blur-subtle);
+  backdrop-filter: var(--glass-blur-subtle);
   padding: var(--spacing-1) var(--spacing-4);
   min-height: var(--spacing-12);
 }
@@ -246,8 +248,8 @@
 .layout-panel {
   grid-area: panel;
   background: var(--surface-primary);
-  backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   border-left: 1px solid var(--border-primary);
   display: grid;
   grid-template-rows: auto 1fr;
@@ -417,14 +419,29 @@
 
 .sidebar-resize-handle:active::before {
   opacity: 1;
-  height: 80px;
-  width: 6px;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.sidebar-resize-handle.dragging {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.3) 25%,
+    rgba(99, 102, 241, 0.5) 50%,
+    rgba(99, 102, 241, 0.3) 75%,
+    transparent
+  );
+  border-left-color: rgba(99, 102, 241, 0.6);
+}
+
+.sidebar-resize-handle.dragging::before {
+  opacity: 1;
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(255, 255, 255, 0.7) 20%,
-    rgba(255, 255, 255, 1) 50%,
-    rgba(255, 255, 255, 0.7) 80%,
+    rgba(99, 102, 241, 0.6) 20%,
+    rgba(99, 102, 241, 0.9) 50%,
+    rgba(99, 102, 241, 0.6) 80%,
     transparent
   );
 }
@@ -658,13 +675,11 @@
    GAME TOOLBAR
    ============================================================================= */
 
-
-
 .game-toolbar {
   display: flex;
   background: rgba(30, 41, 59, 0.6); /* 60% opacity dark background */
-  backdrop-filter: var(--glass-blur-strong);
   -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
   border: 1px solid var(--border-primary);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-glass-lg);
@@ -1004,8 +1019,8 @@
   gap: var(--spacing-4);
   padding: var(--spacing-2) var(--spacing-3);
   background: var(--surface-primary);
-  backdrop-filter: var(--glass-blur-strong);
   -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
   border: 1px solid var(--border-primary);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-glass-lg);
@@ -1245,8 +1260,8 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   z-index: var(--z-modal-backdrop);
   display: flex;
   align-items: center;

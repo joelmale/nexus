@@ -225,7 +225,7 @@ interface GameStore extends GameState {
   // Developer Actions (from appFlowStore + existing)
   toggleMockData: (enable: boolean) => void;
   dev_quickDM: (name?: string) => Promise<void>;
-  dev_quickPlayer: (name?: string, autoJoinRoom?: string) => void;
+  dev_quickPlayer: (name?: string, autoJoinRoom?: string) => Promise<void>;
 }
 
 // Generate a stable browser ID for linking characters to this "device/browser"
@@ -310,8 +310,6 @@ const clearSessionFromStorage = (): void => {
   localStorage.removeItem(SESSION_STORAGE_KEY);
   console.log('🗑️ Cleared session from localStorage');
 };
-
-
 
 const initialState: GameState & {
   gameConfig?: GameConfig;
@@ -422,7 +420,6 @@ const initialState: GameState & {
   entityVersions: new Map(),
 };
 
-
 // --- Mock Data for Development (can be toggled via settings) ---
 const MOCK_PLAYERS: Player[] = [
   {
@@ -470,7 +467,9 @@ const MOCK_SESSION: Session = {
 // The store will merge it during creation to avoid corrupting initialState
 const restoredSession = loadSessionFromStorage();
 if (restoredSession) {
-  console.log('✅ Loaded session from storage (will merge during store creation)');
+  console.log(
+    '✅ Loaded session from storage (will merge during store creation)',
+  );
 }
 
 type EventHandler = (state: GameState, data: unknown) => void;
@@ -614,7 +613,9 @@ const eventHandlers: Record<string, EventHandler> = {
   },
   'session/created': (state, data) => {
     console.log('Creating session with data:', data);
-    const eventData = data as SessionCreatedEvent['data'] & { campaignScenes?: unknown[] };
+    const eventData = data as SessionCreatedEvent['data'] & {
+      campaignScenes?: unknown[];
+    };
     state.session = {
       roomCode: eventData.roomCode,
       hostId: state.user.id,
@@ -633,8 +634,14 @@ const eventHandlers: Record<string, EventHandler> = {
     state.activeTab = 'scenes';
 
     // Load campaign scenes if provided, otherwise create default scene
-    if (eventData.campaignScenes && Array.isArray(eventData.campaignScenes) && eventData.campaignScenes.length > 0) {
-      console.log(`📚 Loading ${eventData.campaignScenes.length} campaign scenes into game state`);
+    if (
+      eventData.campaignScenes &&
+      Array.isArray(eventData.campaignScenes) &&
+      eventData.campaignScenes.length > 0
+    ) {
+      console.log(
+        `📚 Loading ${eventData.campaignScenes.length} campaign scenes into game state`,
+      );
       state.sceneState.scenes = eventData.campaignScenes as Scene[];
       // Set first scene as active
       if (state.sceneState.scenes.length > 0) {
@@ -1051,7 +1058,6 @@ export const useGameStore = create<GameStore>()(
       },
 
       // App Flow Actions (from appFlowStore)
-
 
       /**
        * Join an existing game room via WebSocket
@@ -2133,15 +2139,51 @@ export const useGameStore = create<GameStore>()(
           // First check what's in localStorage for debugging
           const sessionData = localStorage.getItem('nexus-session');
           const gameStateData = localStorage.getItem('nexus-game-state');
+          const activeSessionData = localStorage.getItem(
+            'nexus-active-session',
+          );
           console.log('🔍 Raw localStorage data:');
           console.log(
             '  Session:',
             sessionData ? JSON.parse(sessionData) : 'null',
           );
           console.log('  Game State:', gameStateData ? 'exists' : 'null');
+          console.log(
+            '  Active Session:',
+            activeSessionData ? JSON.parse(activeSessionData) : 'null',
+          );
 
-          const recoveryData = sessionPersistenceService.getRecoveryData();
+          let recoveryData = sessionPersistenceService.getRecoveryData();
           console.log('🔍 Processed recovery data:', recoveryData);
+
+          // If no recovery data from sessionPersistenceService, try nexus-active-session
+          if (!recoveryData.isValid && activeSessionData) {
+            try {
+              const activeSession = JSON.parse(activeSessionData);
+              console.log(
+                '🔄 Falling back to nexus-active-session data:',
+                activeSession,
+              );
+
+              // Create a minimal recovery data structure from active session
+              recoveryData = {
+                session: {
+                  roomCode: activeSession.roomCode,
+                  userId: getBrowserId(),
+                  userType: activeSession.userType,
+                  userName: activeSession.userName,
+                  lastActivity: activeSession.timestamp,
+                  sessionVersion: 1,
+                },
+                gameState: null, // No game state in active session
+                isValid: true,
+                canReconnect: true,
+              };
+              console.log('✅ Created recovery data from active session');
+            } catch (parseError) {
+              console.error('Failed to parse active session data:', parseError);
+            }
+          }
           if (recoveryData.gameState) {
             console.log('🎮 Game state details:', {
               scenes: recoveryData.gameState.scenes,
@@ -2269,107 +2311,174 @@ export const useGameStore = create<GameStore>()(
       },
 
       dev_quickDM: async (name: string = 'Test DM') => {
-        console.log(
-          '🎮 DEV: Quick DM - OFFLINE MODE (prepare game, then start online)',
-        );
+        try {
+          // Create guest user
+          const guestResponse = await fetch('/api/guest-users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+          });
 
-        // Check if mock data exists (scenes from mock data toggle)
-        const storage = getLinearFlowStorage();
-        const existingScenes = storage.getScenes();
-        const hasMockData = existingScenes.length > 0;
+          if (!guestResponse.ok) {
+            throw new Error('Failed to create guest user');
+          }
 
-        // Only clear if no mock data exists
-        if (!hasMockData) {
-          await storage.clearGameData();
-        } else {
-          console.log(
-            `🎮 Found ${existingScenes.length} existing scenes - preserving for game`,
-          );
+          const guestUser = await guestResponse.json();
+
+          // Set user
+          set((state) => {
+            state.user = { ...guestUser, type: 'host', name };
+          });
+
+          // Generate random game config
+          const gameConfig = {
+            name: 'Quick Dev Campaign',
+            description: 'Development test session with generated content',
+            estimatedTime: '2',
+            campaignType: 'oneshot' as const,
+            maxPlayers: 6,
+          };
+
+          // Create game room
+          const roomCode = await get().createGameRoom(gameConfig);
+
+          // Navigate to game
+          window.location.href = `/lobby/game/${roomCode}`;
+        } catch (error) {
+          console.error('❌ Failed to create quick DM session:', error);
+          // Fallback to offline mode
+          set((state) => {
+            state.user.name = name;
+            state.user.type = 'host';
+            state.user.id = getBrowserId();
+            state.user.connected = false;
+          });
         }
-
-        // Set user first
-        set((state) => {
-          state.user.name = name;
-          state.user.type = 'host';
-          state.user.id = getBrowserId();
-        });
-
-        // Generate offline room code (DM will create real room via "Start Online Game" button)
-        const offlineRoomCode = Math.random()
-          .toString(36)
-          .substring(2, 6)
-          .toUpperCase();
-
-        const config = {
-          name: 'Test Campaign',
-          description: 'Development test session',
-          estimatedTime: '2',
-          campaignType: 'oneshot' as const,
-          maxPlayers: 4,
-        };
-
-        // Start in OFFLINE mode - DM can prepare game, then click "Start Online Game"
-        set((state) => {
-          state.gameConfig = config;
-          state.user.connected = false; // ❌ Not connected - offline mode
-        });
-
-        console.log(
-          `✅ DEV: Quick DM in offline mode - Room: ${offlineRoomCode}`,
-        );
-        console.log('💡 Use "Start Online Game" in Lobby panel to go online');
       },
 
-      dev_quickPlayer: (
+      dev_quickPlayer: async (
         name: string = 'Test Player',
         autoJoinRoom?: string,
       ) => {
-        console.log(
-          '👤 DEV: Quick Player - OFFLINE MODE (no WebSocket connection)',
-        );
+        try {
+          // Create guest user
+          const guestResponse = await fetch('/api/guest-users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+          });
 
-        set((state) => {
-          state.user.name = name;
-          state.user.type = 'player';
-          state.user.id = `player-${Date.now()}`;
-        });
+          if (!guestResponse.ok) {
+            throw new Error('Failed to create guest user');
+          }
 
-        // Create a test character
-        const testCharacter: PlayerCharacter = {
-          id: `char-${Date.now()}`,
-          name: 'Aragorn',
-          race: 'Human',
-          class: 'Ranger',
-          level: 5,
-          background: 'Folk Hero',
-          stats: {
-            strength: 16,
-            dexterity: 14,
-            constitution: 13,
-            intelligence: 10,
-            wisdom: 15,
-            charisma: 12,
-          },
-          createdAt: Date.now(),
-          lastUsed: Date.now(),
-          playerId: getBrowserId(),
-        };
+          const guestUser = await guestResponse.json();
 
-        // Save character and set as selected
-        set((state) => {
-          state.selectedCharacter = testCharacter;
-        });
+          // Set user
+          set((state) => {
+            state.user = { ...guestUser, type: 'player', name };
+          });
 
-        get().saveCharacter(testCharacter);
+          // Create a test character with random stats
+          const randomStats = {
+            strength: Math.floor(Math.random() * 6) + 10, // 10-15
+            dexterity: Math.floor(Math.random() * 6) + 10, // 10-15
+            constitution: Math.floor(Math.random() * 6) + 10, // 10-15
+            intelligence: Math.floor(Math.random() * 6) + 10, // 10-15
+            wisdom: Math.floor(Math.random() * 6) + 10, // 10-15
+            charisma: Math.floor(Math.random() * 6) + 10, // 10-15
+          };
 
-        // Go directly to game in OFFLINE mode (no WebSocket)
-        const offlineRoomCode = autoJoinRoom || 'OFFLINE';
-        set((state) => {
-          state.user.connected = false; // ❌ NOT connected - offline mode
-        });
-        console.log(
-          `✅ DEV: Quick player in offline game - Room: ${offlineRoomCode}`,
-        );
+          const characterNames = [
+            'Aragorn',
+            'Legolas',
+            'Gimli',
+            'Gandalf',
+            'Frodo',
+            'Samwise',
+            'Boromir',
+            'Gollum',
+          ];
+          const races = [
+            'Human',
+            'Elf',
+            'Dwarf',
+            'Halfling',
+            'Half-Elf',
+            'Half-Orc',
+          ];
+          const classes = [
+            'Fighter',
+            'Wizard',
+            'Rogue',
+            'Cleric',
+            'Ranger',
+            'Barbarian',
+            'Bard',
+            'Paladin',
+          ];
+          const backgrounds = [
+            'Folk Hero',
+            'Sage',
+            'Soldier',
+            'Criminal',
+            'Entertainer',
+            'Noble',
+            'Outlander',
+          ];
+
+          const testCharacter: PlayerCharacter = {
+            id: `char-${Date.now()}`,
+            name: characterNames[
+              Math.floor(Math.random() * characterNames.length)
+            ],
+            race: races[Math.floor(Math.random() * races.length)],
+            class: classes[Math.floor(Math.random() * classes.length)],
+            level: Math.floor(Math.random() * 10) + 1, // 1-10
+            background:
+              backgrounds[Math.floor(Math.random() * backgrounds.length)],
+            stats: randomStats,
+            createdAt: Date.now(),
+            lastUsed: Date.now(),
+            playerId: guestUser.id,
+          };
+
+          // Save character and set as selected
+          set((state) => {
+            state.selectedCharacter = testCharacter;
+          });
+
+          get().saveCharacter(testCharacter);
+
+          // Create or join room
+          let roomCode: string;
+          if (autoJoinRoom) {
+            // Try to join existing room
+            roomCode = await get().joinRoomWithCode(autoJoinRoom);
+          } else {
+            // Create new room as player (will be converted to host)
+            const gameConfig = {
+              name: 'Quick Dev Game',
+              description: 'Development test session',
+              estimatedTime: '1',
+              campaignType: 'oneshot' as const,
+              maxPlayers: 6,
+            };
+            roomCode = await get().createGameRoom(gameConfig);
+          }
+
+          // Navigate to game
+          window.location.href = `/lobby/game/${roomCode}`;
+        } catch (error) {
+          console.error('❌ Failed to create quick player session:', error);
+          // Fallback to offline mode
+          set((state) => {
+            state.user.name = name;
+            state.user.type = 'player';
+            state.user.id = `player-${Date.now()}`;
+            state.user.connected = false;
+          });
+        }
       },
 
       // Chat Actions
@@ -2686,8 +2795,6 @@ export const useDrawingActions = () =>
       clearDrawings: state.clearDrawings,
     })),
   );
-
-
 
 export const useServerRoomCode = () => {
   return useGameStore((state) => state.session?.roomCode || null);

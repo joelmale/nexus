@@ -67,6 +67,14 @@ export const GameUI: React.FC = () => {
     });
   }, [settings.enableGlassmorphism]);
 
+  // Sync sidebarWidth state with CSS variable for layout
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--sidebar-width',
+      `${sidebarWidth}px`,
+    );
+  }, [sidebarWidth]);
+
   // Resize functionality
   const isResizing = useRef(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -100,7 +108,7 @@ export const GameUI: React.FC = () => {
           const newWidth = startWidth.current + deltaX;
 
           const minWidth = panelExpanded ? 250 : 60;
-          const maxWidth = 500;
+          const maxWidth = window.innerWidth * 0.6;
 
           const constrainedWidth = Math.max(
             minWidth,

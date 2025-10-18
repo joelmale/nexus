@@ -476,7 +476,7 @@
 
 .scene-panel__visibility-options {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   gap: var(--spacing-3);
 }
 
@@ -1029,8 +1029,8 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1124,8 +1124,8 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
   background: var(--glass-surface);
-  backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: var(--glass-blur);
   font-size: var(--text-sm);
   transition: all var(--transition-fast);
 }
@@ -1224,6 +1224,8 @@
   padding: var(--spacing-8);
   text-align: center;
   border: 2px dashed var(--glass-border);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: var(--glass-blur);
   border-radius: var(--border-radius-lg);
   transition: all var(--transition-fast);
 }
@@ -1274,8 +1276,8 @@
 
   /* Visuals */
   background: var(--glass-surface);
-  backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1935,6 +1937,7 @@
 .drawing-properties__slider {
   /* Box Model */
   -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   height: 6px;
   border-radius: 3px;

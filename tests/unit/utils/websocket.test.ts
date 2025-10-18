@@ -139,17 +139,17 @@ describe('WebSocketManager', () => {
       vi.useRealTimers();
     });
 
-    it('should start heartbeat when connected', async () => {
+    it('should not send client heartbeat when connected', async () => {
       await webSocketService.connect('TEST123');
 
-      // Fast-forward time to trigger heartbeat
+      // Fast-forward time to where heartbeat would have triggered
       vi.advanceTimersByTime(31000);
 
-      // Should have sent ping messages
-      expect(mockWebSocket.send).toHaveBeenCalledWith(
+      // Should NOT have sent any heartbeat or ping messages (client heartbeat disabled)
+      expect(mockWebSocket.send).not.toHaveBeenCalledWith(
         expect.stringContaining('"type":"heartbeat"'),
       );
-      expect(mockWebSocket.send).toHaveBeenCalledWith(
+      expect(mockWebSocket.send).not.toHaveBeenCalledWith(
         expect.stringContaining('"type":"ping"'),
       );
     });
@@ -172,7 +172,7 @@ describe('WebSocketManager', () => {
       }
 
       // Wait a bit for async handling
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should respond with pong
       expect(mockWebSocket.send).toHaveBeenCalledWith(
@@ -207,7 +207,7 @@ describe('WebSocketManager', () => {
         } as MessageEvent);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const quality = webSocketService.getConnectionQuality();
       expect(quality.latency).toBe(50);
@@ -269,7 +269,7 @@ describe('WebSocketManager', () => {
         } as MessageEvent);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const quality = webSocketService.getConnectionQuality();
       expect(quality.quality).toBe('poor');
@@ -297,7 +297,7 @@ describe('WebSocketManager', () => {
         } as MessageEvent);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const quality = webSocketService.getConnectionQuality();
       expect(quality.quality).toBe('critical');
