@@ -37,6 +37,32 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
+.generator-overlay-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-primary, #fff);
+  font-size: 1.25rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 31; /* Higher than overlay z-index of 30 */
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.generator-overlay-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
+}
+
 .generator-panel .panel-header {
   padding: 1rem;
   background: var(--glass-surface-strong, rgba(0, 0, 0, 0.4));
