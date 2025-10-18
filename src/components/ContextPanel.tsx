@@ -86,10 +86,10 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       props: 350,
       generator: 500, // Wide panel for dungeon generator
       initiative: 450, // Increased for complex combat interface
-      dice: 380, // Increased for dice controls and history
+      dice: 300, // Optimized for dice controls
       sounds: 320,
       chat: 350,
-      lobby: 380, // Session management and player list
+      lobby: 320, // Player management panel
       settings: 400,
     };
 
@@ -107,7 +107,11 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     <div className="context-panel" data-expanded={expanded}>
       {/* Panel Content */}
       {expanded && (
-        <div className="context-panel__content" role="tabpanel" ref={panelContentRef}>
+        <div
+          className="context-panel__content"
+          role="tabpanel"
+          ref={panelContentRef}
+        >
           <div
             className="context-panel__body"
             data-testid="panel-body"
