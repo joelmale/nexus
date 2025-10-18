@@ -7,6 +7,36 @@
   overflow: hidden;
 }
 
+/* Generator Overlay - Full screen overlay for generator */
+.generator-overlay {
+  position: fixed;
+  top: var(--header-height, 60px);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  z-index: 30; /* Higher than header/panel (z-20) but lower than modals */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.generator-overlay-content {
+  width: 100%;
+  max-width: 1200px;
+  height: 100%;
+  background: var(--surface-primary);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
 .generator-panel .panel-header {
   padding: 1rem;
   background: var(--glass-surface-strong, rgba(0, 0, 0, 0.4));
