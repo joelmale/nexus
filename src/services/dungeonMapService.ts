@@ -87,6 +87,7 @@ class DungeonMapService {
       tags: ['generated', 'dungeon'],
       format: 'png',
       isDefault: false,
+      isGenerated: true,
     }));
   }
 

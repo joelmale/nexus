@@ -80,6 +80,26 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
     setFavoritesVersion((v) => v + 1);
   };
 
+  const handleDeleteMap = (e: React.MouseEvent, mapId: string) => {
+    e.stopPropagation(); // Prevent card selection
+
+    if (
+      confirm(
+        'Are you sure you want to delete this generated map? This action cannot be undone.',
+      )
+    ) {
+      const success = dungeonMapService.deleteMap(mapId);
+      if (success) {
+        // Remove from local state immediately
+        setMaps((prev) => prev.filter((map) => map.id !== mapId));
+        // Clear selection if deleted map was selected
+        if (selectedMap?.id === mapId) {
+          setSelectedMap(null);
+        }
+      }
+    }
+  };
+
   console.log(
     '🗺️ BaseMapBrowser: Rendering with maps:',
     maps.length,
@@ -216,12 +236,21 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
                       >
                         {assetFavoritesManager.isFavorite(map.id) ? '⭐' : '☆'}
                       </button>
+                      {map.isGenerated && (
+                        <button
+                          className="asset-delete-btn"
+                          onClick={(e) => handleDeleteMap(e, map.id)}
+                          title="Delete generated map"
+                        >
+                          ✕
+                        </button>
+                      )}
                       {map.category && (
                         <span
                           style={{
                             position: 'absolute',
                             top: '8px',
-                            right: '8px',
+                            right: map.isGenerated ? '3rem' : '8px', // Adjust position if delete button is present
                             padding: '4px 8px',
                             background: 'var(--primary-color)',
                             color: 'white',
