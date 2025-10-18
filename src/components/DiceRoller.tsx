@@ -3,6 +3,8 @@ import { useDiceRolls, useIsHost, useGameStore } from '@/stores/gameStore';
 import { formatDiceRoll, createDiceRoll } from '@/utils/dice';
 import { webSocketService } from '@/utils/websocket';
 import { diceSounds } from '@/utils/diceSounds';
+import { initializeTheme } from '@/utils/themeManager';
+import '@/styles/dice.css';
 
 /**
  * @file DiceRoller.tsx
@@ -81,6 +83,22 @@ export const DiceRoller: React.FC = () => {
     }
     prevRollsCount.current = diceRolls.length;
   }, [diceRolls]);
+
+  // Ensure theme is initialized when dice panel opens
+  useEffect(() => {
+    initializeTheme().catch((error) => {
+      console.warn('Failed to initialize theme in DiceRoller:', error);
+    });
+
+    // Listen for theme changes to ensure proper styling
+    const handleThemeChange = () => {
+      // Force re-render by updating a state
+      setIsConnected((prev) => prev);
+    };
+
+    window.addEventListener('themeChanged', handleThemeChange);
+    return () => window.removeEventListener('themeChanged', handleThemeChange);
+  }, []);
 
   /**
    * Handles the primary roll action triggered by the "Roll" button or Enter key.
@@ -322,39 +340,89 @@ export const DiceRoller: React.FC = () => {
         {error && <div className="dice-roller__error">{error}</div>}
 
         <div className="dice-roller__roll-options">
-          <label className="setting-toggle">
-            <input
-              type="checkbox"
-              checked={rollMode === 'advantage'}
-              onChange={(e) =>
-                setRollMode(e.target.checked ? 'advantage' : 'none')
-              }
-            />
-            <span className="toggle-slider"></span>
-            <span className="toggle-label">Advantage</span>
-          </label>
-          <label className="setting-toggle">
-            <input
-              type="checkbox"
-              checked={rollMode === 'disadvantage'}
-              onChange={(e) =>
-                setRollMode(e.target.checked ? 'disadvantage' : 'none')
-              }
-            />
-            <span className="toggle-slider"></span>
-            <span className="toggle-label">Disadvantage</span>
-          </label>
+          {/* Advantage Option */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <span
+                className="setting-name"
+                title="Roll with Advantage (roll two, take highest)"
+              >
+                Advantage
+              </span>
+            </div>
+            <div
+              className="setting-control"
+              onClick={() => {
+                setRollMode(rollMode === 'advantage' ? 'none' : 'advantage');
+              }}
+            >
+              <label className="setting-toggle">
+                <input
+                  type="radio"
+                  name="roll-mode"
+                  value="advantage"
+                  checked={rollMode === 'advantage'}
+                  readOnly
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
 
+          {/* Disadvantage Option */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <span
+                className="setting-name"
+                title="Roll with Disadvantage (roll two, take lowest)"
+              >
+                Disadvantage
+              </span>
+            </div>
+            <div
+              className="setting-control"
+              onClick={() => {
+                setRollMode(
+                  rollMode === 'disadvantage' ? 'none' : 'disadvantage',
+                );
+              }}
+            >
+              <label className="setting-toggle">
+                <input
+                  type="radio"
+                  name="roll-mode"
+                  value="disadvantage"
+                  checked={rollMode === 'disadvantage'}
+                  readOnly
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          {/* Private Roll Option (Host only) */}
           {isHost && (
-            <label className="setting-toggle">
-              <input
-                type="checkbox"
-                checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
-              />
-              <span className="toggle-slider"></span>
-              <span className="toggle-label">Private Roll (DM only)</span>
-            </label>
+            <div className="setting-item">
+              <div className="setting-label">
+                <span
+                  className="setting-name"
+                  title="Only you and the DM will see this roll"
+                >
+                  Private Roll
+                </span>
+              </div>
+              <div className="setting-control">
+                <label className="setting-toggle">
+                  <input
+                    type="checkbox"
+                    name="roll-private"
+                    checked={isPrivate}
+                    onChange={(e) => setIsPrivate(e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
           )}
         </div>
 
@@ -460,7 +528,9 @@ export const DiceRoller: React.FC = () => {
                 className={`dice-roller__roll ${index === 0 ? 'dice-roller__roll--new' : ''} ${roll.isPrivate ? 'dice-roller__roll--private' : ''}`}
               >
                 <div className="dice-roller__roll-header">
-                  <span className="dice-roller__roller-name">{roll.userName}</span>
+                  <span className="dice-roller__roller-name">
+                    {roll.userName}
+                  </span>
                   <div className="dice-roller__roll-meta">
                     {roll.isPrivate && (
                       <span className="dice-roller__private-tag">Private</span>

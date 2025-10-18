@@ -13,7 +13,6 @@ import { AdminPage } from './components/AdminPage';
 import './styles/critical-bundle.css';
 import {
   loadUtilityStyles,
-  preloadCriticalStyles,
   logCSSLoadingReport,
   getCSSLoadStats,
   getCSSQueueStatus,
@@ -23,9 +22,6 @@ import { initializeTheme } from './utils/themeManager';
 // Load non-critical styles after initial render for better performance
 const loadNonCriticalStyles = async () => {
   try {
-    // Preload critical styles that are likely to be needed soon
-    preloadCriticalStyles();
-
     // Load utility and accessibility styles
     await loadUtilityStyles();
 

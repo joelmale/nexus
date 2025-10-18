@@ -225,6 +225,55 @@ test.describe('Panel Layout Constraints', () => {
   });
 });
 
+test('Sidebar resize handle should work and update panel width', async ({
+  page,
+}) => {
+  // Ensure we're on a game page with panels
+  await page.goto('/game/TEST-SESSION', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(1000);
+
+  // Open a panel to make resize handle visible
+  await page.click('[data-testid="settings-tab"]');
+  await page.waitForTimeout(500);
+
+  // Verify resize handle exists and is visible
+  const resizeHandle = page.locator('.sidebar-resize-handle');
+  await expect(resizeHandle).toBeVisible();
+
+  // Get initial panel width
+  const initialWidth = await page.evaluate(() => {
+    const panel = document.querySelector('.layout-panel');
+    return panel ? panel.getBoundingClientRect().width : 0;
+  });
+
+  expect(initialWidth).toBeGreaterThan(0);
+
+  // Get resize handle position for dragging
+  const handleBounds = await resizeHandle.boundingBox();
+  expect(handleBounds).toBeTruthy();
+
+  if (handleBounds) {
+    // Start dragging from the center of the handle to make panel smaller
+    const startX = handleBounds.x + handleBounds.width / 2;
+    const startY = handleBounds.y + handleBounds.height / 2;
+
+    // Perform drag operation
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX - 50, startY); // Move left by 50px
+    await page.waitForTimeout(200); // Allow for debounced updates
+    await page.mouse.up();
+
+    // Verify panel width decreased
+    const newWidth = await page.evaluate(() => {
+      const panel = document.querySelector('.layout-panel');
+      return panel ? panel.getBoundingClientRect().width : 0;
+    });
+
+    expect(newWidth).toBeLessThan(initialWidth);
+  }
+});
+
 test.describe('Visual Layout Validation', () => {
   test('No elements should overflow the main layout container', async ({
     page,

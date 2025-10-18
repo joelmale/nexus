@@ -74,8 +74,8 @@
 
   /* Visuals */
   background: var(--surface-primary);
-  backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-glass);
 
   /* Animation & Misc */
@@ -126,7 +126,7 @@
   /* Positioning & Layout */
   display: flex;
   align-items: flex-start;
-  justify-content: flex-start;
+  justify-content: space-between;
 
   /* Box Model */
   gap: var(--spacing-8);
@@ -185,8 +185,6 @@
 .setting-input {
   /* Positioning & Layout */
   width: 100%;
-
-  /* Box Model */
   padding: var(--spacing-2) var(--spacing-3);
   border: 1px solid var(--border-primary);
   border-radius: var(--border-radius);
@@ -197,8 +195,8 @@
 
   /* Visuals */
   background: var(--surface-secondary);
-  backdrop-filter: var(--glass-blur-subtle);
   -webkit-backdrop-filter: var(--glass-blur-subtle);
+  backdrop-filter: var(--glass-blur-subtle);
 
   /* Animation & Misc */
   transition: all var(--transition-base);
@@ -260,8 +258,8 @@
 
   /* Visuals */
   background: var(--surface-secondary);
-  backdrop-filter: var(--glass-blur-subtle);
   -webkit-backdrop-filter: var(--glass-blur-subtle);
+  backdrop-filter: var(--glass-blur-subtle);
 
   /* Animation & Misc */
   transition: all var(--duration-300);
@@ -520,8 +518,8 @@ input:disabled + .toggle-slider {
 
   /* Visuals */
   background: var(--surface-secondary);
-  backdrop-filter: var(--glass-blur-subtle);
   -webkit-backdrop-filter: var(--glass-blur-subtle);
+  backdrop-filter: var(--glass-blur-subtle);
 
   /* Animation & Misc */
   transition: all var(--transition-base);
@@ -573,8 +571,8 @@ input:disabled + .toggle-slider {
 
   /* Visuals */
   background: var(--surface-primary);
-  backdrop-filter: var(--glass-blur-strong);
   -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
   box-shadow: var(--shadow-glass-xl);
 
   /* Animation & Misc */
@@ -987,8 +985,8 @@ input:disabled + .toggle-slider {
 .solid-theme .settings-section,
 .solid-theme .dropdown-menu {
   /* Visuals */
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   background: var(--surface-primary);
   box-shadow: var(--shadow-default);
 }
@@ -997,13 +995,13 @@ input:disabled + .toggle-slider {
 .solid-theme .setting-input,
 .solid-theme .dropdown-trigger {
   /* Visuals */
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   background: var(--surface-secondary);
 }
 
 .solid-theme .toggle-slider {
   /* Visuals */
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }

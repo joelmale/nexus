@@ -29,9 +29,10 @@
 
 .welcome-panel {
   position: relative;
+  width: 50%;
+  margin-left: auto;
+  margin-right: auto;
   max-width: 1000px;
-  min-width: 600px;
-  width: 100%;
   padding: 1.5rem;
   border-radius: 16px;
   text-align: center;
@@ -40,8 +41,9 @@
 /* ========================================================================== ACCOUNT MENU BUBBLE ========================================================================== */
 
 .account-menu {
-  background-color: rgba(0, 0, 0, 0.0);
+  background-color: rgba(0, 0, 0, 0);
   background-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   position: absolute;
   top: 1rem;
   right: 1rem;
@@ -86,6 +88,7 @@
   min-width: 200px;
   padding: 0.5rem;
   background: rgba(20, 24, 40, 0.95);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
@@ -309,6 +312,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   font-size: 1rem;
   color: white;
@@ -357,6 +361,7 @@
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   text-align: center;
   cursor: pointer;
@@ -466,6 +471,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   font-size: 1rem;
   color: white;
@@ -526,7 +532,8 @@
 /* ========================================================================== ANIMATIONS ========================================================================== */
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) translateX(0px) scale(1);
     opacity: 0.4;
   }
@@ -572,8 +579,8 @@
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 8px !important;
   background: rgba(0, 0, 0, 0.7) !important;
-  backdrop-filter: blur(10px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
 }
 
 .dev-mock-data-toggle__label {

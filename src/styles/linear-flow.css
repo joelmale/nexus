@@ -283,7 +283,7 @@
   border-radius: 6px;
 
   /* Visuals */
-  background: none  ;
+  background: none;
 
   /* Typography */
   font-size: 1.2rem;
@@ -329,10 +329,10 @@
   width: 20px;
   height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.6);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
 
   /* Positioning */
   cursor: pointer;
@@ -434,6 +434,7 @@
   /* Visuals */
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 
   /* Typography */
@@ -1107,6 +1108,9 @@
 
 .dev-tools {
   /* Box Model */
+  position: relative;
+  align-items: center;
+  width: 80%;
   margin-top: 2rem;
   padding: 1.5rem;
   border: 1px solid rgba(255, 193, 7, 0.3);
@@ -1191,8 +1195,8 @@
 }
 
 .login-section .google {
-  background-color: #4285F4;
-  border-color: #4285F4;
+  background-color: #4285f4;
+  border-color: #4285f4;
 }
 
 .login-section .google:hover {
@@ -1200,8 +1204,8 @@
 }
 
 .login-section .discord {
-  background-color: #5865F2;
-  border-color: #5865F2;
+  background-color: #5865f2;
+  border-color: #5865f2;
 }
 
 .login-section .discord:hover {
