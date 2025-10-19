@@ -65,7 +65,7 @@ test.describe('Panel Layout Constraints', () => {
 
   test('Layout panels should not exceed viewport height', async ({ page }) => {
     // Open the settings panel
-    await page.click('[data-testid="settings-tab"]'); // Adjust selector as needed
+    await page.click('label[for="panel-radio-settings"]');
     await page.waitForTimeout(500); // Wait for panel animation
 
     const panelBounds = await getViewportBounds(page, '.layout-panel');
@@ -85,7 +85,7 @@ test.describe('Panel Layout Constraints', () => {
     page,
   }) => {
     // Open scene panel (which might have overflowing content)
-    await page.click('[data-testid="scene-tab"]'); // Adjust selector as needed
+    await page.click('label[for="panel-radio-scene"]');
     await page.waitForTimeout(500);
 
     // Check if toolbar is visible
@@ -114,7 +114,7 @@ test.describe('Panel Layout Constraints', () => {
     page,
   }) => {
     // Open settings panel
-    await page.click('[data-testid="settings-tab"]');
+    await page.click('label[for="panel-radio-settings"]');
     await page.waitForTimeout(500);
 
     const settingsContent = '.settings-content';
@@ -144,7 +144,7 @@ test.describe('Panel Layout Constraints', () => {
     page,
   }) => {
     // Open any panel to show resize handle
-    await page.click('[data-testid="settings-tab"]');
+    await page.click('label[for="panel-radio-settings"]');
     await page.waitForTimeout(500);
 
     const resizeHandleBounds = await getViewportBounds(
@@ -176,7 +176,7 @@ test.describe('Panel Layout Constraints', () => {
       await page.waitForTimeout(300);
 
       // Test with settings panel
-      await page.click('[data-testid="settings-tab"]');
+      await page.click('label[for="panel-radio-settings"]');
       await page.waitForTimeout(500);
 
       const panelBounds = await getViewportBounds(page, '.layout-panel');
@@ -190,7 +190,7 @@ test.describe('Panel Layout Constraints', () => {
 
   test('Panel scrolling should work properly', async ({ page }) => {
     // Open settings panel
-    await page.click('[data-testid="settings-tab"]');
+    await page.click('label[for="panel-radio-settings"]');
     await page.waitForTimeout(500);
 
     const settingsContent = '.settings-content';
@@ -233,7 +233,7 @@ test('Sidebar resize handle should work and update panel width', async ({
   await page.waitForTimeout(1000);
 
   // Open a panel to make resize handle visible
-  await page.click('[data-testid="settings-tab"]');
+  await page.click('label[for="panel-radio-settings"]');
   await page.waitForTimeout(500);
 
   // Verify resize handle exists and is visible
@@ -288,7 +288,16 @@ test.describe('Visual Layout Validation', () => {
 
       const layoutRect = gameLayout.getBoundingClientRect();
       const allElements = document.querySelectorAll('*');
-      const overflowing = [];
+      const overflowing: Array<{
+        selector: string;
+        bounds: { top: number; bottom: number; left: number; right: number };
+        layoutBounds: {
+          top: number;
+          bottom: number;
+          left: number;
+          right: number;
+        };
+      }> = [];
 
       for (const el of allElements) {
         const rect = el.getBoundingClientRect();
