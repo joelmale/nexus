@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { CharacterManager } from './CharacterManager';
-import { CharacterCreationWizard } from './CharacterCreationWizard';
+import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
 import '@/styles/dashboard.css';
 
 /**
@@ -60,6 +60,7 @@ interface Character {
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, createGameRoom, joinRoomWithCode } = useGameStore();
+  const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +73,6 @@ export const Dashboard: React.FC = () => {
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [startingSession, setStartingSession] = useState<string | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
-  const [showCharacterWizard, setShowCharacterWizard] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<
     Character | undefined
   >(undefined);
@@ -216,7 +216,21 @@ export const Dashboard: React.FC = () => {
    * Handles opening the character creation modal
    */
   const handleCreateCharacter = () => {
-    setShowCharacterWizard(true);
+    if (user.id) {
+      startCharacterCreation(
+        user.id,
+        'modal',
+        (characterId, character) => {
+          // Character saved to database via API, now add to local state
+          if (character) {
+            handleSaveCharacter(character as any);
+          }
+        },
+        () => {
+          console.log('Character creation cancelled');
+        },
+      );
+    }
   };
 
   /**
@@ -629,21 +643,10 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Character Manager Modal */}
-      {showCharacterWizard && (
-        <CharacterCreationWizard
-          playerId={user.id}
-          onComplete={(characterId, character) => {
-            if (character) {
-              handleSaveCharacter(character as any);
-            }
-            setShowCharacterWizard(false);
-          }}
-          onCancel={() => setShowCharacterWizard(false)}
-          isModal={true}
-        />
-      )}
+      {/* Character Creation Launcher */}
+      {LauncherComponent}
 
+      {/* Character Manager Modal */}
       {showCharacterModal && (
         <CharacterManager
           character={editingCharacter}
