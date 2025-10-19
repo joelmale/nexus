@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { CharacterManager } from './CharacterManager';
@@ -366,10 +367,11 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="dashboard-page">
-      {/* Header */}
-      <div className="dashboard-header">
-        <div className="dashboard-header-content">
+    <>
+      <div className="dashboard-page">
+        {/* Header */}
+        <div className="dashboard-header">
+          <div className="dashboard-header-content">
           <div className="dashboard-title-section">
             <h1>Welcome, {user.name || 'Adventurer'}!</h1>
             <p className="dashboard-subtitle">
@@ -643,9 +645,6 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Character Creation Launcher */}
-      {LauncherComponent}
-
       {/* Character Manager Modal */}
       {showCharacterModal && (
         <CharacterManager
@@ -763,6 +762,10 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Character Creation Launcher - rendered via portal to overlay everything */}
+      {LauncherComponent && createPortal(LauncherComponent, document.body)}
+    </>
   );
 };
