@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DungeonGenerator } from './DungeonGenerator';
 import { dungeonMapService } from '../../services/dungeonMapService';
 import { DungeonRenderer, type DungeonData } from './DungeonRenderer';
 import { GeneratorFloatingControls } from './GeneratorFloatingControls';
 import { useGameStore, useActiveScene } from '@/stores/gameStore';
 import '@/styles/generator-panel.css';
+
+const GENERATOR_MAP_STORAGE_KEY = 'nexus-generator-current-map';
 
 interface GeneratorPanelProps {
   onSwitchToScenes?: () => void;
@@ -15,11 +17,25 @@ type GeneratorType = 'dungeon' | 'cave' | 'world' | 'city' | 'dwelling';
 export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   onSwitchToScenes,
 }) => {
-  const [generatedMap, setGeneratedMap] = useState<string | null>(null);
+  const [generatedMap, setGeneratedMap] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem(GENERATOR_MAP_STORAGE_KEY) || null;
+    } catch (error) {
+      console.warn('Failed to load generated map from sessionStorage:', error);
+      return null;
+    }
+  });
   const [dungeonData, setDungeonData] = useState<DungeonData | null>(null);
   const [activeGenerator, setActiveGenerator] =
     useState<GeneratorType>('dungeon');
   const [showPreview, setShowPreview] = useState(false);
+
+  // Cleanup sessionStorage when component unmounts
+  useEffect(() => {
+    return () => {
+      sessionStorage.removeItem(GENERATOR_MAP_STORAGE_KEY);
+    };
+  }, []);
 
   const activeScene = useActiveScene();
   const updateScene = useGameStore((state) => state.updateScene);
@@ -27,8 +43,9 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   const handleMapGenerated = async (imageData: string) => {
     try {
       setGeneratedMap(imageData);
+      sessionStorage.setItem(GENERATOR_MAP_STORAGE_KEY, imageData);
 
-      // Don't automatically save - only save when user clicks "Add to Scene"
+      // Don't automatically save to library - only save when user clicks "Add to Scene"
       // This prevents filling up localStorage with unwanted maps
     } catch (error) {
       console.error('Failed to handle generated map:', error);
@@ -41,67 +58,17 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       return;
     }
 
+    // Use stored generatedMap instead of accessing iframe
+    if (!generatedMap) {
+      console.warn(
+        'No generated map available. Please generate a dungeon first.',
+      );
+      return;
+    }
+
     try {
-      // Get canvas from iframe
-      const iframe = document.querySelector(
-        '.generator-iframe',
-      ) as HTMLIFrameElement;
-      if (!iframe || !iframe.contentWindow) {
-        console.warn('Generator not loaded. Please wait and try again.');
-        return;
-      }
-
-      // Try to get the canvas from the iframe
-      const canvas = iframe.contentWindow.document.querySelector('canvas');
-      if (!canvas) {
-        console.warn(
-          'No dungeon visible. Generate a dungeon first (press Enter).',
-        );
-        return;
-      }
-
-      // Convert canvas to data URL
-      const imageData = canvas.toDataURL('image/png');
-
-      // Try to extract dungeon title from the iframe
-      let dungeonTitle = '';
-      try {
-        // The dungeon generator draws the title on the canvas, but we need to extract it from the data
-        // Try multiple selectors to find the title
-        const iframeDoc = iframe.contentWindow.document;
-
-        // Check common places where the title might be stored
-        const titleSelectors = [
-          'h1',
-          'h2',
-          '.title',
-          '.dungeon-title',
-          '#title',
-          '[data-title]',
-          '.name',
-          '.dungeon-name',
-        ];
-
-        for (const selector of titleSelectors) {
-          const element = iframeDoc.querySelector(selector);
-          if (element && element.textContent?.trim()) {
-            dungeonTitle = element.textContent.trim();
-            break;
-          }
-        }
-
-        // If still not found, try to get it from the canvas text or check if there's a data attribute
-        if (!dungeonTitle) {
-          // Could not extract title from iframe
-        }
-      } catch {
-        // Could not extract dungeon title
-      }
-
-      // If no title found, use timestamp
-      if (!dungeonTitle) {
-        dungeonTitle = `Dungeon ${new Date().toLocaleString()}`;
-      }
+      const imageData = generatedMap; // Use the stored, valid image data
+      const dungeonTitle = `Generated Dungeon ${new Date().toLocaleString()}`;
 
       // Try to save to dungeon map service with custom name
       try {
@@ -126,10 +93,18 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
           scale: 1,
         };
 
-        // Update the active scene with the background image
+        // Update the active scene with the background image and disable grid for dungeon maps
         updateScene(activeScene.id, {
           backgroundImage: backgroundData,
+          gridSettings: {
+            ...activeScene.gridSettings,
+            showToPlayers: false, // Turn off grid for dungeon maps
+          },
         });
+
+        // Clear the stored map after successful addition
+        setGeneratedMap(null);
+        sessionStorage.removeItem(GENERATOR_MAP_STORAGE_KEY);
 
         // Verify the update
         setTimeout(() => {
