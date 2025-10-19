@@ -1277,12 +1277,12 @@
 }
 
 .character-creation-wizard.character-wizard-modal {
-  position: fixed;
+  position: fixed !important;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: var(--z-modal);
+  z-index: var(--z-modal) !important;
   display: flex;
   align-items: center;
   justify-content: center;
