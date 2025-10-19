@@ -4,48 +4,138 @@
 (function () {
   'use strict';
 
-  // Store original saveAs function
-  const originalSaveAs = window.saveAs;
+  // Wait for the page to fully load before setting up interception
+  function initializeBridge() {
+    // Store original functions
+    const originalSaveAs = window.saveAs;
+    const originalOcSavePNG = window.Oc && window.Oc.savePNG;
 
-  // Override saveAs to intercept PNG saves
-  window.saveAs = function (blob, filename, options) {
-    // Check if this is a PNG file
-    if (blob.type === 'image/png' || (filename && filename.endsWith('.png'))) {
-      // Convert blob to data URL
-      const reader = new FileReader();
-      reader.onloadend = function () {
-        const imageData = reader.result;
-
-        // Send to parent window
-        if (window.parent !== window) {
-          window.parent.postMessage(
-            {
-              type: 'DUNGEON_PNG_GENERATED',
-              data: {
-                imageData: imageData,
-                filename: filename,
-                timestamp: Date.now(),
-              },
-            },
-            '*',
-          );
-        }
-      };
-      reader.readAsDataURL(blob);
-
-      // Also allow the original save to proceed
-      if (originalSaveAs) {
-        originalSaveAs.call(window, blob, filename, options);
-      }
-    } else {
-      // Not a PNG, use original saveAs
-      if (originalSaveAs) {
-        originalSaveAs.call(window, blob, filename, options);
+    // Detect optimal image format (WebP with PNG fallback)
+    function getOptimalImageFormat() {
+      // Test WebP support by creating a small canvas and checking toDataURL
+      try {
+        const testCanvas = document.createElement('canvas');
+        testCanvas.width = testCanvas.height = 1;
+        const testDataURL = testCanvas.toDataURL('image/webp');
+        return testDataURL.indexOf('data:image/webp') === 0
+          ? 'image/webp'
+          : 'image/png';
+      } catch (e) {
+        return 'image/png'; // Fallback on any error
       }
     }
-  };
 
-  console.log(
-    'Dungeon Generator Bridge loaded - PNG saves will be intercepted',
-  );
+    const optimalFormat = getOptimalImageFormat();
+    const formatQuality = optimalFormat === 'image/webp' ? 0.9 : undefined;
+
+    console.log(
+      'Dungeon Bridge: Using format:',
+      optimalFormat,
+      'quality:',
+      formatQuality,
+    );
+
+    // Intercept Oc.savePNG (the actual function called by dungeon generator)
+    if (window.Oc && window.Oc.savePNG) {
+      window.Oc.savePNG = function (canvas, filename) {
+        console.log(
+          'Intercepted Oc.savePNG call:',
+          filename,
+          'format:',
+          optimalFormat,
+        );
+
+        // Convert canvas to blob with optimal format
+        canvas.toBlob(
+          function (blob) {
+            // Convert blob to data URL
+            const reader = new FileReader();
+            reader.onloadend = function () {
+              const imageData = reader.result;
+
+              // Send to parent window with format information
+              if (window.parent !== window) {
+                window.parent.postMessage(
+                  {
+                    type: 'DUNGEON_PNG_GENERATED',
+                    data: {
+                      imageData: imageData,
+                      filename: filename,
+                      format: optimalFormat,
+                      originalSize: blob.size,
+                      timestamp: Date.now(),
+                    },
+                  },
+                  '*',
+                );
+              }
+            };
+            reader.readAsDataURL(blob);
+          },
+          optimalFormat,
+          formatQuality,
+        );
+
+        // Also call original function to maintain normal behavior
+        if (originalOcSavePNG) {
+          originalOcSavePNG.call(window.Oc, canvas, filename);
+        }
+      };
+    }
+
+    // Keep the original saveAs interception as fallback
+    if (window.saveAs) {
+      window.saveAs = function (blob, filename, options) {
+        if (
+          blob.type === 'image/png' ||
+          blob.type === 'image/webp' ||
+          (filename &&
+            (filename.endsWith('.png') || filename.endsWith('.webp')))
+        ) {
+          const reader = new FileReader();
+          reader.onloadend = function () {
+            const imageData = reader.result;
+
+            if (window.parent !== window) {
+              window.parent.postMessage(
+                {
+                  type: 'DUNGEON_PNG_GENERATED',
+                  data: {
+                    imageData: imageData,
+                    filename: filename,
+                    format: blob.type,
+                    originalSize: blob.size,
+                    timestamp: Date.now(),
+                  },
+                },
+                '*',
+              );
+            }
+          };
+          reader.readAsDataURL(blob);
+
+          if (originalSaveAs) {
+            originalSaveAs.call(window, blob, filename, options);
+          }
+        } else {
+          if (originalSaveAs) {
+            originalSaveAs.call(window, blob, filename, options);
+          }
+        }
+      };
+    }
+
+    console.log(
+      'Dungeon Generator Bridge loaded - PNG saves will be intercepted',
+    );
+  }
+
+  // Initialize bridge after a short delay to ensure dungeon generator is loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(initializeBridge, 1000); // Wait 1 second for dungeon generator to initialize
+    });
+  } else {
+    setTimeout(initializeBridge, 1000);
+  }
 })();

@@ -841,10 +841,12 @@
 }
 
 /* Ensure wizard container has proper layering */
-.character-creation-wizard {
+.character-creation-wizard.character-wizard-fullpage {
   position: relative;
   z-index: var(--z-modal, 50);
 }
+
+/* Modal version is handled in layout-consolidated.css with position: fixed */
 
 .solid-theme .character-preview-panel {
   background: var(--surface-primary);

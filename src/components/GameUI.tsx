@@ -353,6 +353,13 @@ export const GameUI: React.FC = () => {
 
       {activePanel === 'generator' && (
         <div className="generator-overlay">
+          <button
+            className="generator-overlay-close"
+            onClick={() => setActivePanel('scene')}
+            title="Close generator and return to scene"
+          >
+            ✕
+          </button>
           <div className="generator-overlay-content">
             <GeneratorPanel onSwitchToScenes={() => setActivePanel('scene')} />
           </div>

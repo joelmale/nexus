@@ -21,15 +21,25 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
   const [selectedMap, setSelectedMap] = useState<BaseMap | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [, setFavoritesVersion] = useState(0);
+  const [storageStats, setStorageStats] = useState<{
+    count: number;
+    totalSize: number;
+    averageSize: number;
+  } | null>(null);
 
   useEffect(() => {
     const initializeMaps = async () => {
       try {
         await baseMapAssetManager.initialize();
         const defaultMaps = baseMapAssetManager.getAllMaps();
-        const generatedMaps = dungeonMapService.getAsBaseMaps();
+        const generatedMaps = await dungeonMapService.getAsBaseMaps();
         const allMaps = [...generatedMaps, ...defaultMaps];
         setMaps(allMaps);
+
+        // Load storage stats for generated maps
+        const stats = await dungeonMapService.getStats();
+        setStorageStats(stats);
+
         setIsLoading(false);
       } catch (error) {
         console.error('Failed to initialize base map browser:', error);
@@ -80,6 +90,44 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
     setFavoritesVersion((v) => v + 1);
   };
 
+  const handleDeleteMap = async (e: React.MouseEvent, mapId: string) => {
+    e.stopPropagation(); // Prevent card selection
+
+    if (
+      confirm(
+        'Are you sure you want to delete this generated map? This action cannot be undone.',
+      )
+    ) {
+      try {
+        const success = await dungeonMapService.deleteMap(mapId);
+        if (success) {
+          // Remove from local state immediately
+          setMaps((prev) => prev.filter((map) => map.id !== mapId));
+          // Clear selection if deleted map was selected
+          if (selectedMap?.id === mapId) {
+            setSelectedMap(null);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to delete map:', error);
+        alert('Failed to delete the map. Please try again.');
+      }
+    }
+  };
+
+  const handleExportMap = async (e: React.MouseEvent, mapId: string) => {
+    e.stopPropagation(); // Prevent card selection
+
+    try {
+      await dungeonMapService.exportMapAsFile(mapId);
+      // Optional: Show success message
+      console.log('Map exported successfully');
+    } catch (error) {
+      console.error('Failed to export map:', error);
+      alert('Failed to export the map. Please try again.');
+    }
+  };
+
   console.log(
     '🗺️ BaseMapBrowser: Rendering with maps:',
     maps.length,
@@ -95,7 +143,28 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="asset-browser-header">
-            <h2>🗺️ Default Base Maps</h2>
+            <div>
+              <h2>🗺️ Default Base Maps</h2>
+              {storageStats && (
+                <div
+                  style={{
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    marginTop: '4px',
+                  }}
+                >
+                  {storageStats.count} generated maps •{' '}
+                  {(storageStats.totalSize / 1024 / 1024).toFixed(1)} MB stored
+                  {storageStats.averageSize > 0 && (
+                    <>
+                      {' '}
+                      • Avg: {(storageStats.averageSize / 1024).toFixed(0)} KB
+                      each
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
             <button className="btn btn-small" onClick={onClose}>
               ✕
             </button>
@@ -216,12 +285,82 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
                       >
                         {assetFavoritesManager.isFavorite(map.id) ? '⭐' : '☆'}
                       </button>
+                      {map.isGenerated && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '8px',
+                            right: '8px',
+                            display: 'flex',
+                            gap: '4px',
+                          }}
+                        >
+                          <button
+                            className="asset-export-btn"
+                            onClick={(e) => handleExportMap(e, map.id)}
+                            title="Export map as PNG file"
+                            style={{
+                              background: 'rgba(0,0,0,0.6)',
+                              border: 'none',
+                              borderRadius: '4px',
+                              width: '28px',
+                              height: '28px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'white',
+                              transition: 'background-color 0.2s ease',
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.background =
+                                'rgba(0,0,0,0.8)')
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.background =
+                                'rgba(0,0,0,0.6)')
+                            }
+                          >
+                            📥
+                          </button>
+                          <button
+                            className="asset-delete-btn"
+                            onClick={(e) => handleDeleteMap(e, map.id)}
+                            title="Delete generated map"
+                            style={{
+                              background: 'rgba(220,53,69,0.8)',
+                              border: 'none',
+                              borderRadius: '4px',
+                              width: '28px',
+                              height: '28px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'white',
+                              transition: 'background-color 0.2s ease',
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.background =
+                                'rgba(220,53,69,1)')
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.background =
+                                'rgba(220,53,69,0.8)')
+                            }
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
                       {map.category && (
                         <span
                           style={{
                             position: 'absolute',
                             top: '8px',
-                            right: '8px',
+                            right: map.isGenerated ? '3rem' : '8px', // Adjust position if delete button is present
                             padding: '4px 8px',
                             background: 'var(--primary-color)',
                             color: 'white',

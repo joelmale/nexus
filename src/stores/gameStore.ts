@@ -1219,7 +1219,7 @@ export const useGameStore = create<GameStore>()(
 
           // Connect to WebSocket (host mode) - server will generate room code
           // Pass campaign ID if provided in config
-          await webSocketService.connect(undefined, 'host', config.campaignId);
+          await webSocketService.connect(undefined, 'host', config.campaignId, get().user.id);
 
           // Wait for session/created event from server
           const session = await webSocketService.waitForSessionCreated();

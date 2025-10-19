@@ -42,6 +42,7 @@ class WebSocketService extends EventTarget {
     roomCode?: string,
     userType?: 'host' | 'player',
     campaignId?: string,
+    userId?: string,
   ): string {
     // In Docker/K8s, use environment variable or default to 5001
     // In dev, we'll try multiple ports via fallback logic in connect()
@@ -59,13 +60,10 @@ class WebSocketService extends EventTarget {
     }
     if (campaignId) {
       params.set('campaignId', campaignId);
-    }
+        if (userId) {
+          params.set('userId', userId);
+        }    }
 
-    // Add user ID to the query parameters
-    const userId = useGameStore.getState().user.id;
-    if (userId) {
-      params.set('userId', userId);
-    }
 
     const queryString = params.toString();
     return queryString ? `${wsUrl}?${queryString}` : wsUrl;
@@ -107,6 +105,7 @@ class WebSocketService extends EventTarget {
     roomCode?: string,
     userType?: 'host' | 'player',
     campaignId?: string,
+    userId?: string,
   ): Promise<WebSocket> {
     const isDev = import.meta.env.DEV;
     const basePorts = [
@@ -163,7 +162,9 @@ class WebSocketService extends EventTarget {
         }
         if (campaignId) {
           params.set('campaignId', campaignId);
-        }
+        if (userId) {
+          params.set('userId', userId);
+        }        }
 
         const queryString = params.toString();
         const url = queryString ? `${wsUrl}?${queryString}` : wsUrl;
@@ -215,6 +216,7 @@ class WebSocketService extends EventTarget {
     roomCode?: string,
     userType?: 'host' | 'player',
     campaignId?: string,
+    userId?: string,
   ): Promise<void> {
     // Prevent multiple simultaneous connection attempts
     if (this.connectionPromise) {
@@ -228,6 +230,7 @@ class WebSocketService extends EventTarget {
           roomCode,
           userType,
           campaignId,
+          userId,
         );
 
         console.log('WebSocket connected successfully');

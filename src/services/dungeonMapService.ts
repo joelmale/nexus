@@ -1,24 +1,86 @@
 /**
  * Dungeon Map Service
  * Handles saving and managing dungeon maps generated from the One-Page Dungeon Generator
+ * Uses IndexedDB for unlimited local storage
  */
 
 import { type BaseMap } from './baseMapAssets';
+import { dungeonMapIndexedDB, type StorageStats } from '../utils/indexedDB';
 
 export interface GeneratedDungeonMap {
   id: string;
   name: string;
-  imageData: string; // base64 PNG data
+  imageData: string; // base64 data URL
+  format: 'webp' | 'png'; // image format
+  originalSize: number; // original blob size in bytes
+  compressedSize: number; // base64 size in bytes
   timestamp: number;
   source: 'one-page-dungeon-generator';
 }
 
 class DungeonMapService {
-  private generatedMaps: GeneratedDungeonMap[] = [];
-  private readonly STORAGE_KEY = 'nexus_generated_dungeon_maps';
+  private initialized = false;
 
   constructor() {
-    this.loadFromStorage();
+    this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    try {
+      // Initialize IndexedDB
+      await dungeonMapIndexedDB.init();
+
+      // Migrate any existing localStorage data
+      await this.migrateFromLocalStorage();
+
+      this.initialized = true;
+      console.log('✅ DungeonMapService initialized with IndexedDB');
+    } catch (error) {
+      console.error('Failed to initialize DungeonMapService:', error);
+      // Fallback to in-memory only
+    }
+  }
+
+  /**
+   * Migrate existing localStorage data to IndexedDB
+   */
+  private async migrateFromLocalStorage(): Promise<void> {
+    const LEGACY_STORAGE_KEY = 'nexus_generated_dungeon_maps';
+
+    try {
+      const legacyData = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (!legacyData) return;
+
+      const legacyMaps: GeneratedDungeonMap[] = JSON.parse(legacyData);
+      console.log(
+        `Found ${legacyMaps.length} maps in localStorage, migrating to IndexedDB...`,
+      );
+
+      for (const map of legacyMaps) {
+        // Calculate sizes for legacy maps (rough estimate: base64 is ~33% larger than binary)
+        const compressedSize = map.imageData.length;
+        const originalSize = Math.floor((compressedSize * 3) / 4);
+
+        await dungeonMapIndexedDB.saveMap({
+          name: map.name,
+          imageData: map.imageData,
+          format: 'png', // Legacy maps are PNG
+          originalSize,
+          compressedSize,
+          timestamp: map.timestamp,
+          source: map.source,
+        });
+      }
+
+      // Clear legacy data
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+      console.log('✅ Migration complete, cleared legacy localStorage data');
+    } catch (error) {
+      console.warn('Migration from localStorage failed:', error);
+      // Continue without migration - data will be preserved in localStorage
+    }
   }
 
   /**
@@ -27,171 +89,195 @@ class DungeonMapService {
   async saveGeneratedMap(
     imageData: string,
     customName?: string,
+    format: 'webp' | 'png' = 'png',
+    originalSize?: number,
   ): Promise<string> {
-    const timestamp = Date.now();
-    const mapId = `dungeon_${timestamp}`;
+    await this.initialize();
 
-    const dungeonMap: GeneratedDungeonMap = {
-      id: mapId,
+    const timestamp = Date.now();
+    const compressedSize = imageData.length;
+    // If originalSize not provided, estimate from base64 (rough estimate: base64 is ~33% larger than binary)
+    const estimatedOriginalSize =
+      originalSize || Math.floor((compressedSize * 3) / 4);
+
+    const mapData = {
       name:
         customName ||
         `Generated Dungeon ${new Date(timestamp).toLocaleDateString()}`,
       imageData,
+      format,
+      originalSize: estimatedOriginalSize,
+      compressedSize,
       timestamp,
-      source: 'one-page-dungeon-generator',
+      source: 'one-page-dungeon-generator' as const,
     };
 
-    this.generatedMaps.push(dungeonMap);
-    this.saveToStorage();
-
-    console.log(`Saved generated dungeon map: ${mapId}`);
+    const mapId = await dungeonMapIndexedDB.saveMap(mapData);
+    const savings =
+      format === 'webp'
+        ? ` (${(((estimatedOriginalSize - compressedSize) / estimatedOriginalSize) * 100).toFixed(0)}% compression)`
+        : '';
+    console.log(
+      `✅ Saved generated dungeon map: ${mapId} (${format.toUpperCase()}, ${(estimatedOriginalSize / 1024).toFixed(1)} KB${savings})`,
+    );
     return mapId;
   }
 
   /**
    * Get all generated dungeon maps
    */
-  getAllGeneratedMaps(): GeneratedDungeonMap[] {
-    return [...this.generatedMaps];
+  async getAllGeneratedMaps(): Promise<GeneratedDungeonMap[]> {
+    await this.initialize();
+
+    const dbMaps = await dungeonMapIndexedDB.getAllMaps();
+    return dbMaps.map((dbMap) => ({
+      id: dbMap.id,
+      name: dbMap.name,
+      imageData: dbMap.imageData,
+      format: dbMap.format,
+      originalSize: dbMap.originalSize,
+      compressedSize: dbMap.compressedSize,
+      timestamp: dbMap.timestamp,
+      source: dbMap.source,
+    }));
   }
 
   /**
    * Get generated map by ID
    */
-  getMapById(id: string): GeneratedDungeonMap | null {
-    return this.generatedMaps.find((map) => map.id === id) || null;
+  async getMapById(id: string): Promise<GeneratedDungeonMap | null> {
+    await this.initialize();
+
+    const dbMap = await dungeonMapIndexedDB.getMapById(id);
+    if (!dbMap) return null;
+
+    return {
+      id: dbMap.id,
+      name: dbMap.name,
+      imageData: dbMap.imageData,
+      format: dbMap.format,
+      originalSize: dbMap.originalSize,
+      compressedSize: dbMap.compressedSize,
+      timestamp: dbMap.timestamp,
+      source: dbMap.source,
+    };
   }
 
   /**
    * Delete a generated map
    */
-  deleteMap(id: string): boolean {
-    const index = this.generatedMaps.findIndex((map) => map.id === id);
-    if (index !== -1) {
-      this.generatedMaps.splice(index, 1);
-      this.saveToStorage();
-      console.log(`Deleted generated dungeon map: ${id}`);
+  async deleteMap(id: string): Promise<boolean> {
+    await this.initialize();
+
+    try {
+      await dungeonMapIndexedDB.deleteMap(id);
+      console.log(`🗑️ Deleted generated dungeon map: ${id}`);
       return true;
+    } catch (error) {
+      console.error('Failed to delete dungeon map:', error);
+      return false;
     }
-    return false;
+  }
+
+  /**
+   * Export a map as a downloadable PNG file
+   */
+  async exportMapAsFile(mapId: string): Promise<void> {
+    const map = await this.getMapById(mapId);
+    if (!map) {
+      throw new Error('Map not found');
+    }
+
+    // Convert base64 to blob with correct MIME type
+    const mimeType = map.format === 'webp' ? 'image/webp' : 'image/png';
+    const blob = this.base64ToBlob(map.imageData, mimeType);
+
+    // Create download link
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    // Sanitize filename with correct extension
+    const safeName = map.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const extension = map.format === 'webp' ? 'webp' : 'png';
+    link.download = `${safeName}.${extension}`;
+
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log(`📥 Exported dungeon map: ${map.name}`);
   }
 
   /**
    * Convert generated maps to BaseMap format for compatibility
    */
-  getAsBaseMaps(): BaseMap[] {
-    return this.generatedMaps.map((map) => ({
+  async getAsBaseMaps(): Promise<BaseMap[]> {
+    const maps = await this.getAllGeneratedMaps();
+    return maps.map((map) => ({
       id: map.id,
       name: map.name,
       path: map.imageData, // Use base64 data as path
       tags: ['generated', 'dungeon'],
       format: 'png',
       isDefault: false,
+      isGenerated: true,
     }));
-  }
-
-  /**
-   * Load maps from localStorage
-   */
-  private loadFromStorage(): void {
-    try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      if (stored) {
-        this.generatedMaps = JSON.parse(stored);
-        console.log(
-          `Loaded ${this.generatedMaps.length} generated dungeon maps from storage`,
-        );
-      }
-    } catch (error) {
-      console.error('Failed to load generated maps from storage:', error);
-      this.generatedMaps = [];
-    }
-  }
-
-  /**
-   * Save maps to localStorage
-   */
-  private saveToStorage(recursionDepth = 0): void {
-    // Prevent infinite recursion
-    if (recursionDepth > 10) {
-      console.error(
-        '❌ Failed to save after removing 10 maps. Clearing all generated maps.',
-      );
-      this.generatedMaps = [];
-      localStorage.removeItem(this.STORAGE_KEY);
-      return;
-    }
-
-    // Limit to only keep last 5 maps to prevent storage overflow
-    const MAX_STORED_MAPS = 5;
-    if (this.generatedMaps.length > MAX_STORED_MAPS) {
-      this.generatedMaps = this.generatedMaps.slice(-MAX_STORED_MAPS);
-    }
-
-    try {
-      localStorage.setItem(
-        this.STORAGE_KEY,
-        JSON.stringify(this.generatedMaps),
-      );
-    } catch (error) {
-      console.error('Failed to save generated maps to storage:', error);
-      // If storage is full, remove oldest map and try again
-      if (
-        error instanceof DOMException &&
-        error.name === 'QuotaExceededError'
-      ) {
-        if (this.generatedMaps.length > 0) {
-          console.warn(
-            `⚠️ Storage full. Removing oldest map (${this.generatedMaps.length} total)`,
-          );
-          this.generatedMaps.shift(); // Remove oldest
-          this.saveToStorage(recursionDepth + 1); // Try again with depth tracking
-        } else {
-          console.error('❌ Storage quota exceeded with no maps to remove');
-        }
-      }
-    }
   }
 
   /**
    * Clear all generated maps
    */
-  clearAll(): void {
-    this.generatedMaps = [];
-    localStorage.removeItem(this.STORAGE_KEY);
-    console.log('Cleared all generated dungeon maps');
+  async clearAll(): Promise<void> {
+    await this.initialize();
+    await dungeonMapIndexedDB.clearAll();
+    console.log('🧹 Cleared all generated dungeon maps');
   }
 
   /**
    * Clear all maps immediately (expose for debugging)
    */
-  clearAllNow(): void {
-    this.clearAll();
+  async clearAllNow(): Promise<void> {
+    return this.clearAll();
   }
 
   /**
    * Keep only the N most recent maps
    */
-  keepRecentMaps(count: number): void {
-    if (this.generatedMaps.length > count) {
-      const removed = this.generatedMaps.length - count;
-      this.generatedMaps = this.generatedMaps.slice(-count);
-      this.saveToStorage();
+  async keepRecentMaps(count: number): Promise<number> {
+    await this.initialize();
+    const deletedCount = await dungeonMapIndexedDB.cleanupOldMaps(count);
+    if (deletedCount > 0) {
       console.log(
-        `🗑️ Removed ${removed} old dungeon maps, kept ${count} most recent`,
+        `🗑️ Cleaned up ${deletedCount} old dungeon maps, kept ${count} most recent`,
       );
     }
+    return deletedCount;
   }
 
   /**
    * Get storage statistics
    */
-  getStats(): { count: number; storageSize: number } {
-    const stored = localStorage.getItem(this.STORAGE_KEY) || '';
-    return {
-      count: this.generatedMaps.length,
-      storageSize: new Blob([stored]).size,
-    };
+  async getStats(): Promise<StorageStats> {
+    await this.initialize();
+    return await dungeonMapIndexedDB.getStorageStats();
+  }
+
+  /**
+   * Utility: Convert base64 to blob
+   */
+  private base64ToBlob(base64: string, mimeType: string): Blob {
+    const byteCharacters = atob(base64.split(',')[1] || base64);
+    const byteNumbers = new Array(byteCharacters.length);
+
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
   }
 }
 

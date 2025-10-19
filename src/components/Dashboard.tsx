@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { CharacterManager } from './CharacterManager';
+import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
 import '@/styles/dashboard.css';
 
 /**
@@ -56,11 +59,14 @@ interface Character {
  * @returns {JSX.Element} Dashboard page
  */
 export const Dashboard: React.FC = () => {
-  const { user, isAuthenticated, logout, createGameRoom } = useGameStore();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout, createGameRoom, joinRoomWithCode } = useGameStore();
+  const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [charactersLoading, setCharactersLoading] = useState(true);
+  const [authChecking, setAuthChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showNewCampaignModal, setShowNewCampaignModal] = useState(false);
   const [newCampaignName, setNewCampaignName] = useState('');
@@ -68,7 +74,26 @@ export const Dashboard: React.FC = () => {
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [startingSession, setStartingSession] = useState<string | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
-  const [editingCharacter, setEditingCharacter] = useState<Character | undefined>(undefined);
+  const [editingCharacter, setEditingCharacter] = useState<
+    Character | undefined
+  >(undefined);
+  const [showJoinGameModal, setShowJoinGameModal] = useState(false);
+  const [joinRoomCode, setJoinRoomCode] = useState('');
+  const [joiningGame, setJoiningGame] = useState(false);
+
+  // Check authentication and redirect if not authenticated
+  useEffect(() => {
+    // Give authentication check time to complete
+    const timer = setTimeout(() => {
+      setAuthChecking(false);
+      if (!isAuthenticated) {
+        console.warn('Dashboard: User not authenticated, redirecting to lobby');
+        navigate('/lobby');
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, navigate]);
 
   /**
    * Fetches campaigns from API on component mount
@@ -169,7 +194,9 @@ export const Dashboard: React.FC = () => {
       setShowNewCampaignModal(false);
     } catch (err) {
       console.error('Error creating campaign:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create campaign');
+      setError(
+        err instanceof Error ? err.message : 'Failed to create campaign',
+      );
     } finally {
       setCreatingCampaign(false);
     }
@@ -190,8 +217,21 @@ export const Dashboard: React.FC = () => {
    * Handles opening the character creation modal
    */
   const handleCreateCharacter = () => {
-    setEditingCharacter(undefined);
-    setShowCharacterModal(true);
+    if (user.id) {
+      startCharacterCreation(
+        user.id,
+        'modal',
+        (characterId, character) => {
+          // Character saved to database via API, now add to local state
+          if (character) {
+            handleSaveCharacter(character as any);
+          }
+        },
+        () => {
+          console.log('Character creation cancelled');
+        },
+      );
+    }
   };
 
   /**
@@ -199,7 +239,6 @@ export const Dashboard: React.FC = () => {
    */
   const handleEditCharacter = (character: Character) => {
     setEditingCharacter(character);
-    setShowCharacterModal(true);
   };
 
   /**
@@ -208,7 +247,9 @@ export const Dashboard: React.FC = () => {
   const handleSaveCharacter = (character: Character) => {
     if (editingCharacter) {
       // Update existing character
-      setCharacters(characters.map(c => c.id === character.id ? character : c));
+      setCharacters(
+        characters.map((c) => (c.id === character.id ? character : c)),
+      );
     } else {
       // Add new character
       setCharacters([character, ...characters]);
@@ -235,10 +276,12 @@ export const Dashboard: React.FC = () => {
         throw new Error(errorData.error || 'Failed to delete character');
       }
 
-      setCharacters(characters.filter(c => c.id !== characterId));
+      setCharacters(characters.filter((c) => c.id !== characterId));
     } catch (err) {
       console.error('Error deleting character:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete character');
+      setError(
+        err instanceof Error ? err.message : 'Failed to delete character',
+      );
     }
   };
 
@@ -263,10 +306,11 @@ export const Dashboard: React.FC = () => {
         campaignId,
       };
 
-      await createGameRoom(gameConfig);
+      const roomCode = await createGameRoom(gameConfig);
 
-      // Navigation to game view happens automatically in createGameRoom
-      console.log('✅ Session started successfully');
+      // Navigate to game view
+      console.log('✅ Session started successfully, navigating to game room:', roomCode);
+      navigate(`/lobby/game/${roomCode}`);
     } catch (err) {
       console.error('Error starting session:', err);
       setError(err instanceof Error ? err.message : 'Failed to start session');
@@ -275,21 +319,80 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  /**
+   * Handles joining an existing game with a room code
+   */
+  const handleJoinGame = async () => {
+    if (!joinRoomCode.trim()) {
+      setError('Please enter a room code');
+      return;
+    }
+
+    try {
+      setJoiningGame(true);
+      setError(null);
+
+      console.log(`🎮 Joining game with room code: ${joinRoomCode}`);
+
+      // Join the room - this will connect via WebSocket
+      await joinRoomWithCode(joinRoomCode.trim().toUpperCase());
+
+      // Navigate to game view
+      console.log('✅ Joined game successfully, navigating to game room');
+      navigate(`/lobby/game/${joinRoomCode.trim().toUpperCase()}`);
+
+      // Close modal and reset
+      setShowJoinGameModal(false);
+      setJoinRoomCode('');
+    } catch (err) {
+      console.error('Error joining game:', err);
+      setError(err instanceof Error ? err.message : 'Failed to join game');
+    } finally {
+      setJoiningGame(false);
+    }
+  };
+
+  // Show loading while checking authentication
+  if (authChecking) {
+    return (
+      <div className="dashboard-page">
+        <div className="auth-check-loading">
+          <div className="loading-state">
+            <span className="loading-spinner"></span>
+            <p>Checking authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="dashboard-page">
-      {/* Header */}
-      <div className="dashboard-header">
-        <div className="dashboard-header-content">
+    <>
+      <div className="dashboard-page">
+        {/* Header */}
+        <div className="dashboard-header">
+          <div className="dashboard-header-content">
           <div className="dashboard-title-section">
             <h1>Welcome, {user.name || 'Adventurer'}!</h1>
-            <p className="dashboard-subtitle">Manage your campaigns and characters</p>
+            <p className="dashboard-subtitle">
+              Manage your campaigns and characters
+            </p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="action-btn glass-button secondary"
-          >
-            Logout
-          </button>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              onClick={() => setShowJoinGameModal(true)}
+              className="action-btn glass-button primary"
+            >
+              <span>🎲</span>
+              Join Game
+            </button>
+            <button
+              onClick={handleLogout}
+              className="action-btn glass-button secondary"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 
@@ -419,13 +522,19 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <div className="character-info">
                   {character.data.race && (
-                    <span className="character-detail">{character.data.race}</span>
+                    <span className="character-detail">
+                      {character.data.race}
+                    </span>
                   )}
                   {character.data.class && (
-                    <span className="character-detail">{character.data.class}</span>
+                    <span className="character-detail">
+                      {character.data.class}
+                    </span>
                   )}
                   {character.data.level && (
-                    <span className="character-detail">Level {character.data.level}</span>
+                    <span className="character-detail">
+                      Level {character.data.level}
+                    </span>
                   )}
                 </div>
                 <div className="character-actions">
@@ -452,8 +561,14 @@ export const Dashboard: React.FC = () => {
 
       {/* New Campaign Modal */}
       {showNewCampaignModal && (
-        <div className="modal-overlay" onClick={() => !creatingCampaign && setShowNewCampaignModal(false)}>
-          <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          onClick={() => !creatingCampaign && setShowNewCampaignModal(false)}
+        >
+          <div
+            className="modal-content glass-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h2>Create New Campaign</h2>
               <button
@@ -483,7 +598,9 @@ export const Dashboard: React.FC = () => {
               </div>
 
               <div className="input-group">
-                <label htmlFor="campaignDescription">Description (optional)</label>
+                <label htmlFor="campaignDescription">
+                  Description (optional)
+                </label>
                 <div className="glass-input-wrapper">
                   <textarea
                     id="campaignDescription"
@@ -536,6 +653,119 @@ export const Dashboard: React.FC = () => {
           onSave={handleSaveCharacter}
         />
       )}
-    </div>
+
+      {/* Join Game Modal */}
+      {showJoinGameModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => !joiningGame && setShowJoinGameModal(false)}
+        >
+          <div
+            className="modal-content glass-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2>Join Game</h2>
+              <button
+                className="modal-close"
+                onClick={() => setShowJoinGameModal(false)}
+                disabled={joiningGame}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                Enter the room code provided by your Dungeon Master to join their game.
+              </p>
+
+              <div className="input-group">
+                <label htmlFor="roomCode">Room Code *</label>
+                <div className="glass-input-wrapper">
+                  <input
+                    id="roomCode"
+                    type="text"
+                    value={joinRoomCode}
+                    onChange={(e) => setJoinRoomCode(e.target.value.toUpperCase())}
+                    placeholder="e.g., ABC123"
+                    className="glass-input"
+                    disabled={joiningGame}
+                    maxLength={6}
+                    style={{ textTransform: 'uppercase' }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && joinRoomCode.trim()) {
+                        handleJoinGame();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {characters.length > 0 && (
+                <div className="input-group">
+                  <label>Your Characters</label>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                    You have {characters.length} character{characters.length !== 1 ? 's' : ''} available to use in this game.
+                  </p>
+                  <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                    {characters.map((character) => (
+                      <div
+                        key={character.id}
+                        style={{
+                          padding: '0.5rem',
+                          marginBottom: '0.25rem',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          borderRadius: '4px',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        <strong>{character.name}</strong>
+                        {character.data.race && character.data.class && (
+                          <span style={{ marginLeft: '0.5rem', color: 'var(--text-secondary)' }}>
+                            ({character.data.race} {character.data.class})
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="action-btn glass-button secondary"
+                onClick={() => setShowJoinGameModal(false)}
+                disabled={joiningGame}
+              >
+                Cancel
+              </button>
+              <button
+                className="action-btn glass-button primary"
+                onClick={handleJoinGame}
+                disabled={!joinRoomCode.trim() || joiningGame}
+              >
+                {joiningGame ? (
+                  <>
+                    <span className="loading-spinner"></span>
+                    Joining...
+                  </>
+                ) : (
+                  <>
+                    <span>🎲</span>
+                    Join Game
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
+
+      {/* Character Creation Launcher - rendered via portal to overlay everything */}
+      {LauncherComponent && createPortal(LauncherComponent, document.body)}
+    </>
   );
 };

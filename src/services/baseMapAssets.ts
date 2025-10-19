@@ -14,6 +14,7 @@ export interface BaseMap {
   tags: string[];
   format: string;
   isDefault: boolean;
+  isGenerated?: boolean;
   category?: string;
   thumbnail?: string;
 }
