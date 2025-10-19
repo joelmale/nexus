@@ -1276,6 +1276,31 @@
   padding: var(--spacing-4);
 }
 
+.character-creation-wizard.character-wizard-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-4);
+}
+
+.character-wizard-modal .modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  z-index: 0;
+}
+
 .character-wizard-modal .wizard-container {
   max-width: 1200px;
   max-height: 90vh;
@@ -1286,6 +1311,7 @@
   box-shadow: var(--shadow-glass-xl);
   overflow: hidden;
   position: relative;
+  z-index: 1;
 }
 
 .character-wizard-fullpage .wizard-container {
@@ -1299,6 +1325,10 @@
 /* Modal responsive adjustments */
 @media (max-width: 768px) {
   .modal-backdrop {
+    padding: var(--spacing-2);
+  }
+
+  .character-creation-wizard.character-wizard-modal {
     padding: var(--spacing-2);
   }
 

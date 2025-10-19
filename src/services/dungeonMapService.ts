@@ -10,10 +10,12 @@ import { dungeonMapIndexedDB, type StorageStats } from '../utils/indexedDB';
 export interface GeneratedDungeonMap {
   id: string;
   name: string;
-  imageData: string; // base64 PNG data
+  imageData: string; // base64 data URL
+  format: 'webp' | 'png'; // image format
+  originalSize: number; // original blob size in bytes
+  compressedSize: number; // base64 size in bytes
   timestamp: number;
   source: 'one-page-dungeon-generator';
-  fileSize: number; // bytes
 }
 
 class DungeonMapService {
@@ -57,15 +59,18 @@ class DungeonMapService {
       );
 
       for (const map of legacyMaps) {
-        // Calculate file size (rough estimate: base64 is ~33% larger than binary)
-        const fileSize = Math.floor((map.imageData.length * 3) / 4);
+        // Calculate sizes for legacy maps (rough estimate: base64 is ~33% larger than binary)
+        const compressedSize = map.imageData.length;
+        const originalSize = Math.floor((compressedSize * 3) / 4);
 
         await dungeonMapIndexedDB.saveMap({
           name: map.name,
           imageData: map.imageData,
+          format: 'png', // Legacy maps are PNG
+          originalSize,
+          compressedSize,
           timestamp: map.timestamp,
           source: map.source,
-          fileSize,
         });
       }
 
@@ -84,26 +89,36 @@ class DungeonMapService {
   async saveGeneratedMap(
     imageData: string,
     customName?: string,
+    format: 'webp' | 'png' = 'png',
+    originalSize?: number,
   ): Promise<string> {
     await this.initialize();
 
     const timestamp = Date.now();
-    // Calculate file size (rough estimate: base64 is ~33% larger than binary)
-    const fileSize = Math.floor((imageData.length * 3) / 4);
+    const compressedSize = imageData.length;
+    // If originalSize not provided, estimate from base64 (rough estimate: base64 is ~33% larger than binary)
+    const estimatedOriginalSize =
+      originalSize || Math.floor((compressedSize * 3) / 4);
 
     const mapData = {
       name:
         customName ||
         `Generated Dungeon ${new Date(timestamp).toLocaleDateString()}`,
       imageData,
+      format,
+      originalSize: estimatedOriginalSize,
+      compressedSize,
       timestamp,
       source: 'one-page-dungeon-generator' as const,
-      fileSize,
     };
 
     const mapId = await dungeonMapIndexedDB.saveMap(mapData);
+    const savings =
+      format === 'webp'
+        ? ` (${(((estimatedOriginalSize - compressedSize) / estimatedOriginalSize) * 100).toFixed(0)}% compression)`
+        : '';
     console.log(
-      `✅ Saved generated dungeon map: ${mapId} (${(fileSize / 1024).toFixed(1)} KB)`,
+      `✅ Saved generated dungeon map: ${mapId} (${format.toUpperCase()}, ${(estimatedOriginalSize / 1024).toFixed(1)} KB${savings})`,
     );
     return mapId;
   }
@@ -119,9 +134,11 @@ class DungeonMapService {
       id: dbMap.id,
       name: dbMap.name,
       imageData: dbMap.imageData,
+      format: dbMap.format,
+      originalSize: dbMap.originalSize,
+      compressedSize: dbMap.compressedSize,
       timestamp: dbMap.timestamp,
       source: dbMap.source,
-      fileSize: dbMap.fileSize,
     }));
   }
 
@@ -138,9 +155,11 @@ class DungeonMapService {
       id: dbMap.id,
       name: dbMap.name,
       imageData: dbMap.imageData,
+      format: dbMap.format,
+      originalSize: dbMap.originalSize,
+      compressedSize: dbMap.compressedSize,
       timestamp: dbMap.timestamp,
       source: dbMap.source,
-      fileSize: dbMap.fileSize,
     };
   }
 
@@ -169,17 +188,19 @@ class DungeonMapService {
       throw new Error('Map not found');
     }
 
-    // Convert base64 to blob
-    const blob = this.base64ToBlob(map.imageData, 'image/png');
+    // Convert base64 to blob with correct MIME type
+    const mimeType = map.format === 'webp' ? 'image/webp' : 'image/png';
+    const blob = this.base64ToBlob(map.imageData, mimeType);
 
     // Create download link
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
 
-    // Sanitize filename
+    // Sanitize filename with correct extension
     const safeName = map.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    link.download = `${safeName}.png`;
+    const extension = map.format === 'webp' ? 'webp' : 'png';
+    link.download = `${safeName}.${extension}`;
 
     // Trigger download
     document.body.appendChild(link);

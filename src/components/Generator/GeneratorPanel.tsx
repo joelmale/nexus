@@ -19,7 +19,20 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 }) => {
   const [generatedMap, setGeneratedMap] = useState<string | null>(() => {
     try {
-      return sessionStorage.getItem(GENERATOR_MAP_STORAGE_KEY) || null;
+      const stored = sessionStorage.getItem(GENERATOR_MAP_STORAGE_KEY);
+      if (stored) {
+        // Handle both old string format and new object format
+        try {
+          const parsed = JSON.parse(stored);
+          return typeof parsed === 'object' && parsed.imageData
+            ? parsed.imageData
+            : stored;
+        } catch {
+          // Old format - just a string
+          return stored;
+        }
+      }
+      return null;
     } catch (error) {
       console.warn('Failed to load generated map from sessionStorage:', error);
       return null;
@@ -40,13 +53,27 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   const activeScene = useActiveScene();
   const updateScene = useGameStore((state) => state.updateScene);
 
-  const handleMapGenerated = async (imageData: string) => {
+  const handleMapGenerated = async (
+    imageData: string,
+    format: 'webp' | 'png' = 'png',
+    originalSize?: number,
+  ) => {
     try {
       setGeneratedMap(imageData);
-      sessionStorage.setItem(GENERATOR_MAP_STORAGE_KEY, imageData);
+      // Store format info in sessionStorage for persistence
+      const mapData = {
+        imageData,
+        format,
+        originalSize,
+        timestamp: Date.now(),
+      };
+      sessionStorage.setItem(
+        GENERATOR_MAP_STORAGE_KEY,
+        JSON.stringify(mapData),
+      );
 
       // Don't automatically save to library - only save when user clicks "Add to Scene"
-      // This prevents filling up localStorage with unwanted maps
+      // This prevents filling up storage with unwanted maps
     } catch (error) {
       console.error('Failed to handle generated map:', error);
     }
@@ -70,9 +97,31 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       const imageData = generatedMap; // Use the stored, valid image data
       const dungeonTitle = `Generated Dungeon ${new Date().toLocaleString()}`;
 
+      // Extract format information from sessionStorage
+      let format: 'webp' | 'png' = 'png';
+      let originalSize: number | undefined;
+
+      try {
+        const stored = sessionStorage.getItem(GENERATOR_MAP_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (typeof parsed === 'object' && parsed.format) {
+            format = parsed.format;
+            originalSize = parsed.originalSize;
+          }
+        }
+      } catch {
+        // Ignore parsing errors, use defaults
+      }
+
       // Try to save to dungeon map service with custom name
       try {
-        await dungeonMapService.saveGeneratedMap(imageData, dungeonTitle);
+        await dungeonMapService.saveGeneratedMap(
+          imageData,
+          dungeonTitle,
+          format,
+          originalSize,
+        );
       } catch (saveError) {
         console.warn(
           'Could not save to library (storage may be full):',

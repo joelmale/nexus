@@ -670,7 +670,7 @@ class NexusServer {
     }
   }
 
-  private handleConnection(ws: WebSocket, req: IncomingMessage) {
+  private async handleConnection(ws: WebSocket, req: IncomingMessage) {
     const request = req as any;
     const user = request.session?.passport?.user;
     const guestUser = request.session?.guestUser;
@@ -679,10 +679,24 @@ class NexusServer {
     const userIdFromQuery = params.get('userId');
 
     // Priority: authenticated user > guest user > query param > new UUID
-    const uuid = user?.id || guestUser?.id || userIdFromQuery || uuidv4();
-    const displayName = user?.name || guestUser?.name || 'Guest';
-    const userType = user ? 'Authenticated' : guestUser ? 'Guest' : 'Anonymous';
-    console.log(`📡 New connection: ${uuid} (${userType} as ${displayName})`);
+    let uuid = user?.id || guestUser?.id || userIdFromQuery || uuidv4();
+    let displayName = user?.name || guestUser?.name || 'Guest';
+    let userType = user ? 'Authenticated' : guestUser ? 'Guest' : 'Anonymous';
+
+    // If we have a userId from query params but no authenticated user, try to look up the user
+    if (userIdFromQuery && !user && !guestUser) {
+      try {
+        const dbUser = await this.db.getUserById(userIdFromQuery);
+        if (dbUser) {
+          uuid = dbUser.id;
+          displayName = dbUser.name;
+          userType = 'Authenticated';
+          console.log(`✅ Found authenticated user from query param: ${dbUser.name}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Failed to lookup user ${userIdFromQuery}:`, error);
+      }
+    }    console.log(`📡 New connection: ${uuid} (${userType} as ${displayName})`);
 
     const connection: Connection = {
       id: uuid,
@@ -701,13 +715,13 @@ class NexusServer {
     const campaignId = params.get('campaignId'); // Get campaign ID from query params
 
     if (host) {
-      this.handleHostConnection(connection, host, campaignId);
+      await this.handleHostConnection(connection, host, campaignId);
     } else if (reconnect) {
       this.handleHostReconnection(connection, reconnect);
     } else if (join) {
-      this.handleJoinConnection(connection, join);
+      await this.handleJoinConnection(connection, join);
     } else {
-      this.handleDefaultConnection(connection, campaignId);
+      await this.handleDefaultConnection(connection, campaignId);
     }
 
     ws.on('message', (data) => {
@@ -991,9 +1005,9 @@ class NexusServer {
     console.log(`👋 Player joined room ${roomCode}: ${connection.id}`);
   }
 
-  private handleDefaultConnection(connection: Connection, campaignId?: string | null) {
+  private async handleDefaultConnection(connection: Connection, campaignId?: string | null) {
     const roomCode = this.generateRoomCode();
-    this.handleHostConnection(connection, roomCode, campaignId);
+    await this.handleHostConnection(connection, roomCode, campaignId);
   }
 
   private routeMessage(fromUuid: string, message: ServerMessage) {

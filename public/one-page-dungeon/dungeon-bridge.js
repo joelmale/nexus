@@ -10,35 +10,71 @@
     const originalSaveAs = window.saveAs;
     const originalOcSavePNG = window.Oc && window.Oc.savePNG;
 
+    // Detect optimal image format (WebP with PNG fallback)
+    function getOptimalImageFormat() {
+      // Test WebP support by creating a small canvas and checking toDataURL
+      try {
+        const testCanvas = document.createElement('canvas');
+        testCanvas.width = testCanvas.height = 1;
+        const testDataURL = testCanvas.toDataURL('image/webp');
+        return testDataURL.indexOf('data:image/webp') === 0
+          ? 'image/webp'
+          : 'image/png';
+      } catch (e) {
+        return 'image/png'; // Fallback on any error
+      }
+    }
+
+    const optimalFormat = getOptimalImageFormat();
+    const formatQuality = optimalFormat === 'image/webp' ? 0.9 : undefined;
+
+    console.log(
+      'Dungeon Bridge: Using format:',
+      optimalFormat,
+      'quality:',
+      formatQuality,
+    );
+
     // Intercept Oc.savePNG (the actual function called by dungeon generator)
     if (window.Oc && window.Oc.savePNG) {
       window.Oc.savePNG = function (canvas, filename) {
-        console.log('Intercepted Oc.savePNG call:', filename);
+        console.log(
+          'Intercepted Oc.savePNG call:',
+          filename,
+          'format:',
+          optimalFormat,
+        );
 
-        // Convert canvas to blob
-        canvas.toBlob(function (blob) {
-          // Convert blob to data URL
-          const reader = new FileReader();
-          reader.onloadend = function () {
-            const imageData = reader.result;
+        // Convert canvas to blob with optimal format
+        canvas.toBlob(
+          function (blob) {
+            // Convert blob to data URL
+            const reader = new FileReader();
+            reader.onloadend = function () {
+              const imageData = reader.result;
 
-            // Send to parent window
-            if (window.parent !== window) {
-              window.parent.postMessage(
-                {
-                  type: 'DUNGEON_PNG_GENERATED',
-                  data: {
-                    imageData: imageData,
-                    filename: filename,
-                    timestamp: Date.now(),
+              // Send to parent window with format information
+              if (window.parent !== window) {
+                window.parent.postMessage(
+                  {
+                    type: 'DUNGEON_PNG_GENERATED',
+                    data: {
+                      imageData: imageData,
+                      filename: filename,
+                      format: optimalFormat,
+                      originalSize: blob.size,
+                      timestamp: Date.now(),
+                    },
                   },
-                },
-                '*',
-              );
-            }
-          };
-          reader.readAsDataURL(blob);
-        }, 'image/png');
+                  '*',
+                );
+              }
+            };
+            reader.readAsDataURL(blob);
+          },
+          optimalFormat,
+          formatQuality,
+        );
 
         // Also call original function to maintain normal behavior
         if (originalOcSavePNG) {
@@ -52,7 +88,9 @@
       window.saveAs = function (blob, filename, options) {
         if (
           blob.type === 'image/png' ||
-          (filename && filename.endsWith('.png'))
+          blob.type === 'image/webp' ||
+          (filename &&
+            (filename.endsWith('.png') || filename.endsWith('.webp')))
         ) {
           const reader = new FileReader();
           reader.onloadend = function () {
@@ -65,6 +103,8 @@
                   data: {
                     imageData: imageData,
                     filename: filename,
+                    format: blob.type,
+                    originalSize: blob.size,
                     timestamp: Date.now(),
                   },
                 },

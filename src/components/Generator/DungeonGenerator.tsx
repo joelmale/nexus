@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 interface DungeonGeneratorProps {
-  onMapGenerated: (imageData: string) => void;
+  onMapGenerated: (
+    imageData: string,
+    format?: 'webp' | 'png',
+    originalSize?: number,
+  ) => void;
 }
 
 export const DungeonGenerator: React.FC<DungeonGeneratorProps> = ({
@@ -21,16 +25,17 @@ export const DungeonGenerator: React.FC<DungeonGeneratorProps> = ({
         return;
       }
 
-      // Handle PNG generation from dungeon generator
+      // Handle PNG/WebP generation from dungeon generator
       if (event.data.type === 'DUNGEON_PNG_GENERATED') {
         console.log('Processing DUNGEON_PNG_GENERATED message');
-        onMapGenerated(event.data.data.imageData);
+        const { imageData, format = 'png', originalSize } = event.data.data;
+        onMapGenerated(imageData, format, originalSize);
       }
 
       // Legacy support
       if (event.data.type === 'DUNGEON_MAP_GENERATED') {
         console.log('Processing DUNGEON_MAP_GENERATED message (legacy)');
-        onMapGenerated(event.data.data.imageData);
+        onMapGenerated(event.data.data.imageData, 'png');
       }
     };
 

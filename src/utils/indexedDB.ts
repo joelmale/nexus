@@ -6,10 +6,12 @@
 export interface DungeonMapDB {
   id: string;
   name: string;
-  imageData: string; // base64 PNG data
+  imageData: string; // base64 data URL
+  format: 'webp' | 'png'; // image format
+  originalSize: number; // original blob size in bytes
+  compressedSize: number; // base64 size in bytes
   timestamp: number;
   source: 'one-page-dungeon-generator';
-  fileSize: number; // bytes
 }
 
 export interface StorageStats {
@@ -96,7 +98,7 @@ class DungeonMapIndexedDB {
 
       request.onsuccess = () => {
         console.log(
-          `✅ Saved dungeon map: ${mapId} (${(map.fileSize / 1024).toFixed(1)} KB)`,
+          `✅ Saved dungeon map: ${mapId} (${map.format.toUpperCase()}, ${(map.originalSize / 1024).toFixed(1)} KB original)`,
         );
         resolve(mapId);
       };
@@ -226,7 +228,7 @@ class DungeonMapIndexedDB {
    */
   async getStorageStats(): Promise<StorageStats> {
     const maps = await this.getAllMaps();
-    const totalSize = maps.reduce((sum, map) => sum + map.fileSize, 0);
+    const totalSize = maps.reduce((sum, map) => sum + map.compressedSize, 0);
     const averageSize = maps.length > 0 ? totalSize / maps.length : 0;
 
     return {

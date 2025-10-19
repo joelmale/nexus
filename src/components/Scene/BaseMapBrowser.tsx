@@ -24,6 +24,7 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
   const [storageStats, setStorageStats] = useState<{
     count: number;
     totalSize: number;
+    averageSize: number;
   } | null>(null);
 
   useEffect(() => {
@@ -154,6 +155,13 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
                 >
                   {storageStats.count} generated maps •{' '}
                   {(storageStats.totalSize / 1024 / 1024).toFixed(1)} MB stored
+                  {storageStats.averageSize > 0 && (
+                    <>
+                      {' '}
+                      • Avg: {(storageStats.averageSize / 1024).toFixed(0)} KB
+                      each
+                    </>
+                  )}
                 </div>
               )}
             </div>
