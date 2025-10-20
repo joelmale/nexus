@@ -70,7 +70,7 @@
   "dependencies": {
     "@3d-dice/dice-box": "^1.1.4",
     "@msgpack/msgpack": "^3.1.2",
-    "@playwright/test": "^1.55.1",
+    "@playwright/test": "^1.56.1",
     "@react-three/cannon": "^6.6.0",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.3.0",
@@ -103,7 +103,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
-    "@eslint/config-array": "^0.21.0",
+    "@eslint/config-array": "^0.21.1",
     "@eslint/js": "^9.37.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
@@ -133,7 +133,7 @@
     "hermes-estree": "^0.32.1",
     "hermes-parser": "^0.32.1",
     "husky": "^9.1.7",
-    "jsdom": "^27.0.0",
+    "jsdom": "^27.0.1",
     "lint-staged": "^16.2.1",
     "prettier": "^3.6.2",
     "tsx": "^4.6.2",
