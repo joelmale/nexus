@@ -51,6 +51,7 @@ export const GameUI: React.FC = () => {
     | 'sounds'
     | 'lobby'
     | 'settings'
+    | 'documents'
   >(isHost ? 'scene' : 'lobby');
   const [sidebarWidth, setSidebarWidth] = useState(300);
 
@@ -174,6 +175,7 @@ export const GameUI: React.FC = () => {
       : []),
     { id: 'initiative' as const, icon: '⏱', label: 'Initiative' },
     { id: 'dice' as const, icon: '🎲', label: 'Dice' },
+    { id: 'documents' as const, icon: '📚', label: 'Documents' },
     { id: 'chat' as const, icon: '💬', label: 'Chat' },
     ...(isHost ? [{ id: 'sounds' as const, icon: '🔊', label: 'Sounds' }] : []),
     { id: 'lobby' as const, icon: '🏠', label: 'Lobby' },

@@ -19,6 +19,9 @@ RUN npm ci
 COPY server/ ./server/
 COPY shared/ ./shared/
 
+# Build the server
+RUN npm run build:server
+
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
@@ -29,15 +32,15 @@ RUN chown -R nodejs:nodejs /app
 # Switch to non-root user
 USER nodejs
 
-# Expose WebSocket port
+# Expose WebSocket port (Railway will assign its own PORT via env var)
 EXPOSE 5000
 
-# Health check
+# Health check (use PORT env var if available)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:5000/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
+  CMD node -e "const port = process.env.PORT || 5000; require('http').get('http://localhost:' + port + '/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the server
-CMD ["npm", "run", "server:dev"]
+# Start the built server
+CMD ["npm", "run", "server:start"]

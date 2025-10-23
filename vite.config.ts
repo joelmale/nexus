@@ -23,15 +23,15 @@ export default defineConfig(({ command }) => {
       open: true,
       proxy: {
         '/api': {
-          target: 'http://localhost:5001',
+          target: process.env.VITE_API_PROXY_URL || 'http://localhost:5001',
           changeOrigin: true,
         },
         '/auth': {
-          target: 'http://localhost:5001',
+          target: process.env.VITE_API_PROXY_URL || 'http://localhost:5001',
           changeOrigin: true,
         },
         '/ws': {
-          target: 'ws://localhost:5001',
+          target: process.env.VITE_WS_PROXY_URL || 'ws://localhost:5001',
           ws: true,
         },
       },
