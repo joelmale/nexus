@@ -222,7 +222,7 @@ export const Dashboard: React.FC = () => {
       startCharacterCreation(
         user.id,
         'modal',
-        (characterId: string, character?: Character) => {
+        (characterId: string, character: any) => {
           // Character saved to database via API, now add to local state
           if (character) {
             handleSaveCharacter(character as Character);

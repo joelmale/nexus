@@ -11,7 +11,7 @@ export const AdminPage: React.FC = () => {
     isOpen: boolean;
     mode: 'add' | 'edit';
     dataType: string;
-    initialData?: Weapon | Armor | undefined;
+    initialData?: Partial<Weapon> | Partial<Armor>;
   }>({
     isOpen: false,
     mode: 'add',
@@ -59,21 +59,21 @@ export const AdminPage: React.FC = () => {
     });
   };
 
-  const handleModalSave = (data: Omit<Weapon, 'id'> | Omit<Armor, 'id'>) => {
+  const handleModalSave = (data: Partial<Weapon> | Partial<Armor>) => {
     const { dataType, mode, initialData } = modalState;
 
     switch (dataType) {
       case 'weapons':
         if (mode === 'add') {
           dataManager.addWeapon(data as Omit<Weapon, 'id'>);
-        } else if (initialData) {
+        } else if (initialData && initialData.id) {
           dataManager.updateWeapon(initialData.id, data as Partial<Weapon>);
         }
         break;
       case 'armor':
         if (mode === 'add') {
           dataManager.addArmor(data as Omit<Armor, 'id'>);
-        } else if (initialData) {
+        } else if (initialData && initialData.id) {
           dataManager.updateArmor(initialData.id, data as Partial<Armor>);
         }
         break;
@@ -327,7 +327,7 @@ const WeaponTab: React.FC<{
     key: keyof Weapon | string;
     label: string;
     sortable?: boolean;
-    render?: (value: string[], item: Weapon) => React.ReactNode;
+    render?: (value: any, item: Weapon) => React.ReactNode;
   }> = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'type', label: 'Type', sortable: true },
@@ -336,7 +336,7 @@ const WeaponTab: React.FC<{
     {
       key: 'properties',
       label: 'Properties',
-      render: (value: string[]) => value?.join(', ') || '',
+      render: (value) => (Array.isArray(value) ? value.join(', ') : ''),
     },
     { key: 'weight', label: 'Weight', sortable: true },
     { key: 'cost', label: 'Cost' },
@@ -371,7 +371,7 @@ const ArmorTab: React.FC<{
     key: keyof Armor | string;
     label: string;
     sortable?: boolean;
-    render?: (value: boolean, item: Armor) => React.ReactNode;
+    render?: (value: any, item: Armor) => React.ReactNode;
   }> = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'type', label: 'Type', sortable: true },
@@ -380,7 +380,7 @@ const ArmorTab: React.FC<{
     {
       key: 'stealthDisadvantage',
       label: 'Stealth Disadv.',
-      render: (value: boolean) => (value ? 'Yes' : 'No'),
+      render: (value) => (value ? 'Yes' : 'No'),
     },
     { key: 'weight', label: 'Weight', sortable: true },
     { key: 'cost', label: 'Cost' },
