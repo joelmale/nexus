@@ -63,17 +63,25 @@ jobs:
 
       - name: Run Snyk Code (SAST)
         run: snyk code test --sarif-file-output=snyk-code.sarif || true
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Run Snyk Open Source (SCA)
         run: snyk test --sarif-file-output=snyk-oss.sarif || true
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Upload Snyk Code results
+        if: always() && hashFiles('snyk-code.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: snyk-code.sarif
           category: snyk-code
 
       - name: Upload Snyk Open Source results
+        if: always() && hashFiles('snyk-oss.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: snyk-oss.sarif

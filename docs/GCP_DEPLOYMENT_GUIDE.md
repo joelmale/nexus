@@ -464,3 +464,23 @@ steps:
 ```
 
 You can then set up a trigger in Cloud Build to automatically build and deploy your application when you push to your Git repository.
+
+## Cost Estimation
+
+This section provides a rough estimate of the monthly costs for the GKE deployment described in this guide. These are estimates, and your actual costs may vary.
+
+| Service                    | Configuration              | Estimated Monthly Cost |
+| -------------------------- | -------------------------- | ---------------------- |
+| GKE (Worker Nodes)         | 3 x `e2-medium`            | ~$84                   |
+| Cloud SQL (PostgreSQL)     | `db-custom-2-4096` + 20GB  | ~$90                   |
+| Memorystore (Redis)        | 1GB Basic Tier             | ~$49                   |
+| Elasticsearch (Elastic Cloud) | Small production cluster   | ~$50 - $100            |
+| **Total**                  |                            | **~$273 - $323**       |
+
+### How to Reduce Costs
+
+- **Use smaller machine types:** For a smaller application, you could use `e2-small` or even `e2-micro` nodes for the GKE cluster.
+- **Use fewer nodes:** You could start with a 1 or 2-node cluster.
+- **Use a smaller Cloud SQL instance:** A `db-g1-small` instance is cheaper.
+- **Don't use Elasticsearch:** If the search functionality is not critical, you could disable it and save on that cost.
+- **Use Preemptible VMs:** For non-critical workloads, you can use preemptible VMs for your GKE nodes, which are up to 80% cheaper but can be shut down at any time.
