@@ -1,7 +1,7 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as OAuth2Strategy } from 'passport-oauth2';
-import { createDatabaseService } from './database';
+import { createDatabaseService } from './database.js';
 
 /**
  * Represents a user object stored in session
