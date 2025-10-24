@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { WebSocketServer, WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import { IncomingMessage } from 'http';
@@ -26,6 +27,11 @@ import {
   type DiceRollRequest,
 } from './diceRoller.js';
 import { DatabaseService, createDatabaseService } from './database.js';
+import {
+  createDocumentServiceClient,
+  DocumentServiceClient,
+} from './services/documentServiceClient.js';
+import { createDocumentRoutes } from './routes/documents.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +53,7 @@ class NexusServer {
   private httpServer: ReturnType<typeof express.application.listen>;
   private manifest: AssetManifest | null = null;
   private db: DatabaseService;
+  private documentClient: DocumentServiceClient;
 
   private readonly ASSETS_PATH =
     process.env.ASSETS_PATH || path.join(__dirname, '../asset-server/assets');
@@ -64,9 +71,16 @@ class NexusServer {
   constructor(port: number) {
     this.port = port;
     this.db = createDatabaseService();
+
+    // Initialize document service client
+    const docApiUrl = process.env.DOC_API_URL || 'http://localhost:3000';
+    this.documentClient = createDocumentServiceClient(docApiUrl);
+
     this.app = express();
 
-    this.app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+    this.app.use(
+      helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }),
+    );
     this.app.use(compression());
     this.app.use(cors({ origin: this.CORS_ORIGIN, credentials: true }));
     this.app.use(express.json());
@@ -83,7 +97,10 @@ class NexusServer {
       secret: process.env.SESSION_SECRET || 'a-very-secret-secret',
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 1000 * 60 * 60 * 24 * 7 },
+      cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+      },
     });
 
     this.app.use(sessionMiddleware);
@@ -92,6 +109,7 @@ class NexusServer {
 
     this.setupAuthRoutes();
     this.setupApiRoutes();
+    this.setupDocumentRoutes();
     this.setupAssetRoutes();
     this.setupHealthRoutes();
 
@@ -134,17 +152,34 @@ class NexusServer {
    * @returns {void}
    */
   private setupAuthRoutes(): void {
-    this.app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-    this.app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
-      res.redirect('http://localhost:5173/dashboard');
-    });
+    this.app.get(
+      '/auth/google',
+      passport.authenticate('google', { scope: ['profile', 'email'] }),
+    );
+    this.app.get(
+      '/auth/google/callback',
+      passport.authenticate('google', { failureRedirect: '/' }),
+      (req, res) => {
+        res.redirect(
+          process.env.FRONTEND_URL || 'http://localhost:5173/dashboard',
+        );
+      },
+    );
     this.app.get('/auth/discord', passport.authenticate('discord'));
-    this.app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => {
-      res.redirect('http://localhost:5173/dashboard');
-    });
+    this.app.get(
+      '/auth/discord/callback',
+      passport.authenticate('discord', { failureRedirect: '/' }),
+      (req, res) => {
+        res.redirect(
+          process.env.FRONTEND_URL || 'http://localhost:5173/dashboard',
+        );
+      },
+    );
     this.app.get('/auth/logout', (req, res, next) => {
       req.logout((err) => {
-        if (err) { return next(err); }
+        if (err) {
+          return next(err);
+        }
         res.redirect('/');
       });
     });
@@ -181,7 +216,9 @@ class NexusServer {
         }
 
         if (name.trim().length > 50) {
-          return res.status(400).json({ error: 'Name must be 50 characters or less' });
+          return res
+            .status(400)
+            .json({ error: 'Name must be 50 characters or less' });
         }
 
         // Create guest user in database
@@ -262,14 +299,16 @@ class NexusServer {
         }
 
         if (name.trim().length > 255) {
-          return res.status(400).json({ error: 'Campaign name must be 255 characters or less' });
+          return res
+            .status(400)
+            .json({ error: 'Campaign name must be 255 characters or less' });
         }
 
         const user = req.user as any;
         const campaign = await this.db.createCampaign(
           user.id,
           name.trim(),
-          description?.trim() || undefined
+          description?.trim() || undefined,
         );
 
         res.status(201).json(campaign);
@@ -296,16 +335,26 @@ class NexusServer {
 
         // Validate updates
         if (updates.name !== undefined) {
-          if (typeof updates.name !== 'string' || updates.name.trim().length === 0) {
-            return res.status(400).json({ error: 'Campaign name cannot be empty' });
+          if (
+            typeof updates.name !== 'string' ||
+            updates.name.trim().length === 0
+          ) {
+            return res
+              .status(400)
+              .json({ error: 'Campaign name cannot be empty' });
           }
           if (updates.name.trim().length > 255) {
-            return res.status(400).json({ error: 'Campaign name must be 255 characters or less' });
+            return res
+              .status(400)
+              .json({ error: 'Campaign name must be 255 characters or less' });
           }
           updates.name = updates.name.trim();
         }
 
-        if (updates.description !== undefined && typeof updates.description === 'string') {
+        if (
+          updates.description !== undefined &&
+          typeof updates.description === 'string'
+        ) {
           updates.description = updates.description.trim();
         }
 
@@ -389,14 +438,16 @@ class NexusServer {
         }
 
         if (name.trim().length > 255) {
-          return res.status(400).json({ error: 'Character name must be 255 characters or less' });
+          return res
+            .status(400)
+            .json({ error: 'Character name must be 255 characters or less' });
         }
 
         const user = req.user as any;
         const character = await this.db.createCharacter(
           user.id,
           name.trim(),
-          data || {}
+          data || {},
         );
 
         res.status(201).json(character);
@@ -434,11 +485,18 @@ class NexusServer {
 
         // Validate updates
         if (updates.name !== undefined) {
-          if (typeof updates.name !== 'string' || updates.name.trim().length === 0) {
-            return res.status(400).json({ error: 'Character name cannot be empty' });
+          if (
+            typeof updates.name !== 'string' ||
+            updates.name.trim().length === 0
+          ) {
+            return res
+              .status(400)
+              .json({ error: 'Character name cannot be empty' });
           }
           if (updates.name.trim().length > 255) {
-            return res.status(400).json({ error: 'Character name must be 255 characters or less' });
+            return res
+              .status(400)
+              .json({ error: 'Character name must be 255 characters or less' });
           }
           updates.name = updates.name.trim();
         }
@@ -484,6 +542,17 @@ class NexusServer {
         res.status(500).json({ error: 'Failed to delete character' });
       }
     });
+  }
+
+  /**
+   * Sets up document routes for accessing NexusCodex services
+   * @private
+   * @returns {void}
+   */
+  private setupDocumentRoutes(): void {
+    const documentRoutes = createDocumentRoutes(this.documentClient);
+    this.app.use('/api', documentRoutes);
+    console.log('📚 Document routes initialized');
   }
 
   private setupHealthRoutes(): void {
@@ -537,7 +606,9 @@ class NexusServer {
       }
       const query = req.query.q as string;
       if (!query || query.length < 2) {
-        return res.status(400).json({ error: 'Query must be at least 2 characters' });
+        return res
+          .status(400)
+          .json({ error: 'Query must be at least 2 characters' });
       }
       const lowercaseQuery = query.toLowerCase();
       const results = this.manifest.assets.filter(
@@ -558,13 +629,22 @@ class NexusServer {
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
       let filteredAssets = this.manifest.assets;
       if (category !== 'all') {
-        filteredAssets = this.manifest.assets.filter((asset) => asset.category === category);
+        filteredAssets = this.manifest.assets.filter(
+          (asset) => asset.category === category,
+        );
       }
       const start = page * limit;
       const end = start + limit;
       const assets = filteredAssets.slice(start, end);
       setCacheHeaders(res, 300);
-      res.json({ category, page, limit, assets, hasMore: end < filteredAssets.length, total: filteredAssets.length });
+      res.json({
+        category,
+        page,
+        limit,
+        assets,
+        hasMore: end < filteredAssets.length,
+        total: filteredAssets.length,
+      });
     });
 
     this.app.get('/asset/:id', (req, res) => {
@@ -582,25 +662,37 @@ class NexusServer {
     Object.values(ASSET_CATEGORIES).forEach((categoryName) => {
       this.app.use(
         `/${categoryName}/assets`,
-        (req, res, next) => { setCacheHeaders(res); next(); },
+        (req, res, next) => {
+          setCacheHeaders(res);
+          next();
+        },
         express.static(path.join(this.ASSETS_PATH, categoryName, 'assets')),
       );
       this.app.use(
         `/${categoryName}/thumbnails`,
-        (req, res, next) => { setCacheHeaders(res); next(); },
+        (req, res, next) => {
+          setCacheHeaders(res);
+          next();
+        },
         express.static(path.join(this.ASSETS_PATH, categoryName, 'thumbnails')),
       );
     });
 
     this.app.use(
       '/assets',
-      (req, res, next) => { setCacheHeaders(res); next(); },
+      (req, res, next) => {
+        setCacheHeaders(res);
+        next();
+      },
       express.static(path.join(this.ASSETS_PATH, 'assets')),
     );
 
     this.app.use(
       '/thumbnails',
-      (req, res, next) => { setCacheHeaders(res); next(); },
+      (req, res, next) => {
+        setCacheHeaders(res);
+        next();
+      },
       express.static(path.join(this.ASSETS_PATH, 'thumbnails')),
     );
 
@@ -691,12 +783,15 @@ class NexusServer {
           uuid = dbUser.id;
           displayName = dbUser.name;
           userType = 'Authenticated';
-          console.log(`✅ Found authenticated user from query param: ${dbUser.name}`);
+          console.log(
+            `✅ Found authenticated user from query param: ${dbUser.name}`,
+          );
         }
       } catch (error) {
         console.warn(`⚠️ Failed to lookup user ${userIdFromQuery}:`, error);
       }
-    }    console.log(`📡 New connection: ${uuid} (${userType} as ${displayName})`);
+    }
+    console.log(`📡 New connection: ${uuid} (${userType} as ${displayName})`);
 
     const connection: Connection = {
       id: uuid,
@@ -754,7 +849,11 @@ class NexusServer {
    * @param {string | null} [campaignId] - Optional campaign ID to use (from authenticated user)
    * @returns {Promise<void>}
    */
-  private async handleHostConnection(connection: Connection, hostRoomCode?: string, campaignId?: string | null): Promise<void> {
+  private async handleHostConnection(
+    connection: Connection,
+    hostRoomCode?: string,
+    campaignId?: string | null,
+  ): Promise<void> {
     try {
       // Generate a room code if not provided
       const roomCode = hostRoomCode || this.generateRoomCode();
@@ -776,8 +875,12 @@ class NexusServer {
         // Load campaign data
         const campaign = await this.db.getCampaignById(campaignId);
         if (campaign && campaign.scenes) {
-          campaignScenes = Array.isArray(campaign.scenes) ? campaign.scenes : [];
-          console.log(`📚 Loaded ${campaignScenes.length} scenes from campaign`);
+          campaignScenes = Array.isArray(campaign.scenes)
+            ? campaign.scenes
+            : [];
+          console.log(
+            `📚 Loaded ${campaignScenes.length} scenes from campaign`,
+          );
         }
       } else {
         // Create a default campaign for guest DM
@@ -785,7 +888,7 @@ class NexusServer {
         const campaign = await this.db.createCampaign(
           connection.id,
           `Campaign ${roomCode}`,
-          'Auto-created campaign for quick session'
+          'Auto-created campaign for quick session',
         );
         usedCampaignId = campaign.id;
       }
@@ -793,7 +896,7 @@ class NexusServer {
       // Create session linked to campaign
       const { sessionId, joinCode } = await this.db.createSession(
         usedCampaignId,
-        connection.id
+        connection.id,
       );
 
       // Create in-memory room state for real-time operations
@@ -826,19 +929,23 @@ class NexusServer {
           uuid: connection.id,
           hostId: connection.id,
           coHostIds: Array.from(room.coHosts),
-          players: [{
-            id: connection.id,
-            name: connection.user?.name || 'Host',
-            type: 'host',
-            color: 'blue',
-            connected: true,
-            canEditScenes: true,
-          }],
+          players: [
+            {
+              id: connection.id,
+              name: connection.user?.name || 'Host',
+              type: 'host',
+              color: 'blue',
+              connected: true,
+              canEditScenes: true,
+            },
+          ],
         },
         timestamp: Date.now(),
       });
 
-      console.log(`🏠 Session created: ${joinCode} (${sessionId}) for campaign ${usedCampaignId}`);
+      console.log(
+        `🏠 Session created: ${joinCode} (${sessionId}) for campaign ${usedCampaignId}`,
+      );
     } catch (error) {
       console.error('Failed to create session:', error);
       this.sendError(connection, 'Failed to create session');
@@ -927,7 +1034,10 @@ class NexusServer {
    * @param {string} roomCode - Join code of the room to join
    * @returns {Promise<void>}
    */
-  private async handleJoinConnection(connection: Connection, roomCode: string): Promise<void> {
+  private async handleJoinConnection(
+    connection: Connection,
+    roomCode: string,
+  ): Promise<void> {
     const room = this.rooms.get(roomCode);
 
     if (!room) {
@@ -973,12 +1083,17 @@ class NexusServer {
         coHostIds: Array.from(room.coHosts),
         roomStatus: room.status,
         gameState: room.gameState,
-        players: Array.from(room.players).map(playerId => {
+        players: Array.from(room.players).map((playerId) => {
           const conn = this.connections.get(playerId);
           return {
             id: playerId,
             name: conn?.user?.name || 'Unknown',
-            type: playerId === room.host ? 'host' : (room.coHosts.has(playerId) ? 'host' : 'player'),
+            type:
+              playerId === room.host
+                ? 'host'
+                : room.coHosts.has(playerId)
+                  ? 'host'
+                  : 'player',
             color: 'blue',
             connected: true,
             canEditScenes: playerId === room.host || room.coHosts.has(playerId),
@@ -1005,20 +1120,16 @@ class NexusServer {
     console.log(`👋 Player joined room ${roomCode}: ${connection.id}`);
   }
 
-  private async handleDefaultConnection(connection: Connection, campaignId?: string | null) {
+  private async handleDefaultConnection(
+    connection: Connection,
+    campaignId?: string | null,
+  ) {
     const roomCode = this.generateRoomCode();
     await this.handleHostConnection(connection, roomCode, campaignId);
   }
 
   private routeMessage(fromUuid: string, message: ServerMessage) {
-    const connection = this.connections.get(fromUuid);
-    if (!connection?.room) return;
-
-    const room = this.rooms.get(connection.room);
-    if (!room) return;
-
-    room.lastActivity = Date.now();
-
+    // Handle heartbeat messages regardless of room state
     if (message.type === 'heartbeat') {
       const heartbeatData = message.data as {
         type: 'ping' | 'pong';
@@ -1029,6 +1140,14 @@ class NexusServer {
       }
       return;
     }
+
+    const connection = this.connections.get(fromUuid);
+    if (!connection?.room) return;
+
+    const room = this.rooms.get(connection.room);
+    if (!room) return;
+
+    room.lastActivity = Date.now();
 
     if (
       message.type === 'event' &&
@@ -1170,7 +1289,10 @@ class NexusServer {
     console.log(`🎲 Dice roll request from ${fromUuid}:`, data);
     const validation = validateDiceRollRequest(data);
     if (!validation.valid) {
-      this.sendError(connection, validation.error || 'Invalid dice roll request');
+      this.sendError(
+        connection,
+        validation.error || 'Invalid dice roll request',
+      );
       return;
     }
     const userName = connection.user?.name || 'Unknown Player';
@@ -1184,8 +1306,21 @@ class NexusServer {
       this.sendError(connection, 'Failed to create dice roll');
       return;
     }
-    console.log(`🎲 Dice roll generated:`, { id: roll.id, expression: roll.expression, total: roll.total, crit: roll.crit });
-    this.broadcastToRoom(connection.room!, { type: 'event', data: { name: 'dice/roll-result', roll } as ServerDiceRollResultMessage['data'], src: fromUuid, timestamp: Date.now(), });
+    console.log(`🎲 Dice roll generated:`, {
+      id: roll.id,
+      expression: roll.expression,
+      total: roll.total,
+      crit: roll.crit,
+    });
+    this.broadcastToRoom(connection.room!, {
+      type: 'event',
+      data: {
+        name: 'dice/roll-result',
+        roll,
+      } as ServerDiceRollResultMessage['data'],
+      src: fromUuid,
+      timestamp: Date.now(),
+    });
   }
 
   /**
@@ -1290,7 +1425,7 @@ class NexusServer {
     this.sendMessage(connection, {
       type: 'error',
       data: { message: error },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -1333,7 +1468,9 @@ class NexusServer {
 
     // Handle host disconnection
     if (room.host === uuid) {
-      console.log(`👑 Host left room ${connection.room}, attempting automatic transfer`);
+      console.log(
+        `👑 Host left room ${connection.room}, attempting automatic transfer`,
+      );
       const newHost = this.selectNewHost(room, uuid);
 
       if (newHost && session) {
@@ -1351,11 +1488,13 @@ class NexusServer {
         if (newHostConnection) {
           newHostConnection.user = {
             name: newHostConnection.user?.name || 'Host',
-            type: 'host'
+            type: 'host',
           };
         }
 
-        console.log(`👑 Host transferred to: ${newHost} in room ${connection.room}`);
+        console.log(
+          `👑 Host transferred to: ${newHost} in room ${connection.room}`,
+        );
 
         this.broadcastToRoom(connection.room, {
           type: 'event',
@@ -1363,7 +1502,8 @@ class NexusServer {
             name: 'session/host-changed',
             newHostId: newHost,
             reason: 'host-disconnected',
-            message: 'The host has disconnected. Host privileges have been transferred.',
+            message:
+              'The host has disconnected. Host privileges have been transferred.',
           },
           timestamp: Date.now(),
         });
@@ -1371,14 +1511,17 @@ class NexusServer {
         room.lastActivity = Date.now();
       } else {
         // No suitable replacement - hibernate the room
-        console.log(`🏠 No suitable host found, hibernating room: ${connection.room}`);
+        console.log(
+          `🏠 No suitable host found, hibernating room: ${connection.room}`,
+        );
         this.hibernateRoom(connection.room);
 
         this.broadcastToRoom(connection.room, {
           type: 'event',
           data: {
             name: 'session/hibernated',
-            message: 'Host disconnected and no players available to take over. Room will remain available for 10 minutes.',
+            message:
+              'Host disconnected and no players available to take over. Room will remain available for 10 minutes.',
             reconnectWindow: this.HIBERNATION_TIMEOUT,
           },
           timestamp: Date.now(),
@@ -1440,7 +1583,9 @@ class NexusServer {
       this.abandonRoom(roomCode);
     }, this.HIBERNATION_TIMEOUT);
 
-    console.log(`😴 Room ${roomCode} hibernated, will be abandoned in ${this.HIBERNATION_TIMEOUT / 1000}s`);
+    console.log(
+      `😴 Room ${roomCode} hibernated, will be abandoned in ${this.HIBERNATION_TIMEOUT / 1000}s`,
+    );
   }
 
   /**
@@ -1486,7 +1631,9 @@ class NexusServer {
         const session = await this.db.getSessionByJoinCode(roomCode);
         if (session) {
           await this.db.deleteSession(session.id);
-          console.log(`🗑️ Deleted abandoned session from database: ${roomCode}`);
+          console.log(
+            `🗑️ Deleted abandoned session from database: ${roomCode}`,
+          );
         }
       } catch (error) {
         console.error('Failed to delete session from database:', error);
@@ -1494,64 +1641,175 @@ class NexusServer {
     }, this.ABANDONMENT_TIMEOUT);
   }
 
-  private attemptRoomRecovery(roomCode: string, _connection: Connection): boolean {
+  private attemptRoomRecovery(
+    roomCode: string,
+    _connection: Connection,
+  ): boolean {
     const room = this.rooms.get(roomCode);
     if (!room) return false;
-    if (room.status === 'abandoned') { return false; }
+    if (room.status === 'abandoned') {
+      return false;
+    }
     if (room.status === 'hibernating') {
       console.log(`🔄 Reactivating hibernated room: ${roomCode}`);
       room.status = 'active';
       room.lastActivity = Date.now();
-      if (room.hibernationTimer) { clearTimeout(room.hibernationTimer); room.hibernationTimer = undefined; }
-      this.broadcastToRoom(roomCode, { type: 'event', data: { name: 'session/reactivated', message: 'Room has been reactivated.', reconnectBy: _connection.id, }, timestamp: Date.now(), });
+      if (room.hibernationTimer) {
+        clearTimeout(room.hibernationTimer);
+        room.hibernationTimer = undefined;
+      }
+      this.broadcastToRoom(roomCode, {
+        type: 'event',
+        data: {
+          name: 'session/reactivated',
+          message: 'Room has been reactivated.',
+          reconnectBy: _connection.id,
+        },
+        timestamp: Date.now(),
+      });
       return true;
     }
     return room.status === 'active';
   }
 
   private selectNewHost(room: Room, excludeUuid?: string): string | null {
-    const candidates = Array.from(room.players).filter(uuid => uuid !== excludeUuid);
-    if (candidates.length === 0) { return null; }
-    for (const candidate of candidates) { if (room.coHosts.has(candidate)) { return candidate; } }
+    const candidates = Array.from(room.players).filter(
+      (uuid) => uuid !== excludeUuid,
+    );
+    if (candidates.length === 0) {
+      return null;
+    }
+    for (const candidate of candidates) {
+      if (room.coHosts.has(candidate)) {
+        return candidate;
+      }
+    }
     return candidates[0];
   }
 
-  private handleHostTransfer(fromUuid: string, connection: Connection, room: Room, data: any) {
-    if (room.host !== fromUuid) { this.sendError(connection, 'Only the current host can transfer host privileges'); return; }
+  private handleHostTransfer(
+    fromUuid: string,
+    connection: Connection,
+    room: Room,
+    data: any,
+  ) {
+    if (room.host !== fromUuid) {
+      this.sendError(
+        connection,
+        'Only the current host can transfer host privileges',
+      );
+      return;
+    }
     const targetUserId = data.targetUserId;
-    if (!targetUserId || !room.players.has(targetUserId)) { this.sendError(connection, 'Invalid target user for host transfer'); return; }
+    if (!targetUserId || !room.players.has(targetUserId)) {
+      this.sendError(connection, 'Invalid target user for host transfer');
+      return;
+    }
     const oldHost = room.host;
     room.host = targetUserId;
     room.coHosts.delete(targetUserId);
     const oldHostConnection = this.connections.get(oldHost);
     const newHostConnection = this.connections.get(targetUserId);
-    if (oldHostConnection) { oldHostConnection.user = { name: oldHostConnection.user?.name || 'Player', type: 'player' }; }
-    if (newHostConnection) { newHostConnection.user = { name: newHostConnection.user?.name || 'Host', type: 'host' }; }
-    console.log(`👑 Manual host transfer in room ${room.code}: ${oldHost} -> ${targetUserId}`);
-    this.broadcastToRoom(room.code, { type: 'event', data: { name: 'session/host-changed', oldHostId: oldHost, newHostId: targetUserId, reason: 'manual-transfer', message: 'Host privileges have been transferred.', }, timestamp: Date.now(), });
+    if (oldHostConnection) {
+      oldHostConnection.user = {
+        name: oldHostConnection.user?.name || 'Player',
+        type: 'player',
+      };
+    }
+    if (newHostConnection) {
+      newHostConnection.user = {
+        name: newHostConnection.user?.name || 'Host',
+        type: 'host',
+      };
+    }
+    console.log(
+      `👑 Manual host transfer in room ${room.code}: ${oldHost} -> ${targetUserId}`,
+    );
+    this.broadcastToRoom(room.code, {
+      type: 'event',
+      data: {
+        name: 'session/host-changed',
+        oldHostId: oldHost,
+        newHostId: targetUserId,
+        reason: 'manual-transfer',
+        message: 'Host privileges have been transferred.',
+      },
+      timestamp: Date.now(),
+    });
   }
 
-  private handleAddCoHost(fromUuid: string, connection: Connection, room: Room, data: any) {
-    if (room.host !== fromUuid) { this.sendError(connection, 'Only the current host can add co-hosts'); return; }
+  private handleAddCoHost(
+    fromUuid: string,
+    connection: Connection,
+    room: Room,
+    data: any,
+  ) {
+    if (room.host !== fromUuid) {
+      this.sendError(connection, 'Only the current host can add co-hosts');
+      return;
+    }
     const targetUserId = data.targetUserId;
-    if (!targetUserId || !room.players.has(targetUserId)) { this.sendError(connection, 'Invalid target user for co-host addition'); return; }
-    if (room.coHosts.has(targetUserId)) { this.sendError(connection, 'User is already a co-host'); return; }
+    if (!targetUserId || !room.players.has(targetUserId)) {
+      this.sendError(connection, 'Invalid target user for co-host addition');
+      return;
+    }
+    if (room.coHosts.has(targetUserId)) {
+      this.sendError(connection, 'User is already a co-host');
+      return;
+    }
     room.coHosts.add(targetUserId);
     const targetConnection = this.connections.get(targetUserId);
-    if (targetConnection) { targetConnection.user = { name: targetConnection.user?.name || 'Co-Host', type: 'host' }; }
+    if (targetConnection) {
+      targetConnection.user = {
+        name: targetConnection.user?.name || 'Co-Host',
+        type: 'host',
+      };
+    }
     console.log(`👥 Added co-host in room ${room.code}: ${targetUserId}`);
-    this.broadcastToRoom(room.code, { type: 'event', data: { name: 'session/cohost-added', coHostId: targetUserId, message: 'A new co-host has been added to the session.', }, timestamp: Date.now(), });
+    this.broadcastToRoom(room.code, {
+      type: 'event',
+      data: {
+        name: 'session/cohost-added',
+        coHostId: targetUserId,
+        message: 'A new co-host has been added to the session.',
+      },
+      timestamp: Date.now(),
+    });
   }
 
-  private handleRemoveCoHost(fromUuid: string, connection: Connection, room: Room, data: any) {
-    if (room.host !== fromUuid) { this.sendError(connection, 'Only the current host can remove co-hosts'); return; }
+  private handleRemoveCoHost(
+    fromUuid: string,
+    connection: Connection,
+    room: Room,
+    data: any,
+  ) {
+    if (room.host !== fromUuid) {
+      this.sendError(connection, 'Only the current host can remove co-hosts');
+      return;
+    }
     const targetUserId = data.targetUserId;
-    if (!targetUserId || !room.coHosts.has(targetUserId)) { this.sendError(connection, 'Invalid target user for co-host removal'); return; }
+    if (!targetUserId || !room.coHosts.has(targetUserId)) {
+      this.sendError(connection, 'Invalid target user for co-host removal');
+      return;
+    }
     room.coHosts.delete(targetUserId);
     const targetConnection = this.connections.get(targetUserId);
-    if (targetConnection) { targetConnection.user = { name: targetConnection.user?.name || 'Player', type: 'player' }; }
+    if (targetConnection) {
+      targetConnection.user = {
+        name: targetConnection.user?.name || 'Player',
+        type: 'player',
+      };
+    }
     console.log(`👥 Removed co-host in room ${room.code}: ${targetUserId}`);
-    this.broadcastToRoom(room.code, { type: 'event', data: { name: 'session/cohost-removed', coHostId: targetUserId, message: 'A co-host has been removed from the session.', }, timestamp: Date.now(), });
+    this.broadcastToRoom(room.code, {
+      type: 'event',
+      data: {
+        name: 'session/cohost-removed',
+        coHostId: targetUserId,
+        message: 'A co-host has been removed from the session.',
+      },
+      timestamp: Date.now(),
+    });
   }
 
   private generateRoomCode(): string {
@@ -1559,7 +1817,9 @@ class NexusServer {
     let result = '';
     do {
       result = '';
-      for (let i = 0; i < 4; i++) { result += chars.charAt(Math.floor(Math.random() * chars.length)); }
+      for (let i = 0; i < 4; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
     } while (this.rooms.has(result));
     return result;
   }
@@ -1567,23 +1827,41 @@ class NexusServer {
   private startHeartbeat() {
     if (this.heartbeatTimer) return;
     console.log('💓 Starting heartbeat mechanism');
-    this.heartbeatTimer = setInterval(() => { this.connections.forEach((connection) => { this.sendHeartbeatPing(connection); }); }, this.HEARTBEAT_INTERVAL);
+    this.heartbeatTimer = setInterval(() => {
+      this.connections.forEach((connection) => {
+        this.sendHeartbeatPing(connection);
+      });
+    }, this.HEARTBEAT_INTERVAL);
   }
 
   private stopHeartbeat() {
-    if (this.heartbeatTimer) { clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; console.log('💓 Stopped heartbeat mechanism'); }
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+      console.log('💓 Stopped heartbeat mechanism');
+    }
   }
 
   private startHeartbeatForConnection(_connection: Connection) {
-    if (this.connections.size === 1) { this.startHeartbeat(); }
+    if (this.connections.size === 1) {
+      this.startHeartbeat();
+    }
   }
 
   private sendHeartbeatPing(connection: Connection) {
     const pingId = uuidv4();
     connection.lastPing = Date.now();
     connection.pendingPing = pingId;
-    this.sendMessage(connection, { type: 'heartbeat', data: { type: 'ping', id: pingId }, timestamp: Date.now(), });
-    setTimeout(() => { if (connection.pendingPing === pingId) { this.handleMissedPong(connection.id); } }, this.HEARTBEAT_TIMEOUT);
+    this.sendMessage(connection, {
+      type: 'heartbeat',
+      data: { type: 'ping', id: pingId },
+      timestamp: Date.now(),
+    });
+    setTimeout(() => {
+      if (connection.pendingPing === pingId) {
+        this.handleMissedPong(connection.id);
+      }
+    }, this.HEARTBEAT_TIMEOUT);
   }
 
   private handleHeartbeatPong(fromUuid: string, pongId: string) {
@@ -1601,18 +1879,44 @@ class NexusServer {
     if (!connection) return;
     connection.consecutiveMisses += 1;
     connection.pendingPing = undefined;
-    if (connection.consecutiveMisses >= this.MAX_CONSECUTIVE_MISSES) { connection.connectionQuality = 'critical'; console.warn(`⚠️ Connection ${uuid} has critical quality (${connection.consecutiveMisses} missed pings)`); } else if (connection.consecutiveMisses >= 2) { connection.connectionQuality = 'poor'; } else if (connection.consecutiveMisses >= 1) { connection.connectionQuality = 'good'; }
+    if (connection.consecutiveMisses >= this.MAX_CONSECUTIVE_MISSES) {
+      connection.connectionQuality = 'critical';
+      console.warn(
+        `⚠️ Connection ${uuid} has critical quality (${connection.consecutiveMisses} missed pings)`,
+      );
+    } else if (connection.consecutiveMisses >= 2) {
+      connection.connectionQuality = 'poor';
+    } else if (connection.consecutiveMisses >= 1) {
+      connection.connectionQuality = 'good';
+    }
   }
 
-  private updateConnectionQuality(connection: Connection, responseTime: number) {
-    if (responseTime < 100) { connection.connectionQuality = 'excellent'; } else if (responseTime < 500) { connection.connectionQuality = 'good'; } else if (responseTime < 2000) { connection.connectionQuality = 'poor'; } else { connection.connectionQuality = 'critical'; }
+  private updateConnectionQuality(
+    connection: Connection,
+    responseTime: number,
+  ) {
+    if (responseTime < 100) {
+      connection.connectionQuality = 'excellent';
+    } else if (responseTime < 500) {
+      connection.connectionQuality = 'good';
+    } else if (responseTime < 2000) {
+      connection.connectionQuality = 'poor';
+    } else {
+      connection.connectionQuality = 'critical';
+    }
   }
 
   public async shutdown() {
     console.log('🛑 Shutting down Nexus server...');
     this.stopHeartbeat();
-    this.rooms.forEach((room) => { if (room.hibernationTimer) { clearTimeout(room.hibernationTimer); } });
-    this.connections.forEach((connection) => { connection.ws.close(); });
+    this.rooms.forEach((room) => {
+      if (room.hibernationTimer) {
+        clearTimeout(room.hibernationTimer);
+      }
+    });
+    this.connections.forEach((connection) => {
+      connection.ws.close();
+    });
     this.rooms.clear();
     this.connections.clear();
     try {
@@ -1621,14 +1925,38 @@ class NexusServer {
     } catch (error) {
       console.error('Failed to close database:', error);
     }
-    this.wss.close(() => { console.log('✅ WebSocket server closed'); });
-    this.httpServer.close(() => { console.log('✅ HTTP server closed'); console.log('✅ Server shutdown complete'); });
+    this.wss.close(() => {
+      console.log('✅ WebSocket server closed');
+    });
+    this.httpServer.close(() => {
+      console.log('✅ HTTP server closed');
+      console.log('✅ Server shutdown complete');
+    });
   }
 
   public getStats() {
-    const activeRooms = Array.from(this.rooms.values()).filter((r) => r.status === 'active').length;
-    const hibernatingRooms = Array.from(this.rooms.values()).filter((r) => r.status === 'hibernating').length;
-    return { activeRooms, hibernatingRooms, totalRooms: this.rooms.size, totalConnections: this.connections.size, serverPort: this.port, rooms: Array.from(this.rooms.entries()).map(([code, room]) => ({ code, playerCount: room.players.size, connectionCount: room.connections.size, status: room.status, created: new Date(room.created).toISOString(), lastActivity: new Date(room.lastActivity).toISOString(), hasGameState: !!room.gameState, })), };
+    const activeRooms = Array.from(this.rooms.values()).filter(
+      (r) => r.status === 'active',
+    ).length;
+    const hibernatingRooms = Array.from(this.rooms.values()).filter(
+      (r) => r.status === 'hibernating',
+    ).length;
+    return {
+      activeRooms,
+      hibernatingRooms,
+      totalRooms: this.rooms.size,
+      totalConnections: this.connections.size,
+      serverPort: this.port,
+      rooms: Array.from(this.rooms.entries()).map(([code, room]) => ({
+        code,
+        playerCount: room.players.size,
+        connectionCount: room.connections.size,
+        status: room.status,
+        created: new Date(room.created).toISOString(),
+        lastActivity: new Date(room.lastActivity).toISOString(),
+        hasGameState: !!room.gameState,
+      })),
+    };
   }
 }
 

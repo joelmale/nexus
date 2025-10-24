@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { CharacterManager } from './CharacterManager';
 import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
+import { DocumentLibrary } from './DocumentLibrary';
 import '@/styles/dashboard.css';
 
 /**
@@ -558,6 +559,9 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Document Library Section */}
+      <DocumentLibrary />
 
       {/* New Campaign Modal */}
       {showNewCampaignModal && (

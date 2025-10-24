@@ -42,8 +42,10 @@ RUN npm run build
 # Stage 3: Production
 FROM nginx:alpine AS production
 
-# Copy nginx configuration
-COPY docker/nginx.conf /etc/nginx/nginx.conf
+# Copy Railway-optimized nginx configuration
+# This config is optimized for Railway's architecture where frontend and backend
+# are separate services with their own domains (no reverse proxy needed)
+COPY docker/nginx-railway.conf /etc/nginx/nginx.conf
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -53,7 +55,7 @@ EXPOSE 80
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

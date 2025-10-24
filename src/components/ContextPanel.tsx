@@ -8,6 +8,7 @@ import { Settings } from './Settings';
 import { Placeholder } from './Placeholder';
 import { TokenPanel } from './Tokens/TokenPanel';
 import { ChatPanel } from './ChatPanel';
+import { DocumentsPanel } from './DocumentsPanel';
 
 interface ContextPanelProps {
   activePanel:
@@ -20,7 +21,8 @@ interface ContextPanelProps {
     | 'lobby'
     | 'settings'
     | 'chat'
-    | 'sounds';
+    | 'sounds'
+    | 'documents';
   onPanelChange: (
     panel:
       | 'tokens'
@@ -32,7 +34,8 @@ interface ContextPanelProps {
       | 'lobby'
       | 'settings'
       | 'chat'
-      | 'sounds',
+      | 'sounds'
+      | 'documents',
   ) => void;
   expanded: boolean;
   onToggleExpanded: () => void;
@@ -66,6 +69,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     { id: 'props' as const, icon: '📦', label: 'Props' },
     { id: 'initiative' as const, icon: '⏱', label: 'Initiative' },
     { id: 'dice' as const, icon: '🎲', label: 'Dice' },
+    { id: 'documents' as const, icon: '📚', label: 'Documents' },
     { id: 'sounds' as const, icon: '🔊', label: 'Sounds' },
     { id: 'chat' as const, icon: '💬', label: 'Chat' },
     { id: 'lobby' as const, icon: '🏠', label: 'Lobby' },
@@ -87,6 +91,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       generator: 500, // Wide panel for dungeon generator
       initiative: 450, // Increased for complex combat interface
       dice: 300, // Optimized for dice controls
+      documents: 380, // Document library and search
       sounds: 320,
       chat: 350,
       lobby: 320, // Player management panel
@@ -127,6 +132,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
             )}
             {activePanel === 'initiative' && <InitiativeTracker />}
             {activePanel === 'dice' && <DiceRoller />}
+            {activePanel === 'documents' && <DocumentsPanel />}
             {activePanel === 'sounds' && <Placeholder title="Sound Effects" />}
             {activePanel === 'chat' && <ChatPanel />}
             {activePanel === 'lobby' && <LobbyPanel />}

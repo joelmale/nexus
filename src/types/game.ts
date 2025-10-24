@@ -22,6 +22,7 @@ export interface Session {
   roomCode: string;
   hostId: string;
   coHostIds?: string[]; // IDs of co-hosts
+  campaignId?: string; // ID of the campaign this session is associated with
   // Use the more specific Player type which includes permissions
   players: Player[];
   status: 'connecting' | 'connected' | 'disconnected';

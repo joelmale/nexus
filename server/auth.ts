@@ -1,6 +1,6 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import { Strategy as DiscordStrategy } from 'passport-discord';
+import { Strategy as OAuth2Strategy } from 'passport-oauth2';
 import { createDatabaseService } from './database';
 
 /**
@@ -73,7 +73,7 @@ function validateOAuthConfig(): void {
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing required OAuth environment variables: ${missing.join(', ')}`
+      `Missing required OAuth environment variables: ${missing.join(', ')}`,
     );
   }
 }
@@ -94,7 +94,7 @@ if (process.env.NODE_ENV === 'production') {
 
   if (missing.length > 0) {
     console.warn(
-      `⚠️ Missing OAuth environment variables: ${missing.join(', ')}`
+      `⚠️ Missing OAuth environment variables: ${missing.join(', ')}`,
     );
     console.warn('OAuth login will not work until these are configured');
   }
@@ -109,7 +109,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID || 'placeholder',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'placeholder',
-      callbackURL: '/auth/google/callback',
+      callbackURL: process.env.GOOGLE_CALLBACK_URL || '/auth/google/callback',
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -132,8 +132,8 @@ passport.use(
         console.error('Google OAuth error:', err);
         return done(err as Error);
       }
-    }
-  )
+    },
+  ),
 );
 
 /**
@@ -141,22 +141,48 @@ passport.use(
  * Handles authentication via Discord accounts
  */
 passport.use(
-  new DiscordStrategy(
+  'discord',
+  new OAuth2Strategy(
     {
+      authorizationURL: 'https://discord.com/api/oauth2/authorize',
+      tokenURL: 'https://discord.com/api/oauth2/token',
       clientID: process.env.DISCORD_CLIENT_ID || 'placeholder',
       clientSecret: process.env.DISCORD_CLIENT_SECRET || 'placeholder',
       callbackURL: '/auth/discord/callback',
-      scope: ['identify', 'email'],
+      scope: 'identify email',
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (
+      accessToken: string,
+      refreshToken: string,
+      profile: any,
+      done: any,
+    ) => {
       try {
+        // Fetch user profile from Discord API
+        const response = await fetch('https://discord.com/api/users/@me', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch Discord user profile');
+        }
+
+        const discordUser = (await response.json()) as {
+          id: string;
+          username: string;
+          email?: string;
+          avatar?: string;
+        };
+
         // Extract user profile data from Discord response
         const userProfile = {
-          email: profile.email || null,
-          name: profile.username,
+          email: discordUser.email || null,
+          name: discordUser.username,
           // Construct Discord avatar URL if avatar hash exists
-          avatarUrl: profile.avatar
-            ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
+          avatarUrl: discordUser.avatar
+            ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
             : null,
           provider: 'discord' as const,
         };
@@ -164,7 +190,9 @@ passport.use(
         // Find existing user or create new one
         const user = await db.findOrCreateUserByOAuth(userProfile);
 
-        console.log(`✅ Discord OAuth successful for user: ${user.email || user.name}`);
+        console.log(
+          `✅ Discord OAuth successful for user: ${user.email || user.name}`,
+        );
 
         // Return user object to Passport
         return done(null, user);
@@ -172,8 +200,8 @@ passport.use(
         console.error('Discord OAuth error:', err);
         return done(err as Error);
       }
-    }
-  )
+    },
+  ),
 );
 
 /**
