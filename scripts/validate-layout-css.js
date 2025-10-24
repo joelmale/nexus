@@ -9,7 +9,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import * as glob from 'glob';
+import { glob } from 'glob';
 
 // CSS patterns that could lead to layout issues
 const PROBLEMATIC_PATTERNS = [

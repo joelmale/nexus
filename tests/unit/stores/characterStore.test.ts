@@ -122,6 +122,7 @@ describe('CharacterStore', () => {
     });
     idCounter = 0;
     vi.mocked(createEmptyCharacter).mockImplementation(createMockCharacter);
+    vi.useFakeTimers();
   });
 
   describe('Character Creation', () => {
@@ -141,6 +142,7 @@ describe('CharacterStore', () => {
     });
 
     it('should update an existing character', () => {
+      vi.useFakeTimers();
       const playerId = 'player-123';
       let characterId: string | undefined;
       act(() => {
