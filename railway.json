@@ -2,6 +2,19 @@
   "$schema": "https://railway.app/railway.schema.json",
   "services": [
     {
+      "name": "postgres",
+      "source": {
+        "image": "postgres:16-alpine"
+      },
+      "variables": {
+        "POSTGRES_USER": "nexus",
+        "POSTGRES_PASSWORD": "${{ secret.POSTGRES_PASSWORD }}",
+        "POSTGRES_DB": "nexus"
+      },
+      "tcpProxyApplicationPort": 5432,
+      "healthcheckPath": "/health"
+    },
+    {
       "name": "backend",
       "build": {
         "builder": "DOCKERFILE",
@@ -9,6 +22,13 @@
       },
       "deploy": {
         "startCommand": "npm run server:start"
+      },
+      "variables": {
+        "NODE_ENV": "production",
+        "PORT": "5000",
+        "DATABASE_URL": "${{ postgres.DATABASE_URL }}",
+        "JWT_SECRET": "${{ secret.JWT_SECRET }}",
+        "CORS_ORIGIN": "${{ secret.CORS_ORIGIN }}"
       }
     },
     {
@@ -16,6 +36,10 @@
       "build": {
         "builder": "DOCKERFILE",
         "dockerfilePath": "Dockerfile.frontend"
+      },
+      "variables": {
+        "VITE_WS_URL": "${{ backend.WS_URL }}",
+        "VITE_API_URL": "${{ backend.API_URL }}"
       }
     }
   ]
