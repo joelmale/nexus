@@ -160,6 +160,23 @@ afterAll(() => {
   vi.resetAllMocks();
 });
 
+// Suppress console messages during tests
+const originalLog = console.log;
+const originalInfo = console.info;
+const originalDebug = console.debug;
+
+beforeAll(() => {
+  console.log = () => {};
+  console.info = () => {};
+  console.debug = () => {};
+});
+
+afterAll(() => {
+  console.log = originalLog;
+  console.info = originalInfo;
+  console.debug = originalDebug;
+});
+
 // Suppress console errors during tests (optional)
 const originalError = console.error;
 beforeAll(() => {
@@ -177,6 +194,28 @@ beforeAll(() => {
 afterAll(() => {
   console.error = originalError;
 });
+
+// Mock indexedDB for tests
+const mockIDBFactory = {
+  open: vi.fn().mockImplementation(() => ({
+    onupgradeneeded: null,
+    onsuccess: null,
+    result: {
+      createObjectStore: vi.fn(() => ({
+        createIndex: vi.fn(),
+      })),
+      transaction: vi.fn(() => ({
+        objectStore: vi.fn(() => ({
+          get: vi.fn(),
+          put: vi.fn(),
+          delete: vi.fn(),
+        })),
+      })),
+    },
+  })),
+};
+
+global.indexedDB = mockIDBFactory as unknown as IDBFactory;
 
 // Export common test utilities
 export const waitForAsync = () =>

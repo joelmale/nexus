@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import { useCharacterStore } from '@/stores/characterStore';
 import type { Character } from '@/types/character';
 import { createEmptyCharacter, calculateAbilityModifier } from '@/types/character';
