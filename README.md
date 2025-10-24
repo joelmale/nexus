@@ -112,6 +112,46 @@ npm run dev          # Frontend only
 npm run server:dev   # Backend server (WebSocket + Assets)
 ```
 
+### 🚀 Railway Deployment
+
+For production deployment, Nexus VTT is configured to deploy automatically to Railway.app.
+
+#### Prerequisites
+
+- Railway.app account
+- GitHub repository connected to Railway
+
+#### Automatic Deployment
+
+1. **Push to main branch** - Railway automatically detects the `railway.json` configuration
+2. **Services Created**:
+   - **PostgreSQL** - Database service
+   - **Backend** - API/WebSocket server
+   - **Frontend** - React application
+
+#### Required Secrets
+
+Set these secrets in your Railway project dashboard:
+
+| Secret Name         | Description        | Example                |
+| ------------------- | ------------------ | ---------------------- |
+| `POSTGRES_PASSWORD` | Database password  | `your-secure-password` |
+| `JWT_SECRET`        | JWT signing secret | `your-jwt-secret-key`  |
+
+#### Manual Setup (Alternative)
+
+If Railway doesn't auto-detect the configuration:
+
+1. **Create PostgreSQL service** in Railway dashboard
+2. **Create Backend service** from your GitHub repo
+3. **Create Frontend service** from your GitHub repo
+4. **Set environment variables** in each service as needed
+
+#### Configuration Files
+
+- `railway.json` - Multi-service configuration (ignored by git for security)
+- `railway.json.example` - Template showing required structure
+
 ## 🎯 Usage
 
 ### Creating a Game

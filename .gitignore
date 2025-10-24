@@ -206,6 +206,9 @@ secrets/
 *.key
 *.crt
 
+# Railway configuration (contains secrets)
+railway.json
+
 # Backup files
 *.orig
 *.rej
