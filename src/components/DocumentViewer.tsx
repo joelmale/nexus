@@ -52,9 +52,7 @@ export const DocumentViewer: React.FC = () => {
         pdfDocRef.current = pdf;
         setTotalPages(pdf.numPages);
         setPage(1);
-
-        // Render first page
-        await renderPage(pdf, 1);
+        // First page will be rendered by the page change useEffect
       } catch (err) {
         console.error('Failed to load PDF:', err);
         setError('Failed to load PDF document');
@@ -78,33 +76,28 @@ export const DocumentViewer: React.FC = () => {
   /**
    * Render a PDF page
    */
-  const renderPage = async (pdf: PDFDocumentProxy, pageNum: number) => {
+  const renderPage = useCallback(async (pdf: PDFDocumentProxy, pageNum: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    try {
-      const page = await pdf.getPage(pageNum);
-      const viewport = page.getViewport({ scale });
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale });
 
-      // Set canvas dimensions
-      const context = canvas.getContext('2d');
-      if (!context) return;
+    // Set canvas dimensions
+    const context = canvas.getContext('2d');
+    if (!context) return;
 
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
 
-      // Render PDF page
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport,
-      };
+    // Render PDF page
+    const renderContext = {
+      canvasContext: context,
+      viewport: viewport,
+    };
 
-      await page.render(renderContext).promise;
-    } catch (err) {
-      console.error('Failed to render page:', err);
-      setError('Failed to render page');
-    }
-  };
+    await page.render(renderContext).promise;
+  }, [scale]);
 
   /**
    * Navigate to previous page

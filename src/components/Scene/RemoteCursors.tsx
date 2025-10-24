@@ -72,11 +72,12 @@ export const RemoteCursors: React.FC<RemoteCursorsProps> = ({ sceneId }) => {
     }, 1000);
 
     // Add event listeners
-    canvasRef.current?.addEventListener('mousemove', sendCursorUpdate);
+    const canvas = canvasRef.current;
+    canvas?.addEventListener('mousemove', sendCursorUpdate);
     webSocketService.addEventListener('message', handleCursorUpdate);
 
     return () => {
-      canvasRef.current?.removeEventListener('mousemove', sendCursorUpdate);
+      canvas?.removeEventListener('mousemove', sendCursorUpdate);
       webSocketService.removeEventListener('message', handleCursorUpdate);
       clearInterval(cleanupInterval);
     };
@@ -103,12 +104,12 @@ export const RemoteCursors: React.FC<RemoteCursorsProps> = ({ sceneId }) => {
 };
 
 // Throttle utility function
-function throttle<T extends (...args: any[]) => any>(
+function throttle<T extends (...args: never[]) => unknown>(
   func: T,
   limit: number,
 ): T {
   let inThrottle: boolean;
-  return ((...args: any[]) => {
+  return ((...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args);
       inThrottle = true;
