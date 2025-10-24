@@ -287,7 +287,7 @@ export const useDocumentStore = create<DocumentStoreState>()(
      * Upload a new document
      */
     uploadDocument: async (file: File, metadata) => {
-      const uploadId = `upload-${Date.now()}`;
+      
 
       // Add to upload queue
       set((state) => {

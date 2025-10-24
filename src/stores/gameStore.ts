@@ -57,7 +57,7 @@ import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 interface PendingUpdate {
   id: string;
   type: string;
-  localState: any;
+  localState: PlacedToken & { sceneId: string };
   timestamp: number;
 }
 

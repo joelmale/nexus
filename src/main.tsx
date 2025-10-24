@@ -77,9 +77,14 @@ loadNonCriticalStyles();
 
 // Add CSS debugging utilities to window for development
 if (import.meta.env.DEV) {
-  (window as any).cssDebug = {
+  interface CssDebug {
+    logReport: () => void;
+    getStats: () => void;
+    getQueueStatus: () => void;
+  }
+  
+  (window as Window & typeof globalThis & { cssDebug: CssDebug }).cssDebug = {
     logReport: logCSSLoadingReport,
     getStats: getCSSLoadStats,
     getQueueStatus: getCSSQueueStatus,
-  };
-}
+  };}

@@ -1155,6 +1155,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     drawingStyle,
     user.id,
     createAndSyncDrawing,
+    roomCode,
   ]);
 
   if (activeTool === 'pan') {

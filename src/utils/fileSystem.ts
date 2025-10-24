@@ -14,6 +14,10 @@ export interface FileSaveResult {
   filePath?: string;
 }
 
+interface FileSystemWindow extends Window {
+  showSaveFilePicker: (options?: { suggestedName: string; types: { description: string; accept: { [key: string]: string[] } }[] }) => Promise<FileSystemFileHandle>;
+}
+
 export class FileSystemManager {
   private backups: Map<string, string> = new Map();
 
@@ -29,7 +33,7 @@ export class FileSystemManager {
     _options: FileSaveOptions = {},
   ): Promise<FileSaveResult> {
     try {
-      const fileHandle = await (window as any).showSaveFilePicker({
+      const fileHandle = await (window as FileSystemWindow).showSaveFilePicker({
         suggestedName,
         types: [
           {
@@ -48,8 +52,8 @@ export class FileSystemManager {
         message: `File saved successfully: ${suggestedName}`,
         filePath: suggestedName,
       };
-    } catch (error) {
-      if ((error as any).name === 'AbortError') {
+    } catch (error: unknown) {
+      if ((error as Error).name === 'AbortError') {
         return {
           success: false,
           message: 'File save was cancelled by user',

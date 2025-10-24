@@ -465,7 +465,7 @@ class WebSocketService extends EventTarget {
       data: message,
       timestamp: Date.now(),
       src: useGameStore.getState().user.id,
-    } as any);
+        } as WebSocketMessage);
   }
 
   // Send game state update to server for persistence

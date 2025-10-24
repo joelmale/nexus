@@ -47,7 +47,6 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   const {
     updateCamera,
     placeToken,
-    moveToken,
     moveTokenOptimistic,
     getSceneTokens,
     user,
@@ -318,7 +317,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       // Optimistic update - move locally first, then send to server
       moveTokenOptimistic(scene.id, tokenId, { x: newX, y: newY });
     },
-    [scene.id, camera.zoom, getSceneTokens, moveToken, moveTokenOptimistic],
+    [scene.id, camera.zoom, getSceneTokens, moveTokenOptimistic],
   );
 
   const handleTokenMoveEnd = useCallback(
@@ -340,7 +339,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         }
       }
     },
-    [scene.id, safeGridSettings, getSceneTokens, moveToken, moveTokenOptimistic],
+    [scene.id, safeGridSettings, getSceneTokens, moveTokenOptimistic],
   );
 
   // Determine cursor based on active tool and state

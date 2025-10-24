@@ -1,4 +1,12 @@
-import { Session, SessionData } from 'express-session';
+import { Session } from 'express-session';
+
+interface SessionUser {
+  id: string;
+  email: string | null;
+  name: string;
+  avatarUrl: string | null;
+  provider: string;
+}
 
 interface CustomSession extends Session {
   guestUser?: {
@@ -7,7 +15,7 @@ interface CustomSession extends Session {
     provider: string;
   };
   passport?: {
-    user?: any;
+    user?: SessionUser;
   };
 }
 

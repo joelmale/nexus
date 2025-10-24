@@ -165,17 +165,17 @@ export const CHARACTER_BACKGROUNDS: CharacterBackground[] = ${this.generateArray
     return comment;
   }
 
-  private generateArrayCode(items: any[], typeName: string): string {
+  private generateArrayCode(items: unknown[], typeName: string): string {
     const literal = this.generateArrayLiteral(items);
     return `export const ${typeName.toUpperCase()}S: ${typeName}[] = ${literal};\n\n`;
   }
 
-  private generateObjectCode(obj: any, typeName: string): string {
+  private generateObjectCode(obj: unknown, typeName: string): string {
     const literal = this.generateObjectLiteral(obj);
     return `export const ${typeName.toUpperCase()}_DATA: ${typeName} = ${literal};\n\n`;
   }
 
-  private generateArrayLiteral(items: any[]): string {
+  private generateArrayLiteral(items: unknown[]): string {
     if (items.length === 0) return '[]';
 
     const formattedItems = items.map((item) =>
@@ -184,7 +184,7 @@ export const CHARACTER_BACKGROUNDS: CharacterBackground[] = ${this.generateArray
     return `[\n${formattedItems.join(',\n')}\n]`;
   }
 
-  private generateObjectLiteral(obj: any, indent: number = 0): string {
+  private generateObjectLiteral(obj: unknown, indent: number = 0): string {
     const indentStr = ' '.repeat(indent);
 
     if (obj === null || obj === undefined) {

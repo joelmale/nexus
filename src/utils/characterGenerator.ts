@@ -752,12 +752,29 @@ function generateAdditionalLanguages(existingLanguages: string[]): string[] {
 /**
  * Generate starting equipment based on class and background
  */
+interface Equipment {
+  id: string;
+  name: string;
+  quantity: number;
+  type: string;
+}
+
+interface Feature {
+  id: string;
+  name: string;
+  source: string;
+  description: string;
+}
+
+/**
+ * Generate starting equipment based on class and background
+ */
 function generateStartingEquipment(
   className: string,
   _backgroundName: string,
-): any[] {
+): Equipment[] {
   // Simplified equipment generation - in a full implementation this would be more comprehensive
-  const equipment: any[] = [];
+  const equipment: Equipment[] = [];
 
   // Add some basic equipment
   equipment.push({
@@ -838,8 +855,8 @@ function generateStartingEquipment(
 /**
  * Generate racial features
  */
-function generateRacialFeatures(race: any): any[] {
-  const features: any[] = [];
+function generateRacialFeatures(race: CharacterRace): Feature[] {
+  const features: Feature[] = [];
 
   // Add basic racial traits
   if (race.traits) {
