@@ -1,4 +1,62 @@
-import { Session } from 'express-session';
+// Node.js core modules
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Express and middleware
+import express from 'express';
+import helmet from 'helmet';
+import compression from 'compression';
+import cors from 'cors';
+
+// WebSocket and HTTP types
+import { WebSocketServer, WebSocket } from 'ws';
+import type { IncomingMessage } from 'http';
+import type { Duplex } from 'stream';
+
+// Session and database
+import session, { Session } from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
+import { Pool } from 'pg';
+
+// Authentication
+import passport from './auth.js';
+
+// UUID
+import { v4 as uuidv4 } from 'uuid';
+
+// Custom types
+import type {
+  Room,
+  Connection,
+  ServerMessage,
+  ServerDiceRollResultMessage,
+  GameState,
+} from './types.js';
+
+// Shared types
+import type { AssetManifest } from '../shared/types.js';
+
+// Services
+import {
+  DatabaseService,
+  createDatabaseService,
+  SessionRecord,
+} from './database.js';
+import {
+  DocumentServiceClient,
+  createDocumentServiceClient,
+} from './services/documentServiceClient.js';
+
+// Routes
+import { createDocumentRoutes } from './routes/documents.js';
+
+// Dice functions and types
+import {
+  validateDiceRollRequest,
+  createServerDiceRoll,
+  DiceRollRequest,
+} from './diceRoller.js';
 
 interface SessionUser {
   id: string;
@@ -17,6 +75,10 @@ interface CustomSession extends Session {
   passport?: {
     user?: SessionUser;
   };
+}
+
+interface RequestWithSession extends IncomingMessage {
+  session: CustomSession;
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -105,16 +167,23 @@ class NexusServer {
 
     this.wss = new WebSocketServer({ noServer: true });
 
-    this.httpServer.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
-      sessionMiddleware(req as express.Request, {} as express.Response, () => {
-        this.wss.handleUpgrade(req, socket, head, (ws) => {
-          this.wss.emit('connection', ws, req);
-        });
-      });
-    });
+    this.httpServer.on(
+      'upgrade',
+      (req: IncomingMessage, socket: Duplex, head: Buffer) => {
+        sessionMiddleware(
+          req as express.Request,
+          {} as express.Response,
+          () => {
+            this.wss.handleUpgrade(req, socket, head, (ws) => {
+              this.wss.emit('connection', ws, req);
+            });
+          },
+        );
+      },
+    );
 
     this.wss.on('connection', (ws, req) => {
-      this.handleConnection(ws, req as IncomingMessage);
+      this.handleConnection(ws, req as RequestWithSession);
     });
 
     this.loadManifest();
@@ -748,10 +817,9 @@ class NexusServer {
     }
   }
 
-  private async handleConnection(ws: WebSocket, req: IncomingMessage) {
-    const request = req as { session: CustomSession, url?: string };
-    const user = request.session?.passport?.user;
-    const guestUser = request.session?.guestUser;
+  private async handleConnection(ws: WebSocket, req: RequestWithSession) {
+    const user = req.session?.passport?.user;
+    const guestUser = req.session?.guestUser;
     const url = new URL(req.url!, 'ws://localhost');
     const params = url.searchParams;
     const userIdFromQuery = params.get('userId');
@@ -1150,13 +1218,28 @@ class NexusServer {
     if (message.type === 'event') {
       const eventName = message.data?.name;
       if (eventName === 'host/transfer') {
-        this.handleHostTransfer(fromUuid, connection, room, message.data);
+        this.handleHostTransfer(
+          fromUuid,
+          connection,
+          room,
+          message.data as unknown as { targetUserId: string },
+        );
         return;
       } else if (eventName === 'host/add-cohost') {
-        this.handleAddCoHost(fromUuid, connection, room, message.data);
+        this.handleAddCoHost(
+          fromUuid,
+          connection,
+          room,
+          message.data as unknown as { targetUserId: string },
+        );
         return;
       } else if (eventName === 'host/remove-cohost') {
-        this.handleRemoveCoHost(fromUuid, connection, room, message.data);
+        this.handleRemoveCoHost(
+          fromUuid,
+          connection,
+          room,
+          message.data as unknown as { targetUserId: string },
+        );
         return;
       }
     }
@@ -1177,7 +1260,11 @@ class NexusServer {
         (message.data as { name: string })?.name,
       )
     ) {
-      const eventData = message.data as { name: string, tokenId: string, expectedVersion: number };
+      const eventData = message.data as {
+        name: string;
+        tokenId: string;
+        expectedVersion: number;
+      };
       const entityId = eventData.tokenId;
       const expectedVersion = eventData.expectedVersion;
 
@@ -1207,18 +1294,24 @@ class NexusServer {
 
     if (
       message.type === 'event' &&
-      (message.data as { updateId: string })?.updateId &&
-      (message.data as { name: string })?.name !== 'cursor/update'
+      (message.data as unknown as { updateId: string })?.updateId &&
+      (message.data as unknown as { name: string })?.name !== 'cursor/update'
     ) {
       this.sendMessage(connection, {
         type: 'update-confirmed',
-        data: { updateId: (message.data as { updateId: string }).updateId },
+        data: {
+          updateId: (message.data as unknown as { updateId: string }).updateId,
+        },
         timestamp: Date.now(),
       });
     }
 
-    if ((message as ServerMessage).type === 'chat-message') {
-      this.handleChatMessage(fromUuid, connection, message as ServerMessage & { data: { content: string } });
+    if ((message as any).type === 'chat-message') {
+      this.handleChatMessage(
+        fromUuid,
+        connection,
+        message as ServerMessage & { data: { content: string } },
+      );
       return;
     }
 
@@ -1436,7 +1529,7 @@ class NexusServer {
     }
 
     // Get session from database to find sessionId
-    let session = null;
+    let session: SessionRecord | null = null;
     try {
       session = await this.db.getSessionByJoinCode(connection.room);
     } catch (error) {

@@ -1,5 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { DocumentServiceClient } from '../services/documentServiceClient.js';
+import {
+  DocumentServiceClient,
+  DocumentType,
+} from '../services/documentServiceClient.js';
 import { Session } from 'express-session';
 
 interface CustomSession extends Session {
@@ -31,7 +34,9 @@ function getUserId(req: Request): string | null {
  * Create document routes
  * @param documentClient - DocumentServiceClient instance
  */
-export function createDocumentRoutes(documentClient: DocumentServiceClient): Router {
+export function createDocumentRoutes(
+  documentClient: DocumentServiceClient,
+): Router {
   const router = Router();
 
   /**
@@ -72,8 +77,10 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
 
       const params = {
         skip: req.query.skip ? parseInt(req.query.skip as string) : undefined,
-        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
-        type: req.query.type as string | undefined,
+        limit: req.query.limit
+          ? parseInt(req.query.limit as string)
+          : undefined,
+        type: req.query.type as DocumentType | undefined,
         campaign: req.query.campaign as string,
         tag: req.query.tag as string,
         search: req.query.search as string,
@@ -153,7 +160,10 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const document = await documentClient.updateDocument(req.params.id, req.body);
+      const document = await documentClient.updateDocument(
+        req.params.id,
+        req.body,
+      );
       return res.json(document);
     } catch (error: unknown) {
       console.error('Failed to update document:', error);
@@ -208,11 +218,13 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
 
       const params = {
         query,
-        type: req.query.type as string | undefined,
+        type: req.query.type as DocumentType | undefined,
         campaigns: req.query.campaigns
           ? (req.query.campaigns as string).split(',')
           : undefined,
-        tags: req.query.tags ? (req.query.tags as string).split(',') : undefined,
+        tags: req.query.tags
+          ? (req.query.tags as string).split(',')
+          : undefined,
         from: req.query.from ? parseInt(req.query.from as string) : undefined,
         size: req.query.size ? parseInt(req.query.size as string) : undefined,
       };

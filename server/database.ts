@@ -95,7 +95,7 @@ interface CharacterRecord {
  * Represents a session record from the database
  * @interface SessionRecord
  */
-interface SessionRecord {
+export interface SessionRecord {
   /** Unique session identifier (CUID format, 25 chars) */
   id: string;
   /** Short join code for players (e.g., "ABC123") */
