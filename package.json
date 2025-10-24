@@ -78,7 +78,7 @@
     "@react-three/fiber": "^9.3.0",
     "cannon-es": "^0.20.0",
     "compression": "^1.8.1",
-    "connect-pg-simple": "^9.0.1",
+    "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
