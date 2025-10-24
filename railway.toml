@@ -1,5 +1,6 @@
-# Railway configuration for Backend service
-# Dockerfile at root will be auto-detected
+# Railway configuration for multi-service setup
+# railway.json takes precedence for multi-service configuration
+# This file is kept for reference only
 
 [build]
 builder = "DOCKERFILE"

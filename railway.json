@@ -11,8 +11,7 @@
         "POSTGRES_PASSWORD": "${{ secret.POSTGRES_PASSWORD }}",
         "POSTGRES_DB": "nexus"
       },
-      "tcpProxyApplicationPort": 5432,
-      "healthcheckPath": "/health"
+      "tcpProxyApplicationPort": 5432
     },
     {
       "name": "backend",
@@ -21,7 +20,8 @@
         "dockerfilePath": "Dockerfile"
       },
       "deploy": {
-        "startCommand": "npm run server:start"
+        "startCommand": "npm run server:start",
+        "healthcheckPath": "/health"
       },
       "variables": {
         "NODE_ENV": "production",
@@ -37,9 +37,12 @@
         "builder": "DOCKERFILE",
         "dockerfilePath": "Dockerfile.frontend"
       },
+      "deploy": {
+        "healthcheckPath": "/"
+      },
       "variables": {
-        "VITE_WS_URL": "${{ backend.WS_URL }}",
-        "VITE_API_URL": "${{ backend.API_URL }}"
+        "VITE_WS_URL": "wss://${{ RAILWAY_STATIC_URL }}/ws",
+        "VITE_API_URL": "https://${{ RAILWAY_STATIC_URL }}"
       }
     }
   ]
