@@ -70,8 +70,8 @@ export function DataTable<T extends { id: string }>({
     if (!sortColumn) return filteredData;
 
     return [...filteredData].sort((a, b) => {
-      const aValue = (a as Record<string, unknown>)[sortColumn];
-      const bValue = (b as Record<string, unknown>)[sortColumn];
+      const aValue = (a as Record<string, unknown>)[sortColumn] as string | number;
+      const bValue = (b as Record<string, unknown>)[sortColumn] as string | number;
 
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
@@ -140,8 +140,8 @@ export function DataTable<T extends { id: string }>({
                 >
                   <option value="">All</option>
                   {options.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
+                    <option key={String(option)} value={String(option)}>
+                      {String(option)}
                     </option>
                   ))}
                 </select>

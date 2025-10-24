@@ -33,7 +33,7 @@ export class FileSystemManager {
     _options: FileSaveOptions = {},
   ): Promise<FileSaveResult> {
     try {
-      const fileHandle = await (window as FileSystemWindow).showSaveFilePicker({
+      const fileHandle = await (window as unknown as FileSystemWindow).showSaveFilePicker({
         suggestedName,
         types: [
           {

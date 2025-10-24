@@ -11,6 +11,7 @@ import type {
   CharacterRace,
   CharacterClass,
   CharacterBackground,
+  Equipment,
 } from '@/types/character';
 import { CHARACTER_CLASSES, CHARACTER_RACES } from '@/types/character';
 
@@ -752,13 +753,6 @@ function generateAdditionalLanguages(existingLanguages: string[]): string[] {
 /**
  * Generate starting equipment based on class and background
  */
-interface Equipment {
-  id: string;
-  name: string;
-  quantity: number;
-  type: string;
-}
-
 interface Feature {
   id: string;
   name: string;
@@ -782,18 +776,21 @@ function generateStartingEquipment(
     name: 'Backpack',
     quantity: 1,
     type: 'other',
+    weight: 5,
   });
   equipment.push({
     id: 'waterskin',
     name: 'Waterskin',
     quantity: 1,
     type: 'other',
+    weight: 5,
   });
   equipment.push({
     id: 'rations',
     name: 'Rations (10 days)',
     quantity: 10,
     type: 'consumable',
+    weight: 20,
   });
 
   // Add class-specific equipment
@@ -804,12 +801,14 @@ function generateStartingEquipment(
         name: 'Chain Mail',
         quantity: 1,
         type: 'armor',
+        weight: 55,
       });
       equipment.push({
         id: 'longsword',
         name: 'Longsword',
         quantity: 1,
         type: 'weapon',
+        weight: 3,
       });
       break;
     case 'Wizard':
@@ -817,6 +816,7 @@ function generateStartingEquipment(
         id: 'spellbook',
         name: 'Spellbook',
         quantity: 1,
+        weight: 3,
         type: 'other',
       });
       equipment.push({
@@ -824,6 +824,7 @@ function generateStartingEquipment(
         name: 'Dagger',
         quantity: 1,
         type: 'weapon',
+        weight: 1,
       });
       break;
     case 'Rogue':
@@ -832,12 +833,14 @@ function generateStartingEquipment(
         name: 'Leather Armor',
         quantity: 1,
         type: 'armor',
+        weight: 10,
       });
       equipment.push({
         id: 'rapier',
         name: 'Rapier',
         quantity: 1,
         type: 'weapon',
+        weight: 2,
       });
       break;
     default:
@@ -846,6 +849,7 @@ function generateStartingEquipment(
         name: 'Common Clothes',
         quantity: 1,
         type: 'other',
+        weight: 3,
       });
   }
 

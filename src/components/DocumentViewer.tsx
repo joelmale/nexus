@@ -3,7 +3,7 @@
  * Displays document content with PDF.js support
  */
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useDocumentStore } from '@/stores/documentStore';
 
 import { PDFDocumentProxy } from 'pdfjs-dist';
@@ -31,6 +31,33 @@ export const DocumentViewer: React.FC = () => {
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
   }, [currentDocument, closeDocument]);
+
+  /**
+   * Render a PDF page
+   */
+  const renderPage = useCallback(async (pdf: PDFDocumentProxy, pageNum: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale });
+
+    // Set canvas dimensions
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    // Render PDF page
+    const renderContext = {
+      canvasContext: context,
+      viewport: viewport,
+      canvas: canvas,
+    };
+
+    await page.render(renderContext).promise;
+  }, [scale]);
 
   // Load and render PDF
   useEffect(() => {
@@ -72,32 +99,6 @@ export const DocumentViewer: React.FC = () => {
       renderPage(pdfDocRef.current, page);
     }
   }, [page, scale, totalPages, renderPage]);
-
-  /**
-   * Render a PDF page
-   */
-  const renderPage = useCallback(async (pdf: PDFDocumentProxy, pageNum: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale });
-
-    // Set canvas dimensions
-    const context = canvas.getContext('2d');
-    if (!context) return;
-
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-
-    // Render PDF page
-    const renderContext = {
-      canvasContext: context,
-      viewport: viewport,
-    };
-
-    await page.render(renderContext).promise;
-  }, [scale]);
 
   /**
    * Navigate to previous page

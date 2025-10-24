@@ -21,7 +21,7 @@ interface CharacterCreationContextType {
   isActive: boolean;
 }
 
-const CharacterCreationContext =
+export const CharacterCreationContext =
   createContext<CharacterCreationContextType | null>(null);
 
 export const CharacterCreationProvider: React.FC<{
@@ -115,7 +115,8 @@ export const CharacterCreationProvider: React.FC<{
   );
 };
 
-
+// Re-export the hook for convenience
+export { useCharacterCreationLauncher } from '@/hooks/useCharacterCreationLauncher';
 
 interface CharacterCreationLauncherProps {
   playerId: string;

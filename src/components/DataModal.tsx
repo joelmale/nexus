@@ -75,7 +75,7 @@ export function DataModal<T extends Record<string, unknown>>({
         return (
           <input
             type={field.type}
-            value={value}
+            value={String(value)}
             onChange={(e) => handleFieldChange(field.key, e.target.value)}
             placeholder={field.placeholder}
             className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -87,7 +87,7 @@ export function DataModal<T extends Record<string, unknown>>({
       case 'textarea':
         return (
           <textarea
-            value={value}
+            value={String(value)}
             onChange={(e) => handleFieldChange(field.key, e.target.value)}
             placeholder={field.placeholder}
             rows={4}
@@ -100,7 +100,7 @@ export function DataModal<T extends Record<string, unknown>>({
       case 'select':
         return (
           <select
-            value={value}
+            value={String(value)}
             onChange={(e) => handleFieldChange(field.key, e.target.value)}
             className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               error ? 'border-red-500' : 'border-gray-600'
