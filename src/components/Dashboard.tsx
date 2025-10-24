@@ -225,7 +225,7 @@ export const Dashboard: React.FC = () => {
         (characterId, character) => {
           // Character saved to database via API, now add to local state
           if (character) {
-            handleSaveCharacter(character as any);
+            handleSaveCharacter(character as Character);
           }
         },
         () => {

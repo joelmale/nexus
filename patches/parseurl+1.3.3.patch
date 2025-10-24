@@ -1,0 +1,93 @@
+diff --git a/node_modules/parseurl/index.js b/node_modules/parseurl/index.js
+index ece7223..c734e73 100644
+--- a/node_modules/parseurl/index.js
++++ b/node_modules/parseurl/index.js
+@@ -12,9 +12,7 @@
+  * @private
+  */
+ 
+-var url = require('url')
+-var parse = url.parse
+-var Url = url.Url
++const { URL } = require('url');
+ 
+ /**
+  * Module exports.
+@@ -93,52 +91,24 @@ function originalurl (req) {
+  */
+ 
+ function fastparse (str) {
+-  if (typeof str !== 'string' || str.charCodeAt(0) !== 0x2f /* / */) {
+-    return parse(str)
++  try {
++    const url = new URL(str, 'http://localhost');
++    return {
++      path: url.pathname + url.search,
++      href: url.pathname + url.search,
++      pathname: url.pathname,
++      query: url.search ? url.search.substring(1) : null,
++      search: url.search,
++    };
++  } catch (e) {
++    return {
++        path: str,
++        href: str,
++        pathname: str,
++        query: null,
++        search: null,
++    };
+   }
+-
+-  var pathname = str
+-  var query = null
+-  var search = null
+-
+-  // This takes the regexp from https://github.com/joyent/node/pull/7878
+-  // Which is /^(\/[^?#\s]*)(\?[^#\s]*)?$/
+-  // And unrolls it into a for loop
+-  for (var i = 1; i < str.length; i++) {
+-    switch (str.charCodeAt(i)) {
+-      case 0x3f: /* ?  */
+-        if (search === null) {
+-          pathname = str.substring(0, i)
+-          query = str.substring(i + 1)
+-          search = str.substring(i)
+-        }
+-        break
+-      case 0x09: /* \t */
+-      case 0x0a: /* \n */
+-      case 0x0c: /* \f */
+-      case 0x0d: /* \r */
+-      case 0x20: /*    */
+-      case 0x23: /* #  */
+-      case 0xa0:
+-      case 0xfeff:
+-        return parse(str)
+-    }
+-  }
+-
+-  var url = Url !== undefined
+-    ? new Url()
+-    : {}
+-
+-  url.path = str
+-  url.href = str
+-  url.pathname = pathname
+-
+-  if (search !== null) {
+-    url.query = query
+-    url.search = search
+-  }
+-
+-  return url
+ }
+ 
+ /**
+@@ -153,6 +123,5 @@ function fastparse (str) {
+ function fresh (url, parsedUrl) {
+   return typeof parsedUrl === 'object' &&
+     parsedUrl !== null &&
+-    (Url === undefined || parsedUrl instanceof Url) &&
+     parsedUrl._raw === url
+ }
+\ No newline at end of file

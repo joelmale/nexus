@@ -12,7 +12,7 @@ interface DrawingRendererProps {
 const PingDrawing: React.FC<{
   drawing: Drawing & { type: 'ping' };
   camera: Camera;
-  commonProps: any;
+  commonProps: React.SVGAttributes<SVGElement>;
 }> = ({ drawing, camera, commonProps }) => {
   const [elapsed, setElapsed] = useState(0);
 

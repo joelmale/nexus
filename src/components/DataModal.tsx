@@ -19,7 +19,7 @@ interface DataModalProps<T> {
   mode: 'add' | 'edit';
 }
 
-export function DataModal<T extends Record<string, any>>({
+export function DataModal<T extends Record<string, unknown>>({
   isOpen,
   onClose,
   onSave,
@@ -58,7 +58,7 @@ export function DataModal<T extends Record<string, any>>({
     onClose();
   };
 
-  const handleFieldChange = (key: string, value: any) => {
+  const handleFieldChange = (key: string, value: string | number | boolean | string[]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) {
       setErrors((prev) => ({ ...prev, [key]: '' }));

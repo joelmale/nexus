@@ -44,9 +44,8 @@ cypress
 !.env.example
 
 # Docker files (prevent recursive copy)
-Dockerfile*
 docker-compose*.yml
-.dockerignore
+# Note: We keep Dockerfile.backend and Dockerfile.frontend for Railway
 
 # CI/CD
 .github

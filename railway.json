@@ -5,7 +5,7 @@
       "name": "backend",
       "build": {
         "builder": "DOCKERFILE",
-        "dockerfilePath": "docker/backend.Dockerfile"
+        "dockerfilePath": "Dockerfile.backend"
       },
       "deploy": {
         "startCommand": "npm run server:start"
@@ -15,7 +15,7 @@
       "name": "frontend",
       "build": {
         "builder": "DOCKERFILE",
-        "dockerfilePath": "docker/frontend.Dockerfile"
+        "dockerfilePath": "Dockerfile.frontend"
       }
     }
   ]

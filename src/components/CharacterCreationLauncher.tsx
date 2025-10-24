@@ -115,15 +115,7 @@ export const CharacterCreationProvider: React.FC<{
   );
 };
 
-export const useCharacterCreationLauncher = () => {
-  const context = useContext(CharacterCreationContext);
-  if (!context) {
-    throw new Error(
-      'useCharacterCreationLauncher must be used within a CharacterCreationProvider',
-    );
-  }
-  return context;
-};
+import { useCharacterCreationLauncher } from '@/hooks/useCharacterCreationLauncher';
 
 interface CharacterCreationLauncherProps {
   playerId: string;

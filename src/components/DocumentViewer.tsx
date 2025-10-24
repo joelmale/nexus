@@ -6,6 +6,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useDocumentStore } from '@/stores/documentStore';
 
+import { PDFDocumentProxy } from 'pdfjs-dist';
+
 export const DocumentViewer: React.FC = () => {
   const { currentDocument, currentDocumentContent, isLoadingDocument, closeDocument } =
     useDocumentStore();
@@ -14,7 +16,7 @@ export const DocumentViewer: React.FC = () => {
   const [scale, setScale] = useState(1.0);
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pdfDocRef = useRef<any>(null);
+  const pdfDocRef = useRef<PDFDocumentProxy | null>(null);
 
   // Close on Escape key
   useEffect(() => {
@@ -71,12 +73,12 @@ export const DocumentViewer: React.FC = () => {
     if (pdfDocRef.current && page > 0 && page <= totalPages) {
       renderPage(pdfDocRef.current, page);
     }
-  }, [page, scale, totalPages]);
+  }, [page, scale, totalPages, renderPage]);
 
   /**
    * Render a PDF page
    */
-  const renderPage = async (pdf: any, pageNum: number) => {
+  const renderPage = async (pdf: PDFDocumentProxy, pageNum: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 

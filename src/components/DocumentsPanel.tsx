@@ -24,7 +24,6 @@ const DOCUMENT_TYPE_ICONS: Record<DocumentType, string> = {
 export const DocumentsPanel: React.FC = () => {
   const {
     documents,
-    filters,
     isLoadingDocuments,
     quickSearchResults,
     isSearching,

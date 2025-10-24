@@ -4,7 +4,7 @@ interface Column<T> {
   key: keyof T | string;
   label: string;
   sortable?: boolean;
-  render?: (value: any, item: T) => React.ReactNode;
+  render?: (value: T[keyof T], item: T) => React.ReactNode;
 }
 
 interface DataTableProps<T> {
@@ -33,7 +33,7 @@ export function DataTable<T extends { id: string }>({
 
   // Get unique values for filterable columns
   const getFilterOptions = (columnKey: string) => {
-    const values = data.map((item) => (item as any)[columnKey]);
+    const values = data.map((item) => (item as Record<string, unknown>)[columnKey]);
     const uniqueValues = [...new Set(values)].filter(Boolean);
     return uniqueValues.sort();
   };
@@ -55,7 +55,7 @@ export function DataTable<T extends { id: string }>({
     Object.entries(filters).forEach(([columnKey, filterValue]) => {
       if (filterValue) {
         filtered = filtered.filter((item) =>
-          String((item as any)[columnKey])
+          String((item as Record<string, unknown>)[columnKey])
             .toLowerCase()
             .includes(filterValue.toLowerCase()),
         );
@@ -70,8 +70,8 @@ export function DataTable<T extends { id: string }>({
     if (!sortColumn) return filteredData;
 
     return [...filteredData].sort((a, b) => {
-      const aValue = (a as any)[sortColumn];
-      const bValue = (b as any)[sortColumn];
+      const aValue = (a as Record<string, unknown>)[sortColumn];
+      const bValue = (b as Record<string, unknown>)[sortColumn];
 
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
@@ -208,9 +208,11 @@ export function DataTable<T extends { id: string }>({
                       key={String(column.key)}
                       className="px-4 py-3 text-sm text-gray-300"
                     >
-                      {column.render
-                        ? column.render((item as any)[column.key], item)
-                        : String((item as any)[column.key] || '')}
+                      {
+                                            column.render
+                                              ? column.render((item as Record<string, unknown>)[column.key as string] as T[keyof T], item)
+                                              : String((item as Record<string, unknown>)[column.key as string] || '')
+                                          }
                     </td>
                   ))}
                   {(onEdit || onDelete) && (

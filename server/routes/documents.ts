@@ -1,19 +1,20 @@
-/**
- * Document Routes - Authenticated proxy to NexusCodex services
- *
- * These routes provide access to document management features while maintaining
- * authentication and authorization through the Nexus VTT session system.
- * The routes proxy requests to the separate NexusCodex microservices.
- */
-
 import { Router, Request, Response } from 'express';
 import { DocumentServiceClient } from '../services/documentServiceClient.js';
+import { Session } from 'express-session';
+
+interface CustomSession extends Session {
+  guestUser?: {
+    id: string;
+    name: string;
+    provider: string;
+  };
+}
 
 /**
  * Helper to check if user is authenticated
  */
 function isAuthenticated(req: Request): boolean {
-  return req.isAuthenticated() || !!(req.session as any)?.guestUser;
+  return req.isAuthenticated() || !!(req.session as CustomSession)?.guestUser;
 }
 
 /**
@@ -21,9 +22,9 @@ function isAuthenticated(req: Request): boolean {
  */
 function getUserId(req: Request): string | null {
   if (req.isAuthenticated()) {
-    return (req.user as any)?.id || null;
+    return (req.user as { id: string })?.id || null;
   }
-  return (req.session as any)?.guestUser?.id || null;
+  return (req.session as CustomSession)?.guestUser?.id || null;
 }
 
 /**
@@ -50,11 +51,11 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
 
       const result = await documentClient.createDocument(req.body, userId);
       return res.status(201).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create document:', error);
       return res.status(400).json({
         error: 'Failed to create document',
-        details: error.message,
+        details: (error as Error).message,
       });
     }
   });
@@ -72,7 +73,7 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
       const params = {
         skip: req.query.skip ? parseInt(req.query.skip as string) : undefined,
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
-        type: req.query.type as any,
+        type: req.query.type as string | undefined,
         campaign: req.query.campaign as string,
         tag: req.query.tag as string,
         search: req.query.search as string,
@@ -80,11 +81,11 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
 
       const result = await documentClient.listDocuments(params);
       return res.json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to list documents:', error);
       return res.status(400).json({
         error: 'Failed to list documents',
-        details: error.message,
+        details: (error as Error).message,
       });
     }
   });
@@ -101,14 +102,14 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
 
       const document = await documentClient.getDocument(req.params.id);
       return res.json(document);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to get document:', error);
-      if (error.message.includes('not found')) {
+      if ((error as Error).message.includes('not found')) {
         return res.status(404).json({ error: 'Document not found' });
       }
       return res.status(500).json({
         error: 'Failed to get document',
-        details: error.message,
+        details: (error as Error).message,
       });
     }
   });
@@ -130,14 +131,14 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
       // Return the content URL for the frontend to fetch
       const contentUrl = documentClient.getDocumentContentUrl(req.params.id);
       return res.json({ contentUrl });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to get document content:', error);
-      if (error.message.includes('not found')) {
+      if ((error as Error).message.includes('not found')) {
         return res.status(404).json({ error: 'Document not found' });
       }
       return res.status(500).json({
         error: 'Failed to get document content',
-        details: error.message,
+        details: (error as Error).message,
       });
     }
   });
@@ -154,14 +155,14 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
 
       const document = await documentClient.updateDocument(req.params.id, req.body);
       return res.json(document);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update document:', error);
-      if (error.message.includes('not found')) {
+      if ((error as Error).message.includes('not found')) {
         return res.status(404).json({ error: 'Document not found' });
       }
       return res.status(400).json({
         error: 'Failed to update document',
-        details: error.message,
+        details: (error as Error).message,
       });
     }
   });
@@ -178,14 +179,14 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
 
       await documentClient.deleteDocument(req.params.id);
       return res.status(204).send();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete document:', error);
-      if (error.message.includes('not found')) {
+      if ((error as Error).message.includes('not found')) {
         return res.status(404).json({ error: 'Document not found' });
       }
       return res.status(500).json({
         error: 'Failed to delete document',
-        details: error.message,
+        details: (error as Error).message,
       });
     }
   });
@@ -207,7 +208,7 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
 
       const params = {
         query,
-        type: req.query.type as any,
+        type: req.query.type as string | undefined,
         campaigns: req.query.campaigns
           ? (req.query.campaigns as string).split(',')
           : undefined,
@@ -218,11 +219,11 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
 
       const result = await documentClient.searchDocuments(params);
       return res.json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to search documents:', error);
       return res.status(400).json({
         error: 'Search failed',
-        details: error.message,
+        details: (error as Error).message,
       });
     }
   });
@@ -247,11 +248,11 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
 
       const result = await documentClient.quickSearch(query, campaign, size);
       return res.json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to quick search:', error);
       return res.status(400).json({
         error: 'Quick search failed',
-        details: error.message,
+        details: (error as Error).message,
       });
     }
   });
@@ -264,11 +265,11 @@ export function createDocumentRoutes(documentClient: DocumentServiceClient): Rou
     try {
       const health = await documentClient.healthCheck();
       return res.json(health);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Document service health check failed:', error);
       return res.status(503).json({
         status: 'unhealthy',
-        error: error.message,
+        error: (error as Error).message,
       });
     }
   });

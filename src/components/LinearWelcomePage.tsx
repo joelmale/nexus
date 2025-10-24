@@ -58,7 +58,7 @@ export const LinearWelcomePage: React.FC = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<string>('');
   const [campaignsLoading, setCampaignsLoading] = useState(false);
   const [characters, setCharacters] = useState<
-    { id: string; name: string; data: any }[]
+    { id: string; name: string; data: { race?: string; class?: string; level?: number; portrait?: string; [key: string]: unknown; } }[]
   >([]);
   const [selectedCharacter, setSelectedCharacter] = useState<string>('');
   const [charactersLoading, setCharactersLoading] = useState(false);

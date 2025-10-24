@@ -11,7 +11,7 @@ export const AdminPage: React.FC = () => {
     isOpen: boolean;
     mode: 'add' | 'edit';
     dataType: string;
-    initialData?: any;
+    initialData?: Weapon | Armor | undefined;
   }>({
     isOpen: false,
     mode: 'add',
@@ -42,7 +42,7 @@ export const AdminPage: React.FC = () => {
     });
   };
 
-  const openEditModal = (dataType: string, data: any) => {
+  const openEditModal = (dataType: string, data: Weapon | Armor) => {
     setModalState({
       isOpen: true,
       mode: 'edit',
@@ -59,7 +59,7 @@ export const AdminPage: React.FC = () => {
     });
   };
 
-  const handleModalSave = (data: any) => {
+  const handleModalSave = (data: Omit<Weapon, 'id'> | Omit<Armor, 'id'>) => {
     const { dataType, mode, initialData } = modalState;
 
     switch (dataType) {
@@ -67,14 +67,14 @@ export const AdminPage: React.FC = () => {
         if (mode === 'add') {
           dataManager.addWeapon(data as Omit<Weapon, 'id'>);
         } else if (initialData) {
-          dataManager.updateWeapon(initialData.id, data);
+          dataManager.updateWeapon(initialData.id, data as Partial<Weapon>);
         }
         break;
       case 'armor':
         if (mode === 'add') {
           dataManager.addArmor(data as Omit<Armor, 'id'>);
         } else if (initialData) {
-          dataManager.updateArmor(initialData.id, data);
+          dataManager.updateArmor(initialData.id, data as Partial<Armor>);
         }
         break;
       // Add other data types here
@@ -318,7 +318,7 @@ export const AdminPage: React.FC = () => {
 // Tab components with DataTable
 const WeaponTab: React.FC<{
   onAdd: () => void;
-  onEdit: (dataType: string, data: any) => void;
+  onEdit: (dataType: string, data: Weapon) => void;
 }> = ({ onAdd, onEdit }) => {
   const dataManager = getDataManager();
   const weapons = dataManager.getWeapons();
@@ -327,7 +327,7 @@ const WeaponTab: React.FC<{
     key: keyof Weapon | string;
     label: string;
     sortable?: boolean;
-    render?: (value: any, item: Weapon) => React.ReactNode;
+    render?: (value: string[], item: Weapon) => React.ReactNode;
   }> = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'type', label: 'Type', sortable: true },
@@ -362,7 +362,7 @@ const WeaponTab: React.FC<{
 
 const ArmorTab: React.FC<{
   onAdd: () => void;
-  onEdit: (dataType: string, data: any) => void;
+  onEdit: (dataType: string, data: Armor) => void;
 }> = ({ onAdd, onEdit }) => {
   const dataManager = getDataManager();
   const armor = dataManager.getArmor();
@@ -371,7 +371,7 @@ const ArmorTab: React.FC<{
     key: keyof Armor | string;
     label: string;
     sortable?: boolean;
-    render?: (value: any, item: Armor) => React.ReactNode;
+    render?: (value: boolean, item: Armor) => React.ReactNode;
   }> = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'type', label: 'Type', sortable: true },

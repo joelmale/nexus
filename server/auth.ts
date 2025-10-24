@@ -154,8 +154,8 @@ passport.use(
     async (
       accessToken: string,
       refreshToken: string,
-      profile: any,
-      done: any,
+      profile: unknown,
+      done: (err?: Error | null, user?: Express.User) => void,
     ) => {
       try {
         // Fetch user profile from Discord API

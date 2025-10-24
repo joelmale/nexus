@@ -1,37 +1,15 @@
-import 'dotenv/config';
-import { WebSocketServer, WebSocket } from 'ws';
-import { v4 as uuidv4 } from 'uuid';
-import { IncomingMessage } from 'http';
-import express from 'express';
-import session from 'express-session';
-import connectPgSimple from 'connect-pg-simple';
-import passport from './auth';
-import { Pool } from 'pg';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import type {
-  Room,
-  Connection,
-  ServerMessage,
-  GameState,
-  ServerDiceRollResultMessage,
-} from './types.js';
-import type { AssetManifest } from '../shared/types.js';
-import {
-  createServerDiceRoll,
-  validateDiceRollRequest,
-  type DiceRollRequest,
-} from './diceRoller.js';
-import { DatabaseService, createDatabaseService } from './database.js';
-import {
-  createDocumentServiceClient,
-  DocumentServiceClient,
-} from './services/documentServiceClient.js';
-import { createDocumentRoutes } from './routes/documents.js';
+import { Session, SessionData } from 'express-session';
+
+interface CustomSession extends Session {
+  guestUser?: {
+    id: string;
+    name: string;
+    provider: string;
+  };
+  passport?: {
+    user?: any;
+  };
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -119,9 +97,9 @@ class NexusServer {
 
     this.wss = new WebSocketServer({ noServer: true });
 
-    this.httpServer.on('upgrade', (req, socket, head) => {
-      sessionMiddleware(req as any, {} as any, () => {
-        this.wss.handleUpgrade(req, socket as any, head, (ws) => {
+    this.httpServer.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
+      sessionMiddleware(req as express.Request, {} as express.Response, () => {
+        this.wss.handleUpgrade(req, socket, head, (ws) => {
           this.wss.emit('connection', ws, req);
         });
       });
@@ -225,7 +203,7 @@ class NexusServer {
         const guestUser = await this.db.createGuestUser(name.trim());
 
         // Create a session for the guest user (without using passport)
-        (req.session as any).guestUser = {
+        (req.session as CustomSession).guestUser = {
           id: guestUser.id,
           name: guestUser.name,
           provider: 'guest',
@@ -247,7 +225,7 @@ class NexusServer {
      * Gets current guest user from session
      */
     this.app.get('/api/guest-me', (req, res) => {
-      const guestUser = (req.session as any).guestUser;
+      const guestUser = (req.session as CustomSession).guestUser;
       if (guestUser) {
         res.json(guestUser);
       } else {
@@ -270,7 +248,7 @@ class NexusServer {
           return res.status(401).json({ error: 'Authentication required' });
         }
 
-        const user = req.user as any;
+        const user = req.user as { id: string };
         const campaigns = await this.db.getCampaignsByUser(user.id);
 
         res.json(campaigns);
@@ -304,7 +282,7 @@ class NexusServer {
             .json({ error: 'Campaign name must be 255 characters or less' });
         }
 
-        const user = req.user as any;
+        const user = req.user as { id: string };
         const campaign = await this.db.createCampaign(
           user.id,
           name.trim(),
@@ -378,7 +356,7 @@ class NexusServer {
           return res.status(401).json({ error: 'Authentication required' });
         }
 
-        const user = req.user as any;
+        const user = req.user as { id: string };
         const characters = await this.db.getCharactersByUser(user.id);
 
         res.json(characters);
@@ -407,7 +385,7 @@ class NexusServer {
         }
 
         // Verify ownership
-        const user = req.user as any;
+        const user = req.user as { id: string };
         if (character.ownerId !== user.id) {
           return res.status(403).json({ error: 'Access denied' });
         }
@@ -443,7 +421,7 @@ class NexusServer {
             .json({ error: 'Character name must be 255 characters or less' });
         }
 
-        const user = req.user as any;
+        const user = req.user as { id: string };
         const character = await this.db.createCharacter(
           user.id,
           name.trim(),
@@ -478,7 +456,7 @@ class NexusServer {
           return res.status(404).json({ error: 'Character not found' });
         }
 
-        const user = req.user as any;
+        const user = req.user as { id: string };
         if (character.ownerId !== user.id) {
           return res.status(403).json({ error: 'Access denied' });
         }
@@ -529,7 +507,7 @@ class NexusServer {
           return res.status(404).json({ error: 'Character not found' });
         }
 
-        const user = req.user as any;
+        const user = req.user as { id: string };
         if (character.ownerId !== user.id) {
           return res.status(403).json({ error: 'Access denied' });
         }
@@ -763,7 +741,7 @@ class NexusServer {
   }
 
   private async handleConnection(ws: WebSocket, req: IncomingMessage) {
-    const request = req as any;
+    const request = req as { session: CustomSession, url?: string };
     const user = request.session?.passport?.user;
     const guestUser = request.session?.guestUser;
     const url = new URL(req.url!, 'ws://localhost');
@@ -821,7 +799,7 @@ class NexusServer {
 
     ws.on('message', (data) => {
       try {
-        const message = JSON.parse(data.toString());
+        const message = JSON.parse(data.toString()) as ServerMessage;
         this.routeMessage(uuid, message);
       } catch (error) {
         console.error('Failed to parse message:', error);
@@ -865,7 +843,7 @@ class NexusServer {
       }
 
       let usedCampaignId;
-      let campaignScenes = [];
+      let campaignScenes: unknown[] = [];
 
       if (campaignId) {
         // Use existing campaign (authenticated user selected it)
@@ -1188,10 +1166,10 @@ class NexusServer {
     if (
       message.type === 'event' &&
       ['token/move', 'token/update', 'token/delete'].includes(
-        (message.data as any)?.name,
+        (message.data as { name: string })?.name,
       )
     ) {
-      const eventData = message.data as any;
+      const eventData = message.data as { name: string, tokenId: string, expectedVersion: number };
       const entityId = eventData.tokenId;
       const expectedVersion = eventData.expectedVersion;
 
@@ -1221,18 +1199,18 @@ class NexusServer {
 
     if (
       message.type === 'event' &&
-      (message.data as any)?.updateId &&
-      (message.data as any)?.name !== 'cursor/update'
+      (message.data as { updateId: string })?.updateId &&
+      (message.data as { name: string })?.name !== 'cursor/update'
     ) {
       this.sendMessage(connection, {
         type: 'update-confirmed',
-        data: { updateId: (message.data as any).updateId },
+        data: { updateId: (message.data as { updateId: string }).updateId },
         timestamp: Date.now(),
       });
     }
 
-    if ((message as any).type === 'chat-message') {
-      this.handleChatMessage(fromUuid, connection, message);
+    if ((message as ServerMessage).type === 'chat-message') {
+      this.handleChatMessage(fromUuid, connection, message as ServerMessage & { data: { content: string } });
       return;
     }
 
@@ -1261,7 +1239,7 @@ class NexusServer {
   private handleChatMessage(
     fromUuid: string,
     connection: Connection,
-    message: any,
+    message: ServerMessage & { data: { content: string } },
   ) {
     if (!connection.room) return;
     const room = this.rooms.get(connection.room);
@@ -1691,7 +1669,7 @@ class NexusServer {
     fromUuid: string,
     connection: Connection,
     room: Room,
-    data: any,
+    data: { targetUserId: string },
   ) {
     if (room.host !== fromUuid) {
       this.sendError(
@@ -1742,7 +1720,7 @@ class NexusServer {
     fromUuid: string,
     connection: Connection,
     room: Room,
-    data: any,
+    data: { targetUserId: string },
   ) {
     if (room.host !== fromUuid) {
       this.sendError(connection, 'Only the current host can add co-hosts');
@@ -1781,7 +1759,7 @@ class NexusServer {
     fromUuid: string,
     connection: Connection,
     room: Room,
-    data: any,
+    data: { targetUserId: string },
   ) {
     if (room.host !== fromUuid) {
       this.sendError(connection, 'Only the current host can remove co-hosts');
