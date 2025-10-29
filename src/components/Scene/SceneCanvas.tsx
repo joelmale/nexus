@@ -4,7 +4,6 @@ import React, {
   useState,
   useCallback,
   useMemo,
-  useTransition,
 } from 'react';
 import {
   useGameStore,
@@ -30,7 +29,7 @@ import { CanvasErrorBoundary, TokenErrorBoundary } from '../ErrorBoundary';
 import { webSocketService } from '@/utils/websocket';
 import { tokenAssetManager } from '@/services/tokenAssets';
 import { createPlacedToken, getTokenPixelSize } from '@/types/token';
-import { useTokenStore, useSelectedToken } from '@/stores/tokenStore';
+import { useSelectedPlacedToken } from '@/stores/gameStore';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
 import type {
@@ -54,9 +53,13 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     addToSelection,
     clearSelection,
   } = useGameStore();
-  const { selectToken } = useTokenStore();
-  const selectedToken = useSelectedToken();
+  const selectedPlacedToken = useSelectedPlacedToken();
   const { selectedObjectIds } = useSceneState();
+
+  // Debug logging for selected token
+  React.useEffect(() => {
+    console.log('🎯 SceneCanvas selectedPlacedToken:', selectedPlacedToken);
+  }, [selectedPlacedToken]);
   const camera = useCamera();
   const followDM = useFollowDM();
   const isHost = useIsHost();
@@ -77,7 +80,6 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     | 'mask-hide'
     | 'grid-align';
 
-  const [, startSelectionTransition] = useTransition();
   const roomCode = useServerRoomCode();
 
   // Debug log for background image
@@ -262,6 +264,17 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Token handlers
   const handleTokenDrop = useCallback(
     (token: Token, x: number, y: number) => {
+      // Check if token is exclusive and already exists in this scene
+      if (token.exclusive) {
+        const alreadyPlaced = placedTokens.some((pt) => pt.tokenId === token.id);
+        if (alreadyPlaced) {
+          alert(
+            `${token.name} is marked as exclusive and can only be placed once per scene. Remove the existing instance first.`,
+          );
+          return;
+        }
+      }
+
       const placedToken = createPlacedToken(
         token,
         { x, y },
@@ -284,11 +297,12 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         },
       });
     },
-    [scene.id, user.id, placeToken, roomCode],
+    [scene.id, user.id, placeToken, roomCode, placedTokens],
   );
 
   const handleTokenSelect = useCallback(
     (tokenId: string, multi: boolean) => {
+      console.log('🎯 handleTokenSelect called:', { tokenId, multi });
       if (multi) {
         // Urgent: Update selection immediately for visual feedback
         addToSelection([tokenId]);
@@ -296,13 +310,9 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       } else {
         // Urgent: Update selection immediately for visual feedback
         setSelection([tokenId]);
-        // Non-urgent: Update token store selection for toolbar
-        startSelectionTransition(() => {
-          selectToken(tokenId);
-        });
       }
     },
-    [addToSelection, setSelection, startSelectionTransition, selectToken],
+    [addToSelection, setSelection],
   );
 
   const handleTokenMove = useCallback(
@@ -356,34 +366,57 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   // Calculate toolbar position for selected token
   const getToolbarPosition = useCallback(() => {
-    if (!selectedToken) return { x: 0, y: 0 };
-
-    // Find the placed token data
-    const placedToken = placedTokens.find((pt) => pt.id === selectedToken.id);
-    if (!placedToken) return { x: 0, y: 0 };
+    if (!selectedPlacedToken) return { x: 0, y: 0 };
 
     // Calculate screen position: apply camera transform to token position
     const screenX =
-      viewportSize.width / 2 + (placedToken.x - camera.x) * camera.zoom;
+      viewportSize.width / 2 + (selectedPlacedToken.x - camera.x) * camera.zoom;
     const screenY =
-      viewportSize.height / 2 + (placedToken.y - camera.y) * camera.zoom;
+      viewportSize.height / 2 + (selectedPlacedToken.y - camera.y) * camera.zoom;
 
     // Position toolbar above and to the right of the token
     const tokenSize =
       getTokenPixelSize(
-        tokenAssetManager.getTokenById(placedToken.tokenId)?.size || 'medium',
+        tokenAssetManager.getTokenById(selectedPlacedToken.tokenId)?.size || 'medium',
         safeGridSettings.size,
       ) *
-      placedToken.scale *
+      selectedPlacedToken.scale *
       camera.zoom;
 
-    return {
-      x: screenX + tokenSize / 2 + 10, // 10px offset from token edge
-      y: screenY - tokenSize / 2 - 10, // Above the token
-    };
+    // Estimate toolbar dimensions (approximate)
+    const toolbarWidth = 400; // Approximate width when panel is open
+    const toolbarHeight = 60; // Approximate height of main toolbar
+    const toolbarOffset = 10; // Spacing from token
+
+    // Default: right of token
+    let x = screenX + tokenSize / 2 + toolbarOffset;
+    let y = screenY - tokenSize / 2 - toolbarOffset;
+
+    // Check if toolbar would go off right edge of screen
+    if (x + toolbarWidth > viewportSize.width) {
+      // Position to left of token instead
+      x = screenX - tokenSize / 2 - toolbarWidth - toolbarOffset;
+    }
+
+    // Ensure toolbar doesn't go off left edge
+    if (x < 0) {
+      x = toolbarOffset;
+    }
+
+    // Check if toolbar would go off top edge
+    if (y < 0) {
+      // Position below token instead
+      y = screenY + tokenSize / 2 + toolbarOffset;
+    }
+
+    // Check if toolbar would go off bottom edge
+    if (y + toolbarHeight > viewportSize.height) {
+      y = viewportSize.height - toolbarHeight - toolbarOffset;
+    }
+
+    return { x, y };
   }, [
-    selectedToken,
-    placedTokens,
+    selectedPlacedToken,
     camera,
     viewportSize,
     safeGridSettings.size,
@@ -402,7 +435,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         )}
 
         {/* Token Toolbar */}
-        {selectedToken && <TokenToolbar position={getToolbarPosition()} />}
+        {selectedPlacedToken && <TokenToolbar position={getToolbarPosition()} />}
 
         <TokenDropZone
           sceneId={scene.id}

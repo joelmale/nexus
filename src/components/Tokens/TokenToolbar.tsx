@@ -1,13 +1,8 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  useTokenStore,
-  useSelectedToken,
-  useTokenToolbar,
-} from '@/stores/tokenStore';
+import React, { useEffect, useRef, useState } from 'react';
+import { useGameStore, useSelectedPlacedToken, useActiveScene } from '@/stores/gameStore';
 import { TextPanel } from './toolbar-panels/TextPanel';
 import { OptionsPanel } from './toolbar-panels/OptionsPanel';
 import { ConditionsPanel } from './toolbar-panels/ConditionsPanel';
-import { PlayerPanel } from './toolbar-panels/PlayerPanel';
 import './TokenToolbar.css';
 
 interface TokenToolbarProps {
@@ -15,15 +10,10 @@ interface TokenToolbarProps {
 }
 
 export const TokenToolbar: React.FC<TokenToolbarProps> = ({ position }) => {
-  const { selectedTokenId, activeToolbarTool, setActiveToolbarTool } =
-    useTokenToolbar();
-  const selectedToken = useSelectedToken();
-  const {
-    toggleTokenDead,
-    toggleTokenHidden,
-    removeToken,
-    toggleTokenInitiative,
-  } = useTokenStore();
+  const [activeToolbarTool, setActiveToolbarTool] = useState<string | null>(null);
+  const selectedPlacedToken = useSelectedPlacedToken();
+  const activeScene = useActiveScene();
+  const { updateToken, deleteToken, clearSelection } = useGameStore();
 
   const toolbarRef = useRef<HTMLDivElement>(null);
 
@@ -34,15 +24,15 @@ export const TokenToolbar: React.FC<TokenToolbarProps> = ({ position }) => {
         toolbarRef.current &&
         !toolbarRef.current.contains(event.target as Node)
       ) {
-        useTokenStore.getState().clearSelection();
+        clearSelection();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [clearSelection]);
 
-  if (!selectedTokenId || !selectedToken) {
+  if (!selectedPlacedToken || !activeScene) {
     return null;
   }
 
@@ -52,20 +42,25 @@ export const TokenToolbar: React.FC<TokenToolbarProps> = ({ position }) => {
 
   const handleRemoveToken = () => {
     if (window.confirm('Are you sure you want to remove this token?')) {
-      removeToken(selectedTokenId);
+      deleteToken(activeScene.id, selectedPlacedToken.id);
     }
+  };
+
+  const handleClosePanel = () => {
+    setActiveToolbarTool(null);
   };
 
   const renderSubPanel = () => {
     switch (activeToolbarTool) {
       case 'text':
-        return <TextPanel tokenId={selectedTokenId} />;
+        return <TextPanel tokenId={selectedPlacedToken.id} onClose={handleClosePanel} />;
       case 'options':
-        return <OptionsPanel tokenId={selectedTokenId} />;
+        return <OptionsPanel tokenId={selectedPlacedToken.id} />;
       case 'conditions':
-        return <ConditionsPanel tokenId={selectedTokenId} />;
+        return <ConditionsPanel tokenId={selectedPlacedToken.id} />;
       case 'players':
-        return <PlayerPanel tokenId={selectedTokenId} />;
+        // TODO: Refactor PlayerPanel to work with PlacedTokens
+        return null;
       default:
         return null;
     }
@@ -109,8 +104,10 @@ export const TokenToolbar: React.FC<TokenToolbarProps> = ({ position }) => {
           </button>
 
           <button
-            className={`token-toolbar-btn ${selectedToken.isInInitiative ? 'active' : ''}`}
-            onClick={() => toggleTokenInitiative(selectedTokenId)}
+            className={`token-toolbar-btn ${selectedPlacedToken.isInInitiative ? 'active' : ''}`}
+            onClick={() => updateToken(activeScene.id, selectedPlacedToken.id, {
+              isInInitiative: !selectedPlacedToken.isInInitiative
+            })}
             title="Toggle Initiative"
           >
             <span className="token-toolbar-icon">⏳</span>
@@ -125,8 +122,10 @@ export const TokenToolbar: React.FC<TokenToolbarProps> = ({ position }) => {
           </button>
 
           <button
-            className={`token-toolbar-btn ${selectedToken.isDead ? 'active' : ''}`}
-            onClick={() => toggleTokenDead(selectedTokenId)}
+            className={`token-toolbar-btn ${selectedPlacedToken.isDead ? 'active' : ''}`}
+            onClick={() => updateToken(activeScene.id, selectedPlacedToken.id, {
+              isDead: !selectedPlacedToken.isDead
+            })}
             title="Toggle Dead"
           >
             <span className="token-toolbar-icon">💀</span>
@@ -139,12 +138,14 @@ export const TokenToolbar: React.FC<TokenToolbarProps> = ({ position }) => {
         {/* Secondary Tools */}
         <div className="token-toolbar-secondary">
           <button
-            className={`token-toolbar-btn ${selectedToken.isHidden ? 'active' : ''}`}
-            onClick={() => toggleTokenHidden(selectedTokenId)}
-            title={selectedToken.isHidden ? 'Reveal Token' : 'Hide Token'}
+            className={`token-toolbar-btn ${selectedPlacedToken.dmNotesOnly ? 'active' : ''}`}
+            onClick={() => updateToken(activeScene.id, selectedPlacedToken.id, {
+              dmNotesOnly: !selectedPlacedToken.dmNotesOnly
+            })}
+            title={selectedPlacedToken.dmNotesOnly ? 'Show to Players' : 'Hide from Players'}
           >
             <span className="token-toolbar-icon">
-              {selectedToken.isHidden ? '🙈' : '👁️'}
+              {selectedPlacedToken.dmNotesOnly ? '🙈' : '👁️'}
             </span>
           </button>
 

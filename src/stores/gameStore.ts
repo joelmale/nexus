@@ -59,6 +59,7 @@ interface PendingUpdate {
   type: string;
   localState: PlacedToken & { sceneId: string };
   timestamp: number;
+  previousVersion?: number; // Store the version before optimistic update for rollback
 }
 
 interface GameStore extends GameState {
@@ -506,6 +507,10 @@ const eventHandlers: Record<string, EventHandler> = {
   },
   'token/move': (state, data) => {
     const eventData = data as TokenMoveEvent['data'];
+
+    // This handler only runs for moves from other clients
+    // (applyEvent filters out confirmations of our own optimistic updates)
+
     if (eventData.sceneId && eventData.tokenId) {
       const sceneIndex = state.sceneState.scenes.findIndex(
         (s) => s.id === eventData.sceneId,
@@ -1036,6 +1041,15 @@ export const useGameStore = create<GameStore>()(
 
       applyEvent: (event) => {
         console.log('Applying event:', event.type, event.data); // Debug log
+
+        // Check if this event is confirming an optimistic update
+        // @ts-expect-error - updateId may be present in the event data
+        const updateId = event.data?.updateId as string | undefined;
+        if (updateId && event.type === 'token/move') {
+          // This is a confirmation of our optimistic update
+          get().confirmUpdate(updateId);
+          return; // Don't apply the event since we already applied it optimistically
+        }
 
         const handler = eventHandlers[event.type];
         if (handler) {
@@ -1934,19 +1948,25 @@ export const useGameStore = create<GameStore>()(
           .find((t) => t.id === tokenId);
         if (!token) return;
 
-        // Store the pending update for rollback capability
+        // Get the expected version BEFORE incrementing
+        const expectedVersion = get().getEntityVersion(tokenId);
+
+        // Store the pending update for rollback capability (including the version)
         pendingUpdates.set(updateId, {
           id: updateId,
           type: 'token-move',
           localState: { ...token, sceneId },
           timestamp: Date.now(),
+          previousVersion: expectedVersion, // Store for rollback
         });
 
         // Update optimistically
         get().moveToken(sceneId, tokenId, position, rotation);
 
+        // Increment the local version immediately to prevent version conflicts on rapid updates
+        get().incrementEntityVersion(tokenId);
+
         // Send to server with updateId and version for tracking
-        const expectedVersion = get().getEntityVersion(tokenId);
         import('@/utils/websocket').then(({ webSocketService }) => {
           webSocketService.sendEvent({
             type: 'token/move',
@@ -1992,6 +2012,13 @@ export const useGameStore = create<GameStore>()(
               { x: update.localState.x, y: update.localState.y },
               update.localState.rotation,
             );
+
+            // Restore the previous version
+            if (update.previousVersion !== undefined) {
+              set((state) => {
+                state.entityVersions.set(update.localState.id, update.previousVersion!);
+              });
+            }
             break;
         }
 
@@ -2799,3 +2826,16 @@ export const useDrawingActions = () =>
 export const useServerRoomCode = () => {
   return useGameStore((state) => state.session?.roomCode || null);
 };
+
+// Token selection selectors
+export const useSelectedPlacedToken = () =>
+  useGameStore((state) => {
+    const { scenes, activeSceneId, selectedObjectIds } = state.sceneState;
+    if (selectedObjectIds.length !== 1) return null; // Only return token if exactly one is selected
+
+    const scene = scenes.find((s) => s.id === activeSceneId);
+    if (!scene) return null;
+
+    const selectedId = selectedObjectIds[0];
+    return scene.placedTokens?.find((t) => t.id === selectedId) || null;
+  });

@@ -6,7 +6,7 @@ import {
   type DrawingTool,
 } from '@/types/drawing';
 import type { Camera, PlacedToken } from '@/types/game';
-import { useTokenStore } from '@/stores/tokenStore';
+// tokenStore no longer used - selection managed by gameStore
 import {
   useUser,
   useActiveScene,
@@ -486,23 +486,14 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
           const objectToSelect = drawingsAtPoint[0] || tokensAtPoint[0];
 
           if (objectToSelect) {
-            const isToken = tokensAtPoint.includes(objectToSelect);
-
             if (isMultiSelectModifier) {
               const newSelection = selectedObjectIds.includes(objectToSelect)
                 ? selectedObjectIds.filter((id) => id !== objectToSelect)
                 : [...selectedObjectIds, objectToSelect];
               setSelection(newSelection);
-              // Multi-selection, so no single token toolbar
-              useTokenStore.getState().clearSelection();
             } else {
-              // Single selection
+              // Single selection - gameStore will show toolbar if it's a token
               setSelection([objectToSelect]);
-              if (isToken) {
-                useTokenStore.getState().selectToken(objectToSelect);
-              } else {
-                useTokenStore.getState().clearSelection();
-              }
             }
           } else {
             // Clicking on empty space
@@ -515,7 +506,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
             } else {
               // Clear all selections
               clearSelection();
-              useTokenStore.getState().clearSelection();
             }
           }
         },
@@ -1501,7 +1491,8 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               : activeTool === 'eraser'
                 ? 'crosshair'
                 : 'crosshair',
-          pointerEvents: 'auto',
+          // When select tool is active, allow pointer events to pass through to tokens
+          pointerEvents: activeTool === 'select' ? 'none' : 'auto',
         }}
       />
 
