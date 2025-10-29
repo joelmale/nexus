@@ -1306,8 +1306,9 @@ export const useGameStore = create<GameStore>()(
           state.connection = initialState.connection;
         });
 
-        // Clear persisted session
+        // Clear persisted session from all storage locations
         clearSessionFromStorage();
+        sessionPersistenceService.clearAll();
 
         // Navigate to lobby using window.location for full reset
         window.location.href = '/lobby';

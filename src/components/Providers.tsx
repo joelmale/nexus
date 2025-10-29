@@ -24,10 +24,11 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({
   }, [checkAuth]);
 
   // Enable automatic session persistence (saves game state on changes)
+  // Auto-recovery is always enabled - session is cleared when user explicitly leaves
   useSessionPersistence({
     autoSave: true,
     saveInterval: 30000, // Save every 30 seconds
-    enableAutoRecovery: true, // Attempt to restore session on page load
+    enableAutoRecovery: true, // Always attempt recovery (session cleared on explicit leave)
   });
 
   return (
