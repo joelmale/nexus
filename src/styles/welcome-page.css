@@ -84,7 +84,7 @@
 /* Account Dropdown */
 .account-dropdown {
   position: absolute;
-  top: calc(100% + 0.5rem);
+  top: calc(100% + 0.25rem);
   right: 0;
   min-width: 200px;
   padding: 0.5rem;
@@ -96,15 +96,19 @@
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
-  transition: all 0.3s ease;
+  /* Add delay only when hiding to give time to move mouse to dropdown */
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.3s;
   pointer-events: none;
 }
 
-.account-menu:hover .account-dropdown {
+.account-menu:hover .account-dropdown,
+.account-dropdown:hover {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
   pointer-events: auto;
+  /* Remove delay when showing */
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0s;
 }
 
 .account-dropdown-header {

@@ -9,9 +9,11 @@ class TokenAssetManager {
   private loadingPromises = new Map<string, Promise<HTMLImageElement>>();
   private tokenLibraries: TokenLibrary[] = [];
   private isInitialized = false;
+  private readonly STORAGE_KEY = 'nexus-token-libraries';
+  private readonly CUSTOM_TOKENS_KEY = 'nexus-custom-tokens';
 
   /**
-   * Initialize with default token libraries
+   * Initialize with default token libraries and load saved customizations
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
@@ -19,12 +21,75 @@ class TokenAssetManager {
     try {
       // Load default token libraries
       this.tokenLibraries = await this.loadDefaultLibraries();
+
+      // Load and apply saved customizations from localStorage
+      await this.loadCustomizations();
+
       this.isInitialized = true;
       console.log(
         `Initialized TokenAssetManager with ${this.tokenLibraries.length} libraries`,
       );
     } catch (error) {
       console.error('Failed to initialize TokenAssetManager:', error);
+    }
+  }
+
+  /**
+   * Load saved token customizations from localStorage
+   */
+  private async loadCustomizations(): Promise<void> {
+    try {
+      const savedCustomTokens = localStorage.getItem(this.CUSTOM_TOKENS_KEY);
+      if (!savedCustomTokens) return;
+
+      const customizations = JSON.parse(savedCustomTokens);
+
+      // Apply saved customizations to tokens
+      for (const customToken of customizations) {
+        try {
+          // Find the token in libraries and update it
+          for (const library of this.tokenLibraries) {
+            const tokenIndex = library.tokens.findIndex((t) => t.id === customToken.id);
+            if (tokenIndex >= 0) {
+              // Merge customizations with existing token
+              library.tokens[tokenIndex] = {
+                ...library.tokens[tokenIndex],
+                ...customToken,
+              };
+              console.log(`Applied saved customization for token: ${customToken.name}`);
+              break;
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to apply customization for token ${customToken.id}:`, error);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load token customizations:', error);
+    }
+  }
+
+  /**
+   * Save token customizations to localStorage
+   */
+  private saveCustomizations(): void {
+    try {
+      // Collect all customized tokens (those with custom images or modified properties)
+      const customizedTokens: Token[] = [];
+
+      for (const library of this.tokenLibraries) {
+        for (const token of library.tokens) {
+          // Check if token has been customized (has data URL image or is marked custom)
+          if (token.isCustom || token.image.startsWith('data:')) {
+            customizedTokens.push(token);
+          }
+        }
+      }
+
+      localStorage.setItem(this.CUSTOM_TOKENS_KEY, JSON.stringify(customizedTokens));
+      console.log(`Saved ${customizedTokens.length} customized tokens`);
+    } catch (error) {
+      console.error('Failed to save token customizations:', error);
     }
   }
 
@@ -368,6 +433,9 @@ class TokenAssetManager {
         library.tokens[tokenIndex] = updatedToken;
         library.updatedAt = Date.now();
 
+        // Persist customizations to localStorage
+        this.saveCustomizations();
+
         console.log(`Updated token "${updatedToken.name}"`);
         return updatedToken;
       }
@@ -398,6 +466,9 @@ class TokenAssetManager {
 
     library.tokens.push(newToken);
     library.updatedAt = Date.now();
+
+    // Persist customizations to localStorage
+    this.saveCustomizations();
 
     console.log(
       `Added custom token "${newToken.name}" to library "${library.name}"`,

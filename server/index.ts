@@ -1,3 +1,7 @@
+// Load environment variables first
+import dotenv from 'dotenv';
+dotenv.config();
+
 // Node.js core modules
 import fs from 'fs';
 import path from 'path';
@@ -131,7 +135,9 @@ class NexusServer {
     );
     this.app.use(compression());
     this.app.use(cors({ origin: this.CORS_ORIGIN, credentials: true }));
-    this.app.use(express.json());
+    // Increase body size limit for token image uploads (base64 images can be large)
+    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
     // Use DATABASE_URL for server-side PostgreSQL connection (VITE_ prefix is for client only)
     const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -597,6 +603,57 @@ class NexusServer {
         res.status(500).json({ error: 'Failed to delete character' });
       }
     });
+
+    /**
+     * POST /api/tokens/save
+     * Saves a customized token image to the server
+     * Body: { tokenId: string, imageData: string (base64), name: string }
+     */
+    this.app.post('/api/tokens/save', async (req, res) => {
+      try {
+        const { tokenId, imageData, name } = req.body;
+
+        if (!tokenId || !imageData || !name) {
+          return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Validate that imageData is a base64 PNG
+        if (!imageData.startsWith('data:image/png;base64,')) {
+          return res.status(400).json({ error: 'Invalid image format' });
+        }
+
+        // Extract base64 data
+        const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // Create custom tokens directory if it doesn't exist
+        const customTokensDir = path.join(this.ASSETS_PATH, 'tokens', 'custom');
+        if (!fs.existsSync(customTokensDir)) {
+          fs.mkdirSync(customTokensDir, { recursive: true });
+        }
+
+        // Generate filename from tokenId
+        const sanitizedName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const filename = `${sanitizedName}_${tokenId}.png`;
+        const filepath = path.join(customTokensDir, filename);
+
+        // Write the file
+        fs.writeFileSync(filepath, buffer);
+
+        // Return the server path
+        const serverPath = `/assets/tokens/custom/${filename}`;
+
+        console.log(`💾 Saved custom token: ${serverPath}`);
+        res.json({
+          success: true,
+          path: serverPath,
+          message: 'Token saved successfully'
+        });
+      } catch (error) {
+        console.error('Failed to save token:', error);
+        res.status(500).json({ error: 'Failed to save token' });
+      }
+    });
   }
 
   /**
@@ -732,6 +789,16 @@ class NexusServer {
         express.static(path.join(this.ASSETS_PATH, categoryName, 'thumbnails')),
       );
     });
+
+    // Serve custom tokens directory
+    this.app.use(
+      '/assets/tokens/custom',
+      (req, res, next) => {
+        setCacheHeaders(res);
+        next();
+      },
+      express.static(path.join(this.ASSETS_PATH, 'tokens', 'custom')),
+    );
 
     this.app.use(
       '/assets',
