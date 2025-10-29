@@ -1043,12 +1043,13 @@ export const useGameStore = create<GameStore>()(
         console.log('Applying event:', event.type, event.data); // Debug log
 
         // Check if this event is confirming an optimistic update
-        // @ts-expect-error - updateId may be present in the event data
-        const updateId = event.data?.updateId as string | undefined;
-        if (updateId && event.type === 'token/move') {
-          // This is a confirmation of our optimistic update
-          get().confirmUpdate(updateId);
-          return; // Don't apply the event since we already applied it optimistically
+        if (event.type === 'token/move') {
+          const tokenMoveData = event.data as TokenMoveEvent['data'];
+          if (tokenMoveData.updateId) {
+            // This is a confirmation of our optimistic update
+            get().confirmUpdate(tokenMoveData.updateId);
+            return; // Don't apply the event since we already applied it optimistically
+          }
         }
 
         const handler = eventHandlers[event.type];

@@ -449,6 +449,7 @@ export interface TokenMoveEvent extends GameEvent {
     position: { x: number; y: number };
     rotation?: number;
     expectedVersion?: number; // For conflict resolution
+    updateId?: string; // For optimistic update confirmation
   };
 }
 
