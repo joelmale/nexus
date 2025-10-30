@@ -134,15 +134,21 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
 
-        // Convert to WebP with compression (0.85 quality gives good balance)
-        const scaledImageData = canvas.toDataURL('image/webp', 0.85);
-        const compressedSize = scaledImageData.length;
-        const originalSizeEstimate = originalSize || Math.floor((imageData.length * 3) / 4);
+        // Convert to WebP with aggressive compression (0.75 quality for better compression)
+        const scaledImageData = canvas.toDataURL('image/webp', 0.75);
+        const base64Size = scaledImageData.length;
 
-        console.log(`📐 Scaled and compressed dungeon:`);
-        console.log(`   Original: ${img.width}×${img.height} (${(originalSizeEstimate / 1024).toFixed(1)} KB)`);
-        console.log(`   Scaled: ${scaledWidth}×${scaledHeight} (${(compressedSize / 1024).toFixed(1)} KB)`);
-        console.log(`   Savings: ${(((originalSizeEstimate - compressedSize) / originalSizeEstimate) * 100).toFixed(1)}%`);
+        // Base64 adds ~33% overhead, so actual binary size is roughly 75% of base64 length
+        const estimatedBinarySize = Math.floor((base64Size * 3) / 4);
+        const originalBinarySize = originalSize || Math.floor((imageData.length * 3) / 4);
+
+        console.log(`📐 Dungeon compression results:`);
+        console.log(`   Original dimensions: ${img.width}×${img.height}`);
+        console.log(`   Scaled dimensions: ${scaledWidth}×${scaledHeight} (50%)`);
+        console.log(`   Original size: ${(originalBinarySize / 1024).toFixed(1)} KB`);
+        console.log(`   Base64 encoded: ${(base64Size / 1024).toFixed(1)} KB`);
+        console.log(`   Estimated binary: ${(estimatedBinarySize / 1024).toFixed(1)} KB`);
+        console.log(`   Total savings: ${(((originalBinarySize - estimatedBinarySize) / originalBinarySize) * 100).toFixed(1)}%`);
 
         // Now save the SCALED image to library
         try {
