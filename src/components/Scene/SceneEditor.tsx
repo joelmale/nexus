@@ -149,6 +149,16 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
       const isGeneratedDungeon = map.isGenerated || map.tags?.includes('generated');
       const scaleFactor = isGeneratedDungeon ? 0.5 : 1.0;
 
+      console.log('🗺️ Map selection debug:', {
+        isGenerated: map.isGenerated,
+        tags: map.tags,
+        isGeneratedDungeon,
+        scaleFactor,
+        pathPrefix: map.path.substring(0, 20),
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight
+      });
+
       let finalUrl = map.path;
       let finalWidth = img.naturalWidth;
       let finalHeight = img.naturalHeight;

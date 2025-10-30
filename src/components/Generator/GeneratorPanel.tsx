@@ -97,16 +97,14 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       const imageData = generatedMap; // Use the stored, valid image data
       const dungeonTitle = `Generated Dungeon ${new Date().toLocaleString()}`;
 
-      // Extract format information from sessionStorage
-      let format: 'webp' | 'png' = 'png';
+      // Extract original size information from sessionStorage for compression stats
       let originalSize: number | undefined;
 
       try {
         const stored = sessionStorage.getItem(GENERATOR_MAP_STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (typeof parsed === 'object' && parsed.format) {
-            format = parsed.format;
+          if (typeof parsed === 'object' && parsed.originalSize) {
             originalSize = parsed.originalSize;
           }
         }
@@ -114,31 +112,60 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         // Ignore parsing errors, use defaults
       }
 
-      // Try to save to dungeon map service with custom name
-      try {
-        await dungeonMapService.saveGeneratedMap(
-          imageData,
-          dungeonTitle,
-          format,
-          originalSize,
-        );
-      } catch (saveError) {
-        console.warn(
-          'Could not save to library (storage may be full):',
-          saveError,
-        );
-        // Continue anyway - the map will still be added to the scene
-      }
-
-      // Create image to get dimensions
+      // First, scale and compress the image BEFORE saving anywhere
       const img = new Image();
-      img.onload = () => {
+      img.onload = async () => {
+        // Scale down by 50% to reduce storage size and improve performance
+        const canvas = document.createElement('canvas');
+        const scaledWidth = Math.floor(img.width * 0.5);
+        const scaledHeight = Math.floor(img.height * 0.5);
+
+        canvas.width = scaledWidth;
+        canvas.height = scaledHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          console.error('Failed to get canvas context for scaling');
+          return;
+        }
+
+        // Use high-quality scaling
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
+
+        // Convert to WebP with compression (0.85 quality gives good balance)
+        const scaledImageData = canvas.toDataURL('image/webp', 0.85);
+        const compressedSize = scaledImageData.length;
+        const originalSizeEstimate = originalSize || Math.floor((imageData.length * 3) / 4);
+
+        console.log(`📐 Scaled and compressed dungeon:`);
+        console.log(`   Original: ${img.width}×${img.height} (${(originalSizeEstimate / 1024).toFixed(1)} KB)`);
+        console.log(`   Scaled: ${scaledWidth}×${scaledHeight} (${(compressedSize / 1024).toFixed(1)} KB)`);
+        console.log(`   Savings: ${(((originalSizeEstimate - compressedSize) / originalSizeEstimate) * 100).toFixed(1)}%`);
+
+        // Now save the SCALED image to library
+        try {
+          await dungeonMapService.saveGeneratedMap(
+            scaledImageData,
+            dungeonTitle,
+            'webp', // Always WebP now
+            compressedSize,
+          );
+        } catch (saveError) {
+          console.warn(
+            'Could not save to library (storage may be full):',
+            saveError,
+          );
+          // Continue anyway - the map will still be added to the scene
+        }
+
         const backgroundData = {
-          url: imageData,
-          width: img.width,
-          height: img.height,
-          offsetX: -(img.width / 2),
-          offsetY: -(img.height / 2),
+          url: scaledImageData,
+          width: scaledWidth,
+          height: scaledHeight,
+          offsetX: -(scaledWidth / 2),
+          offsetY: -(scaledHeight / 2),
           scale: 1,
         };
 
