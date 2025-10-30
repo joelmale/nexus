@@ -7,6 +7,8 @@ interface DrawingRendererProps {
   sceneId: string;
   camera: Camera;
   isHost: boolean;
+  activeTool?: string;
+  selectedObjectIds?: string[];
 }
 
 const PingDrawing: React.FC<{
@@ -76,6 +78,8 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
   sceneId,
   camera,
   isHost,
+  activeTool: _activeTool = '',
+  selectedObjectIds = [],
 }) => {
   const activeScene = useActiveScene();
 
@@ -97,6 +101,7 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
   const renderDrawing = (drawing: Drawing) => {
     const { style } = drawing;
     const strokeWidth = style.strokeWidth / camera.zoom;
+    const isSelected = selectedObjectIds.includes(drawing.id);
 
     const commonProps = {
       fill: style.fillColor,
@@ -104,9 +109,13 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       stroke: style.strokeColor,
       strokeWidth: strokeWidth,
       strokeDasharray: style.strokeDashArray,
-      className: `drawing drawing-${drawing.type} ${drawing.layer}`,
+      className: `drawing drawing-${drawing.type} ${drawing.layer}${isSelected ? ' selected' : ''}`,
       'data-drawing-id': drawing.id,
       'data-created-by': drawing.createdBy,
+      style: {
+        pointerEvents: 'none' as const, // Let DrawingTools layer handle all pointer events
+        cursor: 'default',
+      },
     };
 
     switch (drawing.type) {

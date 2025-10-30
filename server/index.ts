@@ -1508,11 +1508,18 @@ class NexusServer {
       room.gameState.initiative = gameStateUpdate.initiative;
     }
 
-    // Persist to database
+    // Persist to database (both session and campaign)
     try {
       const session = await this.db.getSessionByJoinCode(roomCode);
       if (session) {
+        // Save full game state to session (for active session recovery)
         await this.db.saveGameState(session.id, room.gameState);
+
+        // Save scenes to campaign (for multi-device persistence)
+        if (room.gameState.scenes && session.campaignId) {
+          await this.db.saveCampaignScenes(session.campaignId, room.gameState.scenes);
+        }
+
         console.log(`💾 Game state updated and persisted for room ${roomCode}`);
       }
     } catch (error) {

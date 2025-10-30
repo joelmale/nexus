@@ -371,7 +371,8 @@ export class DatabaseService {
     Object.entries(updates).forEach(([key, value]) => {
       if (allowedFields.includes(key)) {
         updateFields.push(`"${key}" = $${paramIndex}`);
-        values.push(value);
+        // Stringify scenes if it's an object/array
+        values.push(key === 'scenes' ? JSON.stringify(value) : value);
         paramIndex++;
       }
     });
@@ -388,6 +389,39 @@ export class DatabaseService {
     );
 
     console.log(`🗄️ Campaign updated: ${campaignId}`);
+  }
+
+  /**
+   * Saves scenes to a campaign (replaces existing scenes)
+   * @param {string} campaignId - Campaign UUID to update
+   * @param {unknown[]} scenes - Array of scene objects
+   * @returns {Promise<void>}
+   */
+  async saveCampaignScenes(
+    campaignId: string,
+    scenes: unknown[],
+  ): Promise<void> {
+    await this.pool.query(
+      `UPDATE campaigns SET scenes = $1, "updatedAt" = NOW() WHERE id = $2`,
+      [JSON.stringify(scenes), campaignId],
+    );
+
+    console.log(`🗄️ Saved ${scenes.length} scenes to campaign: ${campaignId}`);
+  }
+
+  /**
+   * Retrieves scenes from a campaign
+   * @param {string} campaignId - Campaign UUID
+   * @returns {Promise<unknown[]>} Array of scene objects
+   */
+  async getCampaignScenes(campaignId: string): Promise<unknown[]> {
+    const result = await this.pool.query<{ scenes: unknown }>(
+      'SELECT scenes FROM campaigns WHERE id = $1',
+      [campaignId],
+    );
+
+    const scenes = result.rows[0]?.scenes;
+    return Array.isArray(scenes) ? scenes : [];
   }
 
   // ============================================================================
@@ -610,6 +644,20 @@ export class DatabaseService {
   }
 
   /**
+   * Gets the campaign ID associated with a session
+   * @param {string} joinCode - The short join code (e.g., "ABC1")
+   * @returns {Promise<string | null>} Campaign ID or null if not found
+   */
+  async getCampaignIdByJoinCode(joinCode: string): Promise<string | null> {
+    const result = await this.pool.query<{ campaignId: string }>(
+      'SELECT "campaignId" FROM sessions WHERE "joinCode" = $1',
+      [joinCode],
+    );
+
+    return result.rows[0]?.campaignId || null;
+  }
+
+  /**
    * Updates the status of a session
    * @param {string} sessionId - Session ID to update
    * @param {string} status - New status: 'active', 'hibernating', or 'abandoned'
@@ -640,6 +688,38 @@ export class DatabaseService {
     );
 
     console.log(`🗄️ Game state saved for session: ${sessionId}`);
+  }
+
+  /**
+   * Saves game state by join code (convenience method for client-side)
+   * @param {string} joinCode - The short join code (e.g., "ABC1")
+   * @param {unknown} gameState - Game state object (will be stored as JSONB)
+   * @returns {Promise<void>}
+   */
+  async saveGameStateByJoinCode(
+    joinCode: string,
+    gameState: unknown,
+  ): Promise<void> {
+    await this.pool.query(
+      `UPDATE sessions SET "gameState" = $1, "lastActivity" = NOW() WHERE "joinCode" = $2`,
+      [JSON.stringify(gameState), joinCode],
+    );
+
+    console.log(`🗄️ Game state saved for room: ${joinCode}`);
+  }
+
+  /**
+   * Retrieves game state by join code
+   * @param {string} joinCode - The short join code (e.g., "ABC1")
+   * @returns {Promise<unknown | null>} Game state object or null if not found
+   */
+  async getGameStateByJoinCode(joinCode: string): Promise<unknown | null> {
+    const result = await this.pool.query<{ gameState: unknown }>(
+      'SELECT "gameState" FROM sessions WHERE "joinCode" = $1',
+      [joinCode],
+    );
+
+    return result.rows[0]?.gameState || null;
   }
 
   /**

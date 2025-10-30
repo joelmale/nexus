@@ -182,7 +182,7 @@ interface GameStore extends GameState {
 
   // Session Persistence Actions
   saveSessionState: () => void;
-  loadSessionState: () => void;
+  loadSessionState: () => Promise<void>;
   attemptSessionRecovery: () => Promise<boolean>;
   clearSessionData: () => void;
 
@@ -691,7 +691,12 @@ const eventHandlers: Record<string, EventHandler> = {
   },
   'session/joined': (state, data) => {
     console.log('Joining session with data:', data);
-    const eventData = data as SessionJoinedEvent['data'];
+    const eventData = data as SessionJoinedEvent['data'] & {
+      gameState?: {
+        scenes?: unknown[];
+        activeSceneId?: string | null;
+      };
+    };
     state.session = {
       roomCode: eventData.roomCode,
       hostId: eventData.hostId,
@@ -708,6 +713,16 @@ const eventHandlers: Record<string, EventHandler> = {
       state.user.type = 'player';
     }
     state.user.connected = true;
+
+    // Load game state from server (for multi-device persistence)
+    if (eventData.gameState && eventData.gameState.scenes) {
+      state.sceneState.scenes = eventData.gameState.scenes as Scene[];
+      if (eventData.gameState.activeSceneId) {
+        state.sceneState.activeSceneId = eventData.gameState.activeSceneId;
+      }
+      console.log(`🎮 Loaded ${state.sceneState.scenes.length} scenes from server game state`);
+    }
+
     console.log('Session joined:', state.session);
   },
   'session/reconnected': (state, data) => {
@@ -1248,9 +1263,9 @@ export const useGameStore = create<GameStore>()(
             state.user.connected = true;
           });
 
-          // Try to restore game state from localStorage if available
+          // Try to restore game state from IndexedDB if available
           // This allows resuming a campaign with local changes that haven't been saved to server
-          const recoveryData = sessionPersistenceService.getRecoveryData();
+          const recoveryData = await sessionPersistenceService.getRecoveryData();
           console.log('🔍 Checking for game state to restore:', {
             hasGameState: !!recoveryData.gameState,
             scenesCount: recoveryData.gameState?.scenes?.length || 0,
@@ -1258,7 +1273,7 @@ export const useGameStore = create<GameStore>()(
 
           if (recoveryData.gameState && recoveryData.gameState.scenes.length > 0) {
             console.log('📂 Restoring game state from localStorage for campaign:', {
-              scenes: recoveryData.gameState.scenes.map(s => ({
+              scenes: recoveryData.gameState.scenes.map((s: any) => ({
                 id: s.id,
                 name: s.name,
                 hasBackground: !!s.backgroundImage,
@@ -2147,10 +2162,29 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Save game state (characters, scenes, settings, etc.)
+        // Strip out large data (background images) that are already in IndexedDB
+        // to avoid localStorage quota issues
+        const scenesForLocalStorage = state.sceneState.scenes.map(scene => ({
+          ...scene,
+          // Don't save background image data URL to localStorage
+          // It's already in IndexedDB and can be huge (5MB+)
+          // Only save the metadata
+          backgroundImage: scene.backgroundImage ? {
+            url: scene.backgroundImage.url.startsWith('data:')
+              ? '[IMAGE_IN_INDEXEDDB]' // Replace data URL with placeholder
+              : scene.backgroundImage.url, // Keep external URLs
+            width: scene.backgroundImage.width,
+            height: scene.backgroundImage.height,
+            offsetX: scene.backgroundImage.offsetX,
+            offsetY: scene.backgroundImage.offsetY,
+            scale: scene.backgroundImage.scale,
+          } : undefined,
+        }));
+
         const gameStateData = {
           characters: [], // TODO: Get from character store when integrated
           initiative: {}, // TODO: Get from initiative store when integrated
-          scenes: state.sceneState.scenes,
+          scenes: scenesForLocalStorage,
           activeSceneId: state.sceneState.activeSceneId,
           settings: state.settings,
         };
@@ -2167,7 +2201,10 @@ export const useGameStore = create<GameStore>()(
           })),
         });
 
-        sessionPersistenceService.saveGameState(gameStateData);
+        // Save to IndexedDB (async, but we don't await to avoid blocking)
+        sessionPersistenceService.saveGameState(gameStateData).catch(error => {
+          console.error('Failed to save game state:', error);
+        });
 
         // Also send game state to server if connected and user is host
         if (
@@ -2191,8 +2228,8 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
-      loadSessionState: () => {
-        const recoveryData = sessionPersistenceService.getRecoveryData();
+      loadSessionState: async () => {
+        const recoveryData = await sessionPersistenceService.getRecoveryData();
 
         if (recoveryData.gameState) {
           set((state) => {
@@ -2241,7 +2278,7 @@ export const useGameStore = create<GameStore>()(
             activeSessionData ? JSON.parse(activeSessionData) : 'null',
           );
 
-          let recoveryData = sessionPersistenceService.getRecoveryData();
+          let recoveryData = await sessionPersistenceService.getRecoveryData();
           console.log('🔍 Processed recovery data:', recoveryData);
 
           // If no recovery data from sessionPersistenceService, try nexus-active-session

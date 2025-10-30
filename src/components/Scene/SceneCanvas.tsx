@@ -497,6 +497,8 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
                 sceneId={scene.id}
                 camera={camera}
                 isHost={isHost}
+                activeTool={activeTool}
+                selectedObjectIds={selectedObjectIds}
               />
 
               {/* Tokens layer */}

@@ -1491,8 +1491,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               : activeTool === 'eraser'
                 ? 'crosshair'
                 : 'crosshair',
-          // When select tool is active, allow pointer events to pass through to tokens
-          pointerEvents: activeTool === 'select' ? 'none' : 'auto',
+          pointerEvents: 'auto',
         }}
       />
 
