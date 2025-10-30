@@ -70,7 +70,7 @@ export const GameToolbar: React.FC = () => {
           { id: 'paste', icon: '📄', label: 'Paste', shortcut: 'Ctrl+V' },
           { id: 'measure', icon: '📏', label: 'Measure', shortcut: 'M' },
           { id: 'note', icon: '📝', label: 'Note' },
-          { id: 'ping', icon: '📍', label: 'Ping', shortcut: 'P' },
+          { id: 'ping', icon: '📍', label: 'Ping', shortcut: 'I' },
         ],
       },
       {
@@ -79,8 +79,8 @@ export const GameToolbar: React.FC = () => {
         tools: [
           { id: 'circle', icon: '⭕', label: 'Circle', shortcut: 'O' },
           { id: 'rectangle', icon: '⬜', label: 'Rectangle', shortcut: 'R' },
-          { id: 'cone', icon: '🔺', label: 'Cone' },
-          { id: 'polygon', icon: '⬟', label: 'Polygon' },
+          { id: 'cone', icon: '🔺', label: 'Cone', shortcut: 'C' },
+          { id: 'polygon', icon: '⬟', label: 'Polygon', shortcut: 'P' },
           { id: 'line', icon: '➖', label: 'Line', shortcut: 'L' },
         ],
       },

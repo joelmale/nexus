@@ -26,7 +26,7 @@
     }
 
     const optimalFormat = getOptimalImageFormat();
-    const formatQuality = optimalFormat === 'image/webp' ? 0.9 : undefined;
+    const formatQuality = optimalFormat === 'image/webp' ? 0.75 : undefined; // Reduced from 0.9 to 0.75 for better compression
 
     console.log(
       'Dungeon Bridge: Using format:',

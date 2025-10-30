@@ -59,6 +59,7 @@ interface PendingUpdate {
   type: string;
   localState: PlacedToken & { sceneId: string };
   timestamp: number;
+  previousVersion?: number; // Store the version before optimistic update for rollback
 }
 
 interface GameStore extends GameState {
@@ -181,7 +182,7 @@ interface GameStore extends GameState {
 
   // Session Persistence Actions
   saveSessionState: () => void;
-  loadSessionState: () => void;
+  loadSessionState: () => Promise<void>;
   attemptSessionRecovery: () => Promise<boolean>;
   clearSessionData: () => void;
 
@@ -506,6 +507,10 @@ const eventHandlers: Record<string, EventHandler> = {
   },
   'token/move': (state, data) => {
     const eventData = data as TokenMoveEvent['data'];
+
+    // This handler only runs for moves from other clients
+    // (applyEvent filters out confirmations of our own optimistic updates)
+
     if (eventData.sceneId && eventData.tokenId) {
       const sceneIndex = state.sceneState.scenes.findIndex(
         (s) => s.id === eventData.sceneId,
@@ -686,7 +691,12 @@ const eventHandlers: Record<string, EventHandler> = {
   },
   'session/joined': (state, data) => {
     console.log('Joining session with data:', data);
-    const eventData = data as SessionJoinedEvent['data'];
+    const eventData = data as SessionJoinedEvent['data'] & {
+      gameState?: {
+        scenes?: unknown[];
+        activeSceneId?: string | null;
+      };
+    };
     state.session = {
       roomCode: eventData.roomCode,
       hostId: eventData.hostId,
@@ -703,6 +713,16 @@ const eventHandlers: Record<string, EventHandler> = {
       state.user.type = 'player';
     }
     state.user.connected = true;
+
+    // Load game state from server (for multi-device persistence)
+    if (eventData.gameState && eventData.gameState.scenes) {
+      state.sceneState.scenes = eventData.gameState.scenes as Scene[];
+      if (eventData.gameState.activeSceneId) {
+        state.sceneState.activeSceneId = eventData.gameState.activeSceneId;
+      }
+      console.log(`🎮 Loaded ${state.sceneState.scenes.length} scenes from server game state`);
+    }
+
     console.log('Session joined:', state.session);
   },
   'session/reconnected': (state, data) => {
@@ -1037,6 +1057,16 @@ export const useGameStore = create<GameStore>()(
       applyEvent: (event) => {
         console.log('Applying event:', event.type, event.data); // Debug log
 
+        // Check if this event is confirming an optimistic update
+        if (event.type === 'token/move') {
+          const tokenMoveData = event.data as TokenMoveEvent['data'];
+          if (tokenMoveData.updateId) {
+            // This is a confirmation of our optimistic update
+            get().confirmUpdate(tokenMoveData.updateId);
+            return; // Don't apply the event since we already applied it optimistically
+          }
+        }
+
         const handler = eventHandlers[event.type];
         if (handler) {
           set((state) => {
@@ -1233,6 +1263,41 @@ export const useGameStore = create<GameStore>()(
             state.user.connected = true;
           });
 
+          // Try to restore game state from IndexedDB if available
+          // This allows resuming a campaign with local changes that haven't been saved to server
+          const recoveryData = await sessionPersistenceService.getRecoveryData();
+          console.log('🔍 Checking for game state to restore:', {
+            hasGameState: !!recoveryData.gameState,
+            scenesCount: recoveryData.gameState?.scenes?.length || 0,
+          });
+
+          if (recoveryData.gameState && recoveryData.gameState.scenes.length > 0) {
+            console.log('📂 Restoring game state from localStorage for campaign:', {
+              scenes: recoveryData.gameState.scenes.map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                hasBackground: !!s.backgroundImage,
+                tokensCount: s.placedTokens?.length || 0,
+                drawingsCount: s.drawings?.length || 0,
+              })),
+            });
+
+            get().loadSessionState();
+
+            // Send the restored state to the server
+            const { webSocketService } = await import('@/utils/websocket');
+            if (webSocketService.isConnected()) {
+              console.log('📤 Sending restored state to server');
+              webSocketService.sendGameStateUpdate({
+                sceneState: get().sceneState,
+                characters: [],
+                initiative: {},
+              });
+            }
+          } else {
+            console.log('ℹ️ No game state to restore, starting fresh');
+          }
+
           // Save session to localStorage for refresh recovery
           // Note: session is already set by the session/created event handler
           saveSessionToStorage(get());
@@ -1281,6 +1346,10 @@ export const useGameStore = create<GameStore>()(
       resetToWelcome: () => {
         console.log('🔄 Resetting to welcome screen');
 
+        // Save current game state before clearing session
+        // This preserves campaign data while clearing reconnection info
+        get().saveSessionState();
+
         set((state) => {
           // Clear session data
           state.session = null;
@@ -1291,8 +1360,10 @@ export const useGameStore = create<GameStore>()(
           state.connection = initialState.connection;
         });
 
-        // Clear persisted session
+        // Clear only the session reconnection data, NOT the game state
+        // This prevents auto-reconnect while keeping campaign data saved
         clearSessionFromStorage();
+        sessionPersistenceService.clearSession(); // Only clear session, not game state
 
         // Navigate to lobby using window.location for full reset
         window.location.href = '/lobby';
@@ -1542,8 +1613,14 @@ export const useGameStore = create<GameStore>()(
 
       // Selection Actions
       setSelection: (objectIds) => {
+        console.log('🏪 gameStore.setSelection called with:', objectIds);
         set((state) => {
+          const previousSelection = state.sceneState.selectedObjectIds;
           state.sceneState.selectedObjectIds = objectIds;
+          console.log('🏪 gameStore.setSelection updated:', {
+            previous: previousSelection,
+            new: objectIds
+          });
         });
       },
 
@@ -1934,19 +2011,25 @@ export const useGameStore = create<GameStore>()(
           .find((t) => t.id === tokenId);
         if (!token) return;
 
-        // Store the pending update for rollback capability
+        // Get the expected version BEFORE incrementing
+        const expectedVersion = get().getEntityVersion(tokenId);
+
+        // Store the pending update for rollback capability (including the version)
         pendingUpdates.set(updateId, {
           id: updateId,
           type: 'token-move',
           localState: { ...token, sceneId },
           timestamp: Date.now(),
+          previousVersion: expectedVersion, // Store for rollback
         });
 
         // Update optimistically
         get().moveToken(sceneId, tokenId, position, rotation);
 
+        // Increment the local version immediately to prevent version conflicts on rapid updates
+        get().incrementEntityVersion(tokenId);
+
         // Send to server with updateId and version for tracking
-        const expectedVersion = get().getEntityVersion(tokenId);
         import('@/utils/websocket').then(({ webSocketService }) => {
           webSocketService.sendEvent({
             type: 'token/move',
@@ -1992,6 +2075,13 @@ export const useGameStore = create<GameStore>()(
               { x: update.localState.x, y: update.localState.y },
               update.localState.rotation,
             );
+
+            // Restore the previous version
+            if (update.previousVersion !== undefined) {
+              set((state) => {
+                state.entityVersions.set(update.localState.id, update.previousVersion!);
+              });
+            }
             break;
         }
 
@@ -2057,6 +2147,13 @@ export const useGameStore = create<GameStore>()(
       saveSessionState: () => {
         const state = get();
 
+        console.log('💾 saveSessionState called', {
+          hasSession: !!state.session,
+          roomCode: state.session?.roomCode,
+          scenesCount: state.sceneState.scenes.length,
+          activeSceneId: state.sceneState.activeSceneId,
+        });
+
         // Save session data if connected
         if (state.session) {
           sessionPersistenceService.saveSession({
@@ -2071,15 +2168,49 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Save game state (characters, scenes, settings, etc.)
+        // Strip out large data (background images) that are already in IndexedDB
+        // to avoid localStorage quota issues
+        const scenesForLocalStorage = state.sceneState.scenes.map(scene => ({
+          ...scene,
+          // Don't save background image data URL to localStorage
+          // It's already in IndexedDB and can be huge (5MB+)
+          // Only save the metadata
+          backgroundImage: scene.backgroundImage ? {
+            url: scene.backgroundImage.url.startsWith('data:')
+              ? '[IMAGE_IN_INDEXEDDB]' // Replace data URL with placeholder
+              : scene.backgroundImage.url, // Keep external URLs
+            width: scene.backgroundImage.width,
+            height: scene.backgroundImage.height,
+            offsetX: scene.backgroundImage.offsetX,
+            offsetY: scene.backgroundImage.offsetY,
+            scale: scene.backgroundImage.scale,
+          } : undefined,
+        }));
+
         const gameStateData = {
           characters: [], // TODO: Get from character store when integrated
           initiative: {}, // TODO: Get from initiative store when integrated
-          scenes: state.sceneState.scenes,
+          scenes: scenesForLocalStorage,
           activeSceneId: state.sceneState.activeSceneId,
           settings: state.settings,
         };
 
-        sessionPersistenceService.saveGameState(gameStateData);
+        // Log what we're about to save
+        console.log('💾 Saving game state:', {
+          scenesCount: gameStateData.scenes.length,
+          scenes: gameStateData.scenes.map(s => ({
+            id: s.id,
+            name: s.name,
+            hasBackground: !!s.backgroundImage,
+            tokensCount: s.placedTokens?.length || 0,
+            drawingsCount: s.drawings?.length || 0,
+          })),
+        });
+
+        // Save to IndexedDB (async, but we don't await to avoid blocking)
+        sessionPersistenceService.saveGameState(gameStateData).catch(error => {
+          console.error('Failed to save game state:', error);
+        });
 
         // Also send game state to server if connected and user is host
         if (
@@ -2103,8 +2234,8 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
-      loadSessionState: () => {
-        const recoveryData = sessionPersistenceService.getRecoveryData();
+      loadSessionState: async () => {
+        const recoveryData = await sessionPersistenceService.getRecoveryData();
 
         if (recoveryData.gameState) {
           set((state) => {
@@ -2153,7 +2284,7 @@ export const useGameStore = create<GameStore>()(
             activeSessionData ? JSON.parse(activeSessionData) : 'null',
           );
 
-          let recoveryData = sessionPersistenceService.getRecoveryData();
+          let recoveryData = await sessionPersistenceService.getRecoveryData();
           console.log('🔍 Processed recovery data:', recoveryData);
 
           // If no recovery data from sessionPersistenceService, try nexus-active-session
@@ -2799,3 +2930,35 @@ export const useDrawingActions = () =>
 export const useServerRoomCode = () => {
   return useGameStore((state) => state.session?.roomCode || null);
 };
+
+// Token selection selectors
+export const useSelectedPlacedToken = () =>
+  useGameStore((state) => {
+    const { scenes, activeSceneId, selectedObjectIds } = state.sceneState;
+    console.log('🔍 useSelectedPlacedToken computing:', {
+      selectedObjectIds,
+      selectedCount: selectedObjectIds.length,
+      activeSceneId
+    });
+
+    if (selectedObjectIds.length !== 1) {
+      console.log('❌ useSelectedPlacedToken: not exactly one selected');
+      return null;
+    }
+
+    const scene = scenes.find((s) => s.id === activeSceneId);
+    if (!scene) {
+      console.log('❌ useSelectedPlacedToken: scene not found');
+      return null;
+    }
+
+    const selectedId = selectedObjectIds[0];
+    const token = scene.placedTokens?.find((t) => t.id === selectedId) || null;
+    console.log('🔍 useSelectedPlacedToken result:', {
+      selectedId,
+      foundToken: !!token,
+      tokenId: token?.id,
+      totalTokens: scene.placedTokens?.length || 0
+    });
+    return token;
+  });

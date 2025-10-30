@@ -69,9 +69,17 @@ export interface PlacedToken {
   visibleToPlayers: boolean;
   dmNotesOnly: boolean;
 
+  // Per-instance overrides (override base Token properties)
+  nameOverride?: string; // Custom name for this instance
+  sizeOverride?: TokenSize; // Custom size for this instance
+  lightRadiusOverride?: number; // Custom light radius (in feet)
+  auraOverride?: string; // Custom aura effect
+
   // Game state
   conditions: TokenCondition[];
   currentStats?: Partial<TokenStats>; // Override base token stats
+  isDead?: boolean; // Token is dead/defeated
+  isInInitiative?: boolean; // Token is in initiative tracker
 
   // Metadata
   placedBy: string; // User ID who placed the token
@@ -140,11 +148,42 @@ export const createPlacedToken = (
     visibleToPlayers: true,
     dmNotesOnly: false,
     conditions: [],
+    isDead: false,
+    isInInitiative: false,
     placedBy,
     createdAt: Date.now(),
     updatedAt: Date.now(),
     ...options,
   };
+};
+
+// Helper functions to get effective properties (with overrides)
+export const getEffectiveTokenName = (
+  placedToken: PlacedToken,
+  baseToken: Token | undefined,
+): string => {
+  return placedToken.nameOverride || baseToken?.name || 'Unknown Token';
+};
+
+export const getEffectiveTokenSize = (
+  placedToken: PlacedToken,
+  baseToken: Token | undefined,
+): TokenSize => {
+  return placedToken.sizeOverride || baseToken?.size || 'medium';
+};
+
+export const getEffectiveTokenLightRadius = (
+  placedToken: PlacedToken,
+  _baseToken: Token | undefined,
+): number => {
+  return placedToken.lightRadiusOverride ?? 0; // Use 0 as default if no override or base
+};
+
+export const getEffectiveTokenAura = (
+  placedToken: PlacedToken,
+  _baseToken: Token | undefined,
+): string => {
+  return placedToken.auraOverride || 'None';
 };
 
 // Token filtering and search utilities

@@ -4,7 +4,11 @@
  * Provides comprehensive session state management with client-side persistence
  * and automatic reconnection capabilities. Stores room state, character data,
  * and game settings to enable seamless session recovery on page refresh.
+ *
+ * Uses IndexedDB for game state (unlimited storage) and localStorage for session metadata (small)
  */
+
+import { dungeonMapIndexedDB } from '@/utils/indexedDB';
 
 export interface PersistedSession {
   roomCode: string;
@@ -196,27 +200,61 @@ class SessionPersistenceService {
   /**
    * Save game state to localStorage
    */
-  saveGameState(
+  async saveGameState(
     gameState: Omit<PersistedGameState, 'lastUpdated' | 'stateVersion'>,
-  ): void {
+  ): Promise<void> {
     try {
-      const stateData: PersistedGameState = {
-        ...gameState,
-        lastUpdated: Date.now(),
-        stateVersion: this.STATE_VERSION,
-      };
-
-      localStorage.setItem(this.GAME_STATE_KEY, JSON.stringify(stateData));
-      console.log('💾 Game state saved');
+      // Save to IndexedDB for unlimited storage (no quota issues)
+      await dungeonMapIndexedDB.saveGameState({
+        id: 'current',
+        scenes: gameState.scenes,
+        activeSceneId: gameState.activeSceneId,
+        characters: gameState.characters,
+        initiative: gameState.initiative,
+        settings: gameState.settings,
+      });
+      console.log('💾 Game state saved to IndexedDB');
     } catch (error) {
-      console.error('Failed to save game state:', error);
+      console.error('Failed to save game state to IndexedDB:', error);
+      // Fallback to localStorage (but may hit quota)
+      try {
+        const stateData: PersistedGameState = {
+          ...gameState,
+          lastUpdated: Date.now(),
+          stateVersion: this.STATE_VERSION,
+        };
+        localStorage.setItem(this.GAME_STATE_KEY, JSON.stringify(stateData));
+        console.log('💾 Game state saved to localStorage (fallback)');
+      } catch (fallbackError) {
+        console.error('Failed to save game state to localStorage:', fallbackError);
+      }
     }
   }
 
   /**
-   * Load game state from localStorage
+   * Load game state from IndexedDB (with localStorage fallback)
    */
-  loadGameState(): PersistedGameState | null {
+  async loadGameState(): Promise<PersistedGameState | null> {
+    try {
+      // Try to load from IndexedDB first
+      const indexedDBState = await dungeonMapIndexedDB.getGameState('current');
+      if (indexedDBState) {
+        console.log('📂 Game state loaded from IndexedDB');
+        return {
+          scenes: indexedDBState.scenes,
+          activeSceneId: indexedDBState.activeSceneId,
+          characters: indexedDBState.characters,
+          initiative: indexedDBState.initiative,
+          settings: indexedDBState.settings,
+          lastUpdated: indexedDBState.timestamp,
+          stateVersion: indexedDBState.version,
+        };
+      }
+    } catch (error) {
+      console.error('Failed to load game state from IndexedDB:', error);
+    }
+
+    // Fallback to localStorage
     try {
       const stored = localStorage.getItem(this.GAME_STATE_KEY);
       if (!stored) return null;
@@ -230,10 +268,10 @@ class SessionPersistenceService {
         return null;
       }
 
-      console.log('📂 Game state loaded');
+      console.log('📂 Game state loaded from localStorage (fallback)');
       return gameState;
     } catch (error) {
-      console.error('Failed to load game state:', error);
+      console.error('Failed to load game state from localStorage:', error);
       this.clearGameState();
       return null;
     }
@@ -242,9 +280,9 @@ class SessionPersistenceService {
   /**
    * Get complete session recovery data
    */
-  getRecoveryData(): SessionRecoveryData {
+  async getRecoveryData(): Promise<SessionRecoveryData> {
     const session = this.loadSession();
-    const gameState = this.loadGameState();
+    const gameState = await this.loadGameState();
 
     const isValid = session !== null;
     const canReconnect = isValid && this.isReconnectionPossible(session);
@@ -298,10 +336,13 @@ class SessionPersistenceService {
   /**
    * Clear game state data
    */
-  clearGameState(): void {
+  async clearGameState(): Promise<void> {
     try {
+      // Clear from IndexedDB
+      await dungeonMapIndexedDB.deleteGameState('current');
+      // Also clear from localStorage (fallback)
       localStorage.removeItem(this.GAME_STATE_KEY);
-      console.log('🗑️ Game state cleared');
+      console.log('🗑️ Game state cleared from IndexedDB and localStorage');
     } catch (error) {
       console.error('Failed to clear game state:', error);
     }
@@ -381,7 +422,7 @@ class SessionPersistenceService {
   /**
    * Get session statistics for debugging
    */
-  getSessionStats(): {
+  async getSessionStats(): Promise<{
     hasSession: boolean;
     hasGameState: boolean;
     sessionAge: number | null;
@@ -389,9 +430,9 @@ class SessionPersistenceService {
     canReconnect: boolean;
     hasSessionCookie: boolean;
     cookieAge: number | null;
-  } {
+  }> {
     const session = this.loadSession();
-    const gameState = this.loadGameState();
+    const gameState = await this.loadGameState();
     const now = Date.now();
 
     // Check cookie separately for debugging

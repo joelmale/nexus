@@ -30,10 +30,16 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
   useEffect(() => {
     const initializeMaps = async () => {
       try {
+        console.log('🗺️ BaseMapBrowser: Initializing...');
         await baseMapAssetManager.initialize();
         const defaultMaps = baseMapAssetManager.getAllMaps();
+        console.log('🗺️ BaseMapBrowser: Loaded default maps:', defaultMaps.length);
+
         const generatedMaps = await dungeonMapService.getAsBaseMaps();
+        console.log('🗺️ BaseMapBrowser: Loaded generated maps:', generatedMaps.length);
+
         const allMaps = [...generatedMaps, ...defaultMaps];
+        console.log('🗺️ BaseMapBrowser: Total maps:', allMaps.length);
         setMaps(allMaps);
 
         // Load storage stats for generated maps

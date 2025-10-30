@@ -72,6 +72,7 @@ CREATE INDEX IF NOT EXISTS idx_campaigns_dmId ON campaigns("dmId");
 CREATE INDEX IF NOT EXISTS idx_characters_ownerId ON characters("ownerId");
 CREATE INDEX IF NOT EXISTS idx_sessions_campaignId ON sessions("campaignId");
 CREATE INDEX IF NOT EXISTS idx_sessions_primaryHostId ON sessions("primaryHostId");
+CREATE INDEX IF NOT EXISTS idx_sessions_joinCode ON sessions("joinCode"); -- For quick lookup by room code
 CREATE INDEX IF NOT EXISTS idx_players_userId ON players("userId");
 CREATE INDEX IF NOT EXISTS idx_players_sessionId ON players("sessionId");
 CREATE INDEX IF NOT EXISTS idx_players_characterId ON players("characterId");

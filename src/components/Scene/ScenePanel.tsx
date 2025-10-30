@@ -203,15 +203,49 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
   };
 
   const handleBaseMapSelect = (map: BaseMap) => {
-    // Load the image to get dimensions
+    // Load the image to get dimensions and scale if needed
     const img = new Image();
+    img.crossOrigin = 'anonymous'; // Allow canvas manipulation
     img.onload = () => {
+      // Scale down by 50% for generated dungeons
+      const isGeneratedDungeon = map.isGenerated || map.tags?.includes('generated');
+      const scaleFactor = isGeneratedDungeon ? 0.5 : 1.0;
+
+      let finalUrl = map.path;
+      let finalWidth = img.naturalWidth;
+      let finalHeight = img.naturalHeight;
+
+      if (isGeneratedDungeon && map.path.startsWith('data:')) {
+        // Scale down the image using canvas
+        const canvas = document.createElement('canvas');
+        const scaledWidth = Math.floor(img.naturalWidth * scaleFactor);
+        const scaledHeight = Math.floor(img.naturalHeight * scaleFactor);
+
+        canvas.width = scaledWidth;
+        canvas.height = scaledHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          // Use high-quality scaling
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
+
+          // Convert to WebP with compression
+          finalUrl = canvas.toDataURL('image/webp', 0.85);
+          finalWidth = scaledWidth;
+          finalHeight = scaledHeight;
+
+          console.log(`📐 Scaled generated dungeon from ${img.naturalWidth}×${img.naturalHeight} to ${scaledWidth}×${scaledHeight} (50%)`);
+        }
+      }
+
       handleFieldUpdate('backgroundImage', {
-        url: map.path,
-        width: img.naturalWidth,
-        height: img.naturalHeight,
-        offsetX: -img.naturalWidth / 2,
-        offsetY: -img.naturalHeight / 2,
+        url: finalUrl,
+        width: finalWidth,
+        height: finalHeight,
+        offsetX: -finalWidth / 2,
+        offsetY: -finalHeight / 2,
         scale: 1.0,
       });
       setShowBaseMapBrowser(false);
@@ -489,7 +523,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
                   <div className="scene-panel__field">
                     <button
-                      onClick={() => setShowBaseMapBrowser(true)}
+                      onClick={() => handleFieldUpdate('backgroundImage', undefined)}
                       className="btn btn--primary"
                       style={{ width: '100%' }}
                     >

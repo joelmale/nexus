@@ -108,7 +108,9 @@ export const useTokenStore = create<TokenState & TokenActions>()(
 
     // Selection
     selectToken: (id) => {
+      console.log('📍 tokenStore.selectToken called:', id);
       set({ selectedTokenId: id, activeToolbarTool: null });
+      console.log('📍 tokenStore state after select:', get().selectedTokenId);
     },
 
     clearSelection: () => {
@@ -188,6 +190,8 @@ export const useTokenStore = create<TokenState & TokenActions>()(
 );
 
 // Selectors for common use cases
+// Note: This hook is deprecated and returns tokens from the library, not placed tokens
+// Use useSelectedPlacedToken from gameStore instead for scene canvas operations
 export const useSelectedToken = () =>
   useTokenStore((state) => state.getSelectedToken());
 export const useTokensForRoom = (roomCode: string) =>

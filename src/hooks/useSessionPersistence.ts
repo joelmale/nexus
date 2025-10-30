@@ -5,7 +5,7 @@
  * Automatically saves session state on changes and attempts recovery on app startup.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { sessionPersistenceService } from '@/services/sessionPersistence';
 
@@ -213,7 +213,18 @@ export function useSessionPersistence(
  * Hook for showing session recovery UI components
  */
 export function useSessionRecoveryUI() {
-  const recoveryData = sessionPersistenceService.getRecoveryData();
+  const [recoveryData, setRecoveryData] = useState({
+    isValid: false,
+    canReconnect: false,
+    session: null as any,
+    gameState: null as any,
+  });
+
+  useEffect(() => {
+    sessionPersistenceService.getRecoveryData().then(data => {
+      setRecoveryData(data);
+    });
+  }, []);
 
   return {
     hasRecoverableSession: recoveryData.isValid,

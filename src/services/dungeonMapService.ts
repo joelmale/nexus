@@ -48,8 +48,34 @@ class DungeonMapService {
    */
   private async migrateFromLocalStorage(): Promise<void> {
     const LEGACY_STORAGE_KEY = 'nexus_generated_dungeon_maps';
+    const OLD_INDEXEDDB_KEY = 'nexus_old_indexeddb_maps';
 
     try {
+      // First try to migrate from old IndexedDB data stored in localStorage
+      const oldIndexedDbData = localStorage.getItem(OLD_INDEXEDDB_KEY);
+      if (oldIndexedDbData) {
+        const oldMaps = JSON.parse(oldIndexedDbData);
+        console.log(
+          `Found ${oldMaps.length} maps from old IndexedDB, migrating to new database...`,
+        );
+
+        for (const map of oldMaps) {
+          await dungeonMapIndexedDB.saveMap({
+            name: map.name,
+            imageData: map.imageData,
+            format: map.format || 'png',
+            originalSize: map.originalSize,
+            compressedSize: map.compressedSize,
+            timestamp: map.timestamp,
+            source: map.source,
+          });
+        }
+
+        localStorage.removeItem(OLD_INDEXEDDB_KEY);
+        console.log('✅ Migration from old IndexedDB complete');
+      }
+
+      // Then try to migrate from legacy localStorage
       const legacyData = localStorage.getItem(LEGACY_STORAGE_KEY);
       if (!legacyData) return;
 

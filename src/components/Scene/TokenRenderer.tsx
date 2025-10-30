@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { PlacedToken, Token } from '@/types/token';
-import { getTokenPixelSize } from '@/types/token';
+import { getTokenPixelSize, getEffectiveTokenName } from '@/types/token';
 import { useActiveTool } from '@/stores/gameStore';
 
 interface TokenRendererProps {
@@ -40,6 +40,19 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
     // Only handle interactions when select tool is active (select tool combines select + move)
     const canInteract = canEdit && activeTool === 'select';
 
+    // Debug logging for selected tokens
+    useEffect(() => {
+      if (isSelected) {
+        console.log(`🎯 Token ${placedToken.id} selected:`, {
+          tokenName: token.name,
+          canEdit,
+          activeTool,
+          canInteract,
+          isSelected,
+        });
+      }
+    }, [isSelected, canEdit, activeTool, canInteract, placedToken.id, token.name]);
+
     // Global mouse handlers for dragging
     useEffect(() => {
       if (!isDragging) return;
@@ -71,16 +84,40 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
     }, [isDragging, onMove, placedToken.id, onMoveEnd]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
-      if (!canInteract) return;
+      console.log('🖱️ Token mouseDown:', {
+        canInteract,
+        tokenId: placedToken.id,
+        activeTool,
+        canEdit,
+        isSelected,
+        button: e.button
+      });
+      if (!canInteract) {
+        console.log('❌ canInteract is false, returning early');
+        return;
+      }
+
+      // Only handle left-click
+      if (e.button !== 0) {
+        console.log('❌ Not left-click, ignoring');
+        return;
+      }
 
       e.stopPropagation();
+      console.log('✅ stopPropagation called, event won\'t reach DrawingTools');
 
       // Select this token (or add to multi-select with Shift/Cmd/Ctrl)
       const isMultiSelect = e.shiftKey || e.metaKey || e.ctrlKey;
+      console.log('🎯 Calling onSelect:', {
+        tokenId: placedToken.id,
+        isMultiSelect,
+        isSelected
+      });
       onSelect(placedToken.id, isMultiSelect);
 
       // Start dragging if already selected or just selected
       if (isSelected || !isMultiSelect) {
+        console.log('🚀 Starting drag for token:', placedToken.id);
         setIsDragging(true);
         dragStartRef.current = { x: e.clientX, y: e.clientY };
       }
@@ -104,8 +141,55 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
           height={tokenSize}
           style={{
             opacity: isDragging ? 0.7 : 1,
+            filter: placedToken.isDead ? 'grayscale(100%)' : 'none',
           }}
         />
+
+        {/* Dead indicator - Black X */}
+        {placedToken.isDead && (
+          <g>
+            {/* X mark */}
+            <line
+              x1={-tokenSize / 3}
+              y1={-tokenSize / 3}
+              x2={tokenSize / 3}
+              y2={tokenSize / 3}
+              stroke="#000"
+              strokeWidth={4}
+              strokeLinecap="round"
+            />
+            <line
+              x1={tokenSize / 3}
+              y1={-tokenSize / 3}
+              x2={-tokenSize / 3}
+              y2={tokenSize / 3}
+              stroke="#000"
+              strokeWidth={4}
+              strokeLinecap="round"
+            />
+            {/* White outline for visibility */}
+            <line
+              x1={-tokenSize / 3}
+              y1={-tokenSize / 3}
+              x2={tokenSize / 3}
+              y2={tokenSize / 3}
+              stroke="#fff"
+              strokeWidth={6}
+              strokeLinecap="round"
+              opacity={0.3}
+            />
+            <line
+              x1={tokenSize / 3}
+              y1={-tokenSize / 3}
+              x2={-tokenSize / 3}
+              y2={tokenSize / 3}
+              stroke="#fff"
+              strokeWidth={6}
+              strokeLinecap="round"
+              opacity={0.3}
+            />
+          </g>
+        )}
 
         {/* Selection indicator */}
         {isSelected && (
@@ -151,21 +235,24 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
         )}
 
         {/* Token label */}
-        {token.name && (
-          <text
-            x={0}
-            y={tokenSize / 2 + 15}
-            textAnchor="middle"
-            fill="#fff"
-            stroke="#000"
-            strokeWidth={2}
-            paintOrder="stroke"
-            fontSize={12}
-            fontWeight="bold"
-          >
-            {token.name}
-          </text>
-        )}
+        {(() => {
+          const effectiveName = getEffectiveTokenName(placedToken, token);
+          return effectiveName ? (
+            <text
+              x={0}
+              y={tokenSize / 2 + 15}
+              textAnchor="middle"
+              fill="#fff"
+              stroke="#000"
+              strokeWidth={2}
+              paintOrder="stroke"
+              fontSize={12}
+              fontWeight="bold"
+            >
+              {effectiveName}
+            </text>
+          ) : null;
+        })()}
       </g>
     );
   },

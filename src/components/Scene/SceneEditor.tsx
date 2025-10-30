@@ -130,32 +130,84 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
     }
   };
 
-  const handleBaseMapSelect = (map: BaseMap) => {
+  const handleBaseMapSelect = async (map: BaseMap) => {
     setIsUploading(true);
     setUploadError(null);
 
     try {
       // Load the image to get dimensions
       const img = new Image();
-      img.onload = () => {
-        setBackgroundImage({
-          url: map.path,
-          width: img.naturalWidth,
-          height: img.naturalHeight,
-          offsetX: -img.naturalWidth / 2,
-          offsetY: -img.naturalHeight / 2,
-          scale: 1.0,
-        });
-        setIsUploading(false);
-        setShowBaseMapBrowser(false);
-      };
+      img.crossOrigin = 'anonymous'; // Allow canvas manipulation for data URLs
 
-      img.onerror = () => {
-        setUploadError('Failed to load base map');
-        setIsUploading(false);
-      };
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Failed to load base map'));
+        img.src = map.path;
+      });
 
-      img.src = map.path;
+      // Scale down by 50% for generated dungeons to reduce storage size
+      const isGeneratedDungeon = map.isGenerated || map.tags?.includes('generated');
+      const scaleFactor = isGeneratedDungeon ? 0.5 : 1.0;
+
+      console.log('🗺️ Map selection debug:', {
+        isGenerated: map.isGenerated,
+        tags: map.tags,
+        isGeneratedDungeon,
+        scaleFactor,
+        pathPrefix: map.path.substring(0, 20),
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight
+      });
+
+      // Automatically disable grid for generated dungeons (they have built-in grids)
+      if (isGeneratedDungeon) {
+        setFormData((prev) => ({
+          ...prev,
+          gridEnabled: false,
+        }));
+        console.log('🎯 Grid automatically disabled for generated dungeon map');
+      }
+
+      let finalUrl = map.path;
+      let finalWidth = img.naturalWidth;
+      let finalHeight = img.naturalHeight;
+
+      if (isGeneratedDungeon && map.path.startsWith('data:')) {
+        // Scale down the image using canvas
+        const canvas = document.createElement('canvas');
+        const scaledWidth = Math.floor(img.naturalWidth * scaleFactor);
+        const scaledHeight = Math.floor(img.naturalHeight * scaleFactor);
+
+        canvas.width = scaledWidth;
+        canvas.height = scaledHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          // Use high-quality scaling
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
+
+          // Convert back to data URL with moderate compression
+          finalUrl = canvas.toDataURL('image/webp', 0.85);
+          finalWidth = scaledWidth;
+          finalHeight = scaledHeight;
+
+          console.log(`📐 Scaled generated dungeon from ${img.naturalWidth}×${img.naturalHeight} to ${scaledWidth}×${scaledHeight} (50%)`);
+        }
+      }
+
+      setBackgroundImage({
+        url: finalUrl,
+        width: finalWidth,
+        height: finalHeight,
+        offsetX: -finalWidth / 2,
+        offsetY: -finalHeight / 2,
+        scale: 1.0,
+      });
+
+      setIsUploading(false);
+      setShowBaseMapBrowser(false);
     } catch (error) {
       setUploadError(
         error instanceof Error ? error.message : 'Failed to load base map',

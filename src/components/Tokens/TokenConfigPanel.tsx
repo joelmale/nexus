@@ -182,6 +182,49 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
     onClose();
   };
 
+  const handleSaveToServer = async () => {
+    if (!backgroundRemoved || !processedImage) {
+      alert('Please remove background first before saving to server');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/tokens/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tokenId: token.id,
+          imageData: processedImage,
+          name: token.name,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save token to server');
+      }
+
+      const result = await response.json();
+
+      // Update token with server path instead of data URL
+      const updates: Partial<Token> & { exclusive?: boolean } = {
+        name,
+        size,
+        exclusive,
+        image: result.path,
+        thumbnailImage: result.path,
+      };
+
+      onSave(updates);
+      alert('Token saved to server successfully! Path: ' + result.path);
+      onClose();
+    } catch (error) {
+      console.error('Failed to save token to server:', error);
+      alert('Failed to save token to server. Check console for details.');
+    }
+  };
+
   return (
     <div
       style={{
@@ -204,7 +247,7 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
           border: '1px solid var(--glass-border)',
           borderRadius: '12px',
           padding: '24px',
-          maxWidth: '600px',
+          maxWidth: '660px',
           width: '90%',
           maxHeight: '90vh',
           overflow: 'auto',
@@ -490,11 +533,11 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+        <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
           <button
             onClick={onClose}
             style={{
-              flex: 1,
+              flex: '1 1 auto',
               padding: '12px',
               border: '1px solid var(--glass-border)',
               borderRadius: '6px',
@@ -509,7 +552,7 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
           <button
             onClick={handleSave}
             style={{
-              flex: 1,
+              flex: '1 1 auto',
               padding: '12px',
               border: '1px solid var(--glass-border)',
               borderRadius: '6px',
@@ -519,8 +562,26 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
               fontWeight: 'bold',
             }}
           >
-            Save Changes
+            Save (Browser Only)
           </button>
+          {backgroundRemoved && processedImage && (
+            <button
+              onClick={handleSaveToServer}
+              style={{
+                flex: '1 1 100%',
+                padding: '12px',
+                border: '2px solid var(--color-accent)',
+                borderRadius: '6px',
+                background: 'var(--color-accent)',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                marginTop: '8px',
+              }}
+            >
+              💾 Save to Server (Permanent)
+            </button>
+          )}
         </div>
       </div>
     </div>
