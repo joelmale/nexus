@@ -1248,6 +1248,24 @@ export const useGameStore = create<GameStore>()(
             state.user.connected = true;
           });
 
+          // Try to restore game state from localStorage if available
+          // This allows resuming a campaign with local changes that haven't been saved to server
+          const recoveryData = sessionPersistenceService.getRecoveryData();
+          if (recoveryData.gameState && recoveryData.gameState.scenes.length > 0) {
+            console.log('📂 Restoring game state from localStorage for campaign');
+            get().loadSessionState();
+
+            // Send the restored state to the server
+            const { webSocketService } = await import('@/utils/websocket');
+            if (webSocketService.isConnected()) {
+              webSocketService.sendGameStateUpdate({
+                sceneState: get().sceneState,
+                characters: [],
+                initiative: {},
+              });
+            }
+          }
+
           // Save session to localStorage for refresh recovery
           // Note: session is already set by the session/created event handler
           saveSessionToStorage(get());
@@ -1296,6 +1314,10 @@ export const useGameStore = create<GameStore>()(
       resetToWelcome: () => {
         console.log('🔄 Resetting to welcome screen');
 
+        // Save current game state before clearing session
+        // This preserves campaign data while clearing reconnection info
+        get().saveSessionState();
+
         set((state) => {
           // Clear session data
           state.session = null;
@@ -1306,9 +1328,10 @@ export const useGameStore = create<GameStore>()(
           state.connection = initialState.connection;
         });
 
-        // Clear persisted session from all storage locations
+        // Clear only the session reconnection data, NOT the game state
+        // This prevents auto-reconnect while keeping campaign data saved
         clearSessionFromStorage();
-        sessionPersistenceService.clearAll();
+        sessionPersistenceService.clearSession(); // Only clear session, not game state
 
         // Navigate to lobby using window.location for full reset
         window.location.href = '/lobby';
