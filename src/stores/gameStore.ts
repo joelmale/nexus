@@ -1251,19 +1251,36 @@ export const useGameStore = create<GameStore>()(
           // Try to restore game state from localStorage if available
           // This allows resuming a campaign with local changes that haven't been saved to server
           const recoveryData = sessionPersistenceService.getRecoveryData();
+          console.log('🔍 Checking for game state to restore:', {
+            hasGameState: !!recoveryData.gameState,
+            scenesCount: recoveryData.gameState?.scenes?.length || 0,
+          });
+
           if (recoveryData.gameState && recoveryData.gameState.scenes.length > 0) {
-            console.log('📂 Restoring game state from localStorage for campaign');
+            console.log('📂 Restoring game state from localStorage for campaign:', {
+              scenes: recoveryData.gameState.scenes.map(s => ({
+                id: s.id,
+                name: s.name,
+                hasBackground: !!s.backgroundImage,
+                tokensCount: s.placedTokens?.length || 0,
+                drawingsCount: s.drawings?.length || 0,
+              })),
+            });
+
             get().loadSessionState();
 
             // Send the restored state to the server
             const { webSocketService } = await import('@/utils/websocket');
             if (webSocketService.isConnected()) {
+              console.log('📤 Sending restored state to server');
               webSocketService.sendGameStateUpdate({
                 sceneState: get().sceneState,
                 characters: [],
                 initiative: {},
               });
             }
+          } else {
+            console.log('ℹ️ No game state to restore, starting fresh');
           }
 
           // Save session to localStorage for refresh recovery
@@ -2109,6 +2126,13 @@ export const useGameStore = create<GameStore>()(
       saveSessionState: () => {
         const state = get();
 
+        console.log('💾 saveSessionState called', {
+          hasSession: !!state.session,
+          roomCode: state.session?.roomCode,
+          scenesCount: state.sceneState.scenes.length,
+          activeSceneId: state.sceneState.activeSceneId,
+        });
+
         // Save session data if connected
         if (state.session) {
           sessionPersistenceService.saveSession({
@@ -2130,6 +2154,18 @@ export const useGameStore = create<GameStore>()(
           activeSceneId: state.sceneState.activeSceneId,
           settings: state.settings,
         };
+
+        // Log what we're about to save
+        console.log('💾 Saving game state:', {
+          scenesCount: gameStateData.scenes.length,
+          scenes: gameStateData.scenes.map(s => ({
+            id: s.id,
+            name: s.name,
+            hasBackground: !!s.backgroundImage,
+            tokensCount: s.placedTokens?.length || 0,
+            drawingsCount: s.drawings?.length || 0,
+          })),
+        });
 
         sessionPersistenceService.saveGameState(gameStateData);
 
