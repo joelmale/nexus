@@ -54,6 +54,8 @@ export const GameUI: React.FC = () => {
     | 'documents'
   >(isHost ? 'scene' : 'lobby');
   const [sidebarWidth, setSidebarWidth] = useState(300);
+  const [collapsedWidth] = useState(8); // Width when collapsed (just the resize handle)
+  const previousWidthRef = useRef(300); // Store the width before collapsing
 
   // Apply color scheme on mount and when it changes
   useEffect(() => {
@@ -70,11 +72,12 @@ export const GameUI: React.FC = () => {
 
   // Sync sidebarWidth state with CSS variable for layout
   useEffect(() => {
+    const effectiveWidth = panelExpanded ? sidebarWidth : collapsedWidth;
     document.documentElement.style.setProperty(
       '--sidebar-width',
-      `${sidebarWidth}px`,
+      `${effectiveWidth}px`,
     );
-  }, [sidebarWidth]);
+  }, [sidebarWidth, panelExpanded, collapsedWidth]);
 
   // Resize functionality
   const isResizing = useRef(false);
@@ -108,13 +111,19 @@ export const GameUI: React.FC = () => {
           const deltaX = startMouseX.current - e.clientX;
           const newWidth = startWidth.current + deltaX;
 
-          const minWidth = panelExpanded ? 250 : 60;
+          const minWidth = 250;
           const maxWidth = window.innerWidth * 0.6;
 
           const constrainedWidth = Math.max(
             minWidth,
             Math.min(maxWidth, newWidth),
           );
+
+          // Auto-expand panel when dragging from collapsed state
+          if (!panelExpanded && constrainedWidth > collapsedWidth + 50) {
+            setPanelExpanded(true);
+          }
+
           setSidebarWidth(constrainedWidth);
         });
       };
@@ -157,7 +166,7 @@ export const GameUI: React.FC = () => {
         passive: false,
       });
     },
-    [sidebarWidth, panelExpanded],
+    [sidebarWidth, panelExpanded, collapsedWidth],
   );
 
   const handleContentWidthChange = useCallback((width: number) => {
@@ -165,6 +174,18 @@ export const GameUI: React.FC = () => {
       setSidebarWidth(width);
     }
   }, []);
+
+  const handleTogglePanel = useCallback(() => {
+    if (panelExpanded) {
+      // Collapsing: Save current width and collapse to 0
+      previousWidthRef.current = sidebarWidth;
+      setPanelExpanded(false);
+    } else {
+      // Expanding: Restore previous width
+      setSidebarWidth(previousWidthRef.current);
+      setPanelExpanded(true);
+    }
+  }, [panelExpanded, sidebarWidth]);
 
   const panels = [
     { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
@@ -269,7 +290,7 @@ export const GameUI: React.FC = () => {
           <div className="horizontal-panel-toggle">
             <button
               type="button"
-              onClick={() => setPanelExpanded(!panelExpanded)}
+              onClick={handleTogglePanel}
               title={panelExpanded ? 'Collapse panel' : 'Expand panel'}
             >
               <span className="toggle-icon">{panelExpanded ? '»' : '«'}</span>
@@ -347,7 +368,7 @@ export const GameUI: React.FC = () => {
             activePanel={activePanel}
             onPanelChange={setActivePanel}
             expanded={panelExpanded}
-            onToggleExpanded={() => setPanelExpanded(!panelExpanded)}
+            onToggleExpanded={handleTogglePanel}
             onContentWidthChange={handleContentWidthChange}
           />
         </Suspense>

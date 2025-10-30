@@ -156,7 +156,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
             scaledImageData,
             dungeonTitle,
             'webp', // Always WebP now
-            compressedSize,
+            originalBinarySize, // Original size before compression
           );
         } catch (saveError) {
           console.warn(

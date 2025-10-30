@@ -159,6 +159,15 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
         naturalHeight: img.naturalHeight
       });
 
+      // Automatically disable grid for generated dungeons (they have built-in grids)
+      if (isGeneratedDungeon) {
+        setFormData((prev) => ({
+          ...prev,
+          gridEnabled: false,
+        }));
+        console.log('🎯 Grid automatically disabled for generated dungeon map');
+      }
+
       let finalUrl = map.path;
       let finalWidth = img.naturalWidth;
       let finalHeight = img.naturalHeight;

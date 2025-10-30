@@ -453,7 +453,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     (e: React.MouseEvent) => {
       if (e.button !== 0) return;
 
-      const point = screenToScene(e.clientX, e.clientY);
+      // Disable snap for smooth drawing - only snap if Ctrl/Cmd key is held
+      const shouldSnap = e.ctrlKey || e.metaKey;
+      const point = screenToScene(e.clientX, e.clientY, shouldSnap);
 
       // Tools that don't interact with mousedown can be handled with an early return.
       if (activeTool === 'pan' || activeTool === 'move') {
@@ -773,7 +775,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     (e: React.MouseEvent) => {
       if (activeTool === 'pan') return;
 
-      const point = screenToScene(e.clientX, e.clientY);
+      // Disable snap for smooth drawing - only snap if Ctrl/Cmd key is held
+      const shouldSnap = e.ctrlKey || e.metaKey;
+      const point = screenToScene(e.clientX, e.clientY, shouldSnap);
 
       // Measure tool - update measurement line
       if (activeTool === 'measure' && isDrawing && startPoint) {
@@ -834,7 +838,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   // Handle mouse up with drawing creation logic
   const handleMouseUp = useCallback(
     (e: React.MouseEvent) => {
-      const endPoint = screenToScene(e.clientX, e.clientY);
+      // Disable snap for smooth drawing - only snap if Ctrl/Cmd key is held
+      const shouldSnap = e.ctrlKey || e.metaKey;
+      const endPoint = screenToScene(e.clientX, e.clientY, shouldSnap);
 
       switch (activeTool) {
         case 'select': {
@@ -915,11 +921,8 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
               };
             },
             cone: () => {
-              const rawLength = distance(startPoint, endPoint);
-              // Snap to 5ft increments (1 grid square = 5ft)
-              const snappedLength =
-                Math.round(rawLength / _gridSize) * _gridSize;
-              const length = Math.max(_gridSize, snappedLength); // Minimum 5ft
+              const length = distance(startPoint, endPoint);
+              // No automatic snapping - draw smoothly
 
               const direction =
                 (Math.atan2(
@@ -1325,10 +1328,8 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       }
 
       case 'cone': {
-        const rawLength = distance(startPoint, currentPoint);
-        // Snap to 5ft increments
-        const snappedLength = Math.round(rawLength / _gridSize) * _gridSize;
-        const length = Math.max(_gridSize, snappedLength);
+        const length = distance(startPoint, currentPoint);
+        // No automatic snapping - draw smoothly
         const lengthFeet = (length / _gridSize) * 5;
 
         const direction =
@@ -1470,10 +1471,12 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     );
   };
 
+  const shouldRenderInteractionLayer = !['pan' as const, 'move' as const].includes(activeTool as 'pan' | 'move');
+
   return (
     <g className="drawing-tools">
-      {/* Interaction layer - ONLY for drawing tools, not select tool */}
-      {activeTool !== 'select' && (
+      {/* Interaction layer - for drawing tools and select tool (not pan or move) */}
+      {shouldRenderInteractionLayer && (
         <rect
           x={-10000}
           y={-10000}
@@ -1489,7 +1492,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
             cursor:
               activeTool === 'eraser'
                 ? 'crosshair'
-                : 'crosshair',
+                : activeTool === 'select'
+                  ? 'default'
+                  : 'crosshair',
             pointerEvents: 'auto',
           }}
         />
