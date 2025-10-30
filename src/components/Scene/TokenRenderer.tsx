@@ -84,22 +84,40 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
     }, [isDragging, onMove, placedToken.id, onMoveEnd]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
-      console.log('🖱️ Token mouseDown:', { canInteract, tokenId: placedToken.id });
+      console.log('🖱️ Token mouseDown:', {
+        canInteract,
+        tokenId: placedToken.id,
+        activeTool,
+        canEdit,
+        isSelected,
+        button: e.button
+      });
       if (!canInteract) {
-        console.log('❌ canInteract is false, returning');
+        console.log('❌ canInteract is false, returning early');
+        return;
+      }
+
+      // Only handle left-click
+      if (e.button !== 0) {
+        console.log('❌ Not left-click, ignoring');
         return;
       }
 
       e.stopPropagation();
+      console.log('✅ stopPropagation called, event won\'t reach DrawingTools');
 
       // Select this token (or add to multi-select with Shift/Cmd/Ctrl)
       const isMultiSelect = e.shiftKey || e.metaKey || e.ctrlKey;
-      console.log('🎯 Calling onSelect:', { tokenId: placedToken.id, isMultiSelect });
+      console.log('🎯 Calling onSelect:', {
+        tokenId: placedToken.id,
+        isMultiSelect,
+        isSelected
+      });
       onSelect(placedToken.id, isMultiSelect);
 
       // Start dragging if already selected or just selected
       if (isSelected || !isMultiSelect) {
-        console.log('🚀 Starting drag');
+        console.log('🚀 Starting drag for token:', placedToken.id);
         setIsDragging(true);
         dragStartRef.current = { x: e.clientX, y: e.clientY };
       }

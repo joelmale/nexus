@@ -17,6 +17,16 @@ export const TokenToolbar: React.FC<TokenToolbarProps> = ({ position }) => {
 
   const toolbarRef = useRef<HTMLDivElement>(null);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🎨 TokenToolbar render:', {
+      hasToken: !!selectedPlacedToken,
+      tokenId: selectedPlacedToken?.id,
+      hasScene: !!activeScene,
+      position
+    });
+  }, [selectedPlacedToken, activeScene, position]);
+
   // Handle clicking outside to close toolbar
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

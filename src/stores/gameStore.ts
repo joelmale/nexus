@@ -1613,8 +1613,14 @@ export const useGameStore = create<GameStore>()(
 
       // Selection Actions
       setSelection: (objectIds) => {
+        console.log('🏪 gameStore.setSelection called with:', objectIds);
         set((state) => {
+          const previousSelection = state.sceneState.selectedObjectIds;
           state.sceneState.selectedObjectIds = objectIds;
+          console.log('🏪 gameStore.setSelection updated:', {
+            previous: previousSelection,
+            new: objectIds
+          });
         });
       },
 
@@ -2929,11 +2935,30 @@ export const useServerRoomCode = () => {
 export const useSelectedPlacedToken = () =>
   useGameStore((state) => {
     const { scenes, activeSceneId, selectedObjectIds } = state.sceneState;
-    if (selectedObjectIds.length !== 1) return null; // Only return token if exactly one is selected
+    console.log('🔍 useSelectedPlacedToken computing:', {
+      selectedObjectIds,
+      selectedCount: selectedObjectIds.length,
+      activeSceneId
+    });
+
+    if (selectedObjectIds.length !== 1) {
+      console.log('❌ useSelectedPlacedToken: not exactly one selected');
+      return null;
+    }
 
     const scene = scenes.find((s) => s.id === activeSceneId);
-    if (!scene) return null;
+    if (!scene) {
+      console.log('❌ useSelectedPlacedToken: scene not found');
+      return null;
+    }
 
     const selectedId = selectedObjectIds[0];
-    return scene.placedTokens?.find((t) => t.id === selectedId) || null;
+    const token = scene.placedTokens?.find((t) => t.id === selectedId) || null;
+    console.log('🔍 useSelectedPlacedToken result:', {
+      selectedId,
+      foundToken: !!token,
+      tokenId: token?.id,
+      totalTokens: scene.placedTokens?.length || 0
+    });
+    return token;
   });

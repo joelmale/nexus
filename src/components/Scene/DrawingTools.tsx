@@ -1472,28 +1472,28 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
 
   return (
     <g className="drawing-tools">
-      {/* Interaction layer */}
-      <rect
-        x={-10000}
-        y={-10000}
-        width={20000}
-        height={20000}
-        fill="transparent"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onDoubleClick={handlePolygonComplete}
-        onContextMenu={handlePolygonComplete}
-        style={{
-          cursor:
-            activeTool === 'select'
-              ? 'default'
-              : activeTool === 'eraser'
+      {/* Interaction layer - ONLY for drawing tools, not select tool */}
+      {activeTool !== 'select' && (
+        <rect
+          x={-10000}
+          y={-10000}
+          width={20000}
+          height={20000}
+          fill="transparent"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onDoubleClick={handlePolygonComplete}
+          onContextMenu={handlePolygonComplete}
+          style={{
+            cursor:
+              activeTool === 'eraser'
                 ? 'crosshair'
                 : 'crosshair',
-          pointerEvents: 'auto',
-        }}
-      />
+            pointerEvents: 'auto',
+          }}
+        />
+      )}
 
       {/* Render preview shapes */}
       <g className="drawing-preview">

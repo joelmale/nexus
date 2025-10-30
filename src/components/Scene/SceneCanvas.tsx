@@ -58,8 +58,12 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   // Debug logging for selected token
   React.useEffect(() => {
-    console.log('🎯 SceneCanvas selectedPlacedToken:', selectedPlacedToken);
-  }, [selectedPlacedToken]);
+    console.log('🎯 SceneCanvas selectedPlacedToken changed:', {
+      selectedPlacedToken,
+      selectedObjectIds,
+      tokensInScene: scene.placedTokens?.length || 0
+    });
+  }, [selectedPlacedToken, selectedObjectIds, scene.placedTokens]);
   const camera = useCamera();
   const followDM = useFollowDM();
   const isHost = useIsHost();
@@ -204,10 +208,23 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
           setIsPanning(true);
           setLastMousePos({ x: e.clientX, y: e.clientY });
           e.stopPropagation();
+        } else if (activeTool === 'select') {
+          // Handle selection tool clicks on empty space
+          // This only fires if nothing else (token/drawing) handled the click
+          console.log('🖱️ SceneCanvas mouseDown (empty space)', {
+            shiftKey: e.shiftKey,
+            target: (e.target as SVGElement)?.tagName
+          });
+
+          if (!e.shiftKey) {
+            // Click on empty space without shift -> deselect all
+            clearSelection();
+          }
+          // Note: shift+drag selection box is handled by DrawingTools when it has pointer events
         }
       }
     },
-    [isHost, followDM, activeTool],
+    [isHost, followDM, activeTool, clearSelection],
   );
 
   const handleMouseMove = useCallback(
@@ -261,6 +278,25 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     clearSelection();
   }, [clearSelection]);
 
+  const handleDrawingClick = useCallback(
+    (drawingId: string, event: React.MouseEvent) => {
+      console.log('🎨 handleDrawingClick:', { drawingId, shiftKey: event.shiftKey });
+
+      if (event.shiftKey || event.metaKey || event.ctrlKey) {
+        // Multi-select: toggle this drawing in selection
+        if (selectedObjectIds.includes(drawingId)) {
+          setSelection(selectedObjectIds.filter(id => id !== drawingId));
+        } else {
+          setSelection([...selectedObjectIds, drawingId]);
+        }
+      } else {
+        // Single select: select only this drawing
+        setSelection([drawingId]);
+      }
+    },
+    [selectedObjectIds, setSelection],
+  );
+
   // Token handlers
   const handleTokenDrop = useCallback(
     (token: Token, x: number, y: number) => {
@@ -304,13 +340,19 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     (tokenId: string, multi: boolean) => {
       console.log('🎯 handleTokenSelect called:', { tokenId, multi });
       if (multi) {
-        // Urgent: Update selection immediately for visual feedback
+        console.log('📝 Multi-select: calling addToSelection with:', [tokenId]);
         addToSelection([tokenId]);
-        // For multi-select, we don't update token toolbar selection
+        console.log('✅ addToSelection completed');
       } else {
-        // Urgent: Update selection immediately for visual feedback
+        console.log('📝 Single-select: calling setSelection with:', [tokenId]);
         setSelection([tokenId]);
+        console.log('✅ setSelection completed');
       }
+
+      // Debug: Check if selection was actually updated
+      setTimeout(() => {
+        console.log('🔍 Selection check after handleTokenSelect');
+      }, 0);
     },
     [addToSelection, setSelection],
   );
@@ -499,6 +541,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
                 isHost={isHost}
                 activeTool={activeTool}
                 selectedObjectIds={selectedObjectIds}
+                onDrawingClick={handleDrawingClick}
               />
 
               {/* Tokens layer */}

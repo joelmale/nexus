@@ -9,6 +9,7 @@ interface DrawingRendererProps {
   isHost: boolean;
   activeTool?: string;
   selectedObjectIds?: string[];
+  onDrawingClick?: (drawingId: string, event: React.MouseEvent) => void;
 }
 
 const PingDrawing: React.FC<{
@@ -78,8 +79,9 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
   sceneId,
   camera,
   isHost,
-  activeTool: _activeTool = '',
+  activeTool = '',
   selectedObjectIds = [],
+  onDrawingClick,
 }) => {
   const activeScene = useActiveScene();
 
@@ -103,6 +105,9 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
     const strokeWidth = style.strokeWidth / camera.zoom;
     const isSelected = selectedObjectIds.includes(drawing.id);
 
+    // Make drawings interactive only during select tool
+    const isInteractive = activeTool === 'select' && onDrawingClick;
+
     const commonProps = {
       fill: style.fillColor,
       fillOpacity: style.fillOpacity,
@@ -112,9 +117,14 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       className: `drawing drawing-${drawing.type} ${drawing.layer}${isSelected ? ' selected' : ''}`,
       'data-drawing-id': drawing.id,
       'data-created-by': drawing.createdBy,
+      onClick: isInteractive ? (e: React.MouseEvent) => {
+        e.stopPropagation();
+        console.log('🎨 Drawing clicked:', drawing.id);
+        onDrawingClick(drawing.id, e);
+      } : undefined,
       style: {
-        pointerEvents: 'none' as const, // Let DrawingTools layer handle all pointer events
-        cursor: 'default',
+        pointerEvents: isInteractive ? ('auto' as const) : ('none' as const),
+        cursor: isInteractive ? 'pointer' : 'default',
       },
     };
 
