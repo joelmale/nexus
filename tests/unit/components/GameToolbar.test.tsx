@@ -1,68 +1,110 @@
-import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { GameToolbar } from '../../../src/components/GameToolbar';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { GameToolbar } from '@/components/GameToolbar';
+import { useGameStore, useIsHost, useCamera, useActiveTool } from '@/stores/gameStore';
+import { vi } from 'vitest';
 
-// Mock the gameStore hooks
+// Mock the gameStore
 vi.mock('@/stores/gameStore', () => ({
-  useGameStore: vi.fn(() => ({
-    updateCamera: vi.fn(),
-    setActiveTool: vi.fn(),
-    settings: {
-      floatingToolbar: false,
-    },
-  })),
-  useIsHost: vi.fn(() => true),
-  useCamera: vi.fn(() => ({
-    x: 0,
-    y: 0,
-    zoom: 1.0,
-  })),
-  useActiveTool: vi.fn(() => null),
+  useGameStore: vi.fn(),
+  useIsHost: vi.fn(),
+  useCamera: vi.fn(),
+  useActiveTool: vi.fn(),
 }));
 
-const renderWithDnd = (component: React.ReactElement) => {
-  return render(<DndProvider backend={HTML5Backend}>{component}</DndProvider>);
-};
-
 describe('GameToolbar', () => {
-  it('should render without crashing', () => {
-    const { getByRole } = renderWithDnd(<GameToolbar />);
-    expect(getByRole('toolbar')).toBeInTheDocument();
+  const setActiveTool = vi.fn();
+  const updateCamera = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (useGameStore as any).mockReturnValue({
+      setActiveTool,
+      updateCamera,
+    });
+    (useCamera as any).mockReturnValue({ x: 0, y: 0, zoom: 1.0 });
   });
 
-  it('should render with proper CSS classes', () => {
-    const { container } = renderWithDnd(<GameToolbar />);
-    const toolbar = container.querySelector('.game-toolbar') as HTMLElement;
+  it('should render the toolbar with default tool selected', () => {
+    (useActiveTool as any).mockReturnValue('select');
+    (useIsHost as any).mockReturnValue(false);
+    render(<GameToolbar />);
 
-    expect(toolbar).toBeInTheDocument();
-    expect(toolbar.classList.contains('game-toolbar')).toBe(true);
-
-    // Check that toolbar rows are present
-    const rows = container.querySelectorAll('.toolbar-row');
-    expect(rows.length).toBeGreaterThan(0);
-
-    // Check that toolbar buttons are present
-    const buttons = container.querySelectorAll('.toolbar-btn');
-    expect(buttons.length).toBeGreaterThan(0);
+    const selectButton = screen.getByRole('button', { name: '👆' });
+    expect(selectButton).toHaveClass('active');
   });
 
-  it('should render toolbar sections correctly', () => {
-    const { container } = renderWithDnd(<GameToolbar />);
+  it('should call setActiveTool when a tool button is clicked', () => {
+    (useActiveTool as any).mockReturnValue('select');
+    (useIsHost as any).mockReturnValue(false);
+    render(<GameToolbar />);
 
-    // Check for toolbar rows
-    const toolbarRows = container.querySelectorAll('.toolbar-row');
-    expect(toolbarRows.length).toBeGreaterThan(0);
+    const panButton = screen.getByRole('button', { name: '✋' });
+    fireEvent.click(panButton);
 
-    // Check for toolbar buttons with proper structure
-    const toolbarButtons = container.querySelectorAll('.toolbar-btn');
-    expect(toolbarButtons.length).toBeGreaterThan(0);
+    expect(setActiveTool).toHaveBeenCalledWith('pan');
+  });
 
-    // Check that buttons have tool icons (some buttons have icons, some just have labels)
-    const toolIcons = container.querySelectorAll('.tool-icon');
-    expect(toolIcons.length).toBeGreaterThan(0);
+  it('should show DM tools for the host', () => {
+    (useActiveTool as any).mockReturnValue('select');
+    (useIsHost as any).mockReturnValue(true);
+    render(<GameToolbar />);
+
+    const createMaskButton = screen.getByRole('button', { name: '🌟' });
+    expect(createMaskButton).toBeInTheDocument();
+  });
+
+  it('should not show DM tools for non-host players', () => {
+    (useActiveTool as any).mockReturnValue('select');
+    (useIsHost as any).mockReturnValue(false);
+    render(<GameToolbar />);
+
+    const createMaskButton = screen.queryByRole('button', { name: '🌟' });
+    expect(createMaskButton).not.toBeInTheDocument();
+  });
+
+  it('should call updateCamera when zoom buttons are clicked', () => {
+    (useActiveTool as any).mockReturnValue('select');
+    (useIsHost as any).mockReturnValue(false);
+    render(<GameToolbar />);
+
+    const zoomInButton = screen.getByRole('button', { name: '➕' });
+    fireEvent.click(zoomInButton);
+    expect(updateCamera).toHaveBeenCalledWith({ zoom: 1.2 });
+
+    const zoomOutButton = screen.getAllByRole('button', { name: '➖' }).find(button => button.getAttribute('data-id') === 'zoom-out');
+    fireEvent.click(zoomOutButton);
+    expect(updateCamera).toHaveBeenCalledWith({ zoom: 0.8333333333333334 });
+
+    const zoomResetButton = screen.getByRole('button', { name: '100%' });
+    fireEvent.click(zoomResetButton);
+    expect(updateCamera).toHaveBeenCalledWith({ x: 0, y: 0, zoom: 1.0 });
+  });
+
+  it('should render the toolbar with all the basic tools', () => {
+    (useActiveTool as any).mockReturnValue('select');
+    (useIsHost as any).mockReturnValue(false);
+    render(<GameToolbar />);
+
+    expect(screen.getByRole('button', { name: '👆' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '✋' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '📋' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '✂️' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '📄' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '📏' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '📝' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '📍' })).toBeInTheDocument();
+  });
+
+  it('should render the toolbar with all the drawing tools', () => {
+    (useActiveTool as any).mockReturnValue('select');
+    (useIsHost as any).mockReturnValue(false);
+    render(<GameToolbar />);
+
+    expect(screen.getByRole('button', { name: '⭕' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '⬜' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '🔺' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '⬟' })).toBeInTheDocument();
+    const lineButton = screen.getAllByRole('button', { name: '➖' }).find(button => button.getAttribute('data-id') === 'line');
+    expect(lineButton).toBeInTheDocument();
   });
 });

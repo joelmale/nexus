@@ -1,0 +1,27 @@
+
+name: Regression Detection
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    name: Run Regression Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run regression tests
+        run: npm run test:regression
