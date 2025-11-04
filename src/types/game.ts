@@ -1,7 +1,8 @@
 // Core game state types
 import type { Drawing } from './drawing';
 import type { PlacedToken, Token } from './token';
-export type { PlacedToken, Token, Drawing };
+import type { PlacedProp } from './prop';
+export type { PlacedToken, Token, Drawing, PlacedProp };
 
 export interface User {
   id: string;
@@ -221,6 +222,7 @@ export interface Scene {
   // Scene content
   drawings: Drawing[];
   placedTokens: PlacedToken[];
+  placedProps: PlacedProp[];
 
   // Scene state
   isActive: boolean; // Currently active scene for the room
@@ -468,6 +470,56 @@ export interface TokenDeleteEvent extends GameEvent {
   data: {
     sceneId: string;
     tokenId: string;
+    expectedVersion?: number; // For conflict resolution
+  };
+}
+
+// Prop Events
+export interface PropPlaceEvent extends GameEvent {
+  type: 'prop/place';
+  data: {
+    sceneId: string;
+    prop: PlacedProp;
+  };
+}
+
+export interface PropMoveEvent extends GameEvent {
+  type: 'prop/move';
+  data: {
+    sceneId: string;
+    propId: string;
+    position: { x: number; y: number };
+    rotation?: number;
+    expectedVersion?: number; // For conflict resolution
+    updateId?: string; // For optimistic update confirmation
+  };
+}
+
+export interface PropUpdateEvent extends GameEvent {
+  type: 'prop/update';
+  data: {
+    sceneId: string;
+    propId: string;
+    updates: Partial<PlacedProp>;
+    expectedVersion?: number; // For conflict resolution
+  };
+}
+
+export interface PropDeleteEvent extends GameEvent {
+  type: 'prop/delete';
+  data: {
+    sceneId: string;
+    propId: string;
+    expectedVersion?: number; // For conflict resolution
+  };
+}
+
+export interface PropInteractEvent extends GameEvent {
+  type: 'prop/interact';
+  data: {
+    sceneId: string;
+    propId: string;
+    action: 'open' | 'close' | 'lock' | 'unlock';
     expectedVersion?: number; // For conflict resolution
   };
 }

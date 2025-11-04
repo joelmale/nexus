@@ -24,12 +24,16 @@ import { SelectionOverlay } from './SelectionOverlay';
 import { DrawingPropertiesPanel } from './DrawingPropertiesPanel';
 import { TokenDropZone } from './TokenDropZone';
 import { TokenRenderer } from './TokenRenderer';
+import { PropRenderer } from './PropRenderer';
 import { TokenToolbar } from '../Tokens/TokenToolbar';
+import { PropToolbar } from '../Props/PropToolbar';
 import { CanvasErrorBoundary, TokenErrorBoundary } from '../ErrorBoundary';
 import { webSocketService } from '@/utils/websocket';
 import { tokenAssetManager } from '@/services/tokenAssets';
+import { propAssetManager } from '@/services/propAssets';
 import { createPlacedToken, getTokenPixelSize } from '@/types/token';
-import { useSelectedPlacedToken } from '@/stores/gameStore';
+import { createPlacedProp } from '@/types/prop';
+import { useSelectedPlacedToken, useSelectedPlacedProp } from '@/stores/gameStore';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
 import type {
@@ -48,12 +52,17 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     placeToken,
     moveTokenOptimistic,
     getSceneTokens,
+    placeProp,
+    movePropOptimistic,
+    getSceneProps,
+    deleteProp,
     user,
     setSelection,
     addToSelection,
     clearSelection,
   } = useGameStore();
   const selectedPlacedToken = useSelectedPlacedToken();
+  const selectedPlacedProp = useSelectedPlacedProp();
   const { selectedObjectIds } = useSceneState();
 
   // Debug logging for selected token
@@ -123,7 +132,13 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   const selectedDrawingIds = useMemo(() => {
     const drawingIds = new Set(drawings.map((d) => d.id));
-    return selectedObjectIds.filter((id) => drawingIds.has(id));
+    const filtered = selectedObjectIds.filter((id) => drawingIds.has(id));
+    console.log('🎨 SceneCanvas selectedDrawingIds:', {
+      selectedObjectIds,
+      drawingIds: Array.from(drawingIds),
+      filtered,
+    });
+    return filtered;
   }, [selectedObjectIds, drawings]);
 
   // Update viewport size when container resizes
@@ -172,6 +187,72 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       webSocketService.removeEventListener('message', handleWebSocketMessage);
     };
   }, [scene.id, isHost, followDM]);
+
+  // Keyboard shortcuts for props
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input
+      if ((e.target as HTMLElement).tagName === 'INPUT' ||
+          (e.target as HTMLElement).tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Delete key - delete selected props
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !e.repeat) {
+        const selectedPropIds = selectedObjectIds.filter((id) => {
+          const props = getSceneProps(scene.id);
+          return props.some((p) => p.id === id);
+        });
+
+        if (selectedPropIds.length > 0 && isHost) {
+          e.preventDefault();
+          selectedPropIds.forEach((propId) => {
+            deleteProp(scene.id, propId);
+          });
+          console.log(`🎭 Props: Deleted ${selectedPropIds.length} prop(s) via keyboard`);
+        }
+      }
+
+      // D key - duplicate selected prop
+      if ((e.key === 'd' || e.key === 'D') && !e.repeat && isHost) {
+        const selectedPropIds = selectedObjectIds.filter((id) => {
+          const props = getSceneProps(scene.id);
+          return props.some((p) => p.id === id);
+        });
+
+        if (selectedPropIds.length === 1) {
+          e.preventDefault();
+          const props = getSceneProps(scene.id);
+          const propToDuplicate = props.find((p) => p.id === selectedPropIds[0]);
+          if (propToDuplicate) {
+            const prop = propAssetManager.getPropById(propToDuplicate.propId);
+            if (prop) {
+              const duplicated = createPlacedProp(
+                propToDuplicate.propId,
+                scene.id,
+                { x: propToDuplicate.x + 20, y: propToDuplicate.y + 20 },
+                user.id
+              );
+              duplicated.rotation = propToDuplicate.rotation;
+              duplicated.scale = propToDuplicate.scale;
+              duplicated.layer = propToDuplicate.layer;
+              duplicated.visibleToPlayers = propToDuplicate.visibleToPlayers;
+              duplicated.dmNotesOnly = propToDuplicate.dmNotesOnly;
+              duplicated.currentStats = propToDuplicate.currentStats ?
+                { ...propToDuplicate.currentStats } : undefined;
+
+              placeProp(scene.id, duplicated);
+              setSelection([duplicated.id]);
+              console.log('🎭 Props: Duplicated prop via keyboard');
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [scene.id, selectedObjectIds, isHost, getSceneProps, deleteProp, placeProp, setSelection]);
 
   // Camera controls
   const handleWheel = useCallback(
@@ -273,6 +354,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   // Get tokens for this scene - must be defined before callbacks that use it
   const placedTokens = getSceneTokens(scene.id);
+  const placedProps = getSceneProps(scene.id);
 
   const handleClosePropertiesPanel = useCallback(() => {
     clearSelection();
@@ -394,6 +476,146 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     [scene.id, safeGridSettings, getSceneTokens, moveTokenOptimistic],
   );
 
+  // Prop handlers (mirror token handlers)
+  const handlePropSelect = useCallback(
+    (propId: string, multi: boolean) => {
+      console.log('🎭 Props: handlePropSelect called:', { propId, multi });
+      if (multi) {
+        console.log('📝 Props: Multi-select: calling addToSelection with:', [propId]);
+        addToSelection([propId]);
+        console.log('✅ Props: addToSelection completed');
+      } else {
+        console.log('📝 Props: Single-select: calling setSelection with:', [propId]);
+        setSelection([propId]);
+        console.log('✅ Props: setSelection completed');
+      }
+    },
+    [addToSelection, setSelection],
+  );
+
+  const handlePropMove = useCallback(
+    (propId: string, deltaX: number, deltaY: number) => {
+      const props = getSceneProps(scene.id);
+      const prop = props.find((p) => p.id === propId);
+      if (!prop) return;
+
+      const newX = prop.x + deltaX / camera.zoom;
+      const newY = prop.y + deltaY / camera.zoom;
+
+      // Optimistic update - move locally first, then send to server
+      movePropOptimistic(scene.id, propId, { x: newX, y: newY });
+    },
+    [scene.id, camera.zoom, getSceneProps, movePropOptimistic],
+  );
+
+  const handlePropMoveEnd = useCallback(
+    (propId: string) => {
+      // Apply grid snapping when drag ends
+      if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
+        const props = getSceneProps(scene.id);
+        const prop = props.find((p) => p.id === propId);
+        if (!prop) return;
+
+        const snappedX =
+          Math.round(prop.x / safeGridSettings.size) * safeGridSettings.size;
+        const snappedY =
+          Math.round(prop.y / safeGridSettings.size) * safeGridSettings.size;
+
+        // Only update if position changed after snapping
+        if (snappedX !== prop.x || snappedY !== prop.y) {
+          movePropOptimistic(scene.id, propId, { x: snappedX, y: snappedY });
+        }
+      }
+    },
+    [scene.id, safeGridSettings, getSceneProps, movePropOptimistic],
+  );
+
+  const [isDraggingProp, setIsDraggingProp] = useState(false);
+
+  // Handle prop drop from PropPanel
+  const handlePropDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDraggingProp(false);
+
+      // Check if this is a prop being dragged
+      const propData = e.dataTransfer.getData('application/prop');
+      if (!propData) return;
+
+      try {
+        const prop = JSON.parse(propData);
+
+        // Get the SVG element and its bounding box
+        if (!svgRef.current) return;
+        const rect = svgRef.current.getBoundingClientRect();
+
+        // Calculate position relative to SVG
+        const relativeX = e.clientX - rect.left;
+        const relativeY = e.clientY - rect.top;
+
+        // Convert screen coordinates to scene coordinates
+        const sceneX = (relativeX - rect.width / 2) / camera.zoom + camera.x;
+        const sceneY = (relativeY - rect.height / 2) / camera.zoom + camera.y;
+
+        // Apply grid snapping if enabled
+        let finalX = sceneX;
+        let finalY = sceneY;
+
+        if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
+          finalX = Math.round(sceneX / safeGridSettings.size) * safeGridSettings.size;
+          finalY = Math.round(sceneY / safeGridSettings.size) * safeGridSettings.size;
+        }
+
+        // Create placed prop with correct arguments
+        const placedProp = createPlacedProp(
+          prop.id,                    // propId (string)
+          scene.id,                   // sceneId (string)
+          { x: finalX, y: finalY },   // position (Point)
+          user.id,                    // placedBy (string)
+        );
+
+        // Place the prop
+        placeProp(scene.id, placedProp);
+
+        // Broadcast over WebSocket (similar to token placement)
+        webSocketService.sendEvent({
+          type: 'prop/place',
+          data: {
+            sceneId: scene.id,
+            prop: placedProp,
+          },
+        });
+
+        console.log('🎭 Props: Dropped prop:', {
+          propName: prop.name,
+          position: { x: finalX, y: finalY }
+        });
+      } catch (error) {
+        console.error('❌ Props: Failed to parse dropped prop data:', error);
+      }
+    },
+    [scene.id, camera, safeGridSettings, placeProp, user.id]
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    // Must prevent default to allow drop
+    e.preventDefault();
+
+    // Check if dragging a prop
+    const types = e.dataTransfer.types;
+    if (types.includes('application/prop')) {
+      e.dataTransfer.dropEffect = 'copy';
+      setIsDraggingProp(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    // Only clear if leaving the canvas entirely
+    if (e.currentTarget === e.target) {
+      setIsDraggingProp(false);
+    }
+  }, []);
+
   // Determine cursor based on active tool and state
   const getCursor = () => {
     if (isPanning) return 'grabbing';
@@ -464,6 +686,59 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     safeGridSettings.size,
   ]);
 
+  // Calculate toolbar position for selected prop
+  const getPropToolbarPosition = useCallback(() => {
+    if (!selectedPlacedProp) return { x: 0, y: 0 };
+
+    // Calculate screen position: apply camera transform to prop position
+    const screenX =
+      viewportSize.width / 2 + (selectedPlacedProp.x - camera.x) * camera.zoom;
+    const screenY =
+      viewportSize.height / 2 + (selectedPlacedProp.y - camera.y) * camera.zoom;
+
+    // Calculate prop size in pixels
+    const propWidth = (selectedPlacedProp.width || 1) * safeGridSettings.size * selectedPlacedProp.scale * camera.zoom;
+    const propHeight = (selectedPlacedProp.height || 1) * safeGridSettings.size * selectedPlacedProp.scale * camera.zoom;
+
+    // Estimate toolbar dimensions (approximate)
+    const toolbarWidth = 400; // Approximate width when panel is open
+    const toolbarHeight = 60; // Approximate height of main toolbar
+    const toolbarOffset = 10; // Spacing from prop
+
+    // Default: right of prop
+    let x = screenX + propWidth / 2 + toolbarOffset;
+    let y = screenY - propHeight / 2 - toolbarOffset;
+
+    // Check if toolbar would go off right edge of screen
+    if (x + toolbarWidth > viewportSize.width) {
+      // Position to left of prop instead
+      x = screenX - propWidth / 2 - toolbarWidth - toolbarOffset;
+    }
+
+    // Ensure toolbar doesn't go off left edge
+    if (x < 0) {
+      x = toolbarOffset;
+    }
+
+    // Check if toolbar would go off top edge
+    if (y < 0) {
+      // Position below prop instead
+      y = screenY + propHeight / 2 + toolbarOffset;
+    }
+
+    // Check if toolbar would go off bottom edge
+    if (y + toolbarHeight > viewportSize.height) {
+      y = viewportSize.height - toolbarHeight - toolbarOffset;
+    }
+
+    return { x, y };
+  }, [
+    selectedPlacedProp,
+    camera,
+    viewportSize,
+    safeGridSettings.size,
+  ]);
+
   return (
     <CanvasErrorBoundary>
       <div className="scene-canvas-container">
@@ -478,6 +753,14 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
         {/* Token Toolbar */}
         {selectedPlacedToken && <TokenToolbar position={getToolbarPosition()} />}
+
+        {/* Prop Toolbar */}
+        {selectedPlacedProp && (
+          <PropToolbar
+            position={getPropToolbarPosition()}
+            placedProp={selectedPlacedProp}
+          />
+        )}
 
         <TokenDropZone
           sceneId={scene.id}
@@ -496,6 +779,9 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
+            onDrop={handlePropDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
             style={{ cursor: getCursor() }}
           >
             <defs>
@@ -514,6 +800,13 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
                   opacity={safeGridSettings.opacity}
                 />
               </pattern>
+
+              {/* Light source gradient */}
+              <radialGradient id="light-gradient">
+                <stop offset="0%" stopColor="#FFD700" stopOpacity="0.4" />
+                <stop offset="50%" stopColor="#FFD700" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#FFD700" stopOpacity="0" />
+              </radialGradient>
             </defs>
 
             <g className="scene-content" transform={transform}>
@@ -573,6 +866,39 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
                 </g>
               </TokenErrorBoundary>
 
+              {/* Props layer */}
+              <TokenErrorBoundary>
+                <g id="props-layer">
+                  {placedProps.map((placedProp) => {
+                    const prop = propAssetManager.getPropById(
+                      placedProp.propId,
+                    );
+                    if (!prop) {
+                      console.warn('🎭 Props: Prop not found:', placedProp.propId);
+                      return null;
+                    }
+
+                    // Filter by visibility
+                    if (!isHost && !placedProp.visibleToPlayers) return null;
+
+                    return (
+                      <PropRenderer
+                        key={placedProp.id}
+                        placedProp={placedProp}
+                        prop={prop}
+                        gridSize={safeGridSettings.size}
+                        isSelected={selectedObjectIds.includes(placedProp.id)}
+                        onSelect={handlePropSelect}
+                        onMove={handlePropMove}
+                        onMoveEnd={handlePropMoveEnd}
+                        canEdit={isHost || placedProp.placedBy === user.id}
+                        sceneId={scene.id}
+                      />
+                    );
+                  })}
+                </g>
+              </TokenErrorBoundary>
+
               {/* Drawing tools layer (interactive) */}
               <DrawingTools
                 activeTool={activeTool}
@@ -610,6 +936,42 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
             </g>
           </svg>
         </TokenDropZone>
+
+        {/* Prop drop zone indicator */}
+        {isDraggingProp && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              border: '3px dashed var(--color-primary, #4A9EFF)',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(74, 158, 255, 0.1)',
+              pointerEvents: 'none',
+              zIndex: 999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              style={{
+                padding: '1rem 2rem',
+                background: 'var(--surface-primary)',
+                border: '2px solid var(--color-primary)',
+                borderRadius: '8px',
+                fontSize: '1.25rem',
+                fontWeight: 'bold',
+                color: 'var(--text-primary)',
+                boxShadow: 'var(--shadow-lg)',
+              }}
+            >
+              📦 Drop prop here
+            </div>
+          </div>
+        )}
 
         {/* Remote cursors overlay */}
         <RemoteCursors sceneId={scene.id} />

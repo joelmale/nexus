@@ -21,6 +21,7 @@ import type {
   Player,
   Drawing,
   PlacedToken,
+  PlacedProp,
   ChatMessage,
   ChatUserTypingEvent,
   VoiceChannel,
@@ -28,6 +29,11 @@ import type {
   TokenMoveEvent,
   TokenUpdateEvent,
   TokenDeleteEvent,
+  PropPlaceEvent,
+  PropMoveEvent,
+  PropUpdateEvent,
+  PropDeleteEvent,
+  PropInteractEvent,
   UserJoinEvent,
   UserLeaveEvent,
   SessionCreatedEvent,
@@ -175,6 +181,42 @@ interface GameStore extends GameState {
   ) => void;
   confirmUpdate: (updateId: string) => void;
   rollbackUpdate: (updateId: string) => void;
+
+  // Prop Actions
+  placeProp: (sceneId: string, prop: PlacedProp) => void;
+  moveProp: (
+    sceneId: string,
+    propId: string,
+    position: { x: number; y: number },
+    rotation?: number,
+  ) => void;
+  updateProp: (
+    sceneId: string,
+    propId: string,
+    updates: Partial<PlacedProp>,
+  ) => void;
+  deleteProp: (sceneId: string, propId: string) => void;
+  interactWithProp: (
+    sceneId: string,
+    propId: string,
+    action: 'open' | 'close' | 'lock' | 'unlock',
+  ) => void;
+  getSceneProps: (sceneId: string) => PlacedProp[];
+  getVisibleProps: (sceneId: string, isHost: boolean) => PlacedProp[];
+  getPlacedPropById: (sceneId: string, propId: string) => PlacedProp | undefined;
+
+  // Prop Optimistic Update Actions
+  movePropOptimistic: (
+    sceneId: string,
+    propId: string,
+    position: { x: number; y: number },
+    rotation?: number,
+  ) => void;
+  updatePropOptimistic: (
+    sceneId: string,
+    propId: string,
+    updates: Partial<PlacedProp>,
+  ) => void;
 
   // Persistence Actions
   initializeFromStorage: (roomCode?: string) => Promise<void>;
@@ -584,6 +626,147 @@ const eventHandlers: Record<string, EventHandler> = {
         // Increment version for conflict resolution
         const currentVersion = state.entityVersions.get(eventData.tokenId) || 0;
         state.entityVersions.set(eventData.tokenId, currentVersion + 1);
+      }
+    }
+  },
+  'prop/place': (state, data) => {
+    const eventData = data as PropPlaceEvent['data'];
+    if (eventData.sceneId && eventData.prop) {
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
+      if (sceneIndex >= 0) {
+        if (!state.sceneState.scenes[sceneIndex].placedProps) {
+          state.sceneState.scenes[sceneIndex].placedProps = [];
+        }
+        state.sceneState.scenes[sceneIndex].placedProps.push(eventData.prop);
+        state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        console.log('🎭 Props: Placed prop on scene:', eventData.prop.id);
+      }
+    }
+  },
+  'prop/move': (state, data) => {
+    const eventData = data as PropMoveEvent['data'];
+
+    // This handler only runs for moves from other clients
+    if (eventData.sceneId && eventData.propId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
+      if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedProps) {
+        const propIndex = state.sceneState.scenes[
+          sceneIndex
+        ].placedProps.findIndex((p) => p.id === eventData.propId);
+        if (propIndex >= 0) {
+          state.sceneState.scenes[sceneIndex].placedProps[propIndex].x =
+            eventData.position.x;
+          state.sceneState.scenes[sceneIndex].placedProps[propIndex].y =
+            eventData.position.y;
+          if (eventData.rotation !== undefined) {
+            state.sceneState.scenes[sceneIndex].placedProps[
+              propIndex
+            ].rotation = eventData.rotation;
+          }
+          state.sceneState.scenes[sceneIndex].placedProps[
+            propIndex
+          ].updatedAt = Date.now();
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+
+          // Increment version for conflict resolution
+          const currentVersion =
+            state.entityVersions.get(eventData.propId) || 0;
+          state.entityVersions.set(eventData.propId, currentVersion + 1);
+        }
+      }
+    }
+  },
+  'prop/update': (state, data) => {
+    const eventData = data as PropUpdateEvent['data'];
+    if (eventData.sceneId && eventData.propId && eventData.updates) {
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
+      if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedProps) {
+        const propIndex = state.sceneState.scenes[
+          sceneIndex
+        ].placedProps.findIndex((p) => p.id === eventData.propId);
+        if (propIndex >= 0) {
+          state.sceneState.scenes[sceneIndex].placedProps[propIndex] = {
+            ...state.sceneState.scenes[sceneIndex].placedProps[propIndex],
+            ...eventData.updates,
+            updatedAt: Date.now(),
+          };
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+
+          // Increment version for conflict resolution
+          const currentVersion =
+            state.entityVersions.get(eventData.propId) || 0;
+          state.entityVersions.set(eventData.propId, currentVersion + 1);
+        }
+      }
+    }
+  },
+  'prop/delete': (state, data) => {
+    const eventData = data as PropDeleteEvent['data'];
+    if (eventData.sceneId && eventData.propId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
+      if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedProps) {
+        state.sceneState.scenes[sceneIndex].placedProps =
+          state.sceneState.scenes[sceneIndex].placedProps.filter(
+            (p) => p.id !== eventData.propId,
+          );
+        state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+
+        // Increment version for conflict resolution
+        const currentVersion = state.entityVersions.get(eventData.propId) || 0;
+        state.entityVersions.set(eventData.propId, currentVersion + 1);
+        console.log('🎭 Props: Deleted prop:', eventData.propId);
+      }
+    }
+  },
+  'prop/interact': (state, data) => {
+    const eventData = data as PropInteractEvent['data'];
+    if (eventData.sceneId && eventData.propId && eventData.action) {
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
+      if (sceneIndex >= 0 && state.sceneState.scenes[sceneIndex].placedProps) {
+        const propIndex = state.sceneState.scenes[
+          sceneIndex
+        ].placedProps.findIndex((p) => p.id === eventData.propId);
+        if (propIndex >= 0) {
+          const prop = state.sceneState.scenes[sceneIndex].placedProps[propIndex];
+
+          // Update prop state based on action
+          if (!prop.stats) prop.stats = {};
+
+          switch (eventData.action) {
+            case 'open':
+              prop.currentStats = { ...prop.currentStats, state: 'open' };
+              break;
+            case 'close':
+              prop.currentStats = { ...prop.currentStats, state: 'closed' };
+              break;
+            case 'lock':
+              prop.currentStats = { ...prop.currentStats, state: 'locked' };
+              if (prop.stats) prop.stats.locked = true;
+              break;
+            case 'unlock':
+              prop.currentStats = { ...prop.currentStats, state: 'closed' };
+              if (prop.stats) prop.stats.locked = false;
+              break;
+          }
+
+          prop.updatedAt = Date.now();
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+
+          // Increment version for conflict resolution
+          const currentVersion = state.entityVersions.get(eventData.propId) || 0;
+          state.entityVersions.set(eventData.propId, currentVersion + 1);
+          console.log('🎭 Props: Interacted with prop:', eventData.propId, eventData.action);
+        }
       }
     }
   },
@@ -1503,6 +1686,7 @@ export const useGameStore = create<GameStore>()(
           roomCode: state.session.roomCode, // Auto-inject current room code
           drawings: [], // Initialize with empty drawings array
           placedTokens: [], // Initialize with empty placed tokens array
+          placedProps: [], // Initialize with empty placed props array
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
@@ -1716,6 +1900,7 @@ export const useGameStore = create<GameStore>()(
           name: `${originalScene.name} (Copy)`,
           drawings: [...originalScene.drawings], // Deep copy drawings
           placedTokens: [...originalScene.placedTokens], // Deep copy tokens
+          placedProps: [...originalScene.placedProps], // Deep copy props
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
@@ -1977,6 +2162,24 @@ export const useGameStore = create<GameStore>()(
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
           }
         });
+
+        // Clear selection if this token was selected
+        const state = get();
+        if (state.selectedObjectIds.includes(tokenId)) {
+          get().clearSelection();
+        }
+
+        // Broadcast deletion via WebSocket
+        (async () => {
+          const { webSocketService } = await import('@/utils/websocket');
+          webSocketService.sendEvent({
+            type: 'token/delete',
+            data: {
+              sceneId,
+              tokenId,
+            },
+          });
+        })();
       },
 
       getSceneTokens: (sceneId) => {
@@ -2083,9 +2286,314 @@ export const useGameStore = create<GameStore>()(
               });
             }
             break;
+          case 'prop-move':
+            // Restore the prop to its previous position
+            get().moveProp(
+              update.localState.sceneId || '',
+              update.localState.id,
+              { x: update.localState.x, y: update.localState.y },
+              update.localState.rotation,
+            );
+
+            // Restore the previous version
+            if (update.previousVersion !== undefined) {
+              set((state) => {
+                state.entityVersions.set(update.localState.id, update.previousVersion!);
+              });
+            }
+            break;
+          case 'prop-update':
+            // Restore the prop to its previous state
+            get().updateProp(
+              update.localState.sceneId || '',
+              update.localState.id,
+              update.localState,
+            );
+
+            // Restore the previous version
+            if (update.previousVersion !== undefined) {
+              set((state) => {
+                state.entityVersions.set(update.localState.id, update.previousVersion!);
+              });
+            }
+            break;
         }
 
         pendingUpdates.delete(updateId);
+      },
+
+      // Prop Management Actions
+      placeProp: (sceneId, prop) => {
+        set((state) => {
+          const sceneIndex = state.sceneState.scenes.findIndex(
+            (s) => s.id === sceneId,
+          );
+          if (sceneIndex >= 0) {
+            if (!state.sceneState.scenes[sceneIndex].placedProps) {
+              state.sceneState.scenes[sceneIndex].placedProps = [];
+            }
+            state.sceneState.scenes[sceneIndex].placedProps.push(prop);
+            state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+          }
+        });
+      },
+
+      moveProp: (sceneId, propId, position, rotation) => {
+        set((state) => {
+          const sceneIndex = state.sceneState.scenes.findIndex(
+            (s) => s.id === sceneId,
+          );
+          if (
+            sceneIndex >= 0 &&
+            state.sceneState.scenes[sceneIndex].placedProps
+          ) {
+            const propIndex = state.sceneState.scenes[
+              sceneIndex
+            ].placedProps.findIndex((p) => p.id === propId);
+            if (propIndex >= 0) {
+              state.sceneState.scenes[sceneIndex].placedProps[propIndex].x =
+                position.x;
+              state.sceneState.scenes[sceneIndex].placedProps[propIndex].y =
+                position.y;
+              if (rotation !== undefined) {
+                state.sceneState.scenes[sceneIndex].placedProps[
+                  propIndex
+                ].rotation = rotation;
+              }
+              state.sceneState.scenes[sceneIndex].placedProps[
+                propIndex
+              ].updatedAt = Date.now();
+              state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+            }
+          }
+        });
+      },
+
+      updateProp: (sceneId, propId, updates) => {
+        set((state) => {
+          const sceneIndex = state.sceneState.scenes.findIndex(
+            (s) => s.id === sceneId,
+          );
+          if (
+            sceneIndex >= 0 &&
+            state.sceneState.scenes[sceneIndex].placedProps
+          ) {
+            const propIndex = state.sceneState.scenes[
+              sceneIndex
+            ].placedProps.findIndex((p) => p.id === propId);
+            if (propIndex >= 0) {
+              const propToUpdate =
+                state.sceneState.scenes[sceneIndex].placedProps[propIndex];
+              Object.assign(propToUpdate, updates);
+              propToUpdate.updatedAt = Date.now();
+              state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+            }
+          }
+        });
+      },
+
+      deleteProp: (sceneId, propId) => {
+        set((state) => {
+          const sceneIndex = state.sceneState.scenes.findIndex(
+            (s) => s.id === sceneId,
+          );
+          if (
+            sceneIndex >= 0 &&
+            state.sceneState.scenes[sceneIndex].placedProps
+          ) {
+            state.sceneState.scenes[sceneIndex].placedProps =
+              state.sceneState.scenes[sceneIndex].placedProps.filter(
+                (p) => p.id !== propId,
+              );
+            state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+          }
+        });
+      },
+
+      interactWithProp: (sceneId, propId, action) => {
+        set((state) => {
+          const sceneIndex = state.sceneState.scenes.findIndex(
+            (s) => s.id === sceneId,
+          );
+          if (
+            sceneIndex >= 0 &&
+            state.sceneState.scenes[sceneIndex].placedProps
+          ) {
+            const propIndex = state.sceneState.scenes[
+              sceneIndex
+            ].placedProps.findIndex((p) => p.id === propId);
+            if (propIndex >= 0) {
+              const prop = state.sceneState.scenes[sceneIndex].placedProps[propIndex];
+
+              // Update prop state based on action
+              if (!prop.stats) prop.stats = {};
+
+              switch (action) {
+                case 'open':
+                  prop.currentStats = { ...prop.currentStats, state: 'open' };
+                  break;
+                case 'close':
+                  prop.currentStats = { ...prop.currentStats, state: 'closed' };
+                  break;
+                case 'lock':
+                  prop.currentStats = { ...prop.currentStats, state: 'locked' };
+                  if (prop.stats) prop.stats.locked = true;
+                  break;
+                case 'unlock':
+                  prop.currentStats = { ...prop.currentStats, state: 'closed' };
+                  if (prop.stats) prop.stats.locked = false;
+                  break;
+              }
+
+              prop.updatedAt = Date.now();
+              state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+            }
+          }
+        });
+
+        // Send to server
+        import('@/utils/websocket').then(({ webSocketService }) => {
+          webSocketService.sendEvent({
+            type: 'prop/interact',
+            data: {
+              sceneId,
+              propId,
+              action,
+              expectedVersion: get().getEntityVersion(propId),
+            },
+          });
+        });
+      },
+
+      getSceneProps: (sceneId) => {
+        const state = get();
+        const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
+        return scene?.placedProps || [];
+      },
+
+      getVisibleProps: (sceneId, isHost) => {
+        const state = get();
+        const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
+        if (!scene) return [];
+
+        return scene.placedProps.filter((prop) => {
+          // DM can see all props
+          if (isHost) return true;
+
+          // Players can only see visible props
+          if (!prop.visibleToPlayers) return false;
+          if (prop.dmNotesOnly) return false;
+
+          return true;
+        });
+      },
+
+      getPlacedPropById: (sceneId, propId) => {
+        const state = get();
+        const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
+        return scene?.placedProps.find((p) => p.id === propId);
+      },
+
+      // Prop Optimistic Update Actions
+      movePropOptimistic: (sceneId, propId, position, rotation) => {
+        const updateId = `prop-move-${propId}-${Date.now()}`;
+
+        // Store current state for potential rollback
+        const prop = get()
+          .getSceneProps(sceneId)
+          .find((p) => p.id === propId);
+        if (!prop) return;
+
+        // Get the expected version BEFORE incrementing
+        const expectedVersion = get().getEntityVersion(propId);
+
+        // Store the pending update for rollback capability (including the version)
+        pendingUpdates.set(updateId, {
+          id: updateId,
+          type: 'prop-move',
+          localState: { ...prop, sceneId },
+          timestamp: Date.now(),
+          previousVersion: expectedVersion,
+        });
+
+        // Update optimistically
+        get().moveProp(sceneId, propId, position, rotation);
+
+        // Increment the local version immediately to prevent version conflicts on rapid updates
+        get().incrementEntityVersion(propId);
+
+        // Send to server with updateId and version for tracking
+        import('@/utils/websocket').then(({ webSocketService }) => {
+          webSocketService.sendEvent({
+            type: 'prop/move',
+            data: {
+              sceneId,
+              propId,
+              position,
+              rotation,
+              updateId,
+              expectedVersion,
+            },
+          });
+        });
+
+        // Set timeout for automatic rollback if no confirmation (5 seconds)
+        setTimeout(() => {
+          if (pendingUpdates.has(updateId)) {
+            console.warn('Server confirmation timeout, rolling back', updateId);
+            get().rollbackUpdate(updateId);
+          }
+        }, 5000);
+      },
+
+      updatePropOptimistic: (sceneId, propId, updates) => {
+        const updateId = `prop-update-${propId}-${Date.now()}`;
+
+        // Store current state for potential rollback
+        const prop = get()
+          .getSceneProps(sceneId)
+          .find((p) => p.id === propId);
+        if (!prop) return;
+
+        // Get the expected version BEFORE incrementing
+        const expectedVersion = get().getEntityVersion(propId);
+
+        // Store the pending update for rollback capability
+        pendingUpdates.set(updateId, {
+          id: updateId,
+          type: 'prop-update',
+          localState: { ...prop, sceneId },
+          timestamp: Date.now(),
+          previousVersion: expectedVersion,
+        });
+
+        // Update optimistically
+        get().updateProp(sceneId, propId, updates);
+
+        // Increment the local version immediately
+        get().incrementEntityVersion(propId);
+
+        // Send to server with updateId and version for tracking
+        import('@/utils/websocket').then(({ webSocketService }) => {
+          webSocketService.sendEvent({
+            type: 'prop/update',
+            data: {
+              sceneId,
+              propId,
+              updates,
+              updateId,
+              expectedVersion,
+            },
+          });
+        });
+
+        // Set timeout for automatic rollback if no confirmation (5 seconds)
+        setTimeout(() => {
+          if (pendingUpdates.has(updateId)) {
+            console.warn('Server confirmation timeout, rolling back', updateId);
+            get().rollbackUpdate(updateId);
+          }
+        }, 5000);
       },
 
       resetSettings: () => {
@@ -2917,6 +3425,19 @@ export const useVisibleDrawings = (sceneId: string) =>
     return state.getVisibleDrawings(sceneId, isHost);
   });
 
+// Prop selectors
+export const usePlacedProps = (sceneId: string) =>
+  useGameStore((state) => {
+    const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
+    return scene?.placedProps || [];
+  });
+
+export const useVisibleProps = (sceneId: string) =>
+  useGameStore((state) => {
+    const isHost = state.user.type === 'host';
+    return state.getVisibleProps(sceneId, isHost);
+  });
+
 export const useDrawingActions = () =>
   useGameStore(
     useShallow((state) => ({
@@ -2961,4 +3482,36 @@ export const useSelectedPlacedToken = () =>
       totalTokens: scene.placedTokens?.length || 0
     });
     return token;
+  });
+
+// Prop selection selector
+export const useSelectedPlacedProp = () =>
+  useGameStore((state) => {
+    const { scenes, activeSceneId, selectedObjectIds } = state.sceneState;
+    console.log('🔍 useSelectedPlacedProp computing:', {
+      selectedObjectIds,
+      selectedCount: selectedObjectIds.length,
+      activeSceneId
+    });
+
+    if (selectedObjectIds.length !== 1) {
+      console.log('❌ useSelectedPlacedProp: not exactly one selected');
+      return null;
+    }
+
+    const scene = scenes.find((s) => s.id === activeSceneId);
+    if (!scene) {
+      console.log('❌ useSelectedPlacedProp: scene not found');
+      return null;
+    }
+
+    const selectedId = selectedObjectIds[0];
+    const prop = scene.placedProps?.find((p) => p.id === selectedId) || null;
+    console.log('🔍 useSelectedPlacedProp result:', {
+      selectedId,
+      foundProp: !!prop,
+      propId: prop?.id,
+      totalProps: scene.placedProps?.length || 0
+    });
+    return prop;
   });

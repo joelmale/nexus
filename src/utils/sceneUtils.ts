@@ -165,6 +165,7 @@ export const sceneUtils = {
       },
       drawings: [],
       placedTokens: [],
+      placedProps: [],
       isActive: false,
       playerCount: 0,
     };

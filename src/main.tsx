@@ -18,8 +18,9 @@ import {
   getCSSQueueStatus,
 } from './utils/cssLoader';
 import { initializeTheme } from './utils/themeManager';
+import { propAssetManager } from './services/propAssets';
 
-// Load non-critical styles after initial render for better performance
+// Load non-critical styles and assets after initial render for better performance
 const loadNonCriticalStyles = async () => {
   try {
     // Load utility and accessibility styles
@@ -27,6 +28,10 @@ const loadNonCriticalStyles = async () => {
 
     // Initialize theme system (loads appropriate theme styles)
     await initializeTheme();
+
+    // Initialize prop asset manager
+    await propAssetManager.initialize();
+    console.log('🎭 Props: Asset manager initialized');
 
     console.debug('✅ Non-critical styles loaded successfully');
   } catch (error) {

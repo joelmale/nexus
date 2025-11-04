@@ -64,6 +64,33 @@ class PropAssetManager {
         updatedAt: Date.now(),
         props: this.createDefaultTreasureProps(),
       },
+      {
+        id: 'default-decoration',
+        name: 'Decorations',
+        description: 'Decorative objects and environment details',
+        isDefault: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        props: this.createDefaultDecorationProps(),
+      },
+      {
+        id: 'default-traps',
+        name: 'Traps & Hazards',
+        description: 'Dangerous obstacles and hidden traps',
+        isDefault: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        props: this.createDefaultTrapProps(),
+      },
+      {
+        id: 'default-effects',
+        name: 'Effects & Markers',
+        description: 'Visual effects and battlefield markers',
+        isDefault: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        props: this.createDefaultEffectProps(),
+      },
     ];
   }
 
@@ -107,12 +134,28 @@ class PropAssetManager {
         category: 'container' as PropCategory,
         size: 'small' as const,
         tags: ['container', 'barrel', 'storage'],
+        interactive: true,
       },
       {
         name: 'Crate',
         category: 'container' as PropCategory,
         size: 'small' as const,
         tags: ['container', 'crate', 'storage'],
+        interactive: true,
+      },
+      {
+        name: 'Sack',
+        category: 'container' as PropCategory,
+        size: 'tiny' as const,
+        tags: ['container', 'sack', 'storage'],
+        interactive: true,
+      },
+      {
+        name: 'Wardrobe',
+        category: 'container' as PropCategory,
+        size: 'large' as const,
+        tags: ['container', 'wardrobe', 'storage'],
+        interactive: true,
       },
       {
         name: 'Torch',
@@ -136,7 +179,7 @@ class PropAssetManager {
       },
     ];
 
-    return baseProps.map((prop) => ({
+    return baseProps.map((prop: any) => ({
       id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: prop.name,
       image: this.generatePlaceholderPropImage(prop.name),
@@ -144,6 +187,7 @@ class PropAssetManager {
       category: prop.category,
       tags: prop.tags,
       stats: prop.stats,
+      interactive: prop.interactive,
       isCustom: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -161,6 +205,7 @@ class PropAssetManager {
         size: 'small' as const,
         tags: ['treasure', 'chest', 'container'],
         stats: { locked: true },
+        interactive: true,
       },
       {
         name: 'Gold Pile',
@@ -194,7 +239,7 @@ class PropAssetManager {
       },
     ];
 
-    return baseProps.map((prop) => ({
+    return baseProps.map((prop: any) => ({
       id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: prop.name,
       image: this.generatePlaceholderPropImage(prop.name),
@@ -202,6 +247,178 @@ class PropAssetManager {
       category: prop.category,
       tags: prop.tags,
       stats: prop.stats,
+      interactive: prop.interactive,
+      isCustom: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }));
+  }
+
+  /**
+   * Create default decoration props
+   */
+  private createDefaultDecorationProps(): Prop[] {
+    const baseProps = [
+      {
+        name: 'Tapestry',
+        category: 'decoration' as PropCategory,
+        size: 'medium' as const,
+        tags: ['decoration', 'tapestry', 'wall'],
+      },
+      {
+        name: 'Painting',
+        category: 'decoration' as PropCategory,
+        size: 'small' as const,
+        tags: ['decoration', 'art', 'wall'],
+      },
+      {
+        name: 'Rug',
+        category: 'decoration' as PropCategory,
+        size: 'large' as const,
+        tags: ['decoration', 'rug', 'floor'],
+      },
+      {
+        name: 'Banner',
+        category: 'decoration' as PropCategory,
+        size: 'medium' as const,
+        tags: ['decoration', 'banner', 'hanging'],
+      },
+      {
+        name: 'Fountain',
+        category: 'decoration' as PropCategory,
+        size: 'large' as const,
+        tags: ['decoration', 'fountain', 'water'],
+      },
+      {
+        name: 'Pillar',
+        category: 'decoration' as PropCategory,
+        size: 'medium' as const,
+        tags: ['decoration', 'pillar', 'column'],
+      },
+      {
+        name: 'Plant',
+        category: 'decoration' as PropCategory,
+        size: 'small' as const,
+        tags: ['decoration', 'plant', 'nature'],
+      },
+    ];
+
+    return baseProps.map((prop) => ({
+      id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: prop.name,
+      image: this.generatePlaceholderPropImage(prop.name),
+      size: prop.size,
+      category: prop.category,
+      tags: prop.tags,
+      isCustom: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }));
+  }
+
+  /**
+   * Create default trap props
+   */
+  private createDefaultTrapProps(): Prop[] {
+    const baseProps = [
+      {
+        name: 'Spike Trap',
+        category: 'trap' as PropCategory,
+        size: 'small' as const,
+        tags: ['trap', 'spikes', 'danger'],
+      },
+      {
+        name: 'Pit Trap',
+        category: 'trap' as PropCategory,
+        size: 'medium' as const,
+        tags: ['trap', 'pit', 'fall'],
+      },
+      {
+        name: 'Arrow Trap',
+        category: 'trap' as PropCategory,
+        size: 'small' as const,
+        tags: ['trap', 'arrow', 'projectile'],
+      },
+      {
+        name: 'Pressure Plate',
+        category: 'trap' as PropCategory,
+        size: 'small' as const,
+        tags: ['trap', 'trigger', 'floor'],
+      },
+      {
+        name: 'Bear Trap',
+        category: 'trap' as PropCategory,
+        size: 'small' as const,
+        tags: ['trap', 'bear', 'clamp'],
+      },
+    ];
+
+    return baseProps.map((prop) => ({
+      id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: prop.name,
+      image: this.generatePlaceholderPropImage(prop.name),
+      size: prop.size,
+      category: prop.category,
+      tags: prop.tags,
+      isCustom: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }));
+  }
+
+  /**
+   * Create default effect props
+   */
+  private createDefaultEffectProps(): Prop[] {
+    const baseProps = [
+      {
+        name: 'Fire',
+        category: 'effect' as PropCategory,
+        size: 'small' as const,
+        tags: ['effect', 'fire', 'hazard'],
+        stats: { lightRadius: 15 },
+      },
+      {
+        name: 'Smoke',
+        category: 'effect' as PropCategory,
+        size: 'medium' as const,
+        tags: ['effect', 'smoke', 'obscure'],
+      },
+      {
+        name: 'Magic Circle',
+        category: 'effect' as PropCategory,
+        size: 'large' as const,
+        tags: ['effect', 'magic', 'circle'],
+      },
+      {
+        name: 'Blood Pool',
+        category: 'effect' as PropCategory,
+        size: 'medium' as const,
+        tags: ['effect', 'blood', 'gore'],
+      },
+      {
+        name: 'Ice Patch',
+        category: 'effect' as PropCategory,
+        size: 'medium' as const,
+        tags: ['effect', 'ice', 'terrain'],
+      },
+      {
+        name: 'Web',
+        category: 'effect' as PropCategory,
+        size: 'large' as const,
+        tags: ['effect', 'web', 'trap'],
+      },
+    ];
+
+    return baseProps.map((prop: any) => ({
+      id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: prop.name,
+      image: this.generatePlaceholderPropImage(prop.name),
+      size: prop.size,
+      category: prop.category,
+      tags: prop.tags,
+      stats: prop.stats,
+      interactive: prop.interactive,
       isCustom: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
