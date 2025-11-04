@@ -20,6 +20,9 @@ RUN npm ci
 COPY server/ ./server/
 COPY shared/ ./shared/
 
+# Copy static assets (manifest.json, images, etc.)
+COPY static-assets/ ./static-assets/
+
 # Build the server
 RUN npm run build:server
 
