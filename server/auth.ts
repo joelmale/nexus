@@ -100,6 +100,15 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
+const googleCallbackURL = process.env.GOOGLE_CALLBACK_URL;
+
+if (process.env.NODE_ENV === 'production' && (!googleCallbackURL || !googleCallbackURL.startsWith('https')))
+  {
+    throw new Error(
+      'GOOGLE_CALLBACK_URL must be an absolute URL in production (e.g., https://your-domain.com/auth/google/callback)',
+    );
+  }
+
 /**
  * Google OAuth 2.0 Strategy Configuration
  * Handles authentication via Google accounts
@@ -109,7 +118,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID || 'placeholder',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'placeholder',
-      callbackURL: process.env.GOOGLE_CALLBACK_URL || '/auth/google/callback',
+      callbackURL: googleCallbackURL || '/auth/google/callback',
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
