@@ -28,7 +28,23 @@ interface Campaign {
   updatedAt: string;
 }
 
-import type { Character } from '@/types/character';
+/**
+ * Character record from the database
+ * @interface CharacterRecord
+ */
+interface CharacterRecord {
+  id: string;
+  name: string;
+  ownerId: string;
+  data: {
+    race?: string;
+    class?: string;
+    level?: number;
+    [key: string]: unknown;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
 
 /**
  * Dashboard component for authenticated users
@@ -41,7 +57,7 @@ export const Dashboard: React.FC = () => {
   const { user, isAuthenticated, logout, createGameRoom, joinRoomWithCode } = useGameStore();
   const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [characters, setCharacters] = useState<Character[]>([]);
+  const [characters, setCharacters] = useState<CharacterRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [charactersLoading, setCharactersLoading] = useState(true);
   const [authChecking, setAuthChecking] = useState(true);
@@ -53,7 +69,7 @@ export const Dashboard: React.FC = () => {
   const [startingSession, setStartingSession] = useState<string | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<
-    Character | undefined
+    CharacterRecord | undefined
   >(undefined);
   const [showJoinGameModal, setShowJoinGameModal] = useState(false);
   const [joinRoomCode, setJoinRoomCode] = useState('');
@@ -199,10 +215,10 @@ export const Dashboard: React.FC = () => {
       startCharacterCreation(
         user.id,
         'modal',
-        (characterId: string, character?: Character) => {
+        (characterId: string, character?: unknown) => {
           // Character saved to database via API, now add to local state
           if (character) {
-            handleSaveCharacter(character);
+            handleSaveCharacter(character as CharacterRecord);
           }
         },
         () => {
@@ -215,14 +231,14 @@ export const Dashboard: React.FC = () => {
   /**
    * Handles opening the character edit modal
    */
-  const handleEditCharacter = (character: Character) => {
+  const handleEditCharacter = (character: CharacterRecord) => {
     setEditingCharacter(character);
   };
 
   /**
    * Handles saving a character (create or update)
    */
-  const handleSaveCharacter = (character: Character) => {
+  const handleSaveCharacter = (character: CharacterRecord) => {
     if (editingCharacter) {
       // Update existing character
       setCharacters(

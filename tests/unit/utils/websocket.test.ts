@@ -45,7 +45,7 @@ describe('WebSocketManager', () => {
       onerror: null,
     };
 
-    vi.spyOn(webSocketService as any, 'tryConnectWithFallback').mockResolvedValue(mockWebSocket as any);
+    vi.spyOn(webSocketService as unknown as { tryConnectWithFallback: () => Promise<WebSocket> }, 'tryConnectWithFallback').mockResolvedValue(mockWebSocket as unknown as WebSocket);
   });
 
   afterEach(() => {
