@@ -109,7 +109,7 @@ class NexusServer {
   private documentClient: DocumentServiceClient;
 
   private readonly ASSETS_PATH =
-    process.env.ASSETS_PATH || path.join(__dirname, '../asset-server/assets');
+    process.env.ASSETS_PATH || path.join(__dirname, '../static-assets/assets');
   private readonly CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
   private readonly CACHE_MAX_AGE = parseInt(
     process.env.CACHE_MAX_AGE || '86400',

@@ -371,7 +371,7 @@ Asset serving:
 
 ### Manifest System
 
-**Location:** `/asset-server/assets/manifest.json`
+**Location:** `/static-assets/assets/manifest.json`
 
 ```typescript
 interface AssetManifest {

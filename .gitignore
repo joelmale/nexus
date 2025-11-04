@@ -144,8 +144,8 @@ public/assets/temp/
 src/assets/temp/
 
 # Processed assets (user-generated, can be recreated)
-asset-server/assets/
-!asset-server/assets/.gitkeep
+static-assets/assets/
+!static-assets/assets/.gitkeep
 
 # User asset processing working directories
 assets-working/

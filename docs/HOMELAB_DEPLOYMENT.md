@@ -311,7 +311,6 @@ docker stack services nexus
 # nexus_frontend     2/2 replicas
 # nexus_postgres     1/1 replicas
 # nexus_redis        1/1 replicas
-# nexus_asset-server 1/1 replicas
 ```
 
 Check service logs:

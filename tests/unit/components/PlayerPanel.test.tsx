@@ -5,7 +5,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { PlayerPanel } from '@/components/PlayerPanel';
 import { useSession, useIsHost, useGameStore } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
-import { useCharacterCreationLauncher } from '@/components/CharacterCreationLauncher';
+import { useCharacterCreationLauncher } from '@/hooks';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import type { Character } from '@/types/character';
 import type { Player, Session } from '@/types/game';
@@ -22,7 +22,7 @@ vi.mock('@/stores/characterStore', () => ({
   useCharacterCreation: vi.fn(),
 }));
 
-vi.mock('@/components/CharacterCreationLauncher', () => ({
+vi.mock('@/hooks', () => ({
   useCharacterCreationLauncher: vi.fn(),
 }));
 
@@ -91,23 +91,23 @@ describe('PlayerPanel', () => {
   const mockCharacters: Character[] = [
     {
       id: 'char-1',
-      playerId: 'player-1',
-      name: 'Alice Fighter',
+      playerId: 'host-123', // Character for the host
+      name: 'Host Character',
       level: 5,
-      race: { name: 'Human', size: 'Medium', speed: 30, traits: [] },
-      classes: [{ name: 'Fighter', level: 5, hitDie: 10, features: [] }],
-      hitPoints: { maximum: 47, current: 35, temporary: 0 },
-      armorClass: 18,
+      race: { name: 'Dragonborn', size: 'Medium', speed: 30, traits: [] },
+      classes: [{ name: 'Paladin', level: 5, hitDie: 10, features: [] }],
+      hitPoints: { maximum: 50, current: 40, temporary: 0 },
+      armorClass: 20,
     } as Character,
     {
       id: 'char-2',
-      playerId: 'player-1',
-      name: 'Alice Wizard',
+      playerId: 'player-1', // Character for Alice
+      name: 'Alice Fighter',
       level: 3,
-      race: { name: 'Elf', size: 'Medium', speed: 30, traits: [] },
-      classes: [{ name: 'Wizard', level: 3, hitDie: 6, features: [] }],
-      hitPoints: { maximum: 20, current: 20, temporary: 0 },
-      armorClass: 12,
+      race: { name: 'Human', size: 'Medium', speed: 30, traits: [] },
+      classes: [{ name: 'Fighter', level: 3, hitDie: 10, features: [] }],
+      hitPoints: { maximum: 30, current: 25, temporary: 0 },
+      armorClass: 18,
     } as Character,
   ];
 
@@ -166,13 +166,8 @@ describe('PlayerPanel', () => {
       expect(screen.getByText('Players & Characters')).toBeInTheDocument();
     });
 
-    it('should render my characters section', () => {
-      vi.mocked(useCharacters).mockReturnValue({
-        characters: mockCharacters,
-        activeCharacter: null,
-        ...mockCharacterActions,
-      });
-
+    it('should render my characters section for a player', () => {
+      vi.mocked(useIsHost).mockReturnValue(false); // Viewing as a player
       render(<PlayerPanel />);
 
       const myCharactersSection = screen
@@ -180,13 +175,31 @@ describe('PlayerPanel', () => {
         .closest('.my-characters-section')!;
       expect(myCharactersSection).toBeInTheDocument();
 
-      // Find character names within the My Characters section
+      // Should only show Alice's character
       expect(
         within(myCharactersSection).getByText('Alice Fighter'),
       ).toBeInTheDocument();
       expect(
-        within(myCharactersSection).getByText('Alice Wizard'),
+        within(myCharactersSection).queryByText('Host Character'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should render my characters section for a host', () => {
+      vi.mocked(useIsHost).mockReturnValue(true); // Viewing as the host
+      render(<PlayerPanel />);
+
+      const myCharactersSection = screen
+        .getByText('My Characters')
+        .closest('.my-characters-section')!;
+      expect(myCharactersSection).toBeInTheDocument();
+
+      // Should only show the host's character
+      expect(
+        within(myCharactersSection).getByText('Host Character'),
       ).toBeInTheDocument();
+      expect(
+        within(myCharactersSection).queryByText('Alice Fighter'),
+      ).not.toBeInTheDocument();
     });
 
     it('should render all players section', () => {
@@ -216,32 +229,22 @@ describe('PlayerPanel', () => {
   });
 
   describe('Character Management', () => {
-    it('should display character information correctly', () => {
+    it('should display character information correctly for a host', () => {
+      vi.mocked(useIsHost).mockReturnValue(true);
       render(<PlayerPanel />);
 
       const myCharactersSection = screen
         .getByText('My Characters')
         .closest('.my-characters-section')!;
 
-      // Find character names within the My Characters section
       const characterList = within(myCharactersSection)
-        .getByText('Alice Fighter')
+        .getByText('Host Character')
         .closest('.character-item')!;
       expect(
-        within(characterList).getByText('Level 5 Human Fighter'),
+        within(characterList).getByText('Level 5 Dragonborn Paladin'),
       ).toBeInTheDocument();
       expect(
-        within(characterList).getByText('HP: 35/47 | AC: 18'),
-      ).toBeInTheDocument();
-
-      const wizardCharacter = within(myCharactersSection)
-        .getByText('Alice Wizard')
-        .closest('.character-item')!;
-      expect(
-        within(wizardCharacter).getByText('Level 3 Elf Wizard'),
-      ).toBeInTheDocument();
-      expect(
-        within(wizardCharacter).getByText('HP: 20/20 | AC: 12'),
+        within(characterList).getByText('HP: 40/50 | AC: 20'),
       ).toBeInTheDocument();
     });
 
@@ -271,7 +274,7 @@ describe('PlayerPanel', () => {
       fireEvent.click(characterItem.closest('.character-item')!);
 
       expect(mockCharacterActions.setActiveCharacter).toHaveBeenCalledWith(
-        'char-1',
+        'char-2',
       );
     });
 
@@ -297,18 +300,15 @@ describe('PlayerPanel', () => {
     it('should display player connection status', () => {
       render(<PlayerPanel />);
 
-      // Since there are multiple online/offline indicators, query for all and check them
       const onlineIndicators = screen.getAllByText('Online');
       const offlineIndicators = screen.getAllByText('Offline');
 
-      // Find at least one online player
       expect(
         onlineIndicators.some((el) =>
           el.closest('.player-card')?.classList.contains('online'),
         ),
       ).toBe(true);
 
-      // Find at least one offline player
       expect(
         offlineIndicators.some((el) =>
           el.closest('.player-card')?.classList.contains('offline'),
@@ -325,15 +325,12 @@ describe('PlayerPanel', () => {
     it('should display character count for each player', () => {
       render(<PlayerPanel />);
 
-      // Host has 0 characters
       const hostCard = screen.getByText('Game Master').closest('.player-card');
-      expect(hostCard).toHaveTextContent('0 characters');
+      expect(hostCard).toHaveTextContent('1 character');
 
-      // Alice has 2 characters
       const aliceCard = screen.getByText('Alice').closest('.player-card');
-      expect(aliceCard).toHaveTextContent('2 characters');
+      expect(aliceCard).toHaveTextContent('1 character');
 
-      // Bob has 0 characters
       const bobCard = screen.getByText('Bob').closest('.player-card');
       expect(bobCard).toHaveTextContent('0 characters');
     });
@@ -343,7 +340,6 @@ describe('PlayerPanel', () => {
 
       render(<PlayerPanel />);
 
-      // Should show controls for non-host players
       const playerCards = screen.getAllByText('🚪'); // Kick buttons
       expect(playerCards).toHaveLength(2); // For Alice and Bob
     });
@@ -366,7 +362,7 @@ describe('PlayerPanel', () => {
       const beginCombatButton = screen.getByText('⚔️ Begin Combat');
       fireEvent.click(beginCombatButton);
 
-      expect(mockInitiativeActions.addEntry).toHaveBeenCalledTimes(2); // For each character
+      expect(mockInitiativeActions.addEntry).toHaveBeenCalledTimes(2);
       expect(mockInitiativeActions.rollInitiativeForAll).toHaveBeenCalled();
       expect(mockInitiativeActions.startCombat).toHaveBeenCalled();
     });
@@ -417,14 +413,14 @@ describe('PlayerPanel', () => {
     it('should render character sheet when character is selected', () => {
       vi.mocked(useCharacters).mockReturnValue({
         characters: mockCharacters,
-        activeCharacter: mockCharacters[0],
+        activeCharacter: mockCharacters[0], // Host Character
         ...mockCharacterActions,
       });
 
       render(<PlayerPanel />);
 
       expect(screen.getByTestId('character-sheet')).toBeInTheDocument();
-      expect(screen.getByText('Alice Fighter')).toBeInTheDocument();
+      expect(screen.getByText('Host Character')).toBeInTheDocument();
       expect(screen.getByText('← Back to Players')).toBeInTheDocument();
     });
 

@@ -52,16 +52,6 @@ services:
     volumes:
       - redis-dev-data:/data
 
-  # Asset server for development
-  asset-server:
-    image: nginx:alpine
-    volumes:
-      - ./assets:/usr/share/nginx/html:ro
-    ports:
-      - "8081:80"
-    networks:
-      - nexus-dev
-
   # Adminer for database inspection (if we add a DB later)
   # adminer:
   #   image: adminer

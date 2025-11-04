@@ -123,21 +123,6 @@ services:
       - postgres
       - redis
 
-  # Asset Server (Nginx for static assets) - Optional
-  asset-server:
-    image: nginx:alpine
-    volumes:
-      - ./asset-server/assets:/usr/share/nginx/html:ro
-    networks:
-      - nexus-network
-    ports:
-      - "8081:80"  # Exposed for NPM to proxy
-    deploy:
-      mode: replicated
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-
 networks:
   nexus-network:
     driver: overlay

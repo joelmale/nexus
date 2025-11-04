@@ -262,16 +262,6 @@ services:
   # Development Tools
   # =============================================================================
 
-  # Asset server for Nexus VTT assets
-  asset-server:
-    image: nginx:alpine
-    volumes:
-      - ./assets:/usr/share/nginx/html:ro
-    ports:
-      - '8081:80'
-    networks:
-      - nexus-integrated
-
   # Adminer - Database GUI (optional, uncomment to use)
   # adminer:
   #   image: adminer

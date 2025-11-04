@@ -416,13 +416,13 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
     console.log("");
     console.log("Examples:");
     console.log(
-      "  node process-assets.js /Volumes/PS2000w/DnD_Assets/maps ./asset-server/assets"
+      "  node process-assets.js /Volumes/PS2000w/DnD_Assets/maps ./static-assets/assets"
     );
     console.log(
-      "  node process-assets.js /path/to/tokens ./asset-server/assets"
+      "  node process-assets.js /path/to/tokens ./static-assets/assets"
     );
     console.log(
-      "  node process-assets.js /path/to/all-assets ./asset-server/assets"
+      "  node process-assets.js /path/to/all-assets ./static-assets/assets"
     );
     console.log("");
     console.log("Supported categories: Maps, Tokens, Art, Handouts, Reference");

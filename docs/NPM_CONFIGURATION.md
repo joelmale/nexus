@@ -187,32 +187,7 @@ Redirect root domain to app subdomain:
 
 ---
 
-## 4. Asset Server - `assets.nexusvtt.com` (Optional)
-
-If you want to serve assets from a separate domain:
-
-1. Create a new proxy host:
-   - **Domain Names:** `assets.nexusvtt.com`
-   - **Forward Hostname/IP:** `swarm-manager-ip`
-   - **Forward Port:** `8081`
-   - **Cache Assets:** ✅ Enable
-   - **Block Common Exploits:** ✅ Enable
-
-2. **SSL Tab:** Request SSL certificate
-
-3. **Advanced Tab:**
-   ```nginx
-   location / {
-       proxy_pass http://swarm-manager-ip:8081;
-
-       # Aggressive caching for assets
-       expires 1y;
-       add_header Cache-Control "public, immutable";
-
-       # CORS for cross-origin requests
-       add_header Access-Control-Allow-Origin * always;
-   }
-   ```
+**Note:** Assets are served directly by the backend server on port 5000. There is no separate asset-server service needed.
 
 ---
 

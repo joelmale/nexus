@@ -108,21 +108,6 @@ services:
         delay: 5s
         max_attempts: 3
 
-  # Asset server (for game assets)
-  asset-server:
-    image: nginx:alpine
-    volumes:
-      - ./assets:/usr/share/nginx/html:ro
-      - ./docker/nginx-assets.conf:/etc/nginx/nginx.conf:ro
-    networks:
-      - nexus-network
-    deploy:
-      replicas: 1
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.assets.rule=Host(`assets.${DOMAIN:-localhost}`)"
-        - "traefik.http.services.assets.loadbalancer.server.port=80"
-
 networks:
   nexus-network:
     driver: overlay
