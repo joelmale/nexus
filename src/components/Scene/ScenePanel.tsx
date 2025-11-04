@@ -142,6 +142,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                   },
                   drawings: [],
                   placedTokens: [],
+                  placedProps: [],
                   isActive: false,
                   playerCount: 0,
                 };

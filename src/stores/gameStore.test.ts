@@ -42,6 +42,7 @@ describe('gameStore event handlers', () => {
         createdBy: 'test-user',
         roomCode: 'TEST_ROOM',
         placedTokens: [],
+        placedProps: [],
         drawings: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -127,6 +128,7 @@ describe('gameStore event handlers', () => {
         createdBy: 'test-user',
         roomCode: 'TEST_ROOM',
         placedTokens: [initialToken],
+        placedProps: [],
         drawings: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -265,6 +267,7 @@ describe('gameStore event handlers', () => {
         roomCode: 'TEST_ROOM',
         placedTokens: [],
         drawings: [],
+        placedProps: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         gridSettings: {
@@ -294,6 +297,7 @@ describe('gameStore event handlers', () => {
         roomCode: 'TEST_ROOM',
         placedTokens: [],
         drawings: [],
+        placedProps: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         gridSettings: {
@@ -347,6 +351,7 @@ describe('gameStore event handlers', () => {
         roomCode: 'TEST_ROOM',
         placedTokens: [],
         drawings: [],
+        placedProps: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         gridSettings: {
@@ -401,6 +406,7 @@ describe('gameStore event handlers', () => {
         roomCode: 'ROOM_1',
         placedTokens: [],
         drawings: [],
+        placedProps: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         gridSettings: {
@@ -431,6 +437,7 @@ describe('gameStore event handlers', () => {
         roomCode: 'ROOM_2',
         placedTokens: [],
         drawings: [],
+        placedProps: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         gridSettings: {

@@ -24,11 +24,18 @@ export interface Point {
   y: number;
 }
 
+export interface ContainerItem {
+  id: string;
+  name: string;
+  quantity: number;
+  description?: string;
+}
+
 export interface PropStats {
   hp?: number;
   ac?: number;
   locked?: boolean;
-  contains?: string[]; // IDs of items inside
+  contents?: ContainerItem[]; // IDs of items inside
   lightRadius?: number; // For light sources
   [key: string]: unknown;
 }
@@ -49,11 +56,15 @@ export interface Prop {
   isPublic?: boolean; // Public = available to all players, Private = DM only
   createdAt: number;
   updatedAt: number;
+  interactive?: boolean;
+  lightRadius?: number;
+  lightColor?: string;
 }
 
 export interface PlacedProp {
   id: string;
   propId: string; // Reference to the base Prop
+  name?: string; // Optional name override
   sceneId: string;
   x: number;
   y: number;

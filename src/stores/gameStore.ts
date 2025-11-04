@@ -63,7 +63,7 @@ import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 interface PendingUpdate {
   id: string;
   type: string;
-  localState: PlacedToken & { sceneId: string };
+  localState: (PlacedToken | PlacedProp) & { sceneId: string };
   timestamp: number;
   previousVersion?: number; // Store the version before optimistic update for rollback
 }
@@ -739,8 +739,7 @@ const eventHandlers: Record<string, EventHandler> = {
         if (propIndex >= 0) {
           const prop = state.sceneState.scenes[sceneIndex].placedProps[propIndex];
 
-          // Update prop state based on action
-          if (!prop.stats) prop.stats = {};
+          if (!prop.currentStats) prop.currentStats = {};
 
           switch (eventData.action) {
             case 'open':
@@ -751,11 +750,11 @@ const eventHandlers: Record<string, EventHandler> = {
               break;
             case 'lock':
               prop.currentStats = { ...prop.currentStats, state: 'locked' };
-              if (prop.stats) prop.stats.locked = true;
+              if (prop.currentStats) prop.currentStats.locked = true;
               break;
             case 'unlock':
               prop.currentStats = { ...prop.currentStats, state: 'closed' };
-              if (prop.stats) prop.stats.locked = false;
+              if (prop.currentStats) prop.currentStats.locked = false;
               break;
           }
 
@@ -860,8 +859,9 @@ const eventHandlers: Record<string, EventHandler> = {
           ambientLight: 0.5,
           darkness: 0,
         },
-        drawings: [],
         placedTokens: [],
+        placedProps: [],
+        drawings: [],
         isActive: false,
         playerCount: 0,
         createdAt: Date.now(),
@@ -2165,7 +2165,7 @@ export const useGameStore = create<GameStore>()(
 
         // Clear selection if this token was selected
         const state = get();
-        if (state.selectedObjectIds.includes(tokenId)) {
+        if (state.sceneState.selectedObjectIds.includes(tokenId)) {
           get().clearSelection();
         }
 
@@ -2273,10 +2273,10 @@ export const useGameStore = create<GameStore>()(
           case 'token-move':
             // Restore the token to its previous position
             get().moveToken(
-              update.localState.sceneId || '', // Need to store sceneId in localState
+              (update.localState as PlacedToken).sceneId || '', // Need to store sceneId in localState
               update.localState.id,
               { x: update.localState.x, y: update.localState.y },
-              update.localState.rotation,
+              (update.localState as PlacedToken).rotation,
             );
 
             // Restore the previous version
@@ -2289,10 +2289,10 @@ export const useGameStore = create<GameStore>()(
           case 'prop-move':
             // Restore the prop to its previous position
             get().moveProp(
-              update.localState.sceneId || '',
+              (update.localState as PlacedProp).sceneId || '',
               update.localState.id,
               { x: update.localState.x, y: update.localState.y },
-              update.localState.rotation,
+              (update.localState as PlacedProp).rotation,
             );
 
             // Restore the previous version
@@ -2305,9 +2305,9 @@ export const useGameStore = create<GameStore>()(
           case 'prop-update':
             // Restore the prop to its previous state
             get().updateProp(
-              update.localState.sceneId || '',
+              (update.localState as PlacedProp).sceneId || '',
               update.localState.id,
-              update.localState,
+              update.localState as PlacedProp,
             );
 
             // Restore the previous version
@@ -2426,7 +2426,7 @@ export const useGameStore = create<GameStore>()(
               const prop = state.sceneState.scenes[sceneIndex].placedProps[propIndex];
 
               // Update prop state based on action
-              if (!prop.stats) prop.stats = {};
+              if (!prop.currentStats) prop.currentStats = {};
 
               switch (action) {
                 case 'open':
@@ -2437,11 +2437,11 @@ export const useGameStore = create<GameStore>()(
                   break;
                 case 'lock':
                   prop.currentStats = { ...prop.currentStats, state: 'locked' };
-                  if (prop.stats) prop.stats.locked = true;
+                  if (prop.currentStats) prop.currentStats.locked = true;
                   break;
                 case 'unlock':
                   prop.currentStats = { ...prop.currentStats, state: 'closed' };
-                  if (prop.stats) prop.stats.locked = false;
+                  if (prop.currentStats) prop.currentStats.locked = false;
                   break;
               }
 
