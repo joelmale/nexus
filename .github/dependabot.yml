@@ -10,9 +10,6 @@ updates:
     open-pull-requests-limit: 10
     reviewers:
       - "JoelN" # Update with your GitHub username
-    labels:
-      - "dependencies"
-      - "javascript"
     groups:
       development-dependencies:
         patterns:
@@ -50,9 +47,6 @@ updates:
       time: "04:00"
     reviewers:
       - "JoelN"
-    labels:
-      - "dependencies"
-      - "docker"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -63,6 +57,3 @@ updates:
       time: "04:00"
     reviewers:
       - "JoelN"
-    labels:
-      - "dependencies"
-      - "github-actions"
