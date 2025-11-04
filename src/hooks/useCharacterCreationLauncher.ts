@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { CharacterCreationContext } from '@/components/CharacterCreationLauncher';
+import { CharacterCreationContext } from '@/components/CharacterCreationContext';
 
 export const useCharacterCreationLauncher = () => {
   const context = useContext(CharacterCreationContext);

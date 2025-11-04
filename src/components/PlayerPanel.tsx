@@ -4,7 +4,7 @@ import { useSession, useIsHost } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import { CharacterSheet } from './CharacterSheet';
-import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
+import { useCharacterCreationLauncher } from '@/hooks';
 import type { Player } from '@/types/game';
 
 interface PlayerCardProps {

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { CharacterManager } from './CharacterManager';
-import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
+import { useCharacterCreationLauncher } from '@/hooks';
 import { DocumentLibrary } from './DocumentLibrary';
 import '@/styles/dashboard.css';
 
@@ -28,30 +28,7 @@ interface Campaign {
   updatedAt: string;
 }
 
-/**
- * Character data structure from API
- * @interface Character
- */
-interface Character {
-  /** Unique character identifier (UUID) */
-  id: string;
-  /** Character name */
-  name: string;
-  /** User ID of the character owner */
-  ownerId: string;
-  /** Character data (race, class, stats, etc.) */
-  data: {
-    race?: string;
-    class?: string;
-    level?: number;
-    portrait?: string;
-    [key: string]: unknown;
-  };
-  /** Timestamp when character was created */
-  createdAt: string;
-  /** Timestamp when character was last updated */
-  updatedAt: string;
-}
+import type { Character } from '@/types/character';
 
 /**
  * Dashboard component for authenticated users

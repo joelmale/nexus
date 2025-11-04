@@ -11,7 +11,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
-import { useCharacterCreationLauncher } from './CharacterCreationLauncher';
+import { useCharacterCreationLauncher } from '@/hooks';
 import { useCharacters } from '@/stores/characterStore';
 import { CharacterSheetPopup } from './CharacterSheetPopup';
 import type { Character } from '@/types/character';

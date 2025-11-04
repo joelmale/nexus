@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { Character } from '@/types/character';
 import { CharacterCreationWizard } from './CharacterCreationWizard';
 import { CharacterCreationContext } from './CharacterCreationContext';
 import {
@@ -19,14 +20,14 @@ export const CharacterCreationProvider: React.FC<{
   const [launcher, setLauncher] = useState<{
     playerId: string;
     context: 'fullpage' | 'modal';
-    onComplete: (characterId: string) => void;
+    onComplete: (characterId: string, character?: Character) => void;
     onCancel?: () => void;
   } | null>(null);
 
   const startCharacterCreation = async (
     playerId: string,
     context: 'fullpage' | 'modal' = 'modal',
-    onComplete: (characterId: string) => void,
+    onComplete: (characterId: string, character?: Character) => void,
     onCancel?: () => void,
   ) => {
     console.time('🎭 Character Creation Setup');
@@ -78,8 +79,8 @@ export const CharacterCreationProvider: React.FC<{
     <CharacterCreationLauncher
       playerId={launcher.playerId}
       context={launcher.context}
-      onComplete={(characterId) => {
-        launcher.onComplete(characterId);
+      onComplete={(characterId, character) => {
+        launcher.onComplete(characterId, character);
         closeLauncher();
       }}
       onCancel={() => {
@@ -108,7 +109,7 @@ export const CharacterCreationProvider: React.FC<{
 
 interface CharacterCreationLauncherProps {
   playerId: string;
-  onComplete: (characterId: string) => void;
+  onComplete: (characterId: string, character?: Character) => void;
   context: 'fullpage' | 'modal';
   onCancel?: () => void;
 }
@@ -123,9 +124,9 @@ export const CharacterCreationLauncher: React.FC<
 > = ({ playerId, onComplete, context, onCancel }) => {
   const [isActive, setIsActive] = useState(true);
 
-  const handleComplete = (characterId: string) => {
+  const handleComplete = (characterId: string, character?: Character) => {
     setIsActive(false);
-    onComplete(characterId);
+    onComplete(characterId, character);
   };
 
   const handleCancel = () => {
