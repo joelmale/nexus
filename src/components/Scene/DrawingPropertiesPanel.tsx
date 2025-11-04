@@ -22,6 +22,13 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
     activeScene?.drawings.filter((d) => selectedDrawingIds.includes(d.id)) ||
     [];
 
+  // Debug logging
+  console.log('🎨 DrawingPropertiesPanel:', {
+    selectedDrawingIds,
+    selectedDrawings: selectedDrawings.map(d => ({ id: d.id, type: d.type })),
+    count: selectedDrawings.length,
+  });
+
   // For single selection, use the drawing's style
   // For multi-selection, use the first drawing's style as default
   const firstDrawing = selectedDrawings[0];

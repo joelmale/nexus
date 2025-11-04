@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
 import type { Token } from '@/types/token';
 
@@ -27,7 +27,7 @@ export const DraggableToken: React.FC<DraggableTokenProps> = ({
 }) => {
   const [showConfigButton, setShowConfigButton] = useState(false);
 
-  const [{ isDragging }, drag] = useDrag(
+  const [{ isDragging }, drag, preview] = useDrag(
     () => ({
       type: 'TOKEN',
       item: { token },
@@ -37,6 +37,43 @@ export const DraggableToken: React.FC<DraggableTokenProps> = ({
     }),
     [token],
   );
+
+  // Create custom drag preview - show token image at appropriate size
+  useEffect(() => {
+    // Token size mapping (1 square = 60px by default)
+    const sizeMap: Record<string, number> = {
+      tiny: 30,
+      small: 45,
+      medium: 60,
+      large: 120,
+      huge: 180,
+      gargantuan: 240,
+    };
+
+    const pixelSize = sizeMap[token.size] || 60;
+
+    // Create an image element as drag preview
+    const img = new Image();
+    img.src = token.thumbnailImage || token.image;
+    img.width = pixelSize;
+    img.height = pixelSize;
+    img.style.borderRadius = '50%';
+    img.style.border = '3px solid rgba(74, 158, 255, 0.8)';
+    img.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.5)';
+
+    // Wait for image to load before setting as preview
+    img.onload = () => {
+      preview(img, {
+        anchorX: pixelSize / 2,
+        anchorY: pixelSize / 2,
+      });
+    };
+
+    // Fallback if image fails to load
+    img.onerror = () => {
+      console.warn('Failed to load token image for drag preview:', token.name);
+    };
+  }, [token, preview]);
 
   // Get category color CSS variable
   const categoryColorVar =

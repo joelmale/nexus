@@ -1323,16 +1323,17 @@ class NexusServer {
 
     if (
       message.type === 'event' &&
-      ['token/move', 'token/update', 'token/delete'].includes(
+      ['token/move', 'token/update', 'token/delete', 'prop/move', 'prop/update', 'prop/delete', 'prop/interact'].includes(
         (message.data as { name: string })?.name,
       )
     ) {
       const eventData = message.data as {
         name: string;
-        tokenId: string;
+        tokenId?: string;
+        propId?: string;
         expectedVersion: number;
       };
-      const entityId = eventData.tokenId;
+      const entityId = eventData.tokenId || eventData.propId;
       const expectedVersion = eventData.expectedVersion;
 
       if (entityId && expectedVersion !== undefined) {

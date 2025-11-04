@@ -7,6 +7,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { Settings } from './Settings';
 import { Placeholder } from './Placeholder';
 import { TokenPanel } from './Tokens/TokenPanel';
+import { PropPanel } from './Props/PropPanel';
 import { ChatPanel } from './ChatPanel';
 import { DocumentsPanel } from './DocumentsPanel';
 
@@ -124,7 +125,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
           >
             {activePanel === 'tokens' && <TokenPanel />}
             {activePanel === 'scene' && <ScenePanel scene={currentScene} />}
-            {activePanel === 'props' && <Placeholder title="Props" />}
+            {activePanel === 'props' && <PropPanel />}
             {activePanel === 'generator' && (
               <div style={{ padding: '2rem', textAlign: 'center' }}>
                 <p>Generator is now full-screen →</p>
