@@ -17,7 +17,7 @@
       "name": "backend",
       "build": {
         "builder": "DOCKERFILE",
-        "dockerfilePath": "Dockerfile"
+        "dockerfilePath": "docker/backend.Dockerfile"
       },
       "deploy": {
         "startCommand": "npm run server:start",
@@ -36,7 +36,7 @@
       "name": "frontend",
       "build": {
         "builder": "DOCKERFILE",
-        "dockerfilePath": "Dockerfile.frontend"
+        "dockerfilePath": "docker/frontend.Dockerfile"
       },
       "deploy": {
         "healthcheckPath": "/"
