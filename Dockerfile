@@ -20,11 +20,11 @@ RUN npm ci
 COPY server/ ./server/
 COPY shared/ ./shared/
 
-# Copy static assets (manifest.json, images, etc.)
-COPY static-assets/ ./static-assets/
-
 # Build the server
 RUN npm run build:server
+
+# Create empty assets directory (will be populated by volume or external storage in production)
+RUN mkdir -p ./static-assets/assets
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
