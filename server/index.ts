@@ -36,6 +36,7 @@ import type {
   ServerMessage,
   ServerDiceRollResultMessage,
   GameState,
+  ServerChatMessage,
 } from './types.js';
 
 // Shared types
@@ -1374,11 +1375,11 @@ class NexusServer {
       });
     }
 
-    if ((message as any).type === 'chat-message') {
+    if (message.type === 'chat-message') {
       this.handleChatMessage(
         fromUuid,
         connection,
-        message as ServerMessage & { data: { content: string } },
+        message,
       );
       return;
     }
@@ -1408,7 +1409,7 @@ class NexusServer {
   private handleChatMessage(
     fromUuid: string,
     connection: Connection,
-    message: ServerMessage & { data: { content: string } },
+    message: ServerChatMessage,
   ) {
     if (!connection.room) return;
     const room = this.rooms.get(connection.room);

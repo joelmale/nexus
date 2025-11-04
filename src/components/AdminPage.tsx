@@ -327,7 +327,7 @@ const WeaponTab: React.FC<{
     key: keyof Weapon | string;
     label: string;
     sortable?: boolean;
-    render?: (value: any, item: Weapon) => React.ReactNode;
+    render?: (value: Weapon[keyof Weapon], item: Weapon) => React.ReactNode;
   }> = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'type', label: 'Type', sortable: true },
@@ -371,7 +371,7 @@ const ArmorTab: React.FC<{
     key: keyof Armor | string;
     label: string;
     sortable?: boolean;
-    render?: (value: any, item: Armor) => React.ReactNode;
+    render?: (value: Armor[keyof Armor], item: Armor) => React.ReactNode;
   }> = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'type', label: 'Type', sortable: true },

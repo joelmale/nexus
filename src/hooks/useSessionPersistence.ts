@@ -7,7 +7,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/stores/gameStore';
-import { sessionPersistenceService } from '@/services/sessionPersistence';
+import {
+  sessionPersistenceService,
+  type PersistedSession,
+  type PersistedGameState,
+} from '@/services/sessionPersistence';
 
 interface UseSessionPersistenceOptions {
   autoSave?: boolean;
@@ -213,11 +217,16 @@ export function useSessionPersistence(
  * Hook for showing session recovery UI components
  */
 export function useSessionRecoveryUI() {
-  const [recoveryData, setRecoveryData] = useState({
+  const [recoveryData, setRecoveryData] = useState<{
+    isValid: boolean;
+    canReconnect: boolean;
+    session: PersistedSession | null;
+    gameState: PersistedGameState | null;
+  }>({
     isValid: false,
     canReconnect: false,
-    session: null as any,
-    gameState: null as any,
+    session: null,
+    gameState: null,
   });
 
   useEffect(() => {

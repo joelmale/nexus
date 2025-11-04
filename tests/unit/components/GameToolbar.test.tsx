@@ -17,16 +17,16 @@ describe('GameToolbar', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useGameStore as any).mockReturnValue({
+    (useGameStore as vi.Mock).mockReturnValue({
       setActiveTool,
       updateCamera,
     });
-    (useCamera as any).mockReturnValue({ x: 0, y: 0, zoom: 1.0 });
+    (useCamera as vi.Mock).mockReturnValue({ x: 0, y: 0, zoom: 1.0 });
   });
 
   it('should render the toolbar with default tool selected', () => {
-    (useActiveTool as any).mockReturnValue('select');
-    (useIsHost as any).mockReturnValue(false);
+    (useActiveTool as vi.Mock).mockReturnValue('select');
+    (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
     const selectButton = screen.getByRole('button', { name: '👆' });
@@ -34,8 +34,8 @@ describe('GameToolbar', () => {
   });
 
   it('should call setActiveTool when a tool button is clicked', () => {
-    (useActiveTool as any).mockReturnValue('select');
-    (useIsHost as any).mockReturnValue(false);
+    (useActiveTool as vi.Mock).mockReturnValue('select');
+    (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
     const panButton = screen.getByRole('button', { name: '✋' });
@@ -45,8 +45,8 @@ describe('GameToolbar', () => {
   });
 
   it('should show DM tools for the host', () => {
-    (useActiveTool as any).mockReturnValue('select');
-    (useIsHost as any).mockReturnValue(true);
+    (useActiveTool as vi.Mock).mockReturnValue('select');
+    (useIsHost as vi.Mock).mockReturnValue(true);
     render(<GameToolbar />);
 
     const createMaskButton = screen.getByRole('button', { name: '🌟' });
@@ -54,8 +54,8 @@ describe('GameToolbar', () => {
   });
 
   it('should not show DM tools for non-host players', () => {
-    (useActiveTool as any).mockReturnValue('select');
-    (useIsHost as any).mockReturnValue(false);
+    (useActiveTool as vi.Mock).mockReturnValue('select');
+    (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
     const createMaskButton = screen.queryByRole('button', { name: '🌟' });
@@ -63,8 +63,8 @@ describe('GameToolbar', () => {
   });
 
   it('should call updateCamera when zoom buttons are clicked', () => {
-    (useActiveTool as any).mockReturnValue('select');
-    (useIsHost as any).mockReturnValue(false);
+    (useActiveTool as vi.Mock).mockReturnValue('select');
+    (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
     const zoomInButton = screen.getByRole('button', { name: '➕' });
@@ -81,8 +81,8 @@ describe('GameToolbar', () => {
   });
 
   it('should render the toolbar with all the basic tools', () => {
-    (useActiveTool as any).mockReturnValue('select');
-    (useIsHost as any).mockReturnValue(false);
+    (useActiveTool as vi.Mock).mockReturnValue('select');
+    (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
     expect(screen.getByRole('button', { name: '👆' })).toBeInTheDocument();
@@ -96,8 +96,8 @@ describe('GameToolbar', () => {
   });
 
   it('should render the toolbar with all the drawing tools', () => {
-    (useActiveTool as any).mockReturnValue('select');
-    (useIsHost as any).mockReturnValue(false);
+    (useActiveTool as vi.Mock).mockReturnValue('select');
+    (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
     expect(screen.getByRole('button', { name: '⭕' })).toBeInTheDocument();

@@ -1,5 +1,6 @@
-import React, { useState, createContext } from 'react';
+import React, { useState } from 'react';
 import { CharacterCreationWizard } from './CharacterCreationWizard';
+import { CharacterCreationContext } from './CharacterCreationContext';
 import {
   loadPlayerPanelStyles,
   loadCharacterWizardStyles,
@@ -7,22 +8,10 @@ import {
   preloadOnUserIntent,
 } from '@/utils/cssLoader';
 import { getCurrentTheme } from '@/utils/themeManager';
-import type { Character } from '@/types/character';
+
 
 // Context for sharing character creation launcher across components
-interface CharacterCreationContextType {
-  startCharacterCreation: (
-    playerId: string,
-    context: 'fullpage' | 'modal',
-    onComplete: (characterId: string, character?: Character) => void,
-    onCancel?: () => void,
-  ) => void;
-  LauncherComponent: React.ReactNode;
-  isActive: boolean;
-}
 
-export const CharacterCreationContext =
-  createContext<CharacterCreationContextType | null>(null);
 
 export const CharacterCreationProvider: React.FC<{
   children: React.ReactNode;
@@ -115,8 +104,7 @@ export const CharacterCreationProvider: React.FC<{
   );
 };
 
-// Re-export the hook for convenience
-export { useCharacterCreationLauncher } from '@/hooks/useCharacterCreationLauncher';
+
 
 interface CharacterCreationLauncherProps {
   playerId: string;

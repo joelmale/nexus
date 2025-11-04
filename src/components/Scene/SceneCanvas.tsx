@@ -252,7 +252,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [scene.id, selectedObjectIds, isHost, getSceneProps, deleteProp, placeProp, setSelection]);
+  }, [scene.id, selectedObjectIds, isHost, getSceneProps, deleteProp, placeProp, setSelection, user.id]);
 
   // Camera controls
   const handleWheel = useCallback(

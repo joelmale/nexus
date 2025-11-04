@@ -1,6 +1,18 @@
 import React from 'react';
 import type { Prop, PropLibrary, PropCategory } from '@/types/prop';
 
+interface BaseProp {
+  name: string;
+  category: PropCategory;
+  size: 'tiny' | 'small' | 'medium' | 'large';
+  tags: string[];
+  stats?: {
+    lightRadius?: number;
+    locked?: boolean;
+  };
+  interactive?: boolean;
+}
+
 /**
  * Prop Asset Manager handles loading, caching, and organizing prop assets
  */
@@ -179,7 +191,7 @@ class PropAssetManager {
       },
     ];
 
-    return baseProps.map((prop: any) => ({
+    return baseProps.map((prop: BaseProp) => ({
       id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: prop.name,
       image: this.generatePlaceholderPropImage(prop.name),
@@ -239,7 +251,7 @@ class PropAssetManager {
       },
     ];
 
-    return baseProps.map((prop: any) => ({
+    return baseProps.map((prop: BaseProp) => ({
       id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: prop.name,
       image: this.generatePlaceholderPropImage(prop.name),
@@ -410,7 +422,7 @@ class PropAssetManager {
       },
     ];
 
-    return baseProps.map((prop: any) => ({
+    return baseProps.map((prop: BaseProp) => ({
       id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: prop.name,
       image: this.generatePlaceholderPropImage(prop.name),

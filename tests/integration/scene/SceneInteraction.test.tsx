@@ -5,6 +5,21 @@ import { SceneManager } from '@/components/Scene/SceneManager';
 import { useGameStore, useScenes, useActiveScene, useIsHost, useUser, useCamera, useActiveTool } from '@/stores/gameStore';
 import { vi } from 'vitest';
 import { act } from 'react';
+import type { PlayerCharacter, Camera, User, Scene } from '@/types/game';
+
+interface MockState {
+  user: User;
+  session: {
+    roomId: string;
+    players: { id: string; name: string; isHost: boolean }[];
+    characters: PlayerCharacter[];
+  };
+  scenes: Scene[];
+  activeSceneId: string;
+  activeTool: string;
+  camera: Camera;
+}
+
 
 // Mock the entire store module
 vi.mock('@/stores/gameStore');
@@ -21,7 +36,7 @@ vi.mock('@/components/Scene/SceneList', () => ({ SceneList: ({ scenes, onSceneSe
 vi.mock('@/components/Scene/SceneEditor', () => ({ SceneEditor: () => <div>Scene Editor</div> }));
 
 describe('Scene Interaction Integration Tests', () => {
-  let state;
+  let state: MockState;
   const mockSetActiveTool = vi.fn(tool => state.activeTool = tool);
   const mockAddDrawing = vi.fn((sceneId, drawing) => {
     const scene = state.scenes.find(s => s.id === sceneId);
@@ -46,16 +61,16 @@ describe('Scene Interaction Integration Tests', () => {
     };
 
     // Mock the hook implementations
-    (useGameStore as any).mockImplementation(selector => selector(state));
-    (useScenes as any).mockReturnValue(state.scenes);
-    (useActiveScene as any).mockReturnValue(state.scenes.find(s => s.id === state.activeSceneId));
-    (useIsHost as any).mockReturnValue(true);
-    (useUser as any).mockReturnValue(state.user);
-    (useCamera as any).mockReturnValue(state.camera);
-    (useActiveTool as any).mockReturnValue(state.activeTool);
+    (useGameStore as vi.Mock).mockImplementation(selector => selector(state));
+    (useScenes as vi.Mock).mockReturnValue(state.scenes);
+    (useActiveScene as vi.Mock).mockReturnValue(state.scenes.find(s => s.id === state.activeSceneId));
+    (useIsHost as vi.Mock).mockReturnValue(true);
+    (useUser as vi.Mock).mockReturnValue(state.user);
+    (useCamera as vi.Mock).mockReturnValue(state.camera);
+    (useActiveTool as vi.Mock).mockReturnValue(state.activeTool);
 
     // Mock actions separately
-    (useGameStore as any).mockReturnValue({
+    (useGameStore as vi.Mock).mockReturnValue({
       ...state,
       setActiveTool: mockSetActiveTool,
       addDrawing: mockAddDrawing,
@@ -80,7 +95,7 @@ describe('Scene Interaction Integration Tests', () => {
     expect(mockSetActiveTool).toHaveBeenCalledWith('rectangle');
     // Manually update state for next part of test
     state.activeTool = 'rectangle';
-    (useActiveTool as any).mockReturnValue(state.activeTool);
+    (useActiveTool as vi.Mock).mockReturnValue(state.activeTool);
 
     // Re-render to reflect the new active tool
     render(

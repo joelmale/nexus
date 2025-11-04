@@ -85,10 +85,18 @@ export interface ServerUpdateConfirmationMessage extends BaseServerMessage {
   };
 }
 
+export interface ServerChatMessage extends BaseServerMessage {
+  type: 'chat-message';
+  data: {
+    content: string;
+  };
+}
+
 // Union type for all possible server messages
 export type ServerMessage =
   | ServerEventMessage
   | ServerDiceRollResultMessage
   | ServerErrorMessage
   | ServerHeartbeatMessage
-  | ServerUpdateConfirmationMessage;
+  | ServerUpdateConfirmationMessage
+  | ServerChatMessage;

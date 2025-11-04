@@ -992,7 +992,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       user.id,
       createAndSyncDrawing,
       pencilPath,
-      _gridSize,
       roomCode,
     ],
   );

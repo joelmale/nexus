@@ -1456,7 +1456,7 @@ export const useGameStore = create<GameStore>()(
 
           if (recoveryData.gameState && recoveryData.gameState.scenes.length > 0) {
             console.log('📂 Restoring game state from localStorage for campaign:', {
-              scenes: recoveryData.gameState.scenes.map((s: any) => ({
+              scenes: recoveryData.gameState.scenes.map((s: Scene) => ({
                 id: s.id,
                 name: s.name,
                 hasBackground: !!s.backgroundImage,
