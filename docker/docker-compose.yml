@@ -34,7 +34,7 @@ services:
 
   # Frontend (React app)
   frontend:
-    image: nexus-vtt/frontend:${VERSION:-latest}
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-joelmale/nexus}/frontend:${VERSION:-latest}
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
@@ -61,7 +61,7 @@ services:
 
   # Backend (WebSocket server)
   backend:
-    image: nexus-vtt/backend:${VERSION:-latest}
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-joelmale/nexus}/backend:${VERSION:-latest}
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
