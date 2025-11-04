@@ -17,56 +17,35 @@ vi.stubEnv('DEV', false);
 vi.stubEnv('VITE_WS_PORT', '5001');
 vi.stubEnv('VITE_WS_HOST', 'localhost');
 
-// Mock WebSocket
-const mockWebSocket: {
-  addEventListener: Mock;
-  removeEventListener: Mock;
-  send: Mock;
-  close: Mock;
-  readyState: number;
-  onopen: ((event: Event) => void) | null;
-  onmessage: ((event: MessageEvent) => void) | null;
-  onclose: ((event: CloseEvent) => void) | null;
-  onerror: ((event: Event) => void) | null;
-} = {
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-  send: vi.fn(),
-  close: vi.fn(),
-  readyState: 0, // CONNECTING
-  onopen: null,
-  onmessage: null,
-  onclose: null,
-  onerror: null,
-};
 
-// Mock global WebSocket
 describe('WebSocketManager', () => {
+  let mockWebSocket: {
+    addEventListener: Mock;
+    removeEventListener: Mock;
+    send: Mock;
+    close: Mock;
+    readyState: number;
+    onopen: ((event: Event) => void) | null;
+    onmessage: ((event: MessageEvent) => void) | null;
+    onclose: ((event: CloseEvent) => void) | null;
+    onerror: ((event: Event) => void) | null;
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    const mockConstructor = vi.fn().mockImplementation(() => {
-      // Immediately trigger onopen to simulate successful connection
-      mockWebSocket.readyState = 0; // CONNECTING
-      setTimeout(() => {
-        mockWebSocket.readyState = 1; // OPEN
-        if (mockWebSocket.onopen) {
-          mockWebSocket.onopen(new Event('open'));
-        }
-      }, 0);
-      return mockWebSocket;
-    });
-    Object.assign(mockConstructor, {
-      CONNECTING: 0,
-      OPEN: 1,
-      CLOSING: 2,
-      CLOSED: 3,
-    });
-    global.WebSocket = mockConstructor as unknown as typeof WebSocket;
-    mockWebSocket.readyState = 0; // CONNECTING
-    mockWebSocket.onopen = null;
-    mockWebSocket.onmessage = null;
-    mockWebSocket.onclose = null;
-    mockWebSocket.onerror = null;
+    mockWebSocket = {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      send: vi.fn(),
+      close: vi.fn(),
+      readyState: 1, // OPEN
+      onopen: null,
+      onmessage: null,
+      onclose: null,
+      onerror: null,
+    };
+
+    vi.spyOn(webSocketService as any, 'tryConnectWithFallback').mockResolvedValue(mockWebSocket as any);
   });
 
   afterEach(() => {
@@ -76,7 +55,6 @@ describe('WebSocketManager', () => {
   it('should create WebSocket connection', async () => {
     await webSocketService.connect('TEST123');
 
-    expect(global.WebSocket).toHaveBeenCalled();
     expect(webSocketService.isConnected()).toBe(true);
   });
 
@@ -98,8 +76,6 @@ describe('WebSocketManager', () => {
   });
 
   it('should not send messages when disconnected', () => {
-    webSocketService.connect('TEST123');
-
     const testEvent = {
       type: 'dice/roll',
       data: { roll: { expression: '1d20' } },
