@@ -27,6 +27,7 @@ jobs:
     outputs:
       frontend_image: ${{ steps.meta.outputs.frontend_image }}
       backend_image: ${{ steps.meta.outputs.backend_image }}
+      postgres_image: ${{ steps.meta.outputs.postgres_image }}
       version: ${{ steps.meta.outputs.version }}
 
     steps:
@@ -55,6 +56,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "frontend_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:$VERSION" >> $GITHUB_OUTPUT
           echo "backend_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:$VERSION" >> $GITHUB_OUTPUT
+          echo "postgres_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/postgres:$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build and push frontend
         uses: docker/build-push-action@v5
@@ -87,6 +89,18 @@ jobs:
             VERSION=${{ steps.meta.outputs.version }}
             COMMIT_SHA=${{ github.sha }}
 
+      - name: Build and push postgres
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/postgres.Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/postgres:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/postgres:latest
+          cache-from: type=gha,scope=postgres-homelab
+          cache-to: type=gha,mode=max,scope=postgres-homelab
+
   trigger-portainer-webhook:
     name: Trigger Portainer Deployment
     runs-on: ubuntu-latest
@@ -107,7 +121,8 @@ jobs:
             -d '{
               "version": "${{ needs.build-and-push.outputs.version }}",
               "frontend_image": "${{ needs.build-and-push.outputs.frontend_image }}",
-              "backend_image": "${{ needs.build-and-push.outputs.backend_image }}"
+              "backend_image": "${{ needs.build-and-push.outputs.backend_image }}",
+              "postgres_image": "${{ needs.build-and-push.outputs.postgres_image }}"
             }'
 
       - name: Wait for deployment
@@ -147,3 +162,4 @@ jobs:
           echo "$STATUS - Deployed version ${{ needs.build-and-push.outputs.version }}"
           echo "Frontend: ${{ needs.build-and-push.outputs.frontend_image }}"
           echo "Backend: ${{ needs.build-and-push.outputs.backend_image }}"
+          echo "Postgres: ${{ needs.build-and-push.outputs.postgres_image }}"

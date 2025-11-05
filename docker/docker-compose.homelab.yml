@@ -6,7 +6,10 @@ version: '3.8'
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:16-alpine
+    image: ghcr.io/${GITHUB_REPO:-yourusername/nexus}/postgres:${VERSION:-latest}
+    build:
+      context: .
+      dockerfile: docker/postgres.Dockerfile
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nexus}
       POSTGRES_USER: ${POSTGRES_USER:-nexus}
@@ -14,7 +17,6 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ../server/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     networks:
       - nexus-network
     deploy:
