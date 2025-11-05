@@ -62,6 +62,9 @@ services:
   # Frontend - React SPA with Nginx
   frontend:
     image: ghcr.io/${GITHUB_REPO:-yourusername/nexus}/frontend:${VERSION:-latest}
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
     networks:
       - nexus-network
     ports:
@@ -89,6 +92,9 @@ services:
   # Backend - Express + WebSocket Server
   backend:
     image: ghcr.io/${GITHUB_REPO:-yourusername/nexus}/backend:${VERSION:-latest}
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
     networks:
       - nexus-network
     ports:
