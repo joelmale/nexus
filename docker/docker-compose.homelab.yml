@@ -14,7 +14,7 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./server/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - ../server/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     networks:
       - nexus-network
     deploy:
