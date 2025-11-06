@@ -68,12 +68,12 @@ services:
     networks:
       - nexus-network
     environment:
-      - NODE_ENV=production
-      - PORT=5000
-      - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost}
-      - GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback
+      NODE_ENV: production
+      PORT: 5000
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+      GOOGLE_CALLBACK_URL: https://app.nexusvtt.com/auth/google/callback
     deploy:
       replicas: 3
       update_config:
