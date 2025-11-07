@@ -64,7 +64,8 @@ services:
     image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexus}/frontend:${VERSION:-latest}
     build:
       context: .
-      networks:
+      dockerfile: docker/frontend.Dockerfile
+    networks:
       - nexus-network
       - homelab-net
     environment:
