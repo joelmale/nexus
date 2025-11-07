@@ -86,11 +86,7 @@ services:
         max_attempts: 3
       endpoint_mode: vip
     depends_on:
-      backend:
-        condition: service_healthy
-    depends_on:
-      backend:
-        condition: service_healthy
+      - backend
 
   # Backend - Express + WebSocket Server
   backend:
@@ -135,10 +131,8 @@ services:
       timeout: 5s
       retries: 5
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
 
 networks:
   nexus-network:
