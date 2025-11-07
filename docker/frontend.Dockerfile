@@ -42,9 +42,6 @@ RUN npm run build
 # Stage 3: Production
 FROM nginx:alpine AS production
 
-# Copy Railway-optimized nginx configuration
-# This config is optimized for Railway's architecture where frontend and backend
-# are separate services with their own domains (no reverse proxy needed)
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 
 # Copy built application from builder stage
