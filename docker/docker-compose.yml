@@ -6,7 +6,10 @@ version: '3.8'
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:16-alpine
+    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexus}/postgres:${VERSION:-latest}
+    build:
+      context: .
+      dockerfile: docker/postgres.Dockerfile
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nexus}
       POSTGRES_USER: ${POSTGRES_USER:-nexus}
@@ -58,7 +61,7 @@ services:
 
   # Frontend - React SPA with Nginx
   frontend:
-    image: ghcr.io/${GITHUB_REPO:-yourusername/nexus}/frontend:${VERSION:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexus}/frontend:${VERSION:-latest}
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
@@ -87,7 +90,7 @@ services:
 
   # Backend - Express + WebSocket Server
   backend:
-    image: ghcr.io/${GITHUB_REPO:-yourusername/nexus}/backend:${VERSION:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexus}/backend:${VERSION:-latest}
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
