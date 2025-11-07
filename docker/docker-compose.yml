@@ -85,6 +85,12 @@ services:
         delay: 5s
         max_attempts: 3
       endpoint_mode: vip
+    depends_on:
+      backend:
+        condition: service_healthy
+    depends_on:
+      backend:
+        condition: service_healthy
 
   # Backend - Express + WebSocket Server
   backend:
@@ -123,6 +129,11 @@ services:
         delay: 5s
         max_attempts: 3
       endpoint_mode: vip
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
