@@ -124,8 +124,10 @@ services:
         max_attempts: 3
       endpoint_mode: vip
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 networks:
   nexus-network:
