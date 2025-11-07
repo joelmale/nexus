@@ -190,18 +190,27 @@ export class DatabaseService {
    * @throws {Error} If database connection or schema creation fails
    */
   async initialize(): Promise<void> {
-    try {
-      // Test database connection
-      const client = await this.pool.connect();
-      await client.query('SELECT NOW()');
-      client.release();
-      console.log('✅ Database connection successful');
+    let retries = 5;
+    while (retries) {
+      try {
+        // Test database connection
+        const client = await this.pool.connect();
+        await client.query('SELECT NOW()');
+        client.release();
+        console.log('✅ Database connection successful');
 
-      // Initialize schema if needed
-      await this.initSchema();
-    } catch (error) {
-      console.error('❌ Failed to initialize database:', error);
-      throw error;
+        // Initialize schema if needed
+        await this.initSchema();
+        return;
+      } catch (error) {
+        console.error('❌ Failed to initialize database:', error);
+        retries -= 1;
+        console.log(`Retries left: ${retries}`);
+        if (retries === 0) {
+          throw error;
+        }
+        await new Promise(res => setTimeout(res, 5000));
+      }
     }
   }
 
