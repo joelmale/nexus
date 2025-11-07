@@ -6,10 +6,7 @@ version: '3.8'
 services:
   # PostgreSQL Database
   postgres:
-    image: ghcr.io/${GITHUB_REPO:-yourusername/nexus}/postgres:${VERSION:-latest}
-    build:
-      context: .
-      dockerfile: docker/postgres.Dockerfile
+    image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nexus}
       POSTGRES_USER: ${POSTGRES_USER:-nexus}
