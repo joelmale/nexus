@@ -45,7 +45,7 @@ FROM nginx:alpine AS production
 # Copy Railway-optimized nginx configuration
 # This config is optimized for Railway's architecture where frontend and backend
 # are separate services with their own domains (no reverse proxy needed)
-COPY docker/nginx-railway.conf /etc/nginx/nginx.conf
+COPY docker/nginx.conf /etc/nginx/nginx.conf
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
