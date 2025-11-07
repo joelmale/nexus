@@ -64,9 +64,9 @@ services:
     image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexus}/frontend:${VERSION:-latest}
     build:
       context: .
-      dockerfile: docker/frontend.Dockerfile
-    networks:
+      networks:
       - nexus-network
+      - homelab-net
     environment:
       - NODE_ENV=production
     deploy:
@@ -138,6 +138,8 @@ networks:
   nexus-network:
     driver: overlay
     attachable: true
+  homelab-net:
+    external: true
 
 volumes:
   postgres-data:
