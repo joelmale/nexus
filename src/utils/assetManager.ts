@@ -15,10 +15,12 @@ export type {
   AssetCategoryResult,
 };
 
-// Asset server configuration - uses main server port
-// Default to localhost:5001 for development (matches WebSocket server), can be overridden with env var
-const ASSET_SERVER_URL =
-  import.meta.env.VITE_ASSET_SERVER_URL || 'http://localhost:5001';
+// Asset server configuration
+// In production, use relative path (nginx proxy handles routing)
+// In development, use localhost with port
+const ASSET_SERVER_URL = import.meta.env.DEV
+  ? import.meta.env.VITE_ASSET_SERVER_URL || 'http://localhost:5001'
+  : ''; // Empty string = relative URLs in production
 
 /**
  * Asset Manager for handling external map assets efficiently

@@ -227,9 +227,11 @@ class NexusServer {
       '/auth/google/callback',
       passport.authenticate('google', { failureRedirect: '/' }),
       (req, res) => {
-        res.redirect(
-          process.env.FRONTEND_URL || 'http://localhost:5173/dashboard',
-        );
+        // In production, use relative path or configured URL
+        // In development, use localhost with Vite dev server port
+        const redirectUrl = process.env.FRONTEND_URL ||
+          (process.env.NODE_ENV === 'production' ? '/dashboard' : 'http://localhost:5173/dashboard');
+        res.redirect(redirectUrl);
       },
     );
     this.app.get('/auth/discord', passport.authenticate('discord'));
@@ -237,9 +239,11 @@ class NexusServer {
       '/auth/discord/callback',
       passport.authenticate('discord', { failureRedirect: '/' }),
       (req, res) => {
-        res.redirect(
-          process.env.FRONTEND_URL || 'http://localhost:5173/dashboard',
-        );
+        // In production, use relative path or configured URL
+        // In development, use localhost with Vite dev server port
+        const redirectUrl = process.env.FRONTEND_URL ||
+          (process.env.NODE_ENV === 'production' ? '/dashboard' : 'http://localhost:5173/dashboard');
+        res.redirect(redirectUrl);
       },
     );
     this.app.get('/auth/logout', (req, res, next) => {
@@ -675,11 +679,17 @@ class NexusServer {
 
   private setupHealthRoutes(): void {
     this.app.get('/health', (req, res) => {
+      // In production behind nginx proxy, use relative /ws path
+      // In development, use localhost:port for direct connection
+      const wsUrl = process.env.NODE_ENV === 'production'
+        ? '/ws'
+        : `ws://localhost:${this.port}`;
+
       res.json({
         status: 'ok',
         version: '1.0.0',
-        port: this.port, // ✅ Broadcast server port for discovery
-        wsUrl: `ws://localhost:${this.port}`,
+        port: this.port,
+        wsUrl,
         rooms: this.rooms.size,
         connections: this.connections.size,
         assetsLoaded: this.manifest?.totalAssets || 0,
@@ -688,10 +698,16 @@ class NexusServer {
     });
 
     this.app.get('/', (req, res) => {
+      // In production behind nginx proxy, use relative /ws path
+      // In development, use localhost:port for direct connection
+      const wsUrl = process.env.NODE_ENV === 'production'
+        ? '/ws'
+        : `ws://localhost:${this.port}`;
+
       res.json({
         status: 'ok',
-        port: this.port, // ✅ Include port in root endpoint too
-        wsUrl: `ws://localhost:${this.port}`,
+        port: this.port,
+        wsUrl,
         rooms: this.rooms.size,
         connections: this.connections.size,
       });

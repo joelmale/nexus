@@ -166,8 +166,11 @@ class DocumentService {
   private initialized = false;
 
   constructor() {
-    // Use VTT backend URL (which proxies to NexusCodex)
-    this.baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+    // In production, use relative path (nginx proxy handles routing)
+    // In development, use localhost with port
+    this.baseUrl = import.meta.env.DEV
+      ? import.meta.env.VITE_API_URL || 'http://localhost:5001'
+      : ''; // Empty string = relative URLs in production
     this.initialized = true;
   }
 
