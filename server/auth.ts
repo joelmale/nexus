@@ -101,11 +101,19 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const googleCallbackURL = process.env.GOOGLE_CALLBACK_URL;
+const discordCallbackURL = process.env.DISCORD_CALLBACK_URL;
 
 if (process.env.NODE_ENV === 'production' && (!googleCallbackURL || !googleCallbackURL.startsWith('https')))
   {
     throw new Error(
       'GOOGLE_CALLBACK_URL must be an absolute URL in production (e.g., https://your-domain.com/auth/google/callback)',
+    );
+  }
+
+if (process.env.NODE_ENV === 'production' && (!discordCallbackURL || !discordCallbackURL.startsWith('https')))
+  {
+    throw new Error(
+      'DISCORD_CALLBACK_URL must be an absolute URL in production (e.g., https://your-domain.com/auth/discord/callback)',
     );
   }
 
@@ -157,7 +165,7 @@ passport.use(
       tokenURL: 'https://discord.com/api/oauth2/token',
       clientID: process.env.DISCORD_CLIENT_ID || 'placeholder',
       clientSecret: process.env.DISCORD_CLIENT_SECRET || 'placeholder',
-      callbackURL: '/auth/discord/callback',
+      callbackURL: discordCallbackURL || '/auth/discord/callback',
       scope: 'identify email',
     },
     async (

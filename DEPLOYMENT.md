@@ -12,9 +12,15 @@ NODE_ENV=production
 PORT=5000
 DATABASE_URL=postgresql://nexus:password@nexus_vtt_postgres:5432/nexus
 
-# OAuth Credentials (use your actual values from Google OAuth Console)
+# OAuth Callback URLs (MUST be absolute URLs for OAuth providers)
+GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback
+DISCORD_CALLBACK_URL=https://app.nexusvtt.com/auth/discord/callback
+
+# OAuth Credentials (use your actual values from OAuth consoles)
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
+DISCORD_CLIENT_ID=your-discord-client-id
+DISCORD_CLIENT_SECRET=your-discord-client-secret
 
 # Security (generate new secure random strings!)
 SESSION_SECRET=<run: openssl rand -base64 32>
@@ -25,15 +31,15 @@ JWT_SECRET=<run: openssl rand -base64 32>
 ```bash
 # Only set if you need to override defaults
 # CORS_ORIGIN=https://app.nexusvtt.com
-# DISCORD_CLIENT_ID=...
-# DISCORD_CLIENT_SECRET=...
 ```
 
-> **Note:** You do NOT need to set `FRONTEND_URL`, `GOOGLE_CALLBACK_URL`, or `DISCORD_CALLBACK_URL` anymore! The app now uses relative paths automatically when `NODE_ENV=production`.
+> **Important:** `GOOGLE_CALLBACK_URL` and `DISCORD_CALLBACK_URL` **MUST** be set to absolute URLs (with https://) in production. OAuth providers require this for security.
 
 ---
 
-### 2. Configure Google OAuth Console
+### 2. Configure OAuth Providers
+
+#### Google OAuth Console
 
 1. Go to [Google Cloud Console - Credentials](https://console.cloud.google.com/apis/credentials)
 2. Select your OAuth 2.0 Client ID
@@ -42,6 +48,18 @@ JWT_SECRET=<run: openssl rand -base64 32>
    https://app.nexusvtt.com/auth/google/callback
    ```
 4. Save changes
+
+#### Discord Developer Portal
+
+1. Go to [Discord Developer Portal - Applications](https://discord.com/developers/applications)
+2. Select your application (or create a new one)
+3. Go to **OAuth2** section
+4. Add redirect URI:
+   ```
+   https://app.nexusvtt.com/auth/discord/callback
+   ```
+5. Save changes
+6. Copy your **Client ID** and **Client Secret** for the environment variables
 
 ---
 
@@ -146,6 +164,12 @@ Open DevTools (F12) and look for:
 
 ### Google OAuth fails with "redirect_uri_mismatch"
 - **Fix**: Add `https://app.nexusvtt.com/auth/google/callback` to Google OAuth Console
+- **Check**: Make sure `GOOGLE_CALLBACK_URL` environment variable is set in Portainer
+
+### Discord OAuth fails with "invalid oauth2 redirect_uri"
+- **Fix**: Add `https://app.nexusvtt.com/auth/discord/callback` to Discord Developer Portal (OAuth2 section)
+- **Check**: Make sure `DISCORD_CALLBACK_URL` environment variable is set in Portainer
+- **Check**: URL must match exactly (including https://)
 
 ---
 
@@ -158,10 +182,20 @@ See `.env.production.template` for full reference with comments.
 NODE_ENV=production
 PORT=5000
 DATABASE_URL=postgresql://nexus:password@nexus_vtt_postgres:5432/nexus
+
+# OAuth Callback URLs (REQUIRED - absolute URLs for OAuth providers)
+GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback
+DISCORD_CALLBACK_URL=https://app.nexusvtt.com/auth/discord/callback
+
+# OAuth Credentials
 GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
+DISCORD_CLIENT_ID=your-discord-client-id
+DISCORD_CLIENT_SECRET=your-discord-client-secret
+
+# Security
 SESSION_SECRET=generate-32-char-random-string
 JWT_SECRET=generate-32-char-random-string
 ```
 
-That's it! No need for `FRONTEND_URL`, `GOOGLE_CALLBACK_URL`, etc. when everything is on the same domain.
+**Note:** While most of the app uses relative URLs when behind nginx, OAuth providers (Google, Discord) **require absolute callback URLs** for security. Make sure these match exactly what you configured in the OAuth provider consoles.
