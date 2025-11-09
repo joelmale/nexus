@@ -192,8 +192,10 @@ Open DevTools (F12) and look for:
 ### Guest DM creation fails with "Failed to create session"
 - **Symptom**: WebSocket connects but server returns "Failed to create session" error
 - **Symptom**: PostgreSQL logs show foreign key constraint violation on `campaigns.dmId`
-- **Cause**: WebSocket not receiving session cookies - guest user session lost
-- **Fix**: Latest nginx.conf includes WebSocket cookie forwarding (deploy latest frontend image)
+- **Symptom**: Backend logs show "Anonymous as Guest" instead of "Guest as [Name]"
+- **Root cause**: Browser not sending session cookies because fetch API calls missing `credentials: 'include'`
+- **Fix**: Latest frontend code includes `credentials: 'include'` in all fetch calls (deploy latest frontend image)
+- **Secondary requirement**: nginx.conf must include WebSocket cookie forwarding (deploy latest frontend image)
 - **Alternative cause**: Database connection failing - check service name in DATABASE_URL
   ```
   DATABASE_URL=postgresql://nexus:YOUR_PASSWORD@postgres:5432/nexus
@@ -201,6 +203,8 @@ Open DevTools (F12) and look for:
 - **Check**: Backend service logs for specific database errors
 - **Check**: PostgreSQL service logs for foreign key violations
 - **Check**: PostgreSQL service is running and healthy
+- **Check**: Browser DevTools → Network → POST /api/guest-users → Response Headers should show `Set-Cookie: connect.sid=...`
+- **Check**: Browser DevTools → Network → WebSocket handshake → Request Headers should show `Cookie: connect.sid=...`
 
 ---
 
