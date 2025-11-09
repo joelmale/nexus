@@ -11,8 +11,9 @@ import { LinearGameLayout } from './components/LinearGameLayout';
 import { Dashboard } from './components/Dashboard';
 import { AdminPage } from './components/AdminPage';
 import './styles/critical-bundle.css';
+import './styles/utilities.css';
+import './styles/accessibility.css';
 import {
-  loadUtilityStyles,
   logCSSLoadingReport,
   getCSSLoadStats,
   getCSSQueueStatus,
@@ -20,12 +21,9 @@ import {
 import { initializeTheme } from './utils/themeManager';
 import { propAssetManager } from './services/propAssets';
 
-// Load non-critical styles and assets after initial render for better performance
-const loadNonCriticalStyles = async () => {
+// Load non-critical assets after initial render for better performance
+const loadNonCriticalAssets = async () => {
   try {
-    // Load utility and accessibility styles
-    await loadUtilityStyles();
-
     // Initialize theme system (loads appropriate theme styles)
     await initializeTheme();
 
@@ -33,9 +31,9 @@ const loadNonCriticalStyles = async () => {
     await propAssetManager.initialize();
     console.log('🎭 Props: Asset manager initialized');
 
-    console.debug('✅ Non-critical styles loaded successfully');
+    console.debug('✅ Non-critical assets loaded successfully');
   } catch (error) {
-    console.warn('⚠️ Failed to load some non-critical styles:', error);
+    console.warn('⚠️ Failed to load some non-critical assets:', error);
   }
 };
 
@@ -77,8 +75,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 );
 
-// Load non-critical styles after initial render
-loadNonCriticalStyles();
+// Load non-critical assets after initial render
+loadNonCriticalAssets();
 
 // Add CSS debugging utilities to window for development
 if (import.meta.env.DEV) {

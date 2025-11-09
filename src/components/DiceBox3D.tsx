@@ -28,6 +28,28 @@ export const DiceBox3D: React.FC = () => {
     const initializeDiceBox = async () => {
       if (diceBoxContainerRef.current && !diceBoxRef.current) {
         try {
+          // Check WebGL support
+          console.log('🎲 Checking WebGL support...');
+          const canvas = document.createElement('canvas');
+          const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+          if (!gl) {
+            const error = 'WebGL is not supported in this browser. 3D dice require WebGL.';
+            console.error('🎲 ERROR:', error);
+            setInitError(error);
+            setIsInitialized(false);
+            return;
+          }
+          console.log('✅ WebGL is supported');
+
+          // Check if container exists
+          const container = document.querySelector('#dice-box');
+          if (!container) {
+            console.error('🎲 ERROR: Container #dice-box not found in DOM');
+            setInitError('Dice container not found');
+            return;
+          }
+          console.log('✅ Container found:', container);
+
           const config = {
             id: 'dice-canvas',
             container: '#dice-box',
@@ -50,32 +72,38 @@ export const DiceBox3D: React.FC = () => {
             lightIntensity: 1,
           };
 
+          console.log('🎲 Initializing DiceBox with config:', config);
           const diceBox = new DiceBox(config);
 
           diceBox.onRollComplete = (_results: unknown) => {
-            // Roll animation complete
+            console.log('🎲 Roll animation complete');
           };
 
+          console.log('🎲 Calling diceBox.init()...');
           await diceBox.init();
+          console.log('✅ DiceBox initialized successfully');
 
           diceBoxRef.current = diceBox;
           setIsInitialized(true);
           setInitError(null);
 
-          // Debug checks
+          // Debug checks - verify canvas was created
           setTimeout(() => {
             if (diceBoxContainerRef.current) {
-              const canvas =
+              const canvasElement =
                 diceBoxContainerRef.current.querySelector('canvas');
-              if (canvas) {
-                // Canvas found
+              if (canvasElement) {
+                console.log('✅ Canvas element found:', canvasElement);
+                console.log('   Canvas dimensions:', canvasElement.width, 'x', canvasElement.height);
               } else {
-                console.error('🎲 ERROR: No canvas element found!');
+                console.error('🎲 ERROR: No canvas element found after init!');
+                console.log('   Container children:', diceBoxContainerRef.current.children);
               }
             }
-          }, 500);
+          }, 1000);
         } catch (error) {
           console.error('🎲 Failed to initialize DiceBox3D:', error);
+          console.error('   Error stack:', error instanceof Error ? error.stack : 'No stack trace');
           setInitError(
             error instanceof Error
               ? error.message
