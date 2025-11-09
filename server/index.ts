@@ -131,6 +131,9 @@ class NexusServer {
 
     this.app = express();
 
+    // Trust nginx proxy for secure cookies and proper request headers
+    this.app.set('trust proxy', 1);
+
     this.app.use(
       helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }),
     );
@@ -154,7 +157,9 @@ class NexusServer {
       saveUninitialized: false,
       cookie: {
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60 * 24 * 7,
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       },
     });
 
