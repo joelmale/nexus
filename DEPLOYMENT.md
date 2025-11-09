@@ -171,6 +171,13 @@ Open DevTools (F12) and look for:
 - **Check**: Make sure `DISCORD_CALLBACK_URL` environment variable is set in Portainer
 - **Check**: URL must match exactly (including https://)
 
+### OAuth redirects to dashboard but then back to lobby ("User not authenticated")
+- **Symptom**: Console shows `GET /auth/me 401 (Unauthorized)`
+- **Cause**: Session cookies not being forwarded by nginx proxy
+- **Fix**: nginx config already includes cookie forwarding headers (in latest version)
+- **Check**: Make sure you've deployed the latest frontend image with updated nginx.conf
+- **Check**: In browser DevTools → Application → Cookies, verify `connect.sid` cookie is set for app.nexusvtt.com
+
 ---
 
 ## Environment Variable Reference
