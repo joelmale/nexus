@@ -108,6 +108,38 @@ class WebSocketService extends EventTarget {
     userId?: string,
   ): Promise<WebSocket> {
     const isDev = import.meta.env.DEV;
+
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (roomCode) {
+      if (userType === 'host') {
+        params.set('reconnect', roomCode);
+      } else {
+        params.set('join', roomCode);
+      }
+    }
+    if (campaignId) {
+      params.set('campaignId', campaignId);
+      if (userId) {
+        params.set('userId', userId);
+      }
+    }
+    const queryString = params.toString();
+
+    // PRODUCTION: Use relative /ws path (nginx proxy handles routing)
+    if (!isDev) {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/ws`;
+      const url = queryString ? `${wsUrl}?${queryString}` : wsUrl;
+
+      console.log(`🔌 Attempting WebSocket connection to ${url}...`);
+      const ws = await this.attemptConnection(url, 'production');
+      console.log(`✅ Connected to WebSocket in production mode`);
+      return ws;
+    }
+
+    // DEVELOPMENT: Try multiple ports with fallback
     const basePorts = [
       import.meta.env.VITE_WS_PORT || '5001',
       '5002',
@@ -115,33 +147,30 @@ class WebSocketService extends EventTarget {
       '5004',
     ];
 
-    // In production/docker, only try the configured port
-    let portsToTry = isDev ? basePorts : [basePorts[0]];
+    let portsToTry = basePorts;
 
     // In dev, try server discovery first (HTTP health check)
-    if (isDev) {
-      const discoveredPort = await this.discoverServerPort();
-      if (discoveredPort) {
-        console.log(`🎯 Using discovered port: ${discoveredPort}`);
-        // Move discovered port to front
-        portsToTry = [
-          discoveredPort,
-          ...basePorts.filter((p) => p !== discoveredPort),
-        ];
-      } else {
-        // Fallback to checking cached port
-        try {
-          const lastWorkingPort = localStorage.getItem('nexus_ws_port');
-          if (lastWorkingPort && basePorts.includes(lastWorkingPort)) {
-            // Move last working port to the front
-            portsToTry = [
-              lastWorkingPort,
-              ...basePorts.filter((p) => p !== lastWorkingPort),
-            ];
-          }
-        } catch {
-          // localStorage might not be available
+    const discoveredPort = await this.discoverServerPort();
+    if (discoveredPort) {
+      console.log(`🎯 Using discovered port: ${discoveredPort}`);
+      // Move discovered port to front
+      portsToTry = [
+        discoveredPort,
+        ...basePorts.filter((p) => p !== discoveredPort),
+      ];
+    } else {
+      // Fallback to checking cached port
+      try {
+        const lastWorkingPort = localStorage.getItem('nexus_ws_port');
+        if (lastWorkingPort && basePorts.includes(lastWorkingPort)) {
+          // Move last working port to the front
+          portsToTry = [
+            lastWorkingPort,
+            ...basePorts.filter((p) => p !== lastWorkingPort),
+          ];
         }
+      } catch {
+        // localStorage might not be available
       }
     }
 
@@ -150,23 +179,6 @@ class WebSocketService extends EventTarget {
     for (const port of portsToTry) {
       try {
         const wsUrl = `ws://${wsHost}:${port}`;
-
-        // Build URL with query parameters
-        const params = new URLSearchParams();
-        if (roomCode) {
-          if (userType === 'host') {
-            params.set('reconnect', roomCode);
-          } else {
-            params.set('join', roomCode);
-          }
-        }
-        if (campaignId) {
-          params.set('campaignId', campaignId);
-        if (userId) {
-          params.set('userId', userId);
-        }        }
-
-        const queryString = params.toString();
         const url = queryString ? `${wsUrl}?${queryString}` : wsUrl;
 
         console.log(`🔌 Attempting WebSocket connection to ${url}...`);
@@ -175,14 +187,12 @@ class WebSocketService extends EventTarget {
         console.log(`✅ Connected to WebSocket on port ${port}`);
 
         // Save the working port to localStorage for faster next connection
-        if (isDev) {
-          localStorage.setItem('nexus_ws_port', port);
-        }
+        localStorage.setItem('nexus_ws_port', port);
 
         return ws;
       } catch (error) {
         console.log(`❌ Failed to connect on port ${port}`);
-        if (!isDev || port === portsToTry[portsToTry.length - 1]) {
+        if (port === portsToTry[portsToTry.length - 1]) {
           throw error;
         }
         // Continue to next port
