@@ -199,6 +199,7 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
           imageData: processedImage,
           name: token.name,
         }),
+        credentials: 'include',
       });
 
       if (!response.ok) {

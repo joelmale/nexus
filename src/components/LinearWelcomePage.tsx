@@ -112,7 +112,9 @@ export const LinearWelcomePage: React.FC = () => {
 
       setCampaignsLoading(true);
       try {
-        const response = await fetch('/api/campaigns');
+        const response = await fetch('/api/campaigns', {
+          credentials: 'include',
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch campaigns');
         }
@@ -140,7 +142,9 @@ export const LinearWelcomePage: React.FC = () => {
 
       setCharactersLoading(true);
       try {
-        const response = await fetch('/api/characters');
+        const response = await fetch('/api/characters', {
+          credentials: 'include',
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch characters');
         }
@@ -179,6 +183,7 @@ export const LinearWelcomePage: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ name: playerName.trim() }),
+          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -226,6 +231,7 @@ export const LinearWelcomePage: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ name: playerName.trim() }),
+          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -281,6 +287,7 @@ export const LinearWelcomePage: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ name: playerName.trim() }),
+          credentials: 'include',
         });
 
         if (!response.ok) {

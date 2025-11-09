@@ -1177,12 +1177,16 @@ export const useGameStore = create<GameStore>()(
         set({ user, isAuthenticated: true });
       },
       logout: async () => {
-        await fetch('/auth/logout');
+        await fetch('/auth/logout', {
+          credentials: 'include',
+        });
         set({ user: initialState.user, isAuthenticated: false });
       },
       checkAuth: async () => {
         try {
-          const response = await fetch('/auth/me');
+          const response = await fetch('/auth/me', {
+            credentials: 'include',
+          });
           if (response.ok) {
             const user = await response.json();
             get().login(user);
@@ -2956,6 +2960,7 @@ export const useGameStore = create<GameStore>()(
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name }),
+            credentials: 'include',
           });
 
           if (!guestResponse.ok) {
@@ -3005,6 +3010,7 @@ export const useGameStore = create<GameStore>()(
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name }),
+            credentials: 'include',
           });
 
           if (!guestResponse.ok) {

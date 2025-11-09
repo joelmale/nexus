@@ -98,7 +98,9 @@ export const Dashboard: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        const response = await fetch('/api/campaigns');
+        const response = await fetch('/api/campaigns', {
+          credentials: 'include',
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch campaigns');
@@ -128,7 +130,9 @@ export const Dashboard: React.FC = () => {
         setCharactersLoading(true);
         setError(null);
 
-        const response = await fetch('/api/characters');
+        const response = await fetch('/api/characters', {
+          credentials: 'include',
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch characters');
@@ -170,6 +174,7 @@ export const Dashboard: React.FC = () => {
           name: newCampaignName.trim(),
           description: newCampaignDescription.trim() || undefined,
         }),
+        credentials: 'include',
       });
 
       if (!response.ok) {
