@@ -156,7 +156,7 @@ class NexusServer {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== 'false',
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
