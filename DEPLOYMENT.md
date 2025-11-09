@@ -191,14 +191,16 @@ Open DevTools (F12) and look for:
 
 ### Guest DM creation fails with "Failed to create session"
 - **Symptom**: WebSocket connects but server returns "Failed to create session" error
-- **Cause**: Database connection failing - usually wrong service name in DATABASE_URL
-- **Fix**: Make sure `DATABASE_URL` uses service name `postgres`, not `nexus_vtt_postgres`
+- **Symptom**: PostgreSQL logs show foreign key constraint violation on `campaigns.dmId`
+- **Cause**: WebSocket not receiving session cookies - guest user session lost
+- **Fix**: Latest nginx.conf includes WebSocket cookie forwarding (deploy latest frontend image)
+- **Alternative cause**: Database connection failing - check service name in DATABASE_URL
   ```
-  DATABASE_URL=postgresql://nexus:password@postgres:5432/nexus
+  DATABASE_URL=postgresql://nexus:YOUR_PASSWORD@postgres:5432/nexus
   ```
-- **Check**: Backend service logs for database connection errors
+- **Check**: Backend service logs for specific database errors
+- **Check**: PostgreSQL service logs for foreign key violations
 - **Check**: PostgreSQL service is running and healthy
-- **Check**: `POSTGRES_PASSWORD` matches in both DATABASE_URL and postgres service
 
 ---
 
