@@ -10,7 +10,18 @@ Go to your `nexus_vtt_backend` service and set these environment variables:
 ```bash
 NODE_ENV=production
 PORT=5000
-DATABASE_URL=postgresql://nexus:password@nexus_vtt_postgres:5432/nexus
+
+# Database connection
+# IMPORTANT: Service name is "postgres" (from docker-compose.yml), not "nexus_vtt_postgres"
+# Docker Swarm handles service discovery - use the service name from the compose file
+DATABASE_URL=postgresql://nexus:YOUR_POSTGRES_PASSWORD@postgres:5432/nexus
+POSTGRES_DB=nexus
+POSTGRES_USER=nexus
+POSTGRES_PASSWORD=YOUR_SECURE_PASSWORD_HERE
+
+# Redis connection
+# Service name is "redis" (from docker-compose.yml)
+REDIS_PASSWORD=YOUR_SECURE_REDIS_PASSWORD
 
 # OAuth Callback URLs (MUST be absolute URLs for OAuth providers)
 GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback
@@ -177,6 +188,17 @@ Open DevTools (F12) and look for:
 - **Fix**: nginx config already includes cookie forwarding headers (in latest version)
 - **Check**: Make sure you've deployed the latest frontend image with updated nginx.conf
 - **Check**: In browser DevTools → Application → Cookies, verify `connect.sid` cookie is set for app.nexusvtt.com
+
+### Guest DM creation fails with "Failed to create session"
+- **Symptom**: WebSocket connects but server returns "Failed to create session" error
+- **Cause**: Database connection failing - usually wrong service name in DATABASE_URL
+- **Fix**: Make sure `DATABASE_URL` uses service name `postgres`, not `nexus_vtt_postgres`
+  ```
+  DATABASE_URL=postgresql://nexus:password@postgres:5432/nexus
+  ```
+- **Check**: Backend service logs for database connection errors
+- **Check**: PostgreSQL service is running and healthy
+- **Check**: `POSTGRES_PASSWORD` matches in both DATABASE_URL and postgres service
 
 ---
 
