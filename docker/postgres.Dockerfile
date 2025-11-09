@@ -1,4 +1,5 @@
 FROM postgres:16-alpine
 
 # Copy the schema file to the entrypoint directory
-COPY ../server/schema.sql /docker-entrypoint-initdb.d/
+# Build context is the repo root, so path is relative to root
+COPY server/schema.sql /docker-entrypoint-initdb.d/
