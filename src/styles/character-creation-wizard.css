@@ -517,11 +517,17 @@
 }
 
 .ability-name {
-  font-size: 0.75rem;
-  color: var(--solid-text);
-  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--solid-text) !important;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* Specific override for wizard context */
+.character-creation-wizard .ability-name,
+.theme-solid .ability-name {
+  color: var(--solid-text, #1e293b) !important;
 }
 
 .ability-value {

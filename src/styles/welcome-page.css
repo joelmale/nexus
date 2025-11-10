@@ -335,6 +335,15 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+/* More specific rule for inputs with icons */
+.glass-input-wrapper .glass-input {
+  padding-left: 3rem !important;
+}
+
+#adventurerName {
+  padding-left: 3rem !important;
+}
+
 /* ========================================================================== ROLE SELECTION ========================================================================== */
 
 .role-selection {
