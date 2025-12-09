@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
     bio TEXT,
     "avatarUrl" TEXT,
     provider VARCHAR(50) NOT NULL, -- 'google', 'discord', 'guest'
+    "passwordHash" TEXT,
+    "passwordSalt" TEXT,
+    "passwordIterations" INTEGER DEFAULT 120000,
     preferences JSONB DEFAULT '{}'::jsonb,
     "isActive" BOOLEAN DEFAULT TRUE,
     "lastLogin" TIMESTAMPTZ DEFAULT NOW(),

@@ -31,6 +31,7 @@ export const LinearWelcomePage: React.FC = () => {
     isAuthenticated,
     session,
     attemptSessionRecovery,
+    login,
   } = useGameStore();
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
@@ -62,6 +63,13 @@ export const LinearWelcomePage: React.FC = () => {
   >([]);
   const [selectedCharacter, setSelectedCharacter] = useState<string>('');
   const [charactersLoading, setCharactersLoading] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authDisplayName, setAuthDisplayName] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
 
   // Auto-navigate to game if session exists, or attempt recovery if needed
   React.useEffect(() => {
@@ -205,6 +213,48 @@ export const LinearWelcomePage: React.FC = () => {
     }
   };
 
+  const handleLocalAuth = async (mode: 'signin' | 'signup') => {
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthSuccess(null);
+    try {
+      const endpoint = mode === 'signup' ? '/auth/register' : '/auth/login';
+      const body =
+        mode === 'signup'
+          ? { email: authEmail.trim(), password: authPassword, displayName: authDisplayName.trim() || undefined }
+          : { email: authEmail.trim(), password: authPassword };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Authentication failed');
+      }
+
+      login({
+        ...data,
+        type: 'player',
+        connected: true,
+        color: 'blue',
+      });
+      setAuthSuccess(
+        mode === 'signup'
+          ? 'Account created. You are signed in.'
+          : 'Signed in successfully.',
+      );
+    } catch (err) {
+      console.error('Local auth failed:', err);
+      setAuthError(err instanceof Error ? err.message : 'Authentication failed');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   /**
    * Handles quick join - creates guest user and joins room directly
    */
@@ -344,8 +394,63 @@ export const LinearWelcomePage: React.FC = () => {
             </button>
             <div className="account-dropdown glass-panel">
               <div className="account-dropdown-header">
-                <span className="dropdown-title">Sign In</span>
+                <span className="dropdown-title">
+                  {authMode === 'signin' ? 'Sign In' : 'Create Account'}
+                </span>
+                <button
+                  className="account-switch"
+                  onClick={() =>
+                    setAuthMode(authMode === 'signin' ? 'signup' : 'signin')
+                  }
+                >
+                  {authMode === 'signin' ? 'Create account' : 'Have an account?'}
+                </button>
               </div>
+
+              <div className="account-form">
+                <input
+                  type="email"
+                  className="glass-input"
+                  placeholder="you@example.com"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  disabled={authLoading}
+                />
+                {authMode === 'signup' && (
+                  <input
+                    type="text"
+                    className="glass-input"
+                    placeholder="Display name (optional)"
+                    value={authDisplayName}
+                    onChange={(e) => setAuthDisplayName(e.target.value)}
+                    disabled={authLoading}
+                  />
+                )}
+                <input
+                  type="password"
+                  className="glass-input"
+                  placeholder="Password"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  disabled={authLoading}
+                />
+                <button
+                  className="action-btn glass-button primary"
+                  disabled={!authEmail || !authPassword || authLoading}
+                  onClick={() => handleLocalAuth(authMode)}
+                >
+                  {authLoading
+                    ? 'Please wait...'
+                    : authMode === 'signin'
+                      ? 'Sign In'
+                      : 'Create Account'}
+                </button>
+                {authError && <div className="error-message compact">{authError}</div>}
+                {authSuccess && <div className="success-message compact">{authSuccess}</div>}
+              </div>
+
+              <div className="account-divider">or continue with</div>
+
               <a href="/auth/google" className="account-option">
                 <span className="option-icon google-icon">G</span>
                 <span className="option-text">Google</span>
@@ -355,7 +460,9 @@ export const LinearWelcomePage: React.FC = () => {
                 <span className="option-text">Discord</span>
               </a>
               <div className="account-dropdown-footer">
-                <span className="dropdown-hint">Save campaigns & progress</span>
+                <span className="dropdown-hint">
+                  Accounts sync characters & campaigns. Guests can migrate later.
+                </span>
               </div>
             </div>
           </div>

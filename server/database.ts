@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -34,6 +35,12 @@ interface UserRecord {
   avatarUrl: string | null;
   /** OAuth provider ('google', 'discord', 'guest') */
   provider: string;
+  /** Password hash for local accounts */
+  passwordHash: string | null;
+  /** Salt used to derive password hash */
+  passwordSalt: string | null;
+  /** PBKDF2 iteration count */
+  passwordIterations: number | null;
   /** JSON preferences blob */
   preferences: Record<string, unknown> | null;
   /** Whether the account is active */
@@ -194,6 +201,35 @@ export class DatabaseService {
   }
 
   /**
+   * Generates a salted PBKDF2 hash for a password
+   */
+  private hashPassword(
+    password: string,
+    salt?: string,
+    iterations = 120000,
+  ): { hash: string; salt: string; iterations: number } {
+    const resolvedSalt = salt || crypto.randomBytes(16).toString('hex');
+    const derived = crypto
+      .pbkdf2Sync(password, resolvedSalt, iterations, 64, 'sha512')
+      .toString('hex');
+    return { hash: derived, salt: resolvedSalt, iterations };
+  }
+
+  /**
+   * Validates a password against stored hash
+   */
+  private verifyPassword(
+    password: string,
+    storedHash: string,
+    salt: string,
+    iterations: number,
+  ): boolean {
+    const { hash } = this.hashPassword(password, salt, iterations);
+    // Use constant-time comparison
+    return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(storedHash));
+  }
+
+  /**
    * Initializes database connection and schema
    * Verifies connectivity and creates tables if needed
    * @returns {Promise<void>}
@@ -277,6 +313,17 @@ export class DatabaseService {
   }
 
   /**
+   * Retrieves a user by email (if present)
+   */
+  async getUserByEmail(email: string): Promise<UserRecord | null> {
+    const result = await this.pool.query<UserRecord>(
+      'SELECT * FROM users WHERE email = $1',
+      [email],
+    );
+    return result.rows[0] || null;
+  }
+
+  /**
    * Finds an existing user by OAuth profile or creates a new one
    * Uses email as the unique identifier for OAuth users
    * @param {OAuthProfile} profile - OAuth profile data from provider
@@ -298,6 +345,28 @@ export class DatabaseService {
            "updatedAt" = NOW()
        RETURNING *`,
       [email, name, avatarUrl, provider],
+    );
+
+    return result.rows[0];
+  }
+
+  /**
+   * Creates a new local (email/password) user
+   */
+  async createLocalUser(
+    email: string,
+    password: string,
+    displayName?: string,
+  ): Promise<UserRecord> {
+    const { hash, salt, iterations } = this.hashPassword(password);
+    const fallbackName = email.split('@')[0] || 'Adventurer';
+    const name = displayName?.trim() || fallbackName;
+
+    const result = await this.pool.query<UserRecord>(
+      `INSERT INTO users (email, name, "displayName", bio, "avatarUrl", provider, "passwordHash", "passwordSalt", "passwordIterations", preferences, "isActive", "lastLogin")
+       VALUES ($1, $2, $3, NULL, NULL, 'local', $4, $5, $6, '{}'::jsonb, TRUE, NOW())
+       RETURNING *`,
+      [email, name, name, hash, salt, iterations],
     );
 
     return result.rows[0];
@@ -484,6 +553,44 @@ export class DatabaseService {
       'UPDATE users SET "isActive" = FALSE, "updatedAt" = NOW() WHERE id = $1',
       [userId],
     );
+  }
+
+  /**
+   * Validates a local account login
+   */
+  async validateLocalLogin(
+    email: string,
+    password: string,
+  ): Promise<UserRecord | null> {
+    const user = await this.getUserByEmail(email);
+    if (
+      !user ||
+      user.provider !== 'local' ||
+      !user.passwordHash ||
+      !user.passwordSalt ||
+      !user.passwordIterations ||
+      user.isActive === false
+    ) {
+      return null;
+    }
+
+    const isValid = this.verifyPassword(
+      password,
+      user.passwordHash,
+      user.passwordSalt,
+      user.passwordIterations,
+    );
+    if (!isValid) {
+      return null;
+    }
+
+    // Update last login timestamp
+    await this.pool.query(
+      'UPDATE users SET "lastLogin" = NOW(), "updatedAt" = NOW() WHERE id = $1',
+      [user.id],
+    );
+
+    return user;
   }
 
   // ============================================================================

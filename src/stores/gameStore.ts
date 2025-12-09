@@ -1187,7 +1187,16 @@ export const useGameStore = create<GameStore>()(
 
       // Auth Actions
       login: (user) => {
-        set({ user, isAuthenticated: true });
+        set((state) => {
+          state.user = {
+            ...state.user,
+            ...user,
+            type: user.type || state.user.type || 'player',
+            connected: true,
+            color: state.user.color || 'blue',
+          };
+          state.isAuthenticated = true;
+        });
       },
       logout: async () => {
         await fetch('/auth/logout', {
@@ -1201,8 +1210,30 @@ export const useGameStore = create<GameStore>()(
             credentials: 'include',
           });
           if (response.ok) {
-            const user = await response.json();
-            get().login(user);
+            const authUser = await response.json();
+
+            // Try to hydrate with full profile details
+            try {
+              const profileResponse = await fetch('/api/users/profile', {
+                credentials: 'include',
+              });
+              if (profileResponse.ok) {
+                const profile = await profileResponse.json();
+                get().login({
+                  ...authUser,
+                  ...profile,
+                  name: profile.displayName || profile.name || authUser.name,
+                  displayName: profile.displayName || profile.name,
+                  email: profile.email ?? authUser.email,
+                  provider: profile.provider ?? authUser.provider,
+                });
+                return;
+              }
+            } catch (profileError) {
+              console.warn('Profile hydrate failed, using auth user only', profileError);
+            }
+
+            get().login(authUser);
           } else {
             set({ isAuthenticated: false });
           }

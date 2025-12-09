@@ -7,9 +7,13 @@ export type { PlacedToken, Token, Drawing, PlacedProp };
 export interface User {
   id: string;
   name: string;
+  displayName?: string;
+  bio?: string | null;
   email?: string;
   avatarUrl?: string;
   provider?: string;
+  preferences?: Record<string, unknown>;
+  isActive?: boolean;
   type: 'host' | 'player';
   color: string;
   connected: boolean;

@@ -83,8 +83,9 @@ Run these commands from your local machine:
 - Run the migration SQL against your Postgres instance after deploying new images:
   ```bash
   psql "$DATABASE_URL" -f server/migrations/2025-12-08-add-account-fields.sql
+  psql "$DATABASE_URL" -f server/migrations/2025-12-08-add-local-auth.sql
   ```
-- This adds extended account fields (display name, bio, preferences, activity flags) required for the OAuth-backed application accounts.
+- This adds extended account fields (display name, bio, preferences, activity flags) and local auth password columns.
 
 ```bash
 # Navigate to project directory
