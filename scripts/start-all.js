@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 
 /**
- * Intelligent development server starter with port conflict resolution
+ * Intelligent development server starter with port conflict resolution and auto-database startup
  */
 
-import { spawn } from "child_process";
+import { spawn, exec } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import net from "net";
 import dotenv from "dotenv";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -41,6 +44,100 @@ function checkPort(port) {
 
     server.on("error", () => resolve(false));
   });
+}
+
+// Check if PostgreSQL is accepting connections
+async function checkPostgresConnection(retries = 3, delay = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const client = net.connect({ port: 5432, host: 'localhost' });
+
+      await new Promise((resolve, reject) => {
+        client.on('connect', () => {
+          client.end();
+          resolve(true);
+        });
+        client.on('error', reject);
+
+        setTimeout(() => reject(new Error('Timeout')), 3000);
+      });
+
+      return true;
+    } catch (error) {
+      if (i < retries - 1) {
+        console.log(`${colors.yellow}   Waiting for PostgreSQL to be ready... (${i + 1}/${retries})${colors.reset}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  return false;
+}
+
+// Check if Docker is running
+async function checkDockerRunning() {
+  try {
+    await execAsync('docker ps');
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Start PostgreSQL container
+async function startPostgres() {
+  console.log(`${colors.cyan}🐘 Starting PostgreSQL container...${colors.reset}`);
+
+  try {
+    // Check if Docker is running
+    const dockerRunning = await checkDockerRunning();
+    if (!dockerRunning) {
+      console.log(`${colors.red}❌ Docker is not running!${colors.reset}`);
+      console.log(`${colors.yellow}   Please start Docker Desktop and try again.${colors.reset}\n`);
+      return false;
+    }
+
+    // Start PostgreSQL container
+    const composeFile = path.join(__dirname, '../docker/docker-compose.dev.yml');
+    await execAsync(`docker compose -f ${composeFile} up -d postgres-dev`);
+
+    console.log(`${colors.green}✅ PostgreSQL container started${colors.reset}`);
+
+    // Wait for PostgreSQL to be ready
+    console.log(`${colors.cyan}⏳ Waiting for PostgreSQL to be ready...${colors.reset}`);
+    const isReady = await checkPostgresConnection(10, 2000);
+
+    if (isReady) {
+      console.log(`${colors.green}✅ PostgreSQL is ready!${colors.reset}\n`);
+      return true;
+    } else {
+      console.log(`${colors.red}❌ PostgreSQL failed to start${colors.reset}\n`);
+      return false;
+    }
+  } catch (error) {
+    console.log(`${colors.red}❌ Failed to start PostgreSQL: ${error.message}${colors.reset}\n`);
+    return false;
+  }
+}
+
+// Ensure PostgreSQL is running
+async function ensurePostgres() {
+  const isPortInUse = !(await checkPort(5432));
+
+  if (isPortInUse) {
+    // Port is in use, verify it's actually PostgreSQL responding
+    const isConnectable = await checkPostgresConnection(1, 1000);
+    if (isConnectable) {
+      console.log(`${colors.green}✅ PostgreSQL is already running${colors.reset}\n`);
+      return true;
+    } else {
+      console.log(`${colors.yellow}⚠️  Port 5432 is in use but not responding as PostgreSQL${colors.reset}`);
+      console.log(`${colors.yellow}   You may need to stop the conflicting service${colors.reset}\n`);
+      return false;
+    }
+  }
+
+  // PostgreSQL is not running, start it
+  return await startPostgres();
 }
 
 // Find available port starting from preferred port
@@ -140,6 +237,26 @@ class IntelligentStarter {
     console.log(
       `${colors.bright}🎲 Starting Nexus VTT Development Servers${colors.reset}`
     );
+
+    // Ensure PostgreSQL is running first
+    console.log(
+      `${colors.cyan}🔍 Checking database...${colors.reset}\n`
+    );
+
+    const postgresReady = await ensurePostgres();
+    if (!postgresReady) {
+      console.log(
+        `${colors.red}❌ Cannot start without PostgreSQL${colors.reset}`
+      );
+      console.log(
+        `${colors.yellow}💡 To start PostgreSQL manually, run:${colors.reset}`
+      );
+      console.log(
+        `${colors.bright}   docker compose -f docker/docker-compose.dev.yml up -d postgres-dev${colors.reset}\n`
+      );
+      process.exit(1);
+    }
+
     console.log(
       `${colors.cyan}🔍 Checking port availability...${colors.reset}\n`
     );

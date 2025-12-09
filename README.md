@@ -75,82 +75,40 @@ See [docs/routing-architecture.md](docs/routing-architecture.md) for details.
     npm install
     ```
 
-3.  **Configure Environment**
-    Create a new file named `.env.local` in the root of the project and add the following line. This file is for your local secrets and is ignored by Git.
+3.  **Configure Environment** (Optional)
+    Create `.env.local` if you need custom configuration:
 
-    ```
+    ```bash
     DATABASE_URL="postgres://nexus:password@localhost:5432/nexus"
     ```
 
-4.  **Start the Database**
-    In a separate terminal, start the PostgreSQL database container.
+4.  **Start Everything** 🚀
 
-    ```bash
-    docker compose -f docker/docker-compose.dev.yml up -d postgres-dev
-    ```
-
-5.  **Run the Application**
-    Once the database is running, start the development servers.
     ```bash
     npm run start:all
     ```
 
-The setup will start:
+That's it! The script will:
+- ✅ **Automatically start PostgreSQL** if Docker is running
+- ✅ **Start Frontend** on http://localhost:5173
+- ✅ **Start Backend** on http://localhost:5001
 
-- ✅ **PostgreSQL Database** on port 5432
-- ✅ **Frontend** on http://localhost:5173
-- ✅ **Backend Server** on http://localhost:5001
+**Note:** Make sure Docker Desktop is running before starting.
 
 ### Alternative Setup Methods
 
 ```bash
-# Interactive setup menu (recommended for first time)
-npm run setup
+# Start frontend only (for UI work)
+npm run dev
 
-# Start individual services
-npm run dev          # Frontend only
-npm run server:dev   # Backend server (WebSocket + Assets)
+# Start backend only (requires PostgreSQL running)
+npm run server:dev
+
+# Database management
+npm run db:start     # Start PostgreSQL manually
+npm run db:stop      # Stop PostgreSQL
+npm run db:logs      # View PostgreSQL logs
 ```
-
-### 🚀 Railway Deployment
-
-For production deployment, Nexus VTT is configured to deploy automatically to Railway.app.
-
-#### Prerequisites
-
-- Railway.app account
-- GitHub repository connected to Railway
-
-#### Automatic Deployment
-
-1. **Push to main branch** - Railway automatically detects the `railway.json` configuration
-2. **Services Created**:
-   - **PostgreSQL** - Database service
-   - **Backend** - API/WebSocket server
-   - **Frontend** - React application
-
-#### Required Secrets
-
-Set these secrets in your Railway project dashboard:
-
-| Secret Name         | Description        | Example                |
-| ------------------- | ------------------ | ---------------------- |
-| `POSTGRES_PASSWORD` | Database password  | `your-secure-password` |
-| `JWT_SECRET`        | JWT signing secret | `your-jwt-secret-key`  |
-
-#### Manual Setup (Alternative)
-
-If Railway doesn't auto-detect the configuration:
-
-1. **Create PostgreSQL service** in Railway dashboard
-2. **Create Backend service** from your GitHub repo
-3. **Create Frontend service** from your GitHub repo
-4. **Set environment variables** in each service as needed
-
-#### Configuration Files
-
-- `railway.json` - Multi-service configuration (ignored by git for security)
-- `railway.json.example` - Template showing required structure
 
 ## 🎯 Usage
 
@@ -246,37 +204,18 @@ The Scene Editor includes a professional asset browser:
 #### 🚀 **Quick Start Commands**
 
 ```bash
-npm run start:all        # Start all servers (frontend + backend + assets) - Full development
+npm run start:all        # Start all servers (frontend + backend) - Full development
 npm run dev              # Start frontend only - Quick UI development
-npm run setup           # Interactive setup menu (recommended for first time)
-npm run dev:all         # Alternative all-in-one development start
-npm run start:full      # Start with named process output
 ```
 
-#### 📋 **When to Use Which Command**
-
-- **`npm run dev`** - Frontend only, perfect for UI work and offline preparation mode
+**When to Use Which:**
+- **`npm run dev`** - Frontend only, perfect for UI work
 - **`npm run start:all`** - Full stack, needed for multiplayer features and WebSocket server
-- **`npm run setup`** - First time setup with intelligent port conflict resolution
 
-#### 🖥️ **Development - Frontend**
-
+**Custom Ports:** Use environment variables instead of dedicated scripts:
 ```bash
-npm run dev              # Start frontend only (port 5173) - Quick UI development
-npm run dev:3000         # Start frontend on port 3000
-npm run dev:4000         # Start frontend on port 4000
-npm run dev:8080         # Start frontend on port 8080
-npm run preview          # Preview production build
-```
-
-#### 🔌 **Development - Backend/WebSocket**
-
-```bash
-npm run server:dev       # Start WebSocket server (port 5001)
-npm run server:dev:5001  # Start WebSocket server on port 5001
-npm run server:dev:5002  # Start WebSocket server on port 5002
-npm run server:dev:8080  # Start WebSocket server on port 8080
-npm run server:test      # Run server in test mode
+PORT=3000 npm run dev              # Frontend on port 3000
+PORT=5002 npm run server:dev       # Backend on port 5002
 ```
 
 #### 🏗️ **Build Commands**
@@ -285,8 +224,8 @@ npm run server:test      # Run server in test mode
 npm run build           # Production build (frontend)
 npm run build:server    # Build server TypeScript
 npm run build:all       # Build both frontend and server
-npm run server:build    # Same as build:server
 npm run server:start    # Start production server (after build)
+npm run preview         # Preview production build
 ```
 
 #### 🧪 **Testing & Quality**
@@ -297,58 +236,62 @@ npm run type-check      # TypeScript validation only
 npm run lint            # ESLint + TypeScript checks
 
 # Unit & Integration Tests
-npm run test            # Start test suite in watch mode
+npm run test            # Run all tests once
 npm run test:unit       # Run unit tests only
 npm run test:integration # Run integration tests
 npm run test:e2e        # Run end-to-end tests
-npm run test:all        # Run all tests once
+npm run test:all        # Run all tests (unit + integration + e2e)
+npm run test:ci         # CI pipeline tests (lint + type-check + tests)
 npm run test:watch      # Run tests in watch mode
 npm run test:coverage   # Run tests with coverage report
-npm run test:ui         # Open Vitest UI
 
-# Visual & Layout Tests
+# Layout & Visual Tests
 npm run test:layout     # Run Playwright layout tests
-npm run test:layout:quick # Quick layout validation
 npm run test:visual     # Visual regression testing
 ```
+
+**Run Specific Tests:**
+```bash
+npm test -- path/to/test.ts        # Run specific test file
+npm run test:layout -- --grep "pattern"  # Filter layout tests
+```
+
+#### 🗄️ **Database Management**
+
+```bash
+npm run db:start        # Start PostgreSQL (auto-runs in start:all)
+npm run db:stop         # Stop PostgreSQL
+npm run db:down         # Stop and remove PostgreSQL container
+npm run db:reset        # Reset database (removes all data!)
+npm run db:logs         # View PostgreSQL logs
+npm run db:shell        # Open PostgreSQL shell
+```
+
+**Note:** `npm run start:all` automatically starts PostgreSQL if it's not running.
 
 #### 🐳 **Docker Commands**
 
 ```bash
-npm run docker:dev      # Start development environment
+npm run docker:dev       # Start development environment
 npm run docker:dev:build # Build and start dev environment
-npm run docker:dev:down # Stop development environment
-npm run docker:build   # Production build with Docker
-npm run docker:deploy  # Deploy to production
-npm run docker:logs    # View container logs
-npm run docker:setup   # Full Docker environment setup
+npm run docker:dev:down  # Stop development environment
+```
+
+**Direct Make Commands:** For production Docker operations, use Make directly:
+```bash
+make build              # Production build with Docker
+make deploy             # Deploy to production
+make logs               # View container logs
 ```
 
 #### 🎨 **Asset Management**
 
 ```bash
-npm run organize-assets # Organize asset directory structure
-npm run update-assets  # Update asset references in code
-npm run check-ports    # Check available ports
-
-# Manual asset processing
-node scripts/process-assets.js <input> <output>  # Process assets
-npm install sharp      # Install image processing library
-```
-
-#### 🔧 **Development Tools**
-
-```bash
-npm run validate-layout # Validate CSS layout rules
-npm run validate-env   # Validate environment configuration
-npm run setup:legacy   # Legacy setup script
-npm run dev:quick      # Quick development start (alias)
-```
-
-#### 📦 **Legacy & Utility**
-
-```bash
-npm run prepare        # Husky git hooks setup (auto-run on install)
+npm run generate-assets        # Generate thumbnails and manifest
+npm run generate-thumbnails    # Generate asset thumbnails only
+npm run generate-default-manifest  # Generate asset manifest only
+npm run organize-assets        # Organize asset directory structure
+npm run update-assets          # Update asset references in code
 ```
 
 ### Architecture Deep Dive

@@ -206,9 +206,6 @@ secrets/
 *.key
 *.crt
 
-# Railway configuration (railway.json is safe to commit - uses secret references like ${{ secret.JWT_SECRET }})
-# railway.json should be committed so Railway can read service configuration
-
 # Backup files
 *.orig
 *.rej

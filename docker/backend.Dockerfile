@@ -32,10 +32,10 @@ RUN chown -R nodejs:nodejs /app
 # Switch to non-root user
 USER nodejs
 
-# Expose WebSocket port (Railway will assign its own PORT via env var)
+# Expose WebSocket port
 EXPOSE 5000
 
-# Health check (use PORT env var if available)
+# Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD node -e "const port = process.env.PORT || 5000; require('http').get('http://localhost:' + port + '/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
 

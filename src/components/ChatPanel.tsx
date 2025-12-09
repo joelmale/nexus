@@ -64,7 +64,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isOwnMessage }) => {
           {formatTimestamp(message.timestamp)}
         </span>
       </div>
-      <div className="chat-panel__message-content">{message.content}</div>
+      <div
+        className="chat-panel__message-content"
+        dangerouslySetInnerHTML={{ __html: message.content }}
+      />
       {message.messageType === 'whisper' && message.recipientId && (
         <div className="chat-panel__message-recipient">To: {message.recipientId}</div>
       )}

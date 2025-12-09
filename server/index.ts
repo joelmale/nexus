@@ -956,7 +956,7 @@ class NexusServer {
     if (host) {
       await this.handleHostConnection(connection, host, campaignId);
     } else if (reconnect) {
-      this.handleHostReconnection(connection, reconnect);
+      await this.handleHostReconnection(connection, reconnect);
     } else if (join) {
       await this.handleJoinConnection(connection, join);
     } else {
@@ -1096,7 +1096,7 @@ class NexusServer {
     }
   }
 
-  private handleHostReconnection(connection: Connection, roomCode: string) {
+  private async handleHostReconnection(connection: Connection, roomCode: string) {
     const room = this.rooms.get(roomCode);
 
     if (!room) {
@@ -1121,6 +1121,19 @@ class NexusServer {
         clearTimeout(room.hibernationTimer);
         room.hibernationTimer = undefined;
       }
+
+      // Load game state from database if not in memory
+      if (!room.gameState) {
+        try {
+          const session = await this.db.getSessionByJoinCode(roomCode);
+          if (session?.gameState) {
+            room.gameState = session.gameState as GameState;
+            console.log(`📂 Loaded game state from database: ${session.gameState.scenes?.length || 0} scenes`);
+          }
+        } catch (error) {
+          console.error(`Failed to load game state for room ${roomCode}:`, error);
+        }
+      }
     } else {
       console.log(`🔄 Host reconnecting to active room: ${roomCode}`);
     }
@@ -1137,7 +1150,7 @@ class NexusServer {
     console.log(
       `🎮 Room gameState when reconnecting:`,
       room.gameState ? 'exists' : 'null',
-      room.gameState,
+      room.gameState ? `${room.gameState.scenes?.length || 0} scenes` : 'no data',
     );
     this.sendMessage(connection, {
       type: 'event',

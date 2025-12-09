@@ -45,7 +45,6 @@ cypress
 
 # Docker files (prevent recursive copy)
 docker-compose*.yml
-# Note: We keep Dockerfile.backend and Dockerfile.frontend for Railway
 
 # CI/CD
 .github
