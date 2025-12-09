@@ -245,3 +245,4 @@ start-dev.sh.log
 # Test results
 playwright-report/
 test-results/
+tests/e2e/visual-regression.test.ts-snapshots/
