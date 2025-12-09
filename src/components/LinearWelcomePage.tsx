@@ -71,6 +71,7 @@ export const LinearWelcomePage: React.FC = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const emailInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Auto-navigate to game if session exists, or attempt recovery if needed
   React.useEffect(() => {
@@ -256,6 +257,24 @@ export const LinearWelcomePage: React.FC = () => {
     }
   };
 
+  // Focus email on modal open and close on Escape
+  React.useEffect(() => {
+    if (showAccountModal && emailInputRef.current) {
+      emailInputRef.current.focus();
+    }
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAccountModal(false);
+      }
+    };
+
+    if (showAccountModal) {
+      window.addEventListener('keydown', handleKey);
+    }
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [showAccountModal]);
+
   /**
    * Handles quick join - creates guest user and joins room directly
    */
@@ -390,93 +409,150 @@ export const LinearWelcomePage: React.FC = () => {
             <button
               className="account-bubble glass-panel"
               title="Login with OAuth"
-              onClick={() => setShowAccountModal((prev) => !prev)}
+              onClick={() => setShowAccountModal(true)}
             >
               <span className="account-icon">👤</span>
             </button>
-            <div
-              className={`account-dropdown glass-panel ${showAccountModal ? 'open' : ''}`}
-            >
-              <button
-                className="account-close"
-                onClick={() => setShowAccountModal(false)}
-                aria-label="Close account modal"
-              >
-                ×
-              </button>
-              <div className="account-dropdown-header">
-                <span className="dropdown-title">
-                  {authMode === 'signin' ? 'Sign In' : 'Create Account'}
-                </span>
-                <button
-                  className="account-switch"
-                  onClick={() =>
-                    setAuthMode(authMode === 'signin' ? 'signup' : 'signin')
-                  }
-                >
-                  {authMode === 'signin' ? 'Create account' : 'Have an account?'}
-                </button>
-              </div>
+          </div>
 
-              <div className="account-form">
-                <input
-                  type="email"
-                  className="glass-input"
-                  placeholder="you@example.com"
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                  disabled={authLoading}
-                />
-                {authMode === 'signup' && (
+          {showAccountModal && (
+            <div
+              className="account-overlay"
+              role="presentation"
+              onClick={() => setShowAccountModal(false)}
+            >
+              <div
+                className="account-dropdown glass-panel open"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="account-modal-title"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="account-dropdown-header">
+                  <div className="title-row">
+                    <span className="dropdown-title" id="account-modal-title">
+                      {authMode === 'signin' ? 'Sign In' : 'Create Account'}
+                    </span>
+                    <div className="title-note">
+                      {authMode === 'signin'
+                        ? 'Use your Nexus account'
+                        : 'Create a Nexus account'}
+                    </div>
+                  </div>
+                  <button
+                    className="account-close"
+                    onClick={() => setShowAccountModal(false)}
+                    aria-label="Close account modal"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="account-form">
+                  <label className="account-label" htmlFor="account-email">
+                    Email
+                  </label>
                   <input
-                    type="text"
+                    id="account-email"
+                    ref={emailInputRef}
+                    type="email"
                     className="glass-input"
-                    placeholder="Display name (optional)"
-                    value={authDisplayName}
-                    onChange={(e) => setAuthDisplayName(e.target.value)}
+                    placeholder="you@example.com"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
                     disabled={authLoading}
                   />
-                )}
-                <input
-                  type="password"
-                  className="glass-input"
-                  placeholder="Password"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  disabled={authLoading}
-                />
-                <button
-                  className="action-btn glass-button primary"
-                  disabled={!authEmail || !authPassword || authLoading}
-                  onClick={() => handleLocalAuth(authMode)}
-                >
-                  {authLoading
-                    ? 'Please wait...'
-                    : authMode === 'signin'
-                      ? 'Sign In'
-                      : 'Create Account'}
-                </button>
-                {authError && <div className="error-message compact">{authError}</div>}
-                {authSuccess && <div className="success-message compact">{authSuccess}</div>}
-              </div>
 
-              <div className="account-divider">or continue with</div>
+                  {authMode === 'signup' && (
+                    <>
+                      <label className="account-label" htmlFor="account-display-name">
+                        Display name (optional)
+                      </label>
+                      <input
+                        id="account-display-name"
+                        type="text"
+                        className="glass-input"
+                        placeholder="Your name in Nexus"
+                        value={authDisplayName}
+                        onChange={(e) => setAuthDisplayName(e.target.value)}
+                        disabled={authLoading}
+                      />
+                    </>
+                  )}
 
-              <a href="/auth/google" className="account-option">
-                <span className="option-icon google-icon">G</span>
-                <span className="option-text">Google</span>
-              </a>
-              <a href="/auth/discord" className="account-option">
-                <span className="option-icon discord-icon">D</span>
-                <span className="option-text">Discord</span>
-              </a>
-              <div className="account-dropdown-footer">
-                <span className="dropdown-hint">
-                  Accounts sync characters & campaigns. Guests can migrate later.
-                </span>
+                  <label className="account-label" htmlFor="account-password">
+                    Password
+                  </label>
+                  <input
+                    id="account-password"
+                    type="password"
+                    className="glass-input"
+                    placeholder="Enter your password"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    disabled={authLoading}
+                  />
+                  {authMode === 'signup' && (
+                    <div className="helper-text">
+                      Use 8+ characters. We hash everything client-to-server.
+                    </div>
+                  )}
+
+                  <button
+                    className="action-btn glass-button primary"
+                    disabled={!authEmail || !authPassword || authLoading}
+                    onClick={() => handleLocalAuth(authMode)}
+                  >
+                    {authLoading
+                      ? 'Please wait...'
+                      : authMode === 'signin'
+                        ? 'Sign In'
+                        : 'Create Account'}
+                  </button>
+                  {authError && (
+                    <div className="feedback error-message compact">
+                      <span className="feedback-icon">⚠️</span>
+                      {authError}
+                    </div>
+                  )}
+                  {authSuccess && (
+                    <div className="feedback success-message compact">
+                      <span className="feedback-icon">✅</span>
+                      {authSuccess}
+                    </div>
+                  )}
+                  <button
+                    className="account-text-toggle"
+                    onClick={() =>
+                      setAuthMode(authMode === 'signin' ? 'signup' : 'signin')
+                    }
+                  >
+                    {authMode === 'signin'
+                      ? "Don't have an account? Create one"
+                      : 'Have an account? Sign in'}
+                  </button>
+                </div>
+
+                <div className="account-divider">or continue with</div>
+
+                <div className="oauth-block">
+                  <a href="/auth/google" className="account-option wide">
+                    <span className="option-icon google-icon">G</span>
+                    <span className="option-text">Google</span>
+                  </a>
+                  <a href="/auth/discord" className="account-option wide">
+                    <span className="option-icon discord-icon">D</span>
+                    <span className="option-text">Discord</span>
+                  </a>
+                </div>
+                <div className="account-dropdown-footer">
+                  <span className="dropdown-hint">
+                    Accounts sync characters & campaigns. Guests can migrate later.
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Brand Section */}
           <div className="brand-section">

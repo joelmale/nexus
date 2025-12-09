@@ -41,13 +41,10 @@
 /* ========================================================================== ACCOUNT MENU BUBBLE ========================================================================== */
 
 .account-menu {
-  background-color: rgba(0, 0, 0, 0.0);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
   position: absolute;
   top: 1rem;
   right: 1rem;
-  z-index: 10;
+  z-index: 20;
 }
 
 .account-bubble {
@@ -81,23 +78,33 @@
   opacity: 1;
 }
 
-/* Account Dropdown */
+/* Account Modal */
+.account-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
 .account-dropdown {
-  position: absolute;
-  top: calc(100% + 0.25rem);
-  right: 0;
-  min-width: 200px;
-  padding: 0.5rem;
+  position: relative;
+  width: min(520px, 92vw);
+  padding: 1rem;
   background: rgba(20, 24, 40, 0.95);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border-radius: 16px;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
   pointer-events: none;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
 .account-dropdown.open {
@@ -110,9 +117,17 @@
 .account-dropdown-header {
   padding: 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+}
+
+.title-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
 }
 
 .dropdown-title {
@@ -124,24 +139,30 @@
   opacity: 0.7;
 }
 
+.title-note {
+  font-size: 0.85rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.8));
+  opacity: 0.8;
+}
+
 .account-close {
   appearance: none;
-  border: none;
-  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: 0.5rem;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
+  margin-left: auto;
 }
 
 .account-close:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.2);
   transform: scale(1.05);
 }
 
@@ -175,6 +196,33 @@
   outline-offset: 2px;
 }
 
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  text-align: left;
+}
+
+.account-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.8));
+  letter-spacing: 0.01em;
+}
+
+.helper-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+  margin-top: -0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .account-option {
   display: flex;
   align-items: center;
@@ -189,6 +237,11 @@
 
 .account-option:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+.account-option.wide {
+  width: 100%;
+  justify-content: center;
 }
 
 .option-icon {
@@ -236,9 +289,31 @@
   text-align: center;
   color: #fff;
   opacity: 0.9;
-  margin: 0.5rem 0;
+  margin: 0.75rem 0 0.25rem;
   font-size: 0.85rem;
   letter-spacing: 0.02em;
+}
+
+.oauth-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.account-text-toggle {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #d0e3ff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  text-decoration: underline;
+  align-self: flex-start;
+}
+
+.account-text-toggle:hover {
+  color: #ffffff;
 }
 
 /* ========================================================================== BACKGROUND ELEMENTS ========================================================================== */
