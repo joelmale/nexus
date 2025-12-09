@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { PlacedProp, Prop } from '@/types/prop';
-import { useActiveTool, useIsHost } from '@/stores/gameStore';
+import { useActiveTool, useIsHost, useGameStore } from '@/stores/gameStore';
 import { ContainerModal } from '../Props/ContainerModal';
 
 interface PropRendererProps {
@@ -33,6 +33,7 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
   }) => {
     const activeTool = useActiveTool();
     const isHost = useIsHost();
+    const setActiveTool = useGameStore((state) => state.setActiveTool);
     const [isDragging, setIsDragging] = useState(false);
     const [showContainerModal, setShowContainerModal] = useState(false);
     const dragStartRef = useRef({ x: 0, y: 0 });
@@ -42,8 +43,8 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
     const propWidth = (placedProp.width || 1) * gridSize * placedProp.scale;
     const propHeight = (placedProp.height || 1) * gridSize * placedProp.scale;
 
-    // Only handle interactions when select tool is active
-    const canInteract = canEdit && activeTool === 'select';
+    // Allow interactions for hosts/owners; auto-switch to select if needed
+    const canInteract = canEdit;
 
     // Debug logging for selected props
     useEffect(() => {
@@ -101,6 +102,11 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
       if (!canInteract) {
         console.log('❌ Props: canInteract is false, returning early');
         return;
+      }
+
+      // If not on select tool, switch to select to enable manipulation
+      if (activeTool !== 'select') {
+        setActiveTool('select');
       }
 
       // Only handle left-click
