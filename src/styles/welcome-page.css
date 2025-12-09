@@ -183,6 +183,15 @@
   font-style: italic;
 }
 
+.account-divider {
+  text-align: center;
+  color: #fff;
+  opacity: 0.9;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
 /* ========================================================================== BACKGROUND ELEMENTS ========================================================================== */
 
 .welcome-background {
