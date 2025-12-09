@@ -8,6 +8,8 @@ export const DiceBox3D: React.FC = () => {
   const diceBoxContainerRef = useRef<HTMLDivElement>(null);
   const lastRollIdRef = useRef<string | null>(null);
   const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const rollDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingRollRef = useRef<{ notations: string[]; values: number[] } | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
 
@@ -56,20 +58,20 @@ export const DiceBox3D: React.FC = () => {
             assetPath: '/assets/dice-box/',
             theme: 'default',
             offscreen: false,
-            scale: 8,
+            scale: 6,
             gravity: 1,
-            mass: 1,
-            friction: 0.8,
-            restitution: 0,
-            linearDamping: 0.4,
-            angularDamping: 0.4,
-            spinForce: 4,
-            throwForce: 5,
-            startingHeight: 8,
-            settleTimeout: 5000,
-            delay: 10,
-            enableShadows: true,
-            lightIntensity: 1,
+            mass: 0.85,
+            friction: 0.65,
+            restitution: 0.04,
+            linearDamping: 0.55,
+            angularDamping: 0.65,
+            spinForce: 2.6,
+            throwForce: 3,
+            startingHeight: 5,
+            settleTimeout: 2000,
+            delay: 4,
+            enableShadows: false,
+            lightIntensity: 0.6,
           };
 
           console.log('🎲 Initializing DiceBox with config:', config);
@@ -177,34 +179,54 @@ export const DiceBox3D: React.FC = () => {
 
     // Roll the dice with predetermined values from the server
     if (rollNotations.length > 0) {
-      // Clear any existing timeout
-      if (clearTimeoutRef.current) {
-        clearTimeout(clearTimeoutRef.current);
-        clearTimeoutRef.current = null;
+      // Debounce multiple incoming rolls to avoid stacking animations
+      pendingRollRef.current = { notations: rollNotations, values: rollValues };
+
+      if (rollDebounceRef.current) {
+        clearTimeout(rollDebounceRef.current);
       }
 
-      // Play sound immediately when dice start rolling
-      diceSounds.playRollSound(rollValues.length);
+      rollDebounceRef.current = setTimeout(() => {
+        const payload = pendingRollRef.current;
+        pendingRollRef.current = null;
+        rollDebounceRef.current = null;
+        if (!payload || !diceBoxRef.current) return;
 
-      // Use the documented API pattern from DICE_BOX_IMPLEMENTATION.md
-      // Pass array of notation strings and values array separately
-      diceBoxRef.current
-        .roll(rollNotations, { values: rollValues })
-        .then((_results) => {
-          // Schedule dice clear after settle time + configured disappear time
-          // settleTimeout is 5000ms, so dice settle after 5 seconds
-          const totalTime = 5000 + settings.diceDisappearTime;
-          clearTimeoutRef.current = setTimeout(() => {
-            if (diceBoxRef.current) {
-              diceBoxRef.current.clear();
-            }
-          }, totalTime);
-        })
-        .catch((error) => {
-          console.error('🎲 Error rolling dice:', error);
-        });
+        const { notations, values } = payload;
 
-      lastRollIdRef.current = latestRoll.id;
+        // Clear any existing timeout
+        if (clearTimeoutRef.current) {
+          clearTimeout(clearTimeoutRef.current);
+          clearTimeoutRef.current = null;
+        }
+
+        // Clear existing dice before rolling again to avoid stacking meshes
+        try {
+          diceBoxRef.current.clear();
+        } catch (error) {
+          console.warn('🎲 Error clearing dice box before roll:', error);
+        }
+
+        // Play sound immediately when dice start rolling
+        diceSounds.playRollSound(values.length);
+
+        diceBoxRef.current
+          .roll(notations, { values })
+          .then((_results) => {
+            // Shorter clear timing to keep scene responsive
+            const totalTime = 2000 + settings.diceDisappearTime;
+            clearTimeoutRef.current = setTimeout(() => {
+              if (diceBoxRef.current) {
+                diceBoxRef.current.clear();
+              }
+            }, totalTime);
+          })
+          .catch((error) => {
+            console.error('🎲 Error rolling dice:', error);
+          });
+
+        lastRollIdRef.current = latestRoll.id;
+      }, 120);
     }
   }, [diceRolls, isInitialized, settings.diceDisappearTime]);
 
