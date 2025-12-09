@@ -51,8 +51,6 @@ export interface DiceRoll {
   isPrivate?: boolean; // If true, only visible to the roller and the DM
 }
 
-
-
 export interface PlayerCharacter {
   id: string;
   name: string;
@@ -89,8 +87,6 @@ export interface ChatState {
 }
 
 export interface GameState {
-
-
   // User & Session (merged from both stores)
   user: User;
   session: Session | null;
@@ -113,6 +109,9 @@ export interface GameState {
 
   // Connection Quality
   connection: ConnectionState;
+
+  // Recovery state
+  isRecovering: boolean;
 
   // Version tracking for conflict resolution
   entityVersions: Map<string, number>;

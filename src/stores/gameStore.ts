@@ -203,7 +203,10 @@ interface GameStore extends GameState {
   ) => void;
   getSceneProps: (sceneId: string) => PlacedProp[];
   getVisibleProps: (sceneId: string, isHost: boolean) => PlacedProp[];
-  getPlacedPropById: (sceneId: string, propId: string) => PlacedProp | undefined;
+  getPlacedPropById: (
+    sceneId: string,
+    propId: string,
+  ) => PlacedProp | undefined;
 
   // Prop Optimistic Update Actions
   movePropOptimistic: (
@@ -459,6 +462,9 @@ const initialState: GameState & {
     reconnectAttempts: 0,
   },
 
+  // Recovery state
+  isRecovering: false,
+
   // Version tracking for conflict resolution
   entityVersions: new Map(),
 };
@@ -667,9 +673,8 @@ const eventHandlers: Record<string, EventHandler> = {
               propIndex
             ].rotation = eventData.rotation;
           }
-          state.sceneState.scenes[sceneIndex].placedProps[
-            propIndex
-          ].updatedAt = Date.now();
+          state.sceneState.scenes[sceneIndex].placedProps[propIndex].updatedAt =
+            Date.now();
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
 
           // Increment version for conflict resolution
@@ -737,7 +742,8 @@ const eventHandlers: Record<string, EventHandler> = {
           sceneIndex
         ].placedProps.findIndex((p) => p.id === eventData.propId);
         if (propIndex >= 0) {
-          const prop = state.sceneState.scenes[sceneIndex].placedProps[propIndex];
+          const prop =
+            state.sceneState.scenes[sceneIndex].placedProps[propIndex];
 
           if (!prop.currentStats) prop.currentStats = {};
 
@@ -762,9 +768,14 @@ const eventHandlers: Record<string, EventHandler> = {
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
 
           // Increment version for conflict resolution
-          const currentVersion = state.entityVersions.get(eventData.propId) || 0;
+          const currentVersion =
+            state.entityVersions.get(eventData.propId) || 0;
           state.entityVersions.set(eventData.propId, currentVersion + 1);
-          console.log('🎭 Props: Interacted with prop:', eventData.propId, eventData.action);
+          console.log(
+            '🎭 Props: Interacted with prop:',
+            eventData.propId,
+            eventData.action,
+          );
         }
       }
     }
@@ -903,7 +914,9 @@ const eventHandlers: Record<string, EventHandler> = {
       if (eventData.gameState.activeSceneId) {
         state.sceneState.activeSceneId = eventData.gameState.activeSceneId;
       }
-      console.log(`🎮 Loaded ${state.sceneState.scenes.length} scenes from server game state`);
+      console.log(
+        `🎮 Loaded ${state.sceneState.scenes.length} scenes from server game state`,
+      );
     }
 
     console.log('Session joined:', state.session);
@@ -1436,7 +1449,12 @@ export const useGameStore = create<GameStore>()(
 
           // Connect to WebSocket (host mode) - server will generate room code
           // Pass campaign ID if provided in config
-          await webSocketService.connect(undefined, 'host', config.campaignId, get().user.id);
+          await webSocketService.connect(
+            undefined,
+            'host',
+            config.campaignId,
+            get().user.id,
+          );
 
           // Wait for session/created event from server
           const session = await webSocketService.waitForSessionCreated();
@@ -1452,22 +1470,31 @@ export const useGameStore = create<GameStore>()(
 
           // Try to restore game state from IndexedDB if available
           // This allows resuming a campaign with local changes that haven't been saved to server
-          const recoveryData = await sessionPersistenceService.getRecoveryData();
+          const recoveryData =
+            await sessionPersistenceService.getRecoveryData();
           console.log('🔍 Checking for game state to restore:', {
             hasGameState: !!recoveryData.gameState,
             scenesCount: recoveryData.gameState?.scenes?.length || 0,
           });
 
-          if (recoveryData.gameState && recoveryData.gameState.scenes.length > 0) {
-            console.log('📂 Restoring game state from localStorage for campaign:', {
-              scenes: (recoveryData.gameState.scenes as Scene[]).map((s: Scene) => ({
-                id: s.id,
-                name: s.name,
-                hasBackground: !!s.backgroundImage,
-                tokensCount: s.placedTokens?.length || 0,
-                drawingsCount: s.drawings?.length || 0,
-              })),
-            });
+          if (
+            recoveryData.gameState &&
+            recoveryData.gameState.scenes.length > 0
+          ) {
+            console.log(
+              '📂 Restoring game state from localStorage for campaign:',
+              {
+                scenes: (recoveryData.gameState.scenes as Scene[]).map(
+                  (s: Scene) => ({
+                    id: s.id,
+                    name: s.name,
+                    hasBackground: !!s.backgroundImage,
+                    tokensCount: s.placedTokens?.length || 0,
+                    drawingsCount: s.drawings?.length || 0,
+                  }),
+                ),
+              },
+            );
 
             get().loadSessionState();
 
@@ -1807,7 +1834,7 @@ export const useGameStore = create<GameStore>()(
           state.sceneState.selectedObjectIds = objectIds;
           console.log('🏪 gameStore.setSelection updated:', {
             previous: previousSelection,
-            new: objectIds
+            new: objectIds,
           });
         });
       },
@@ -2286,7 +2313,10 @@ export const useGameStore = create<GameStore>()(
             // Restore the previous version
             if (update.previousVersion !== undefined) {
               set((state) => {
-                state.entityVersions.set(update.localState.id, update.previousVersion!);
+                state.entityVersions.set(
+                  update.localState.id,
+                  update.previousVersion!,
+                );
               });
             }
             break;
@@ -2302,7 +2332,10 @@ export const useGameStore = create<GameStore>()(
             // Restore the previous version
             if (update.previousVersion !== undefined) {
               set((state) => {
-                state.entityVersions.set(update.localState.id, update.previousVersion!);
+                state.entityVersions.set(
+                  update.localState.id,
+                  update.previousVersion!,
+                );
               });
             }
             break;
@@ -2317,7 +2350,10 @@ export const useGameStore = create<GameStore>()(
             // Restore the previous version
             if (update.previousVersion !== undefined) {
               set((state) => {
-                state.entityVersions.set(update.localState.id, update.previousVersion!);
+                state.entityVersions.set(
+                  update.localState.id,
+                  update.previousVersion!,
+                );
               });
             }
             break;
@@ -2427,7 +2463,8 @@ export const useGameStore = create<GameStore>()(
               sceneIndex
             ].placedProps.findIndex((p) => p.id === propId);
             if (propIndex >= 0) {
-              const prop = state.sceneState.scenes[sceneIndex].placedProps[propIndex];
+              const prop =
+                state.sceneState.scenes[sceneIndex].placedProps[propIndex];
 
               // Update prop state based on action
               if (!prop.currentStats) prop.currentStats = {};
@@ -2682,21 +2719,23 @@ export const useGameStore = create<GameStore>()(
         // Save game state (characters, scenes, settings, etc.)
         // Strip out large data (background images) that are already in IndexedDB
         // to avoid localStorage quota issues
-        const scenesForLocalStorage = state.sceneState.scenes.map(scene => ({
+        const scenesForLocalStorage = state.sceneState.scenes.map((scene) => ({
           ...scene,
           // Don't save background image data URL to localStorage
           // It's already in IndexedDB and can be huge (5MB+)
           // Only save the metadata
-          backgroundImage: scene.backgroundImage ? {
-            url: scene.backgroundImage.url.startsWith('data:')
-              ? '[IMAGE_IN_INDEXEDDB]' // Replace data URL with placeholder
-              : scene.backgroundImage.url, // Keep external URLs
-            width: scene.backgroundImage.width,
-            height: scene.backgroundImage.height,
-            offsetX: scene.backgroundImage.offsetX,
-            offsetY: scene.backgroundImage.offsetY,
-            scale: scene.backgroundImage.scale,
-          } : undefined,
+          backgroundImage: scene.backgroundImage
+            ? {
+                url: scene.backgroundImage.url.startsWith('data:')
+                  ? '[IMAGE_IN_INDEXEDDB]' // Replace data URL with placeholder
+                  : scene.backgroundImage.url, // Keep external URLs
+                width: scene.backgroundImage.width,
+                height: scene.backgroundImage.height,
+                offsetX: scene.backgroundImage.offsetX,
+                offsetY: scene.backgroundImage.offsetY,
+                scale: scene.backgroundImage.scale,
+              }
+            : undefined,
         }));
 
         const gameStateData = {
@@ -2710,7 +2749,7 @@ export const useGameStore = create<GameStore>()(
         // Log what we're about to save
         console.log('💾 Saving game state:', {
           scenesCount: gameStateData.scenes.length,
-          scenes: gameStateData.scenes.map(s => ({
+          scenes: gameStateData.scenes.map((s) => ({
             id: s.id,
             name: s.name,
             hasBackground: !!s.backgroundImage,
@@ -2720,9 +2759,11 @@ export const useGameStore = create<GameStore>()(
         });
 
         // Save to IndexedDB (async, but we don't await to avoid blocking)
-        sessionPersistenceService.saveGameState(gameStateData).catch(error => {
-          console.error('Failed to save game state:', error);
-        });
+        sessionPersistenceService
+          .saveGameState(gameStateData)
+          .catch((error) => {
+            console.error('Failed to save game state:', error);
+          });
 
         // Also send game state to server if connected and user is host
         if (
@@ -2777,6 +2818,11 @@ export const useGameStore = create<GameStore>()(
 
       attemptSessionRecovery: async () => {
         console.log('🔄 Attempting session recovery...');
+
+        // Set recovery flag to prevent auto-saving during recovery
+        set((state) => {
+          state.isRecovering = true;
+        });
 
         try {
           // First check what's in localStorage for debugging
@@ -2917,9 +2963,20 @@ export const useGameStore = create<GameStore>()(
             `🎮 Current game state after recovery:`,
             get().sceneState,
           );
+
+          // Clear recovery flag
+          set((state) => {
+            state.isRecovering = false;
+          });
+
           return true;
         } catch (error) {
           console.error('❌ Session recovery failed:', error);
+
+          // Clear recovery flag
+          set((state) => {
+            state.isRecovering = false;
+          });
 
           // Only clear session data if WebSocket connection failed
           // Keep local state in case user wants to try manual reconnection
@@ -3465,7 +3522,7 @@ export const useSelectedPlacedToken = () =>
     console.log('🔍 useSelectedPlacedToken computing:', {
       selectedObjectIds,
       selectedCount: selectedObjectIds.length,
-      activeSceneId
+      activeSceneId,
     });
 
     if (selectedObjectIds.length !== 1) {
@@ -3485,7 +3542,7 @@ export const useSelectedPlacedToken = () =>
       selectedId,
       foundToken: !!token,
       tokenId: token?.id,
-      totalTokens: scene.placedTokens?.length || 0
+      totalTokens: scene.placedTokens?.length || 0,
     });
     return token;
   });
@@ -3497,7 +3554,7 @@ export const useSelectedPlacedProp = () =>
     console.log('🔍 useSelectedPlacedProp computing:', {
       selectedObjectIds,
       selectedCount: selectedObjectIds.length,
-      activeSceneId
+      activeSceneId,
     });
 
     if (selectedObjectIds.length !== 1) {
@@ -3517,7 +3574,7 @@ export const useSelectedPlacedProp = () =>
       selectedId,
       foundProp: !!prop,
       propId: prop?.id,
-      totalProps: scene.placedProps?.length || 0
+      totalProps: scene.placedProps?.length || 0,
     });
     return prop;
   });

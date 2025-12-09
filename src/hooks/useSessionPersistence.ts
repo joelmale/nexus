@@ -38,13 +38,14 @@ export function useSessionPersistence(
   const session = useGameStore((state) => state.session);
   const scenes = useGameStore((state) => state.sceneState.scenes);
   const settings = useGameStore((state) => state.settings);
+  const isRecovering = useGameStore((state) => state.isRecovering);
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const lastSaveRef = useRef<number>(0);
 
   // Auto-save session state when relevant data changes
   useEffect(() => {
-    if (!autoSave) return;
+    if (!autoSave || isRecovering) return;
 
     // Debounce saves to avoid excessive localStorage writes
     const now = Date.now();
@@ -69,19 +70,22 @@ export function useSessionPersistence(
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [session, scenes, settings, autoSave, saveSessionState]);
+  }, [session, scenes, settings, autoSave, saveSessionState, isRecovering]);
 
   // Periodic save as backup
   useEffect(() => {
     if (!autoSave) return;
 
     const interval = setInterval(() => {
-      saveSessionState();
-      sessionPersistenceService.updateActivity();
+      // Skip periodic saves during recovery
+      if (!isRecovering) {
+        saveSessionState();
+        sessionPersistenceService.updateActivity();
+      }
     }, saveInterval);
 
     return () => clearInterval(interval);
-  }, [autoSave, saveInterval, saveSessionState]);
+  }, [autoSave, saveInterval, saveSessionState, isRecovering]);
 
   // Attempt session recovery on mount
   useEffect(() => {
@@ -230,7 +234,7 @@ export function useSessionRecoveryUI() {
   });
 
   useEffect(() => {
-    sessionPersistenceService.getRecoveryData().then(data => {
+    sessionPersistenceService.getRecoveryData().then((data) => {
       setRecoveryData(data);
     });
   }, []);
