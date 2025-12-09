@@ -36,13 +36,10 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/unit/**",
     "test:integration": "vitest run tests/integration",
-    "test:e2e": "playwright test",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
+    "test:all": "npm run test:unit && npm run test:integration",
     "test:ci": "npm run lint && npm run type-check && npm run test:unit && npm run test:integration",
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
-    "test:layout": "playwright test -c playwright.config.layout.ts tests/e2e/layout.test.ts",
-    "test:visual": "playwright test -c playwright.config.layout.ts tests/e2e/visual-regression.test.ts",
     "prepare": "husky",
     "postinstall": "patch-package"
   },
@@ -54,7 +51,6 @@
   "dependencies": {
     "@3d-dice/dice-box": "^1.1.4",
     "@msgpack/msgpack": "^3.1.2",
-    "@playwright/test": "^1.55.1",
     "@react-three/cannon": "^6.6.0",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.3.0",

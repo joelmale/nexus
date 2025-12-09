@@ -1,9 +1,0 @@
-site_name: Nexus VTT
-theme:
-  name: material
-nav:
-  - Home: index.md
-  - Getting Started: getting-started.md
-  - Architecture: architecture.md
-  - Frontend: frontend.md
-  - Backend: backend.md
