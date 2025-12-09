@@ -2734,39 +2734,35 @@ export const useGameStore = create<GameStore>()(
           activeSceneId: state.sceneState.activeSceneId,
         });
 
-        // Save session data if connected
-        if (state.session) {
-          sessionPersistenceService.saveSession({
-            roomCode: state.session.roomCode,
-            userId: state.user.id,
-            userType: state.user.type,
-            userName: state.user.name,
-            hostId: state.session.hostId,
-            lastActivity: Date.now(),
-            sessionVersion: 1,
-          });
+        // Skip saves when there is no active session or no scenes loaded to avoid wiping state
+        if (!state.session) {
+          console.warn('⚠️ Skipping saveSessionState: no active session');
+          return;
         }
+
+        if (!state.sceneState.scenes || state.sceneState.scenes.length === 0) {
+          console.warn('⚠️ Skipping saveSessionState: no scenes in state');
+          return;
+        }
+
+        // Save session data if connected
+        sessionPersistenceService.saveSession({
+          roomCode: state.session.roomCode,
+          userId: state.user.id,
+          userType: state.user.type,
+          userName: state.user.name,
+          hostId: state.session.hostId,
+          lastActivity: Date.now(),
+          sessionVersion: 1,
+        });
 
         // Save game state (characters, scenes, settings, etc.)
         // Strip out large data (background images) that are already in IndexedDB
         // to avoid localStorage quota issues
         const scenesForLocalStorage = state.sceneState.scenes.map((scene) => ({
           ...scene,
-          // Don't save background image data URL to localStorage
-          // It's already in IndexedDB and can be huge (5MB+)
-          // Only save the metadata
-          backgroundImage: scene.backgroundImage
-            ? {
-                url: scene.backgroundImage.url.startsWith('data:')
-                  ? '[IMAGE_IN_INDEXEDDB]' // Replace data URL with placeholder
-                  : scene.backgroundImage.url, // Keep external URLs
-                width: scene.backgroundImage.width,
-                height: scene.backgroundImage.height,
-                offsetX: scene.backgroundImage.offsetX,
-                offsetY: scene.backgroundImage.offsetY,
-                scale: scene.backgroundImage.scale,
-              }
-            : undefined,
+          // Preserve background images to avoid breaking reloads; if this becomes too large,
+          // consider streaming to IndexedDB with a lookup key instead of placeholder.
         }));
 
         const gameStateData = {

@@ -47,6 +47,13 @@ export function useSessionPersistence(
   useEffect(() => {
     if (!autoSave || isRecovering) return;
 
+    // Avoid saving if no session or no scenes (prevents overwriting stored state on startup)
+    const hasSession = Boolean(session?.roomCode);
+    const hasScenes = Array.isArray(scenes) && scenes.length > 0;
+    if (!hasSession || !hasScenes) {
+      return;
+    }
+
     // Debounce saves to avoid excessive localStorage writes
     const now = Date.now();
     if (now - lastSaveRef.current < 1000) {
@@ -78,14 +85,16 @@ export function useSessionPersistence(
 
     const interval = setInterval(() => {
       // Skip periodic saves during recovery
-      if (!isRecovering) {
+      const hasSession = Boolean(session?.roomCode);
+      const hasScenes = Array.isArray(scenes) && scenes.length > 0;
+      if (!isRecovering && hasSession && hasScenes) {
         saveSessionState();
         sessionPersistenceService.updateActivity();
       }
     }, saveInterval);
 
     return () => clearInterval(interval);
-  }, [autoSave, saveInterval, saveSessionState, isRecovering]);
+  }, [autoSave, saveInterval, saveSessionState, isRecovering, session?.roomCode, scenes]);
 
   // Attempt session recovery on mount
   useEffect(() => {
