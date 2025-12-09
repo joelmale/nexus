@@ -249,6 +249,8 @@ export const LinearWelcomePage: React.FC = () => {
           ? 'Account created. You are signed in.'
           : 'Signed in successfully.',
       );
+      setShowAccountModal(false);
+      navigate('/dashboard');
     } catch (err) {
       console.error('Local auth failed:', err);
       setAuthError(err instanceof Error ? err.message : 'Authentication failed');

@@ -223,6 +223,10 @@
   gap: 0.35rem;
 }
 
+.success-message {
+  color: #fff;
+}
+
 .account-option {
   display: flex;
   align-items: center;

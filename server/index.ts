@@ -62,6 +62,7 @@ import {
   createServerDiceRoll,
   DiceRollRequest,
 } from './diceRoller.js';
+import fs from 'fs';
 
 interface SessionUser {
   id: string;
@@ -208,11 +209,44 @@ class NexusServer {
   private async initialize() {
     try {
       await this.db.initialize();
+      await this.runLocalMigrations();
       // await this.loadRoomsFromDatabase(); // This needs to be updated for the new schema
       console.log('✅ Server initialization complete');
     } catch (error) {
       console.error('❌ Server initialization failed:', error);
       process.exit(1);
+    }
+  }
+
+  /**
+   * Runs lightweight, idempotent migrations for local deployments.
+   * Currently applies local auth columns if missing.
+   */
+  private async runLocalMigrations() {
+    try {
+      // Check for passwordHash column; if missing, apply migration file
+      const pool = this.db.getPool();
+      const columnCheck = await pool.query(
+        `SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'passwordHash'`,
+      );
+
+      if (columnCheck.rowCount === 0) {
+        const migrationPath = path.join(
+          __dirname,
+          './migrations/2025-12-08-add-local-auth.sql',
+        );
+        if (fs.existsSync(migrationPath)) {
+          const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
+          await pool.query(migrationSql);
+          console.log('✅ Applied local auth migration');
+        } else {
+          console.warn(
+            '⚠️ Local auth migration file not found; skipping schema update',
+          );
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Local migrations skipped:', err);
     }
   }
 
