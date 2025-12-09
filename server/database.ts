@@ -26,10 +26,20 @@ interface UserRecord {
   email: string | null;
   /** User's display name */
   name: string;
+  /** Optional preferred display name */
+  displayName: string | null;
+  /** Optional profile bio/description */
+  bio: string | null;
   /** URL to user's avatar/profile picture */
   avatarUrl: string | null;
   /** OAuth provider ('google', 'discord', 'guest') */
   provider: string;
+  /** JSON preferences blob */
+  preferences: Record<string, unknown> | null;
+  /** Whether the account is active */
+  isActive: boolean;
+  /** Last login timestamp */
+  lastLogin: Date | null;
   /** Timestamp when user was created */
   createdAt: Date;
   /** Timestamp when user was last updated */
@@ -277,11 +287,14 @@ export class DatabaseService {
 
     // Use INSERT ... ON CONFLICT to atomically find or create
     const result = await this.pool.query<UserRecord>(
-      `INSERT INTO users (email, name, "avatarUrl", provider)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO users (email, name, "displayName", bio, "avatarUrl", provider, preferences, "isActive", "lastLogin")
+       VALUES ($1, $2, $2, NULL, $3, $4, '{}'::jsonb, TRUE, NOW())
        ON CONFLICT (email) WHERE email IS NOT NULL DO UPDATE
-       SET name = EXCLUDED.name,
+       SET name = COALESCE(EXCLUDED.name, users.name),
+           "displayName" = COALESCE(EXCLUDED."displayName", users."displayName"),
            "avatarUrl" = EXCLUDED."avatarUrl",
+           "isActive" = TRUE,
+           "lastLogin" = NOW(),
            "updatedAt" = NOW()
        RETURNING *`,
       [email, name, avatarUrl, provider],
@@ -297,13 +310,180 @@ export class DatabaseService {
    */
   async createGuestUser(name: string): Promise<UserRecord> {
     const result = await this.pool.query<UserRecord>(
-      `INSERT INTO users (email, name, "avatarUrl", provider)
-       VALUES (NULL, $1, NULL, 'guest')
+      `INSERT INTO users (email, name, "displayName", bio, "avatarUrl", provider, preferences, "isActive", "lastLogin")
+       VALUES (NULL, $1, $1, NULL, NULL, 'guest', '{}'::jsonb, TRUE, NOW())
        RETURNING *`,
       [name],
     );
 
     return result.rows[0];
+  }
+
+  /**
+   * Retrieves a user's profile with optional stats
+   */
+  async getUserProfile(userId: string): Promise<
+    (UserRecord & { stats: { characters: number; campaigns: number; sessions: number } }) | null
+  > {
+    const profileQuery = this.pool.query<UserRecord>(
+      'SELECT * FROM users WHERE id = $1 AND "isActive" = TRUE',
+      [userId],
+    );
+    const characterCountQuery = this.pool.query<{ count: string }>(
+      'SELECT COUNT(*) FROM characters WHERE "ownerId" = $1',
+      [userId],
+    );
+    const campaignCountQuery = this.pool.query<{ count: string }>(
+      'SELECT COUNT(*) FROM campaigns WHERE "dmId" = $1',
+      [userId],
+    );
+    const sessionCountQuery = this.pool.query<{ count: string }>(
+      'SELECT COUNT(*) FROM sessions WHERE "primaryHostId" = $1',
+      [userId],
+    );
+
+    const [profileResult, characterCount, campaignCount, sessionCount] =
+      await Promise.all([
+        profileQuery,
+        characterCountQuery,
+        campaignCountQuery,
+        sessionCountQuery,
+      ]);
+
+    const profile = profileResult.rows[0];
+    if (!profile) return null;
+
+    return {
+      ...profile,
+      stats: {
+        characters: Number(characterCount.rows[0]?.count || 0),
+        campaigns: Number(campaignCount.rows[0]?.count || 0),
+        sessions: Number(sessionCount.rows[0]?.count || 0),
+      },
+    };
+  }
+
+  /**
+   * Updates profile fields
+   */
+  async updateUserProfile(
+    userId: string,
+    updates: { displayName?: string | null; bio?: string | null; avatarUrl?: string | null },
+  ): Promise<UserRecord> {
+    const fields: string[] = [];
+    const values: unknown[] = [userId];
+    let paramIndex = 2;
+
+    if (updates.displayName !== undefined) {
+      fields.push(`"displayName" = $${paramIndex}`);
+      values.push(updates.displayName);
+      paramIndex += 1;
+    }
+
+    if (updates.bio !== undefined) {
+      fields.push(`bio = $${paramIndex}`);
+      values.push(updates.bio);
+      paramIndex += 1;
+    }
+
+    if (updates.avatarUrl !== undefined) {
+      fields.push(`"avatarUrl" = $${paramIndex}`);
+      values.push(updates.avatarUrl);
+      paramIndex += 1;
+    }
+
+    if (fields.length === 0) {
+      const existing = await this.getUserById(userId);
+      if (!existing) {
+        throw new Error('User not found');
+      }
+      return existing;
+    }
+
+    const result = await this.pool.query<UserRecord>(
+      `UPDATE users
+       SET ${fields.join(', ')},
+           "updatedAt" = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      values,
+    );
+    return result.rows[0];
+  }
+
+  /**
+   * Retrieves user preferences
+   */
+  async getUserPreferences(userId: string): Promise<Record<string, unknown>> {
+    const result = await this.pool.query<{ preferences: Record<string, unknown> | null }>(
+      'SELECT preferences FROM users WHERE id = $1',
+      [userId],
+    );
+    return result.rows[0]?.preferences || {};
+  }
+
+  /**
+   * Updates user preferences
+   */
+  async updateUserPreferences(
+    userId: string,
+    preferences: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const result = await this.pool.query<{ preferences: Record<string, unknown> }>(
+      `UPDATE users
+       SET preferences = $2,
+           "updatedAt" = NOW()
+       WHERE id = $1
+       RETURNING preferences`,
+      [userId, preferences],
+    );
+    return result.rows[0].preferences;
+  }
+
+  /**
+   * Migrates guest-owned data to an authenticated user account
+   */
+  async migrateGuestToUser(guestId: string, userId: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      await client.query(
+        'UPDATE characters SET "ownerId" = $1 WHERE "ownerId" = $2',
+        [userId, guestId],
+      );
+      await client.query('UPDATE campaigns SET "dmId" = $1 WHERE "dmId" = $2', [
+        userId,
+        guestId,
+      ]);
+      await client.query(
+        'UPDATE sessions SET "primaryHostId" = $1 WHERE "primaryHostId" = $2',
+        [userId, guestId],
+      );
+
+      // Deactivate guest account
+      await client.query(
+        'UPDATE users SET "isActive" = FALSE, "updatedAt" = NOW() WHERE id = $1',
+        [guestId],
+      );
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Soft delete/deactivate a user account
+   */
+  async deactivateUser(userId: string): Promise<void> {
+    await this.pool.query(
+      'UPDATE users SET "isActive" = FALSE, "updatedAt" = NOW() WHERE id = $1',
+      [userId],
+    );
   }
 
   // ============================================================================

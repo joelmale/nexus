@@ -78,6 +78,14 @@ JWT_SECRET=<run: openssl rand -base64 32>
 
 Run these commands from your local machine:
 
+### 4. Apply Database Migrations
+
+- Run the migration SQL against your Postgres instance after deploying new images:
+  ```bash
+  psql "$DATABASE_URL" -f server/migrations/2025-12-08-add-account-fields.sql
+  ```
+- This adds extended account fields (display name, bio, preferences, activity flags) required for the OAuth-backed application accounts.
+
 ```bash
 # Navigate to project directory
 cd /Users/JoelN/Coding/nexus

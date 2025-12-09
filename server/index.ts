@@ -67,6 +67,8 @@ interface SessionUser {
   id: string;
   email: string | null;
   name: string;
+   displayName?: string | null;
+   bio?: string | null;
   avatarUrl: string | null;
   provider: string;
 }
@@ -270,6 +272,196 @@ class NexusServer {
    * @returns {void}
    */
   private setupApiRoutes(): void {
+    // ============================================================================
+    // USER ACCOUNT ROUTES
+    // ============================================================================
+    this.app.get('/api/users/profile', async (req, res) => {
+      try {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const user = req.user as { id: string };
+        const profile = await this.db.getUserProfile(user.id);
+
+        if (!profile) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json({
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          displayName: profile.displayName || profile.name,
+          bio: profile.bio,
+          avatarUrl: profile.avatarUrl,
+          provider: profile.provider,
+          preferences: profile.preferences || {},
+          isActive: profile.isActive,
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt,
+          lastLogin: profile.lastLogin,
+          stats: profile.stats,
+        });
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+        res.status(500).json({ error: 'Failed to fetch user profile' });
+      }
+    });
+
+    this.app.put('/api/users/profile', async (req, res) => {
+      try {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const { displayName, bio, avatarUrl } = req.body || {};
+
+        if (displayName !== undefined) {
+          if (typeof displayName !== 'string') {
+            return res.status(400).json({ error: 'displayName must be a string' });
+          }
+          if (displayName.trim().length === 0 || displayName.trim().length > 100) {
+            return res
+              .status(400)
+              .json({ error: 'displayName must be between 1 and 100 characters' });
+          }
+        }
+
+        if (bio !== undefined && typeof bio !== 'string') {
+          return res.status(400).json({ error: 'bio must be a string' });
+        }
+        if (typeof bio === 'string' && bio.length > 1000) {
+          return res.status(400).json({ error: 'bio must be 1000 characters or less' });
+        }
+
+        if (avatarUrl !== undefined && typeof avatarUrl !== 'string') {
+          return res.status(400).json({ error: 'avatarUrl must be a string' });
+        }
+        if (typeof avatarUrl === 'string' && avatarUrl.length > 2000) {
+          return res.status(400).json({ error: 'avatarUrl is too long' });
+        }
+
+        const user = req.user as { id: string };
+        const updated = await this.db.updateUserProfile(user.id, {
+          displayName: displayName?.trim() ?? undefined,
+          bio: bio ?? undefined,
+          avatarUrl: avatarUrl ?? undefined,
+        });
+
+        res.json({
+          id: updated.id,
+          email: updated.email,
+          name: updated.name,
+          displayName: updated.displayName || updated.name,
+          bio: updated.bio,
+          avatarUrl: updated.avatarUrl,
+          provider: updated.provider,
+          preferences: updated.preferences || {},
+          isActive: updated.isActive,
+          createdAt: updated.createdAt,
+          updatedAt: updated.updatedAt,
+          lastLogin: updated.lastLogin,
+        });
+      } catch (error) {
+        console.error('Failed to update user profile:', error);
+        res.status(500).json({ error: 'Failed to update user profile' });
+      }
+    });
+
+    this.app.get('/api/users/preferences', async (req, res) => {
+      try {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+        const user = req.user as { id: string };
+        const preferences = await this.db.getUserPreferences(user.id);
+        res.json(preferences);
+      } catch (error) {
+        console.error('Failed to fetch preferences:', error);
+        res.status(500).json({ error: 'Failed to fetch preferences' });
+      }
+    });
+
+    this.app.put('/api/users/preferences', async (req, res) => {
+      try {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const { allowSpectators, shareCharacterSheets, logSessions, ...rest } = req.body || {};
+
+        const invalid =
+          (allowSpectators !== undefined && typeof allowSpectators !== 'boolean') ||
+          (shareCharacterSheets !== undefined && typeof shareCharacterSheets !== 'boolean') ||
+          (logSessions !== undefined && typeof logSessions !== 'boolean');
+
+        if (invalid) {
+          return res.status(400).json({ error: 'Preference values must be boolean' });
+        }
+
+        const user = req.user as { id: string };
+        const currentPrefs = await this.db.getUserPreferences(user.id);
+        const mergedPrefs = {
+          ...currentPrefs,
+          ...(allowSpectators !== undefined ? { allowSpectators } : {}),
+          ...(shareCharacterSheets !== undefined ? { shareCharacterSheets } : {}),
+          ...(logSessions !== undefined ? { logSessions } : {}),
+          ...rest,
+        };
+
+        const updated = await this.db.updateUserPreferences(user.id, mergedPrefs);
+        res.json(updated);
+      } catch (error) {
+        console.error('Failed to update preferences:', error);
+        res.status(500).json({ error: 'Failed to update preferences' });
+      }
+    });
+
+    this.app.post('/api/users/migrate-guest', async (req, res) => {
+      try {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+        const guest = (req.session as CustomSession).guestUser;
+        if (!guest) {
+          return res.status(400).json({ error: 'No guest session to migrate' });
+        }
+
+        const user = req.user as { id: string };
+        await this.db.migrateGuestToUser(guest.id, user.id);
+
+        delete (req.session as CustomSession).guestUser;
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error('Failed to migrate guest data:', error);
+        res.status(500).json({ error: 'Failed to migrate guest data' });
+      }
+    });
+
+    this.app.delete('/api/users/account', async (req, res) => {
+      try {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const user = req.user as { id: string };
+        await this.db.deactivateUser(user.id);
+
+        req.logout((err) => {
+          if (err) {
+            console.error('Logout after deactivate failed:', err);
+          }
+        });
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error('Failed to deactivate account:', error);
+        res.status(500).json({ error: 'Failed to deactivate account' });
+      }
+    });
+
     // ============================================================================
     // GUEST USER ROUTES
     // ============================================================================

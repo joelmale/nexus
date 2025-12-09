@@ -6,8 +6,13 @@ CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE,
     name VARCHAR(255) NOT NULL,
+    "displayName" VARCHAR(255),
+    bio TEXT,
     "avatarUrl" TEXT,
     provider VARCHAR(50) NOT NULL, -- 'google', 'discord', 'guest'
+    preferences JSONB DEFAULT '{}'::jsonb,
+    "isActive" BOOLEAN DEFAULT TRUE,
+    "lastLogin" TIMESTAMPTZ DEFAULT NOW(),
     "createdAt" TIMESTAMPTZ DEFAULT NOW(),
     "updatedAt" TIMESTAMPTZ DEFAULT NOW()
 );
