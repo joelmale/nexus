@@ -365,201 +365,297 @@ export const Dashboard: React.FC = () => {
     );
   }
 
+  const favorites = {
+    campaigns: campaigns.filter((c) => c.isFavorite),
+    characters: characters.filter((c) => c.isFavorite),
+  };
+
+  const recentCampaigns = [...campaigns]
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )
+    .slice(0, 4);
+
+  const recentCharacters = [...characters]
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )
+    .slice(0, 4);
+
   return (
     <>
       <div className="dashboard-page">
-        {/* Header */}
-        <div className="dashboard-header">
-          <div className="dashboard-header-content">
-          <div className="dashboard-title-section">
-            <h1>Welcome, {user.name || 'Adventurer'}!</h1>
-            <p className="dashboard-subtitle">
-              Manage your campaigns and characters
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button
-              onClick={() => setShowJoinGameModal(true)}
-              className="action-btn glass-button primary"
-            >
-              <span>🎲</span>
-              Join Game
-            </button>
-            <button
-              onClick={handleLogout}
-              className="action-btn glass-button secondary"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="error-message glass-panel error">
-          <span className="error-icon">⚠️</span>
-          {error}
-        </div>
-      )}
-
-      {/* Campaigns Section */}
-      <div className="dashboard-section">
-        <div className="section-header">
-          <h2>My Campaigns</h2>
-          <button
-            onClick={() => setShowNewCampaignModal(true)}
-            className="action-btn glass-button primary"
-            disabled={loading}
-          >
-            <span>➕</span>
-            New Campaign
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="loading-state">
-            <span className="loading-spinner"></span>
-            <p>Loading campaigns...</p>
-          </div>
-        ) : campaigns.length === 0 ? (
-          <div className="empty-state glass-panel">
-            <div className="empty-state-icon">🎲</div>
-            <h3>No campaigns yet</h3>
-            <p>Create your first campaign to start your adventure!</p>
-            <button
-              onClick={() => setShowNewCampaignModal(true)}
-              className="action-btn glass-button primary"
-            >
-              <span>➕</span>
-              Create Campaign
-            </button>
-          </div>
-        ) : (
-          <div className="dashboard-grid">
-            {campaigns.map((campaign) => (
-              <div key={campaign.id} className="campaign-card glass-panel">
-                <div className="campaign-card-header">
-                  <h3>{campaign.name}</h3>
-                  <span className="campaign-date">
-                    {new Date(campaign.updatedAt).toLocaleDateString()}
-                  </span>
-                </div>
-                {campaign.description && (
-                  <p className="campaign-description">{campaign.description}</p>
-                )}
-                <div className="campaign-actions">
-                  <button
-                    className="action-btn glass-button primary small"
-                    onClick={() => handleStartSession(campaign.id)}
-                    disabled={startingSession !== null}
-                  >
-                    {startingSession === campaign.id ? (
-                      <>
-                        <span className="loading-spinner"></span>
-                        Starting...
-                      </>
-                    ) : (
-                      <>
-                        <span>🎮</span>
-                        Start Session
-                      </>
-                    )}
-                  </button>
-                  <button className="action-btn glass-button secondary small">
-                    <span>✏️</span>
-                    Edit
-                  </button>
-                </div>
+        <div className="dashboard-hero glass-panel">
+          <div className="hero-left">
+            <div className="avatar-circle">{user.name?.[0] || '🧭'}</div>
+            <div>
+              <p className="eyebrow">Dashboard</p>
+              <h1 className="hero-title">
+                Welcome, {user.name || user.displayName || 'Adventurer'}!
+              </h1>
+              <p className="hero-subtitle">
+                Jump back into your worlds, manage characters, and start a new session.
+              </p>
+              <div className="hero-actions">
+                <button
+                  onClick={() => setShowNewCampaignModal(true)}
+                  className="action-btn glass-button primary"
+                  disabled={loading}
+                >
+                  <span>✨</span>
+                  Create Campaign
+                </button>
+                <button
+                  onClick={handleCreateCharacter}
+                  className="action-btn glass-button secondary"
+                  disabled={charactersLoading}
+                >
+                  <span>🎭</span>
+                  Create Character
+                </button>
+                <button
+                  onClick={() => setShowJoinGameModal(true)}
+                  className="action-btn glass-button tertiary"
+                >
+                  <span>🎲</span>
+                  Join Game
+                </button>
               </div>
-            ))}
+            </div>
+          </div>
+          <div className="hero-stats">
+            <div className="stat-card glass-panel">
+              <p className="stat-label">Campaigns</p>
+              <p className="stat-value">{campaigns.length}</p>
+            </div>
+            <div className="stat-card glass-panel">
+              <p className="stat-label">Characters</p>
+              <p className="stat-value">{characters.length}</p>
+            </div>
+            <div className="stat-card glass-panel">
+              <p className="stat-label">Favorites</p>
+              <p className="stat-value">
+                {favorites.campaigns.length + favorites.characters.length}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="error-message glass-panel error">
+            <span className="error-icon">⚠️</span>
+            {error}
           </div>
         )}
-      </div>
 
-      {/* Characters Section */}
-      <div className="dashboard-section">
-        <div className="section-header">
-          <h2>My Characters</h2>
-          <button
-            onClick={handleCreateCharacter}
-            className="action-btn glass-button primary"
-            disabled={charactersLoading}
-          >
-            <span>➕</span>
-            New Character
-          </button>
-        </div>
-
-        {charactersLoading ? (
-          <div className="loading-state">
-            <span className="loading-spinner"></span>
-            <p>Loading characters...</p>
-          </div>
-        ) : characters.length === 0 ? (
-          <div className="empty-state glass-panel">
-            <div className="empty-state-icon">⚔️</div>
-            <h3>No characters yet</h3>
-            <p>Create your first character to start adventuring!</p>
-            <button
-              onClick={handleCreateCharacter}
-              className="action-btn glass-button primary"
-            >
-              <span>➕</span>
-              Create Character
-            </button>
-          </div>
-        ) : (
-          <div className="dashboard-grid">
-            {characters.map((character) => (
-              <div key={character.id} className="character-card glass-panel">
-                <div className="character-card-header">
-                  <h3>{character.name}</h3>
-                  <span className="character-date">
-                    {new Date(character.updatedAt).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="character-info">
-                  {character.data.race && (
-                    <span className="character-detail">
-                      {character.data.race}
-                    </span>
-                  )}
-                  {character.data.class && (
-                    <span className="character-detail">
-                      {character.data.class}
-                    </span>
-                  )}
-                  {character.data.level && (
-                    <span className="character-detail">
-                      Level {character.data.level}
-                    </span>
-                  )}
-                </div>
-                <div className="character-actions">
-                  <button
-                    className="action-btn glass-button secondary small"
-                    onClick={() => handleEditCharacter(character)}
-                  >
-                    <span>✏️</span>
-                    Edit
-                  </button>
-                  <button
-                    className="action-btn glass-button secondary small"
-                    onClick={() => handleDeleteCharacter(character.id)}
-                  >
-                    <span>🗑️</span>
-                    Delete
-                  </button>
-                </div>
+        <div className="dashboard-grid-layout">
+          <div className="dashboard-main">
+            {/* Favorites */}
+            <div className="dashboard-section">
+              <div className="section-header">
+                <h2>Favorites</h2>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              {favorites.campaigns.length + favorites.characters.length === 0 ? (
+                <div className="empty-state glass-panel compact">
+                  <div className="empty-state-icon">⭐</div>
+                  <h3>No favorites yet</h3>
+                  <p>Pin campaigns or characters to see them here.</p>
+                </div>
+              ) : (
+                <div className="card-row">
+                  {favorites.campaigns.slice(0, 2).map((campaign) => (
+                    <div key={campaign.id} className="card glass-panel">
+                      <div className="card-top">
+                        <p className="eyebrow">Campaign</p>
+                        <span className="pill">⭐</span>
+                      </div>
+                      <h3>{campaign.name}</h3>
+                      <p className="card-meta">
+                        Updated {new Date(campaign.updatedAt).toLocaleDateString()}
+                      </p>
+                      {campaign.description && (
+                        <p className="card-desc">{campaign.description}</p>
+                      )}
+                      <div className="card-actions">
+                        <button
+                          className="action-btn glass-button primary small"
+                          onClick={() => handleStartSession(campaign.id)}
+                          disabled={startingSession !== null}
+                        >
+                          {startingSession === campaign.id ? 'Starting...' : 'Start Session'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {favorites.characters.slice(0, 2).map((character) => (
+                    <div key={character.id} className="card glass-panel">
+                      <div className="card-top">
+                        <p className="eyebrow">Character</p>
+                        <span className="pill">⭐</span>
+                      </div>
+                      <h3>{character.name}</h3>
+                      <p className="card-meta">
+                        Updated {new Date(character.updatedAt).toLocaleDateString()}
+                      </p>
+                      <div className="card-tags">
+                        {character.data.race && <span>{character.data.race}</span>}
+                        {character.data.class && <span>{character.data.class}</span>}
+                        {character.data.level && <span>Level {character.data.level}</span>}
+                      </div>
+                      <div className="card-actions">
+                        <button
+                          className="action-btn glass-button secondary small"
+                          onClick={() => handleEditCharacter(character)}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-      {/* Document Library Section */}
-      <DocumentLibrary />
+            {/* Recent Campaigns */}
+            <div className="dashboard-section">
+              <div className="section-header">
+                <h2>Recent Campaigns</h2>
+                <button
+                  onClick={() => setShowNewCampaignModal(true)}
+                  className="action-btn glass-button primary"
+                  disabled={loading}
+                >
+                  <span>➕</span>
+                  New Campaign
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="skeleton-grid">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="skeleton-card" />
+                  ))}
+                </div>
+              ) : campaigns.length === 0 ? (
+                <div className="empty-state glass-panel">
+                  <div className="empty-state-icon">🎲</div>
+                  <h3>No campaigns yet</h3>
+                  <p>Create your first campaign to start your adventure!</p>
+                  <button
+                    onClick={() => setShowNewCampaignModal(true)}
+                    className="action-btn glass-button primary"
+                  >
+                    <span>➕</span>
+                    Create Campaign
+                  </button>
+                </div>
+              ) : (
+                <div className="card-row">
+                  {recentCampaigns.map((campaign) => (
+                    <div key={campaign.id} className="card glass-panel">
+                      <div className="card-top">
+                        <p className="eyebrow">Campaign</p>
+                        <span className="pill">
+                          {new Date(campaign.updatedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <h3>{campaign.name}</h3>
+                      {campaign.description && (
+                        <p className="card-desc">{campaign.description}</p>
+                      )}
+                      <div className="card-actions">
+                        <button
+                          className="action-btn glass-button primary small"
+                          onClick={() => handleStartSession(campaign.id)}
+                          disabled={startingSession !== null}
+                        >
+                          {startingSession === campaign.id ? 'Starting...' : 'Start Session'}
+                        </button>
+                        <button className="action-btn glass-button secondary small">
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recent Characters */}
+            <div className="dashboard-section">
+              <div className="section-header">
+                <h2>Recent Characters</h2>
+                <button
+                  onClick={handleCreateCharacter}
+                  className="action-btn glass-button primary"
+                  disabled={charactersLoading}
+                >
+                  <span>➕</span>
+                  New Character
+                </button>
+              </div>
+
+              {charactersLoading ? (
+                <div className="skeleton-grid">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="skeleton-card" />
+                  ))}
+                </div>
+              ) : characters.length === 0 ? (
+                <div className="empty-state glass-panel">
+                  <div className="empty-state-icon">⚔️</div>
+                  <h3>No characters yet</h3>
+                  <p>Create your first character to start adventuring!</p>
+                  <button
+                    onClick={handleCreateCharacter}
+                    className="action-btn glass-button primary"
+                  >
+                    <span>➕</span>
+                    Create Character
+                  </button>
+                </div>
+              ) : (
+                <div className="card-row">
+                  {recentCharacters.map((character) => (
+                    <div key={character.id} className="card glass-panel">
+                      <div className="card-top">
+                        <p className="eyebrow">Character</p>
+                        <span className="pill">
+                          {new Date(character.updatedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <h3>{character.name}</h3>
+                      <div className="card-tags">
+                        {character.data.race && <span>{character.data.race}</span>}
+                        {character.data.class && <span>{character.data.class}</span>}
+                        {character.data.level && <span>Level {character.data.level}</span>}
+                      </div>
+                      <div className="card-actions">
+                        <button
+                          className="action-btn glass-button secondary small"
+                          onClick={() => handleEditCharacter(character)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="action-btn glass-button secondary small"
+                          onClick={() => handleDeleteCharacter(character.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Document Library Section */}
+            <DocumentLibrary />
+          </div>
+        </div>
 
       {/* New Campaign Modal */}
       {showNewCampaignModal && (
