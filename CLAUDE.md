@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Nexus VTT - High-Level Architecture
 
 ## Overview
@@ -10,6 +14,88 @@ Nexus VTT is a lightweight, web-based virtual tabletop system featuring real-tim
 - Database: PostgreSQL (for session persistence)
 - Local Storage: IndexedDB (unlimited storage for assets)
 - Real-time Communication: WebSocket with fallback polling
+
+---
+
+## Common Development Commands
+
+### Local Development Setup
+
+```bash
+# First-time setup
+npm install
+npm run start:all  # Auto-starts PostgreSQL + frontend (5173) + backend (5001)
+
+# Alternative: Individual services
+npm run dev              # Frontend only (port 5173)
+npm run server:dev       # Backend only (port 5001)
+
+# Database management
+npm run db:start         # Start PostgreSQL manually
+npm run db:stop          # Stop PostgreSQL
+npm run db:reset         # Reset database (removes all data)
+npm run db:logs          # View PostgreSQL logs
+npm run db:shell         # Open PostgreSQL shell
+```
+
+**Note:** `npm run start:all` automatically starts PostgreSQL if Docker is running.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm run test             # All tests once
+npm run test:unit        # Unit tests only
+npm run test:integration # Integration tests
+npm run test:e2e         # Playwright E2E tests
+
+# Test specific files
+npm test -- dice.test.ts
+npm test -- gameStore.test.ts
+
+# Development testing
+npm run test:watch       # Watch mode
+npm run test:ui          # Vitest UI
+npm run test:coverage    # With coverage report
+```
+
+### Building & Type Checking
+
+```bash
+npm run build            # Build frontend (outputs to dist/)
+npm run build:server     # Build server TypeScript
+npm run build:all        # Build both
+
+npm run type-check       # TypeScript validation only (fast)
+npm run lint             # ESLint + TypeScript checks
+```
+
+### Database Operations
+
+```bash
+# Start PostgreSQL (auto-started by npm run start:all)
+npm run db:start
+
+# Stop PostgreSQL
+npm run db:stop
+
+# Reset database (WARNING: deletes all data)
+npm run db:reset
+
+# View logs
+npm run db:logs
+
+# Open PostgreSQL shell
+npm run db:shell
+
+# Access database directly via psql
+psql $DATABASE_URL
+
+# Run schema migrations (schema in server/schema.sql)
+psql $DATABASE_URL -f server/schema.sql
+```
+
+**Auto-Start Feature:** The `start:all` script automatically checks if PostgreSQL is running and starts it if needed.
 
 ---
 
@@ -61,7 +147,7 @@ const useXStore = create<StoreInterface>()(
   immer((set, get) => ({
     // State properties
     state: initialValue,
-    
+
     // Actions that modify state via Immer
     action: (payload) => set((state) => {
       state.nested.property = payload; // Direct mutation (Immer handles immutability)
@@ -549,7 +635,7 @@ For fast UX, client applies updates immediately:
 ```
 User drags token:
   ↓
-1. Call moveTokenOptimistic() 
+1. Call moveTokenOptimistic()
    - Updates store immediately (optimistic)
    - Stores updateId for tracking
 2. Send token-move event via WebSocket
@@ -607,13 +693,13 @@ Fine-grained selectors prevent unnecessary re-renders:
 
 ```typescript
 // Define custom hooks per feature:
-export const useActiveScene = () => 
+export const useActiveScene = () =>
   useGameStore((state) => state.sceneState.scenes.find(...));
 
-export const useIsHost = () => 
+export const useIsHost = () =>
   useGameStore((state) => state.user.type === 'host');
 
-export const useCamera = () => 
+export const useCamera = () =>
   useGameStore((state) => state.sceneState.camera);
 
 // Components only re-render when their specific value changes
@@ -623,6 +709,24 @@ const scene = useActiveScene();  // Only re-renders if active scene changes
 ---
 
 ## 8. Important Implementation Details
+
+### TypeScript Path Aliases
+
+**Configured in `tsconfig.json` and `vite.config.ts`:**
+
+```typescript
+// Always use @ imports for src files:
+import { useGameStore } from '@/stores/gameStore';
+import { Button } from '@/components/ui/Button';
+import { webSocketService } from '@/utils/websocket';
+
+// Available aliases:
+// @/ → ./src/
+// @/components → ./src/components
+// @/stores → ./src/stores
+// @/types → ./src/types
+// @/utils → ./src/utils
+```
 
 ### Room State Management
 
@@ -784,7 +888,7 @@ Located alongside implementation:
 ### Network
 
 1. **WebSocket message batching** for bulk updates
-2. **Update confirmation deduplication** 
+2. **Update confirmation deduplication**
 3. **Heartbeat interval adjustment** based on latency
 4. **Compression** for large asset transfers
 
@@ -792,7 +896,7 @@ Located alongside implementation:
 
 1. **IndexedDB blob storage** for unlimited capacity
 2. **Drawing compression** (96% reduction)
-3. **Asset thumbnail caching** 
+3. **Asset thumbnail caching**
 4. **Session state snapshots** instead of full replays
 
 ---
@@ -812,7 +916,7 @@ Located alongside implementation:
 3. **Optimistic updates don't broadcast**
    - Client applies immediately
    - Server broadcasts to others (creating double-apply on sender)
-   - Handled by checkingLatin-update confirmations
+   - Handled by update confirmations
 
 4. **Drawings don't persist to PostgreSQL**
    - Only stored in IndexedDB

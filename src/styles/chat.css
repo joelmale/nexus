@@ -19,14 +19,22 @@
 /* ========================================================================== MESSAGES SECTION ========================================================================== */
 
 .chat-panel__messages {
-  flex: 3;
+  height: 60%;
   overflow-y: auto;
-  min-height: 200px;
   padding: var(--spacing-4);
-  border-bottom: 1px solid var(--glass-border);
+  border-radius: 12px;
   background: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  margin-bottom: var(--spacing-3);
+}
+
+/* Clearfix for floated message bubbles */
+.chat-panel__messages::after {
+  content: '';
+  display: table;
+  clear: both;
 }
 
 
@@ -34,14 +42,58 @@
 /* ========================================================================== MESSAGE STYLES ========================================================================== */
 
 .chat-panel__message {
-  max-width: 80%;
+  max-width: 75%;
   margin-bottom: var(--spacing-3);
-  padding: var(--spacing-2);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius);
+  padding: var(--spacing-3);
+  border-radius: 18px;
   word-wrap: break-word;
-  background: var(--glass-surface-strong);
   transition: all var(--transition-normal);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  position: relative;
+  clear: both;
+}
+
+/* Other people's messages - left aligned, gray */
+.chat-panel__message--other {
+  float: left;
+  background: linear-gradient(135deg,
+    rgba(230, 230, 235, 0.95),
+    rgba(220, 220, 225, 0.95)
+  );
+  border-bottom-left-radius: 4px;
+}
+
+/* Own messages - right aligned, blue */
+.chat-panel__message--own {
+  float: right;
+  background: linear-gradient(135deg,
+    rgba(0, 122, 255, 0.95),
+    rgba(10, 132, 255, 0.95)
+  );
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-panel__message--own .chat-panel__message-author,
+.chat-panel__message--own .chat-panel__message-timestamp,
+.chat-panel__message--own .chat-panel__message-type {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* System messages - centered, special styling */
+.chat-panel__message.system,
+.chat-panel__message.dm-announcement {
+  float: none;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 90%;
+  text-align: center;
+  background: linear-gradient(135deg,
+    rgba(255, 149, 0, 0.15),
+    rgba(255, 179, 64, 0.15)
+  );
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  border-radius: 12px;
 }
 
 
@@ -53,7 +105,62 @@
   align-items: center;
   gap: var(--spacing-2);
   margin-bottom: var(--spacing-1);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
+  opacity: 0.8;
+}
+
+.chat-panel__message-author {
+  font-weight: var(--font-semibold);
+}
+
+.chat-panel__message-timestamp {
+  font-size: var(--text-xs);
+  opacity: 0.7;
+}
+
+.chat-panel__message-content {
+  line-height: 1.4;
+}
+
+/* Dice roll styling within messages */
+.chat-panel__message-content .dice-pool {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 4px;
+}
+
+.chat-panel__message-content .pool-label {
+  font-weight: var(--font-semibold);
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.chat-panel__message-content .roll-total {
+  font-size: 1.2em;
+  margin-left: 4px;
+}
+
+.chat-panel__message-content .crit-success {
+  color: #00ff00;
+  text-shadow: 0 0 4px rgba(0, 255, 0, 0.5);
+}
+
+.chat-panel__message-content .crit-failure {
+  color: #ff0000;
+  text-shadow: 0 0 4px rgba(255, 0, 0, 0.5);
+}
+
+/* Make dice rolls more visible in blue (own) messages */
+.chat-panel__message--own .chat-panel__message-content .dice-pool {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.chat-panel__message--own .chat-panel__message-content .roll-total {
+  color: white;
+  font-weight: var(--font-bold);
 }
 
 

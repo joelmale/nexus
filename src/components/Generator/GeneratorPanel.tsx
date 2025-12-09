@@ -85,17 +85,18 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       return;
     }
 
-    // Use stored generatedMap instead of accessing iframe
-    if (!generatedMap) {
-      console.warn(
-        'No generated map available. Please generate a dungeon first.',
-      );
-      return;
-    }
+    // Handle dungeon generator (uses stored generatedMap)
+    if (activeGenerator === 'dungeon') {
+      if (!generatedMap) {
+        console.warn(
+          'No generated map available. Please generate a dungeon first.',
+        );
+        return;
+      }
 
-    try {
-      const imageData = generatedMap; // Use the stored, valid image data
-      const dungeonTitle = `Generated Dungeon ${new Date().toLocaleString()}`;
+      try {
+        const imageData = generatedMap;
+        const dungeonTitle = `Generated Dungeon ${new Date().toLocaleString()}`;
 
       // Extract original size information from sessionStorage for compression stats
       let originalSize: number | undefined;
@@ -208,8 +209,125 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
       img.src = imageData;
     } catch (error) {
-      console.error('Failed to add map to scene:', error);
+      console.error('Failed to add dungeon map to scene:', error);
       console.error('Failed to add map to scene. Please try again.', error);
+    }
+    return;
+  }
+
+  // Handle iframe-based generators (city, cave, world, dwelling)
+  if (['city', 'cave', 'world', 'dwelling'].includes(activeGenerator)) {
+      try {
+        // Get the iframe for the active generator
+        const iframe = document.querySelector('.generator-iframe') as HTMLIFrameElement;
+
+        if (!iframe) {
+          console.error('Generator iframe not found');
+          return;
+        }
+
+        // Access iframe content
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+
+        if (!iframeDoc) {
+          console.error('Cannot access iframe content');
+          return;
+        }
+
+        // Find canvas element (OpenFL generators use canvas)
+        const canvas = iframeDoc.querySelector('canvas') as HTMLCanvasElement;
+
+        if (!canvas) {
+          console.error('No canvas found in generator iframe');
+          return;
+        }
+
+        console.log(`📐 Capturing ${activeGenerator} map from canvas...`);
+        console.log(`   Original dimensions: ${canvas.width}×${canvas.height}`);
+
+        // Calculate original size
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) return;
+
+        tempCtx.drawImage(canvas, 0, 0);
+        const originalImageData = tempCanvas.toDataURL('image/png');
+        const originalSize = Math.floor((originalImageData.length * 3) / 4);
+
+        // Scale down to 50% and convert to WebP
+        const scaledCanvas = document.createElement('canvas');
+        const scaledWidth = Math.floor(canvas.width * 0.5);
+        const scaledHeight = Math.floor(canvas.height * 0.5);
+
+        scaledCanvas.width = scaledWidth;
+        scaledCanvas.height = scaledHeight;
+
+        const ctx = scaledCanvas.getContext('2d');
+        if (!ctx) {
+          console.error('Failed to get canvas context for scaling');
+          return;
+        }
+
+        // High-quality scaling
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(canvas, 0, 0, scaledWidth, scaledHeight);
+
+        // Convert to WebP with 0.75 quality
+        const compressedImageData = scaledCanvas.toDataURL('image/webp', 0.75);
+        const compressedSize = Math.floor((compressedImageData.length * 3) / 4);
+
+        // Log compression stats
+        console.log(`📐 ${activeGenerator.charAt(0).toUpperCase() + activeGenerator.slice(1)} compression results:`);
+        console.log(`   Original dimensions: ${canvas.width}×${canvas.height}`);
+        console.log(`   Scaled dimensions: ${scaledWidth}×${scaledHeight} (50%)`);
+        console.log(`   Original size: ${(originalSize / 1024).toFixed(1)} KB`);
+        console.log(`   Compressed size: ${(compressedSize / 1024).toFixed(1)} KB`);
+        console.log(`   Total savings: ${(((originalSize - compressedSize) / originalSize) * 100).toFixed(1)}%`);
+
+        // Save to library (optional, may fail if storage full)
+        const mapTitle = `Generated ${activeGenerator.charAt(0).toUpperCase() + activeGenerator.slice(1)} ${new Date().toLocaleString()}`;
+        try {
+          await dungeonMapService.saveGeneratedMap(
+            compressedImageData,
+            mapTitle,
+            'webp',
+            originalSize,
+          );
+        } catch (saveError) {
+          console.warn('Could not save to library (storage may be full):', saveError);
+        }
+
+        // Add to scene
+        const backgroundData = {
+          url: compressedImageData,
+          width: scaledWidth,
+          height: scaledHeight,
+          offsetX: -(scaledWidth / 2),
+          offsetY: -(scaledHeight / 2),
+          scale: 1,
+        };
+
+        updateScene(activeScene.id, {
+          backgroundImage: backgroundData,
+          gridSettings: {
+            ...activeScene.gridSettings,
+            showToPlayers: false, // Turn off grid for generated maps
+          },
+        });
+
+        console.log(`✅ ${activeGenerator} map added to scene successfully`);
+
+        // Switch to scenes panel
+        if (onSwitchToScenes) {
+          onSwitchToScenes();
+        }
+      } catch (error) {
+        console.error(`Failed to add ${activeGenerator} map to scene:`, error);
+        console.error('Failed to add map to scene. Please try again.', error);
+      }
     }
   };
 

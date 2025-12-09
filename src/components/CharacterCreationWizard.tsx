@@ -284,9 +284,53 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
   isLastStep: _isLastStep,
   playerId: _playerId,
 }) => {
-  const handleRandomizeAbilities = () => {
+  const [generationMethod, setGenerationMethod] = useState<'4d6' | 'standard-array' | 'point-buy' | 'manual'>('4d6');
+  const [pointBuyPool, setPointBuyPool] = useState(27);
+
+  const handleRoll4d6 = () => {
     const newAbilities = randomizeAbilityScores();
     updateCharacter({ abilities: newAbilities });
+  };
+
+  const handleStandardArray = () => {
+    const standardScores = [15, 14, 13, 12, 10, 8];
+    const abilityNames: (keyof AbilityScores)[] = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+    const calculateModifier = (score: number) => Math.floor((score - 10) / 2);
+
+    const newAbilities: AbilityScores = {} as AbilityScores;
+    abilityNames.forEach((ability, index) => {
+      const score = standardScores[index];
+      newAbilities[ability] = {
+        score,
+        modifier: calculateModifier(score),
+        savingThrow: calculateModifier(score),
+      };
+    });
+
+    updateCharacter({ abilities: newAbilities });
+  };
+
+  const handlePointBuy = () => {
+    // Point buy starts with all 8s, player spends 27 points
+    const newAbilities: AbilityScores = {
+      strength: { score: 8, modifier: -1, savingThrow: -1 },
+      dexterity: { score: 8, modifier: -1, savingThrow: -1 },
+      constitution: { score: 8, modifier: -1, savingThrow: -1 },
+      intelligence: { score: 8, modifier: -1, savingThrow: -1 },
+      wisdom: { score: 8, modifier: -1, savingThrow: -1 },
+      charisma: { score: 8, modifier: -1, savingThrow: -1 },
+    };
+
+    updateCharacter({ abilities: newAbilities });
+    setPointBuyPool(27);
+  };
+
+  const getPointCost = (score: number): number => {
+    // Point buy cost table (scores 8-15)
+    const costs: { [key: number]: number } = {
+      8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9
+    };
+    return costs[score] || 0;
   };
 
   const handleAbilityChange = (ability: keyof AbilityScores, score: number) => {
@@ -294,6 +338,27 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
 
     const calculateModifier = (score: number) => Math.floor((score - 10) / 2);
     const newModifier = calculateModifier(score);
+
+    // If using point buy, check if player has enough points
+    if (generationMethod === 'point-buy') {
+      const newCost = getPointCost(score);
+
+      // Calculate total points used across all abilities (excluding the one being changed)
+      let totalUsed = 0;
+      Object.entries(character.abilities).forEach(([abilityName, abilityData]) => {
+        if (abilityName !== ability) {
+          totalUsed += getPointCost(abilityData.score);
+        }
+      });
+      totalUsed += newCost;
+
+      if (totalUsed > 27) {
+        alert('Not enough points! You can only spend 27 points total.');
+        return;
+      }
+
+      setPointBuyPool(27 - totalUsed);
+    }
 
     const updatedAbilities = {
       ...character.abilities,
@@ -314,14 +379,44 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
     <div className="wizard-step ability-scores-step">
       <div className="step-header">
         <h2>Ability Scores</h2>
-        <button
-          className="randomize-all-btn"
-          onClick={handleRandomizeAbilities}
-          title="Roll all ability scores"
-        >
-          🎲 Roll All Scores
-        </button>
+        <div className="generation-method-selector">
+          <button
+            className={`method-btn ${generationMethod === '4d6' ? 'active' : ''}`}
+            onClick={() => { setGenerationMethod('4d6'); handleRoll4d6(); }}
+            title="Roll 4d6, drop lowest"
+          >
+            🎲 4d6 Drop Lowest
+          </button>
+          <button
+            className={`method-btn ${generationMethod === 'standard-array' ? 'active' : ''}`}
+            onClick={() => { setGenerationMethod('standard-array'); handleStandardArray(); }}
+            title="Use standard array: 15, 14, 13, 12, 10, 8"
+          >
+            📊 Standard Array
+          </button>
+          <button
+            className={`method-btn ${generationMethod === 'point-buy' ? 'active' : ''}`}
+            onClick={() => { setGenerationMethod('point-buy'); handlePointBuy(); }}
+            title="Point buy with 27 points"
+          >
+            🎯 Point Buy
+          </button>
+          <button
+            className={`method-btn ${generationMethod === 'manual' ? 'active' : ''}`}
+            onClick={() => setGenerationMethod('manual')}
+            title="Set scores manually"
+          >
+            ✏️ Manual
+          </button>
+        </div>
       </div>
+
+      {generationMethod === 'point-buy' && (
+        <div className="point-buy-info">
+          <p><strong>Points Remaining: {pointBuyPool} / 27</strong></p>
+          <p className="help-text">Scores range from 8-15. Higher scores cost more points.</p>
+        </div>
+      )}
 
       <div className="abilities-grid">
         {Object.entries(abilities).map(([abilityName, abilityData]) => (
@@ -339,8 +434,8 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
                     parseInt(e.target.value) || 10,
                   )
                 }
-                min="1"
-                max="20"
+                min={generationMethod === 'point-buy' ? 8 : 1}
+                max={generationMethod === 'point-buy' ? 15 : 20}
                 className="ability-input"
               />
               <div className="ability-score-group__modifier">
@@ -354,9 +449,17 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
 
       <div className="ability-score-help">
         <p>
-          Standard ability score generation uses 4d6, dropping the lowest die.
+          <strong>4d6 Drop Lowest:</strong> Roll 4 six-sided dice, discard the lowest, sum the rest.
         </p>
-        <p>Scores can be manually adjusted between 1-20.</p>
+        <p>
+          <strong>Standard Array:</strong> Assign the fixed scores 15, 14, 13, 12, 10, 8 to your abilities.
+        </p>
+        <p>
+          <strong>Point Buy:</strong> Start with all 8s and spend 27 points to increase scores (8-15).
+        </p>
+        <p>
+          <strong>Manual:</strong> Set any scores you want (1-20).
+        </p>
       </div>
     </div>
   );
@@ -924,7 +1027,9 @@ export const CharacterCreationWizard: React.FC<
 
   // Initialize character creation state when component mounts
   useEffect(() => {
+    console.log('🎭 CharacterCreationWizard mounted', { creationState, playerId });
     if (!creationState) {
+      console.log('🎭 Starting character creation for player:', playerId);
       startCharacterCreation(playerId, 'guided');
     }
   }, [creationState, startCharacterCreation, playerId]);
@@ -1080,7 +1185,20 @@ export const CharacterCreationWizard: React.FC<
     : 'character-wizard-fullpage';
 
   return (
-    <div className={`character-creation-wizard ${containerClass} theme-solid`}>
+    <div
+      className={`character-creation-wizard ${containerClass} theme-solid`}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
       {isModal && <div className="modal-backdrop" onClick={handleCancel} />}
 
       <div className="wizard-container">
