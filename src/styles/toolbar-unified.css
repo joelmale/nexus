@@ -134,6 +134,17 @@
     0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+.toolbar-btn .tool-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-btn .tool-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
 .toolbar-btn:hover {
   border-color: rgba(255, 255, 255, 0.2);
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));

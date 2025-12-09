@@ -4,6 +4,7 @@ import React, {
   useState,
   useCallback,
   useMemo,
+  useLayoutEffect,
 } from 'react';
 import {
   useGameStore,
@@ -531,6 +532,33 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   );
 
   const [isDraggingProp, setIsDraggingProp] = useState(false);
+  const [svgSize, setSvgSize] = useState(() => ({
+    width: viewportSize.width,
+    height: viewportSize.height,
+  }));
+
+  // Keep svgSize in sync with actual rendered SVG dimensions
+  useLayoutEffect(() => {
+    if (!svgRef.current) return;
+
+    const updateSize = () => {
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (rect) {
+        setSvgSize({ width: rect.width, height: rect.height });
+      }
+    };
+
+    updateSize();
+
+    if ('ResizeObserver' in window) {
+      const observer = new ResizeObserver(updateSize);
+      observer.observe(svgRef.current);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [viewportSize.width, viewportSize.height]);
 
   // Handle prop drop from PropPanel
   const handlePropDrop = useCallback(
@@ -626,7 +654,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   };
 
   // Calculate transform for the scene content
-  const transform = `translate(${viewportSize.width / 2 - camera.x * camera.zoom}, ${viewportSize.height / 2 - camera.y * camera.zoom}) scale(${camera.zoom})`;
+  const transform = `translate(${svgSize.width / 2 - camera.x * camera.zoom}, ${svgSize.height / 2 - camera.y * camera.zoom}) scale(${camera.zoom})`;
 
   // Calculate toolbar position for selected token
   const getToolbarPosition = useCallback(() => {
@@ -634,9 +662,9 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
     // Calculate screen position: apply camera transform to token position
     const screenX =
-      viewportSize.width / 2 + (selectedPlacedToken.x - camera.x) * camera.zoom;
+      svgSize.width / 2 + (selectedPlacedToken.x - camera.x) * camera.zoom;
     const screenY =
-      viewportSize.height / 2 + (selectedPlacedToken.y - camera.y) * camera.zoom;
+      svgSize.height / 2 + (selectedPlacedToken.y - camera.y) * camera.zoom;
 
     // Position toolbar above and to the right of the token
     const tokenSize =
@@ -657,7 +685,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     let y = screenY - tokenSize / 2 - toolbarOffset;
 
     // Check if toolbar would go off right edge of screen
-    if (x + toolbarWidth > viewportSize.width) {
+    if (x + toolbarWidth > svgSize.width) {
       // Position to left of token instead
       x = screenX - tokenSize / 2 - toolbarWidth - toolbarOffset;
     }
@@ -674,15 +702,15 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     }
 
     // Check if toolbar would go off bottom edge
-    if (y + toolbarHeight > viewportSize.height) {
-      y = viewportSize.height - toolbarHeight - toolbarOffset;
+    if (y + toolbarHeight > svgSize.height) {
+      y = svgSize.height - toolbarHeight - toolbarOffset;
     }
 
     return { x, y };
   }, [
     selectedPlacedToken,
     camera,
-    viewportSize,
+    svgSize,
     safeGridSettings.size,
   ]);
 
@@ -692,9 +720,9 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
     // Calculate screen position: apply camera transform to prop position
     const screenX =
-      viewportSize.width / 2 + (selectedPlacedProp.x - camera.x) * camera.zoom;
+      svgSize.width / 2 + (selectedPlacedProp.x - camera.x) * camera.zoom;
     const screenY =
-      viewportSize.height / 2 + (selectedPlacedProp.y - camera.y) * camera.zoom;
+      svgSize.height / 2 + (selectedPlacedProp.y - camera.y) * camera.zoom;
 
     // Calculate prop size in pixels
     const propWidth = (selectedPlacedProp.width || 1) * safeGridSettings.size * selectedPlacedProp.scale * camera.zoom;
@@ -710,7 +738,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     let y = screenY - propHeight / 2 - toolbarOffset;
 
     // Check if toolbar would go off right edge of screen
-    if (x + toolbarWidth > viewportSize.width) {
+    if (x + toolbarWidth > svgSize.width) {
       // Position to left of prop instead
       x = screenX - propWidth / 2 - toolbarWidth - toolbarOffset;
     }
@@ -727,15 +755,15 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     }
 
     // Check if toolbar would go off bottom edge
-    if (y + toolbarHeight > viewportSize.height) {
-      y = viewportSize.height - toolbarHeight - toolbarOffset;
+    if (y + toolbarHeight > svgSize.height) {
+      y = svgSize.height - toolbarHeight - toolbarOffset;
     }
 
     return { x, y };
   }, [
     selectedPlacedProp,
     camera,
-    viewportSize,
+    svgSize,
     safeGridSettings.size,
   ]);
 
