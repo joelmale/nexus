@@ -96,25 +96,23 @@
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
-  /* Add delay only when hiding to give time to move mouse to dropdown */
-  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.3s;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
   pointer-events: none;
 }
 
-.account-menu:hover .account-dropdown,
-.account-dropdown:hover {
+.account-dropdown.open {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
   pointer-events: auto;
-  /* Remove delay when showing */
-  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0s;
 }
 
 .account-dropdown-header {
   padding: 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
 }
 
 .dropdown-title {
@@ -124,6 +122,32 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.7;
+}
+
+.account-close {
+  appearance: none;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.account-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: scale(1.05);
+}
+
+.account-close:focus-visible {
+  outline: 2px solid rgba(100, 181, 246, 0.9);
+  outline-offset: 2px;
 }
 
 .account-switch {

@@ -70,6 +70,7 @@ export const LinearWelcomePage: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
   // Auto-navigate to game if session exists, or attempt recovery if needed
   React.useEffect(() => {
@@ -389,10 +390,20 @@ export const LinearWelcomePage: React.FC = () => {
             <button
               className="account-bubble glass-panel"
               title="Login with OAuth"
+              onClick={() => setShowAccountModal((prev) => !prev)}
             >
               <span className="account-icon">👤</span>
             </button>
-            <div className="account-dropdown glass-panel">
+            <div
+              className={`account-dropdown glass-panel ${showAccountModal ? 'open' : ''}`}
+            >
+              <button
+                className="account-close"
+                onClick={() => setShowAccountModal(false)}
+                aria-label="Close account modal"
+              >
+                ×
+              </button>
               <div className="account-dropdown-header">
                 <span className="dropdown-title">
                   {authMode === 'signin' ? 'Sign In' : 'Create Account'}
