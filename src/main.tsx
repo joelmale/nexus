@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -8,8 +8,18 @@ import { LinearWelcomePage } from './components/LinearWelcomePage';
 import { PlayerSetupPage } from './components/PlayerSetupPage';
 import { DMSetupPage } from './components/DMSetupPage';
 import { LinearGameLayout } from './components/LinearGameLayout';
-import { Dashboard } from './components/Dashboard';
-import { AdminPage } from './components/AdminPage';
+
+// Lazy load heavy components
+const Dashboard = React.lazy(() =>
+  import('./components/Dashboard').then((module) => ({
+    default: module.Dashboard,
+  })),
+);
+const AdminPage = React.lazy(() =>
+  import('./components/AdminPage').then((module) => ({
+    default: module.AdminPage,
+  })),
+);
 import './styles/critical-bundle.css';
 import './styles/utilities.css';
 import './styles/accessibility.css';
@@ -59,11 +69,33 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           />
 
           {/* User dashboard (authenticated users) */}
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route
+            path="/dashboard"
+            element={
+              <Suspense
+                fallback={
+                  <div className="loading-spinner">Loading dashboard...</div>
+                }
+              >
+                <Dashboard />
+              </Suspense>
+            }
+          />
 
           {/* Admin panel (development only) */}
           {process.env.NODE_ENV === 'development' && (
-            <Route path="/admin" element={<AdminPage />} />
+            <Route
+              path="/admin"
+              element={
+                <Suspense
+                  fallback={
+                    <div className="loading-spinner">Loading admin...</div>
+                  }
+                >
+                  <AdminPage />
+                </Suspense>
+              }
+            />
           )}
 
           {/* Fallback - redirect unknown routes to lobby */}
@@ -85,9 +117,10 @@ if (import.meta.env.DEV) {
     getStats: () => void;
     getQueueStatus: () => void;
   }
-  
+
   (window as Window & typeof globalThis & { cssDebug: CssDebug }).cssDebug = {
     logReport: logCSSLoadingReport,
     getStats: getCSSLoadStats,
     getQueueStatus: getCSSQueueStatus,
-  };}
+  };
+}

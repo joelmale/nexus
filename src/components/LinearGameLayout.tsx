@@ -7,10 +7,14 @@
  * - WebSocket reconnection
  * - Invalid/expired session handling
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
-import { GameUI } from './GameUI'; // Assuming GameUI is the main game interface
+
+// Lazy load the heavy GameUI component
+const GameUI = React.lazy(() =>
+  import('./GameUI').then((module) => ({ default: module.GameUI })),
+);
 
 export const LinearGameLayout: React.FC = () => {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -55,7 +59,6 @@ export const LinearGameLayout: React.FC = () => {
         console.warn('⚠️ No recoverable session for room:', roomCode);
         setRecoveryError('Session expired or invalid');
         setTimeout(() => navigate('/lobby'), 2000);
-
       } catch (error) {
         console.error('Failed to recover session:', error);
         setRecoveryError('Failed to reconnect to game');
@@ -85,5 +88,16 @@ export const LinearGameLayout: React.FC = () => {
   }
 
   // Render actual game UI
-  return <GameUI />;
+  return (
+    <Suspense
+      fallback={
+        <div className="game-loading">
+          <div className="spinner" />
+          <p>Loading game interface...</p>
+        </div>
+      }
+    >
+      <GameUI />
+    </Suspense>
+  );
 };

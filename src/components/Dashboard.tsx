@@ -26,6 +26,8 @@ interface Campaign {
   createdAt: string;
   /** Timestamp when campaign was last updated */
   updatedAt: string;
+  /** Whether this campaign is favorited */
+  isFavorite?: boolean;
 }
 
 /**
@@ -44,6 +46,8 @@ interface CharacterRecord {
   };
   createdAt: string;
   updatedAt: string;
+  /** Whether this character is favorited */
+  isFavorite?: boolean;
 }
 
 /**
@@ -54,8 +58,10 @@ interface CharacterRecord {
  */
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout, createGameRoom, joinRoomWithCode } = useGameStore();
-  const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
+  const { user, isAuthenticated, createGameRoom, joinRoomWithCode } =
+    useGameStore();
+  const { startCharacterCreation, LauncherComponent } =
+    useCharacterCreationLauncher();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [characters, setCharacters] = useState<CharacterRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -202,17 +208,6 @@ export const Dashboard: React.FC = () => {
   };
 
   /**
-   * Handles logout action
-   */
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (err) {
-      console.error('Logout failed:', err);
-    }
-  };
-
-  /**
    * Handles opening the character creation modal
    */
   const handleCreateCharacter = () => {
@@ -308,7 +303,10 @@ export const Dashboard: React.FC = () => {
       const roomCode = await createGameRoom(gameConfig);
 
       // Navigate to game view
-      console.log('✅ Session started successfully, navigating to game room:', roomCode);
+      console.log(
+        '✅ Session started successfully, navigating to game room:',
+        roomCode,
+      );
       navigate(`/lobby/game/${roomCode}`);
     } catch (err) {
       console.error('Error starting session:', err);
@@ -396,7 +394,8 @@ export const Dashboard: React.FC = () => {
                 Welcome, {user.name || user.displayName || 'Adventurer'}!
               </h1>
               <p className="hero-subtitle">
-                Jump back into your worlds, manage characters, and start a new session.
+                Jump back into your worlds, manage characters, and start a new
+                session.
               </p>
               <div className="hero-actions">
                 <button
@@ -457,7 +456,8 @@ export const Dashboard: React.FC = () => {
               <div className="section-header">
                 <h2>Favorites</h2>
               </div>
-              {favorites.campaigns.length + favorites.characters.length === 0 ? (
+              {favorites.campaigns.length + favorites.characters.length ===
+              0 ? (
                 <div className="empty-state glass-panel compact">
                   <div className="empty-state-icon">⭐</div>
                   <h3>No favorites yet</h3>
@@ -473,7 +473,8 @@ export const Dashboard: React.FC = () => {
                       </div>
                       <h3>{campaign.name}</h3>
                       <p className="card-meta">
-                        Updated {new Date(campaign.updatedAt).toLocaleDateString()}
+                        Updated{' '}
+                        {new Date(campaign.updatedAt).toLocaleDateString()}
                       </p>
                       {campaign.description && (
                         <p className="card-desc">{campaign.description}</p>
@@ -484,7 +485,9 @@ export const Dashboard: React.FC = () => {
                           onClick={() => handleStartSession(campaign.id)}
                           disabled={startingSession !== null}
                         >
-                          {startingSession === campaign.id ? 'Starting...' : 'Start Session'}
+                          {startingSession === campaign.id
+                            ? 'Starting...'
+                            : 'Start Session'}
                         </button>
                       </div>
                     </div>
@@ -497,12 +500,19 @@ export const Dashboard: React.FC = () => {
                       </div>
                       <h3>{character.name}</h3>
                       <p className="card-meta">
-                        Updated {new Date(character.updatedAt).toLocaleDateString()}
+                        Updated{' '}
+                        {new Date(character.updatedAt).toLocaleDateString()}
                       </p>
                       <div className="card-tags">
-                        {character.data.race && <span>{character.data.race}</span>}
-                        {character.data.class && <span>{character.data.class}</span>}
-                        {character.data.level && <span>Level {character.data.level}</span>}
+                        {character.data.race && (
+                          <span>{character.data.race}</span>
+                        )}
+                        {character.data.class && (
+                          <span>{character.data.class}</span>
+                        )}
+                        {character.data.level && (
+                          <span>Level {character.data.level}</span>
+                        )}
                       </div>
                       <div className="card-actions">
                         <button
@@ -571,7 +581,9 @@ export const Dashboard: React.FC = () => {
                           onClick={() => handleStartSession(campaign.id)}
                           disabled={startingSession !== null}
                         >
-                          {startingSession === campaign.id ? 'Starting...' : 'Start Session'}
+                          {startingSession === campaign.id
+                            ? 'Starting...'
+                            : 'Start Session'}
                         </button>
                         <button className="action-btn glass-button secondary small">
                           Edit
@@ -628,9 +640,15 @@ export const Dashboard: React.FC = () => {
                       </div>
                       <h3>{character.name}</h3>
                       <div className="card-tags">
-                        {character.data.race && <span>{character.data.race}</span>}
-                        {character.data.class && <span>{character.data.class}</span>}
-                        {character.data.level && <span>Level {character.data.level}</span>}
+                        {character.data.race && (
+                          <span>{character.data.race}</span>
+                        )}
+                        {character.data.class && (
+                          <span>{character.data.class}</span>
+                        )}
+                        {character.data.level && (
+                          <span>Level {character.data.level}</span>
+                        )}
                       </div>
                       <div className="card-actions">
                         <button
@@ -657,209 +675,232 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-      {/* New Campaign Modal */}
-      {showNewCampaignModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => !creatingCampaign && setShowNewCampaignModal(false)}
-        >
+        {/* New Campaign Modal */}
+        {showNewCampaignModal && (
           <div
-            className="modal-content glass-panel"
-            onClick={(e) => e.stopPropagation()}
+            className="modal-overlay"
+            onClick={() => !creatingCampaign && setShowNewCampaignModal(false)}
           >
-            <div className="modal-header">
-              <h2>Create New Campaign</h2>
-              <button
-                className="modal-close"
-                onClick={() => setShowNewCampaignModal(false)}
-                disabled={creatingCampaign}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="input-group">
-                <label htmlFor="campaignName">Campaign Name *</label>
-                <div className="glass-input-wrapper">
-                  <input
-                    id="campaignName"
-                    type="text"
-                    value={newCampaignName}
-                    onChange={(e) => setNewCampaignName(e.target.value)}
-                    placeholder="Enter campaign name"
-                    className="glass-input"
-                    disabled={creatingCampaign}
-                    maxLength={255}
-                  />
-                </div>
+            <div
+              className="modal-content glass-panel"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-header">
+                <h2>Create New Campaign</h2>
+                <button
+                  className="modal-close"
+                  onClick={() => setShowNewCampaignModal(false)}
+                  disabled={creatingCampaign}
+                >
+                  ✕
+                </button>
               </div>
 
-              <div className="input-group">
-                <label htmlFor="campaignDescription">
-                  Description (optional)
-                </label>
-                <div className="glass-input-wrapper">
-                  <textarea
-                    id="campaignDescription"
-                    value={newCampaignDescription}
-                    onChange={(e) => setNewCampaignDescription(e.target.value)}
-                    placeholder="Describe your campaign..."
-                    className="glass-input"
-                    disabled={creatingCampaign}
-                    rows={4}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                className="action-btn glass-button secondary"
-                onClick={() => setShowNewCampaignModal(false)}
-                disabled={creatingCampaign}
-              >
-                Cancel
-              </button>
-              <button
-                className="action-btn glass-button primary"
-                onClick={handleCreateCampaign}
-                disabled={!newCampaignName.trim() || creatingCampaign}
-              >
-                {creatingCampaign ? (
-                  <>
-                    <span className="loading-spinner"></span>
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <span>✨</span>
-                    Create Campaign
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Character Manager Modal */}
-      {showCharacterModal && (
-        <CharacterManager
-          character={editingCharacter}
-          onClose={() => setShowCharacterModal(false)}
-          onSave={handleSaveCharacter}
-        />
-      )}
-
-      {/* Join Game Modal */}
-      {showJoinGameModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => !joiningGame && setShowJoinGameModal(false)}
-        >
-          <div
-            className="modal-content glass-panel"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h2>Join Game</h2>
-              <button
-                className="modal-close"
-                onClick={() => setShowJoinGameModal(false)}
-                disabled={joiningGame}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                Enter the room code provided by your Dungeon Master to join their game.
-              </p>
-
-              <div className="input-group">
-                <label htmlFor="roomCode">Room Code *</label>
-                <div className="glass-input-wrapper">
-                  <input
-                    id="roomCode"
-                    type="text"
-                    value={joinRoomCode}
-                    onChange={(e) => setJoinRoomCode(e.target.value.toUpperCase())}
-                    placeholder="e.g., ABC123"
-                    className="glass-input"
-                    disabled={joiningGame}
-                    maxLength={6}
-                    style={{ textTransform: 'uppercase' }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && joinRoomCode.trim()) {
-                        handleJoinGame();
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              {characters.length > 0 && (
+              <div className="modal-body">
                 <div className="input-group">
-                  <label>Your Characters</label>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                    You have {characters.length} character{characters.length !== 1 ? 's' : ''} available to use in this game.
-                  </p>
-                  <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                    {characters.map((character) => (
-                      <div
-                        key={character.id}
-                        style={{
-                          padding: '0.5rem',
-                          marginBottom: '0.25rem',
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          borderRadius: '4px',
-                          fontSize: '0.875rem'
-                        }}
-                      >
-                        <strong>{character.name}</strong>
-                        {character.data.race && character.data.class && (
-                          <span style={{ marginLeft: '0.5rem', color: 'var(--text-secondary)' }}>
-                            ({character.data.race} {character.data.class})
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                  <label htmlFor="campaignName">Campaign Name *</label>
+                  <div className="glass-input-wrapper">
+                    <input
+                      id="campaignName"
+                      type="text"
+                      value={newCampaignName}
+                      onChange={(e) => setNewCampaignName(e.target.value)}
+                      placeholder="Enter campaign name"
+                      className="glass-input"
+                      disabled={creatingCampaign}
+                      maxLength={255}
+                    />
                   </div>
                 </div>
-              )}
-            </div>
 
-            <div className="modal-footer">
-              <button
-                className="action-btn glass-button secondary"
-                onClick={() => setShowJoinGameModal(false)}
-                disabled={joiningGame}
-              >
-                Cancel
-              </button>
-              <button
-                className="action-btn glass-button primary"
-                onClick={handleJoinGame}
-                disabled={!joinRoomCode.trim() || joiningGame}
-              >
-                {joiningGame ? (
-                  <>
-                    <span className="loading-spinner"></span>
-                    Joining...
-                  </>
-                ) : (
-                  <>
-                    <span>🎲</span>
-                    Join Game
-                  </>
-                )}
-              </button>
+                <div className="input-group">
+                  <label htmlFor="campaignDescription">
+                    Description (optional)
+                  </label>
+                  <div className="glass-input-wrapper">
+                    <textarea
+                      id="campaignDescription"
+                      value={newCampaignDescription}
+                      onChange={(e) =>
+                        setNewCampaignDescription(e.target.value)
+                      }
+                      placeholder="Describe your campaign..."
+                      className="glass-input"
+                      disabled={creatingCampaign}
+                      rows={4}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  className="action-btn glass-button secondary"
+                  onClick={() => setShowNewCampaignModal(false)}
+                  disabled={creatingCampaign}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="action-btn glass-button primary"
+                  onClick={handleCreateCampaign}
+                  disabled={!newCampaignName.trim() || creatingCampaign}
+                >
+                  {creatingCampaign ? (
+                    <>
+                      <span className="loading-spinner"></span>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <span>✨</span>
+                      Create Campaign
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Character Manager Modal */}
+        {showCharacterModal && (
+          <CharacterManager
+            character={editingCharacter}
+            onClose={() => setShowCharacterModal(false)}
+            onSave={handleSaveCharacter}
+          />
+        )}
+
+        {/* Join Game Modal */}
+        {showJoinGameModal && (
+          <div
+            className="modal-overlay"
+            onClick={() => !joiningGame && setShowJoinGameModal(false)}
+          >
+            <div
+              className="modal-content glass-panel"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-header">
+                <h2>Join Game</h2>
+                <button
+                  className="modal-close"
+                  onClick={() => setShowJoinGameModal(false)}
+                  disabled={joiningGame}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="modal-body">
+                <p
+                  style={{
+                    marginBottom: '1rem',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  Enter the room code provided by your Dungeon Master to join
+                  their game.
+                </p>
+
+                <div className="input-group">
+                  <label htmlFor="roomCode">Room Code *</label>
+                  <div className="glass-input-wrapper">
+                    <input
+                      id="roomCode"
+                      type="text"
+                      value={joinRoomCode}
+                      onChange={(e) =>
+                        setJoinRoomCode(e.target.value.toUpperCase())
+                      }
+                      placeholder="e.g., ABC123"
+                      className="glass-input"
+                      disabled={joiningGame}
+                      maxLength={6}
+                      style={{ textTransform: 'uppercase' }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && joinRoomCode.trim()) {
+                          handleJoinGame();
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {characters.length > 0 && (
+                  <div className="input-group">
+                    <label>Your Characters</label>
+                    <p
+                      style={{
+                        fontSize: '0.875rem',
+                        color: 'var(--text-secondary)',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      You have {characters.length} character
+                      {characters.length !== 1 ? 's' : ''} available to use in
+                      this game.
+                    </p>
+                    <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                      {characters.map((character) => (
+                        <div
+                          key={character.id}
+                          style={{
+                            padding: '0.5rem',
+                            marginBottom: '0.25rem',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: '4px',
+                            fontSize: '0.875rem',
+                          }}
+                        >
+                          <strong>{character.name}</strong>
+                          {character.data.race && character.data.class && (
+                            <span
+                              style={{
+                                marginLeft: '0.5rem',
+                                color: 'var(--text-secondary)',
+                              }}
+                            >
+                              ({character.data.race} {character.data.class})
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  className="action-btn glass-button secondary"
+                  onClick={() => setShowJoinGameModal(false)}
+                  disabled={joiningGame}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="action-btn glass-button primary"
+                  onClick={handleJoinGame}
+                  disabled={!joinRoomCode.trim() || joiningGame}
+                >
+                  {joiningGame ? (
+                    <>
+                      <span className="loading-spinner"></span>
+                      Joining...
+                    </>
+                  ) : (
+                    <>
+                      <span>🎲</span>
+                      Join Game
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Character Creation Launcher - rendered via portal to overlay everything */}

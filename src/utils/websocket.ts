@@ -60,10 +60,10 @@ class WebSocketService extends EventTarget {
     }
     if (campaignId) {
       params.set('campaignId', campaignId);
-        if (userId) {
-          params.set('userId', userId);
-        }    }
-
+      if (userId) {
+        params.set('userId', userId);
+      }
+    }
 
     const queryString = params.toString();
     return queryString ? `${wsUrl}?${queryString}` : wsUrl;
@@ -74,6 +74,17 @@ class WebSocketService extends EventTarget {
     const isDev = import.meta.env.DEV;
     if (!isDev) return null; // Only do discovery in development
 
+    // Check cache first
+    try {
+      const cachedPort = localStorage.getItem('nexus_discovered_port');
+      if (cachedPort) {
+        console.log(`🎯 Using cached discovered port: ${cachedPort}`);
+        return cachedPort;
+      }
+    } catch {
+      // localStorage might not be available
+    }
+
     const basePorts = ['5001', '5002', '5003', '5004'];
     const wsHost = import.meta.env.VITE_WS_HOST || 'localhost';
 
@@ -81,15 +92,29 @@ class WebSocketService extends EventTarget {
 
     for (const port of basePorts) {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 500); // Reduced timeout to 500ms
+
         const response = await fetch(`http://${wsHost}:${port}/health`, {
           method: 'GET',
-          signal: AbortSignal.timeout(1000), // 1 second timeout
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
+          const discoveredPort = data.port?.toString() || port;
           console.log(`✅ Found server on port ${port}:`, data);
-          return data.port?.toString() || port;
+
+          // Cache the discovered port
+          try {
+            localStorage.setItem('nexus_discovered_port', discoveredPort);
+          } catch {
+            // localStorage might not be available
+          }
+
+          return discoveredPort;
         }
       } catch {
         // Server not on this port, continue trying
@@ -208,7 +233,7 @@ class WebSocketService extends EventTarget {
       const timeout = setTimeout(() => {
         ws.close();
         reject(new Error(`Connection timeout on port ${port}`));
-      }, 3000);
+      }, 1000); // Reduced timeout to 1 second
 
       ws.onopen = () => {
         clearTimeout(timeout);
@@ -475,7 +500,7 @@ class WebSocketService extends EventTarget {
       data: message,
       timestamp: Date.now(),
       src: useGameStore.getState().user.id,
-        } as WebSocketMessage);
+    } as WebSocketMessage);
   }
 
   // Send game state update to server for persistence

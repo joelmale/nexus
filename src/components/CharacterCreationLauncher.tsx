@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import type { Character } from '@/types/character';
-import { CharacterCreationWizard } from './CharacterCreationWizard';
 import { CharacterCreationContext } from './CharacterCreationContext';
+
+// Lazy load the heavy CharacterCreationWizard
+const CharacterCreationWizard = React.lazy(() =>
+  import('./CharacterCreationWizard').then((module) => ({
+    default: module.CharacterCreationWizard,
+  })),
+);
 import {
   loadPlayerPanelStyles,
   loadCharacterWizardStyles,
@@ -10,9 +16,7 @@ import {
 } from '@/utils/cssLoader';
 import { getCurrentTheme } from '@/utils/themeManager';
 
-
 // Context for sharing character creation launcher across components
-
 
 export const CharacterCreationProvider: React.FC<{
   children: React.ReactNode;
@@ -105,8 +109,6 @@ export const CharacterCreationProvider: React.FC<{
   );
 };
 
-
-
 interface CharacterCreationLauncherProps {
   playerId: string;
   onComplete: (characterId: string, character?: Character) => void;
@@ -141,11 +143,20 @@ export const CharacterCreationLauncher: React.FC<
   }
 
   return (
-    <CharacterCreationWizard
-      playerId={playerId}
-      onComplete={handleComplete}
-      onCancel={handleCancel}
-      isModal={context === 'modal'}
-    />
+    <Suspense
+      fallback={
+        <div className="character-creation-loading">
+          <div className="spinner" />
+          <p>Loading character creation...</p>
+        </div>
+      }
+    >
+      <CharacterCreationWizard
+        playerId={playerId}
+        onComplete={handleComplete}
+        onCancel={handleCancel}
+        isModal={context === 'modal'}
+      />
+    </Suspense>
   );
 };

@@ -15,6 +15,9 @@ import {
   useSceneState,
   useSceneDrawings,
   useServerRoomCode,
+  useUser,
+  usePlacedTokens,
+  usePlacedProps,
 } from '@/stores/gameStore';
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
@@ -34,7 +37,10 @@ import { tokenAssetManager } from '@/services/tokenAssets';
 import { propAssetManager } from '@/services/propAssets';
 import { createPlacedToken, getTokenPixelSize } from '@/types/token';
 import { createPlacedProp } from '@/types/prop';
-import { useSelectedPlacedToken, useSelectedPlacedProp } from '@/stores/gameStore';
+import {
+  useSelectedPlacedToken,
+  useSelectedPlacedProp,
+} from '@/stores/gameStore';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
 import type {
@@ -48,20 +54,23 @@ interface SceneCanvasProps {
 }
 
 export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
+  // Actions from store (don't cause rerenders)
   const {
     updateCamera,
     placeToken,
     moveTokenOptimistic,
-    getSceneTokens,
     placeProp,
     movePropOptimistic,
-    getSceneProps,
     deleteProp,
-    user,
     setSelection,
     addToSelection,
     clearSelection,
   } = useGameStore();
+
+  // Specific selectors for state (cause rerenders only when relevant data changes)
+  const user = useUser();
+  const placedTokens = usePlacedTokens(scene.id);
+  const placedProps = usePlacedProps(scene.id);
   const selectedPlacedToken = useSelectedPlacedToken();
   const selectedPlacedProp = useSelectedPlacedProp();
   const { selectedObjectIds } = useSceneState();
@@ -71,7 +80,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     console.log('🎯 SceneCanvas selectedPlacedToken changed:', {
       selectedPlacedToken,
       selectedObjectIds,
-      tokensInScene: scene.placedTokens?.length || 0
+      tokensInScene: scene.placedTokens?.length || 0,
     });
   }, [selectedPlacedToken, selectedObjectIds, scene.placedTokens]);
   const camera = useCamera();
@@ -193,15 +202,17 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if user is typing in an input
-      if ((e.target as HTMLElement).tagName === 'INPUT' ||
-          (e.target as HTMLElement).tagName === 'TEXTAREA') {
+      if (
+        (e.target as HTMLElement).tagName === 'INPUT' ||
+        (e.target as HTMLElement).tagName === 'TEXTAREA'
+      ) {
         return;
       }
 
       // Delete key - delete selected props
       if ((e.key === 'Delete' || e.key === 'Backspace') && !e.repeat) {
         const selectedPropIds = selectedObjectIds.filter((id) => {
-          const props = getSceneProps(scene.id);
+          const props = placedProps;
           return props.some((p) => p.id === id);
         });
 
@@ -210,21 +221,25 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
           selectedPropIds.forEach((propId) => {
             deleteProp(scene.id, propId);
           });
-          console.log(`🎭 Props: Deleted ${selectedPropIds.length} prop(s) via keyboard`);
+          console.log(
+            `🎭 Props: Deleted ${selectedPropIds.length} prop(s) via keyboard`,
+          );
         }
       }
 
       // D key - duplicate selected prop
       if ((e.key === 'd' || e.key === 'D') && !e.repeat && isHost) {
         const selectedPropIds = selectedObjectIds.filter((id) => {
-          const props = getSceneProps(scene.id);
+          const props = placedProps;
           return props.some((p) => p.id === id);
         });
 
         if (selectedPropIds.length === 1) {
           e.preventDefault();
-          const props = getSceneProps(scene.id);
-          const propToDuplicate = props.find((p) => p.id === selectedPropIds[0]);
+          const props = placedProps;
+          const propToDuplicate = props.find(
+            (p) => p.id === selectedPropIds[0],
+          );
           if (propToDuplicate) {
             const prop = propAssetManager.getPropById(propToDuplicate.propId);
             if (prop) {
@@ -232,15 +247,16 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
                 propToDuplicate.propId,
                 scene.id,
                 { x: propToDuplicate.x + 20, y: propToDuplicate.y + 20 },
-                user.id
+                user.id,
               );
               duplicated.rotation = propToDuplicate.rotation;
               duplicated.scale = propToDuplicate.scale;
               duplicated.layer = propToDuplicate.layer;
               duplicated.visibleToPlayers = propToDuplicate.visibleToPlayers;
               duplicated.dmNotesOnly = propToDuplicate.dmNotesOnly;
-              duplicated.currentStats = propToDuplicate.currentStats ?
-                { ...propToDuplicate.currentStats } : undefined;
+              duplicated.currentStats = propToDuplicate.currentStats
+                ? { ...propToDuplicate.currentStats }
+                : undefined;
 
               placeProp(scene.id, duplicated);
               setSelection([duplicated.id]);
@@ -253,7 +269,16 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [scene.id, selectedObjectIds, isHost, getSceneProps, deleteProp, placeProp, setSelection, user.id]);
+  }, [
+    scene.id,
+    selectedObjectIds,
+    isHost,
+    placedProps,
+    deleteProp,
+    placeProp,
+    setSelection,
+    user.id,
+  ]);
 
   // Camera controls
   const handleWheel = useCallback(
@@ -295,7 +320,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
           // This only fires if nothing else (token/drawing) handled the click
           console.log('🖱️ SceneCanvas mouseDown (empty space)', {
             shiftKey: e.shiftKey,
-            target: (e.target as SVGElement)?.tagName
+            target: (e.target as SVGElement)?.tagName,
           });
 
           if (!e.shiftKey) {
@@ -353,9 +378,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     setIsPanning(false);
   }, []);
 
-  // Get tokens for this scene - must be defined before callbacks that use it
-  const placedTokens = getSceneTokens(scene.id);
-  const placedProps = getSceneProps(scene.id);
+  // Tokens and props are now obtained from selectors above
 
   const handleClosePropertiesPanel = useCallback(() => {
     clearSelection();
@@ -363,12 +386,15 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   const handleDrawingClick = useCallback(
     (drawingId: string, event: React.MouseEvent) => {
-      console.log('🎨 handleDrawingClick:', { drawingId, shiftKey: event.shiftKey });
+      console.log('🎨 handleDrawingClick:', {
+        drawingId,
+        shiftKey: event.shiftKey,
+      });
 
       if (event.shiftKey || event.metaKey || event.ctrlKey) {
         // Multi-select: toggle this drawing in selection
         if (selectedObjectIds.includes(drawingId)) {
-          setSelection(selectedObjectIds.filter(id => id !== drawingId));
+          setSelection(selectedObjectIds.filter((id) => id !== drawingId));
         } else {
           setSelection([...selectedObjectIds, drawingId]);
         }
@@ -385,7 +411,9 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     (token: Token, x: number, y: number) => {
       // Check if token is exclusive and already exists in this scene
       if (token.exclusive) {
-        const alreadyPlaced = placedTokens.some((pt) => pt.tokenId === token.id);
+        const alreadyPlaced = placedTokens.some(
+          (pt) => pt.tokenId === token.id,
+        );
         if (alreadyPlaced) {
           alert(
             `${token.name} is marked as exclusive and can only be placed once per scene. Remove the existing instance first.`,
@@ -442,7 +470,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   const handleTokenMove = useCallback(
     (tokenId: string, deltaX: number, deltaY: number) => {
-      const tokens = getSceneTokens(scene.id);
+      const tokens = placedTokens;
       const token = tokens.find((t) => t.id === tokenId);
       if (!token) return;
 
@@ -452,14 +480,14 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       // Optimistic update - move locally first, then send to server
       moveTokenOptimistic(scene.id, tokenId, { x: newX, y: newY });
     },
-    [scene.id, camera.zoom, getSceneTokens, moveTokenOptimistic],
+    [scene.id, camera.zoom, placedTokens, moveTokenOptimistic],
   );
 
   const handleTokenMoveEnd = useCallback(
     (tokenId: string) => {
       // Apply grid snapping when drag ends
       if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
-        const tokens = getSceneTokens(scene.id);
+        const tokens = placedTokens;
         const token = tokens.find((t) => t.id === tokenId);
         if (!token) return;
 
@@ -474,7 +502,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         }
       }
     },
-    [scene.id, safeGridSettings, getSceneTokens, moveTokenOptimistic],
+    [scene.id, safeGridSettings, placedTokens, moveTokenOptimistic],
   );
 
   // Prop handlers (mirror token handlers)
@@ -482,11 +510,15 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     (propId: string, multi: boolean) => {
       console.log('🎭 Props: handlePropSelect called:', { propId, multi });
       if (multi) {
-        console.log('📝 Props: Multi-select: calling addToSelection with:', [propId]);
+        console.log('📝 Props: Multi-select: calling addToSelection with:', [
+          propId,
+        ]);
         addToSelection([propId]);
         console.log('✅ Props: addToSelection completed');
       } else {
-        console.log('📝 Props: Single-select: calling setSelection with:', [propId]);
+        console.log('📝 Props: Single-select: calling setSelection with:', [
+          propId,
+        ]);
         setSelection([propId]);
         console.log('✅ Props: setSelection completed');
       }
@@ -496,7 +528,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   const handlePropMove = useCallback(
     (propId: string, deltaX: number, deltaY: number) => {
-      const props = getSceneProps(scene.id);
+      const props = placedProps;
       const prop = props.find((p) => p.id === propId);
       if (!prop) return;
 
@@ -506,14 +538,14 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       // Optimistic update - move locally first, then send to server
       movePropOptimistic(scene.id, propId, { x: newX, y: newY });
     },
-    [scene.id, camera.zoom, getSceneProps, movePropOptimistic],
+    [scene.id, camera.zoom, placedProps, movePropOptimistic],
   );
 
   const handlePropMoveEnd = useCallback(
     (propId: string) => {
       // Apply grid snapping when drag ends
       if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
-        const props = getSceneProps(scene.id);
+        const props = placedProps;
         const prop = props.find((p) => p.id === propId);
         if (!prop) return;
 
@@ -528,7 +560,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         }
       }
     },
-    [scene.id, safeGridSettings, getSceneProps, movePropOptimistic],
+    [scene.id, safeGridSettings, placedProps, movePropOptimistic],
   );
 
   const [isDraggingProp, setIsDraggingProp] = useState(false);
@@ -554,10 +586,10 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       const observer = new ResizeObserver(updateSize);
       observer.observe(svgRef.current);
       return () => observer.disconnect();
+    } else {
+      (window as Window).addEventListener('resize', updateSize);
+      return () => (window as Window).removeEventListener('resize', updateSize);
     }
-
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
   }, [viewportSize.width, viewportSize.height]);
 
   // Handle prop drop from PropPanel
@@ -590,16 +622,18 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         let finalY = sceneY;
 
         if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
-          finalX = Math.round(sceneX / safeGridSettings.size) * safeGridSettings.size;
-          finalY = Math.round(sceneY / safeGridSettings.size) * safeGridSettings.size;
+          finalX =
+            Math.round(sceneX / safeGridSettings.size) * safeGridSettings.size;
+          finalY =
+            Math.round(sceneY / safeGridSettings.size) * safeGridSettings.size;
         }
 
         // Create placed prop with correct arguments
         const placedProp = createPlacedProp(
-          prop.id,                    // propId (string)
-          scene.id,                   // sceneId (string)
-          { x: finalX, y: finalY },   // position (Point)
-          user.id,                    // placedBy (string)
+          prop.id, // propId (string)
+          scene.id, // sceneId (string)
+          { x: finalX, y: finalY }, // position (Point)
+          user.id, // placedBy (string)
         );
 
         // Place the prop
@@ -616,13 +650,13 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
 
         console.log('🎭 Props: Dropped prop:', {
           propName: prop.name,
-          position: { x: finalX, y: finalY }
+          position: { x: finalX, y: finalY },
         });
       } catch (error) {
         console.error('❌ Props: Failed to parse dropped prop data:', error);
       }
     },
-    [scene.id, camera, safeGridSettings, placeProp, user.id]
+    [scene.id, camera, safeGridSettings, placeProp, user.id],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -669,7 +703,8 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     // Position toolbar above and to the right of the token
     const tokenSize =
       getTokenPixelSize(
-        tokenAssetManager.getTokenById(selectedPlacedToken.tokenId)?.size || 'medium',
+        tokenAssetManager.getTokenById(selectedPlacedToken.tokenId)?.size ||
+          'medium',
         safeGridSettings.size,
       ) *
       selectedPlacedToken.scale *
@@ -707,12 +742,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     }
 
     return { x, y };
-  }, [
-    selectedPlacedToken,
-    camera,
-    svgSize,
-    safeGridSettings.size,
-  ]);
+  }, [selectedPlacedToken, camera, svgSize, safeGridSettings.size]);
 
   // Calculate toolbar position for selected prop
   const getPropToolbarPosition = useCallback(() => {
@@ -725,8 +755,16 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
       svgSize.height / 2 + (selectedPlacedProp.y - camera.y) * camera.zoom;
 
     // Calculate prop size in pixels
-    const propWidth = (selectedPlacedProp.width || 1) * safeGridSettings.size * selectedPlacedProp.scale * camera.zoom;
-    const propHeight = (selectedPlacedProp.height || 1) * safeGridSettings.size * selectedPlacedProp.scale * camera.zoom;
+    const propWidth =
+      (selectedPlacedProp.width || 1) *
+      safeGridSettings.size *
+      selectedPlacedProp.scale *
+      camera.zoom;
+    const propHeight =
+      (selectedPlacedProp.height || 1) *
+      safeGridSettings.size *
+      selectedPlacedProp.scale *
+      camera.zoom;
 
     // Estimate toolbar dimensions (approximate)
     const toolbarWidth = 400; // Approximate width when panel is open
@@ -760,12 +798,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     }
 
     return { x, y };
-  }, [
-    selectedPlacedProp,
-    camera,
-    svgSize,
-    safeGridSettings.size,
-  ]);
+  }, [selectedPlacedProp, camera, svgSize, safeGridSettings.size]);
 
   return (
     <CanvasErrorBoundary>
@@ -780,7 +813,9 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         )}
 
         {/* Token Toolbar */}
-        {selectedPlacedToken && <TokenToolbar position={getToolbarPosition()} />}
+        {selectedPlacedToken && (
+          <TokenToolbar position={getToolbarPosition()} />
+        )}
 
         {/* Prop Toolbar */}
         {selectedPlacedProp && (
@@ -902,7 +937,10 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
                       placedProp.propId,
                     );
                     if (!prop) {
-                      console.warn('🎭 Props: Prop not found:', placedProp.propId);
+                      console.warn(
+                        '🎭 Props: Prop not found:',
+                        placedProp.propId,
+                      );
                       return null;
                     }
 

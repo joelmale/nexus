@@ -21,7 +21,6 @@ import {
   EyeOff,
   Minus,
   MousePointer2,
-  Move,
   Pencil,
   Ruler,
   Sparkles,
@@ -87,29 +86,87 @@ export const GameToolbar: React.FC = () => {
               'Select and move objects. Hold Shift+drag OR Cmd/Ctrl+click for multi-select',
           },
           { id: 'pan', icon: <Hand size={18} />, label: 'Pan', shortcut: 'H' },
-          { id: 'measure', icon: <Ruler size={18} />, label: 'Measure', shortcut: 'M', tooltip: 'Measure distance' },
-          { id: 'ping', icon: <Target size={18} />, label: 'Ping', shortcut: 'I', tooltip: 'Ping location for players' },
+          {
+            id: 'measure',
+            icon: <Ruler size={18} />,
+            label: 'Measure',
+            shortcut: 'M',
+            tooltip: 'Measure distance',
+          },
+          {
+            id: 'ping',
+            icon: <Target size={18} />,
+            label: 'Ping',
+            shortcut: 'I',
+            tooltip: 'Ping location for players',
+          },
         ],
       },
       {
         id: 'draw',
         label: 'Draw & Shapes',
         tools: [
-          { id: 'draw', icon: <Pencil size={18} />, label: 'Draw', shortcut: 'D', tooltip: 'Freehand drawing' },
-          { id: 'line', icon: <Minus size={18} />, label: 'Line', shortcut: 'L' },
-          { id: 'rectangle', icon: <Square size={18} />, label: 'Rectangle', shortcut: 'R' },
-          { id: 'circle', icon: <Circle size={18} />, label: 'Circle', shortcut: 'O' },
-          { id: 'cone', icon: <Triangle size={18} />, label: 'Cone / AOE', shortcut: 'C' },
-          { id: 'erase', icon: <Eraser size={18} />, label: 'Erase', shortcut: 'E' },
+          {
+            id: 'draw',
+            icon: <Pencil size={18} />,
+            label: 'Draw',
+            shortcut: 'D',
+            tooltip: 'Freehand drawing',
+          },
+          {
+            id: 'line',
+            icon: <Minus size={18} />,
+            label: 'Line',
+            shortcut: 'L',
+          },
+          {
+            id: 'rectangle',
+            icon: <Square size={18} />,
+            label: 'Rectangle',
+            shortcut: 'R',
+          },
+          {
+            id: 'circle',
+            icon: <Circle size={18} />,
+            label: 'Circle',
+            shortcut: 'O',
+          },
+          {
+            id: 'cone',
+            icon: <Triangle size={18} />,
+            label: 'Cone / AOE',
+            shortcut: 'C',
+          },
+          {
+            id: 'erase',
+            icon: <Eraser size={18} />,
+            label: 'Erase',
+            shortcut: 'E',
+          },
         ],
       },
       {
         id: 'entities',
         label: 'Tokens & Props',
         tools: [
-          { id: 'tokens', icon: <Users size={18} />, label: 'Tokens', tooltip: 'Place and manage tokens' },
-          { id: 'props', icon: <Box size={18} />, label: 'Props', tooltip: 'Place and edit props' },
-          { id: 'note', icon: <Compass size={18} />, label: 'Notes', tooltip: 'Add notes/markers' },
+          {
+            id: 'tokens',
+            icon: <Users size={18} />,
+            label: 'Tokens',
+            tooltip: 'Place and manage tokens',
+          },
+          {
+            id: 'props',
+            icon: <Box size={18} />,
+            label: 'Props',
+            tooltip: 'Place and edit props',
+          },
+          {
+            id: 'note',
+            icon: <Compass size={18} />,
+            label: 'Notes',
+            tooltip: 'Add notes/markers',
+          },
         ],
       },
     ],
@@ -123,12 +180,36 @@ export const GameToolbar: React.FC = () => {
             id: 'dm',
             label: 'DM Tools',
             tools: [
-              { id: 'mask-create', icon: <Sparkles size={18} />, label: 'Create Mask' },
-              { id: 'mask-toggle', icon: <Wand2 size={18} />, label: 'Toggle Mask' },
-              { id: 'mask-remove', icon: <Eraser size={18} />, label: 'Remove Mask' },
-              { id: 'mask-show', icon: <Eye size={18} />, label: 'Reveal Scene' },
-              { id: 'mask-hide', icon: <EyeOff size={18} />, label: 'Hide Scene' },
-              { id: 'grid-align', icon: <Compass size={18} />, label: 'Grid Alignment' },
+              {
+                id: 'mask-create',
+                icon: <Sparkles size={18} />,
+                label: 'Create Mask',
+              },
+              {
+                id: 'mask-toggle',
+                icon: <Wand2 size={18} />,
+                label: 'Toggle Mask',
+              },
+              {
+                id: 'mask-remove',
+                icon: <Eraser size={18} />,
+                label: 'Remove Mask',
+              },
+              {
+                id: 'mask-show',
+                icon: <Eye size={18} />,
+                label: 'Reveal Scene',
+              },
+              {
+                id: 'mask-hide',
+                icon: <EyeOff size={18} />,
+                label: 'Hide Scene',
+              },
+              {
+                id: 'grid-align',
+                icon: <Compass size={18} />,
+                label: 'Grid Alignment',
+              },
             ],
           }
         : null,
@@ -174,10 +255,10 @@ export const GameToolbar: React.FC = () => {
       }
 
       const key = e.key.toUpperCase();
-    const allTools = [
-      ...toolGroups.flatMap((g) => g.tools),
-      ...(dmToolGroup ? dmToolGroup.tools : []),
-    ];
+      const allTools = [
+        ...toolGroups.flatMap((g) => g.tools),
+        ...(dmToolGroup ? dmToolGroup.tools : []),
+      ];
       const tool = allTools.find(
         (t) =>
           t.shortcut &&
@@ -209,7 +290,11 @@ export const GameToolbar: React.FC = () => {
         aria-pressed={activeTool === tool.id}
         onMouseEnter={() => setHoveredTool(tool)}
       >
-        {tool.icon ? <span className="tool-icon">{tool.icon}</span> : tool.label}
+        {tool.icon ? (
+          <span className="tool-icon">{tool.icon}</span>
+        ) : (
+          tool.label
+        )}
       </button>
     );
   };
@@ -236,7 +321,7 @@ export const GameToolbar: React.FC = () => {
         onMouseLeave={() => setHoveredTool(null)}
       >
         <div className="toolbar-row">
-          {toolGroups.flatMap(g => g.tools).map(renderToolButton)}
+          {toolGroups.flatMap((g) => g.tools).map(renderToolButton)}
         </div>
         <div className="toolbar-row">
           {isHost && dmToolGroup && dmToolGroup.tools.map(renderToolButton)}

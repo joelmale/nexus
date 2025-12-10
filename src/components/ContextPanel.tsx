@@ -3,7 +3,7 @@ import { DiceRoller } from './DiceRoller';
 import { InitiativeTracker } from './InitiativeTracker';
 import { LobbyPanel } from './LobbyPanel';
 import { ScenePanel } from './Scene/ScenePanel';
-import { useGameStore } from '@/stores/gameStore';
+import { useSceneState } from '@/stores/gameStore';
 import { Settings } from './Settings';
 import { Placeholder } from './Placeholder';
 import { TokenPanel } from './Tokens/TokenPanel';
@@ -57,7 +57,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   onContentWidthChange,
 }) => {
   const panelContentRef = useRef<HTMLDivElement>(null);
-  const { sceneState } = useGameStore();
+  const sceneState = useSceneState();
 
   // Get current active scene
   const currentScene = sceneState.scenes.find(

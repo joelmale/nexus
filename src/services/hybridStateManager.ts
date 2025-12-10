@@ -227,6 +227,7 @@ export class HybridStateManager {
         lastUpdate: 0,
         reconnectAttempts: 0,
       },
+      isRecovering: false,
       entityVersions: new Map(),
     };
 

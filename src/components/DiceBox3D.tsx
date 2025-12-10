@@ -6,10 +6,13 @@ import { diceSounds } from '@/utils/diceSounds';
 export const DiceBox3D: React.FC = () => {
   const diceBoxRef = useRef<DiceBox | null>(null);
   const diceBoxContainerRef = useRef<HTMLDivElement>(null);
-  const lastRollIdRef = useRef<string | null>(null);
+  const processedRollIdsRef = useRef<Set<string>>(new Set());
   const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const rollDebounceRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingRollRef = useRef<{ notations: string[]; values: number[] } | null>(null);
+  const pendingRollRef = useRef<{
+    notations: string[];
+    values: number[];
+  } | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
 
@@ -33,9 +36,12 @@ export const DiceBox3D: React.FC = () => {
           // Check WebGL support
           console.log('🎲 Checking WebGL support...');
           const canvas = document.createElement('canvas');
-          const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+          const gl =
+            canvas.getContext('webgl') ||
+            canvas.getContext('experimental-webgl');
           if (!gl) {
-            const error = 'WebGL is not supported in this browser. 3D dice require WebGL.';
+            const error =
+              'WebGL is not supported in this browser. 3D dice require WebGL.';
             console.error('🎲 ERROR:', error);
             setInitError(error);
             setIsInitialized(false);
@@ -96,16 +102,27 @@ export const DiceBox3D: React.FC = () => {
                 diceBoxContainerRef.current.querySelector('canvas');
               if (canvasElement) {
                 console.log('✅ Canvas element found:', canvasElement);
-                console.log('   Canvas dimensions:', canvasElement.width, 'x', canvasElement.height);
+                console.log(
+                  '   Canvas dimensions:',
+                  canvasElement.width,
+                  'x',
+                  canvasElement.height,
+                );
               } else {
                 console.error('🎲 ERROR: No canvas element found after init!');
-                console.log('   Container children:', diceBoxContainerRef.current.children);
+                console.log(
+                  '   Container children:',
+                  diceBoxContainerRef.current.children,
+                );
               }
             }
           }, 1000);
         } catch (error) {
           console.error('🎲 Failed to initialize DiceBox3D:', error);
-          console.error('   Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+          console.error(
+            '   Error stack:',
+            error instanceof Error ? error.stack : 'No stack trace',
+          );
           setInitError(
             error instanceof Error
               ? error.message
@@ -152,12 +169,17 @@ export const DiceBox3D: React.FC = () => {
       return;
     }
 
-    const latestRoll = diceRolls[0];
+    // Process all unprocessed rolls
+    const unprocessedRolls = diceRolls.filter(
+      (roll) => !processedRollIdsRef.current.has(roll.id),
+    );
 
-    // Skip if we've already animated this roll
-    if (latestRoll.id === lastRollIdRef.current) {
+    if (unprocessedRolls.length === 0) {
       return;
     }
+
+    // For now, just process the latest unprocessed roll to maintain existing behavior
+    const latestRoll = unprocessedRolls[unprocessedRolls.length - 1];
 
     // Convert server roll results to dice notation with predetermined values
     const rollNotations: string[] = [];
@@ -225,7 +247,7 @@ export const DiceBox3D: React.FC = () => {
             console.error('🎲 Error rolling dice:', error);
           });
 
-        lastRollIdRef.current = latestRoll.id;
+        processedRollIdsRef.current.add(latestRoll.id);
       }, 120);
     }
   }, [diceRolls, isInitialized, settings.diceDisappearTime]);

@@ -62,14 +62,13 @@ import {
   createServerDiceRoll,
   DiceRollRequest,
 } from './diceRoller.js';
-import fs from 'fs';
 
 interface SessionUser {
   id: string;
   email: string | null;
   name: string;
-   displayName?: string | null;
-   bio?: string | null;
+  displayName?: string | null;
+  bio?: string | null;
   avatarUrl: string | null;
   provider: string;
 }
@@ -159,7 +158,9 @@ class NexusServer {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== 'false',
+        secure:
+          process.env.NODE_ENV === 'production' &&
+          process.env.FORCE_HTTPS !== 'false',
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
@@ -378,8 +379,11 @@ class NexusServer {
       (req, res) => {
         // In production, use relative path or configured URL
         // In development, use localhost with Vite dev server port
-        const redirectUrl = process.env.FRONTEND_URL ||
-          (process.env.NODE_ENV === 'production' ? '/dashboard' : 'http://localhost:5173/dashboard');
+        const redirectUrl =
+          process.env.FRONTEND_URL ||
+          (process.env.NODE_ENV === 'production'
+            ? '/dashboard'
+            : 'http://localhost:5173/dashboard');
         res.redirect(redirectUrl);
       },
     );
@@ -390,8 +394,11 @@ class NexusServer {
       (req, res) => {
         // In production, use relative path or configured URL
         // In development, use localhost with Vite dev server port
-        const redirectUrl = process.env.FRONTEND_URL ||
-          (process.env.NODE_ENV === 'production' ? '/dashboard' : 'http://localhost:5173/dashboard');
+        const redirectUrl =
+          process.env.FRONTEND_URL ||
+          (process.env.NODE_ENV === 'production'
+            ? '/dashboard'
+            : 'http://localhost:5173/dashboard');
         res.redirect(redirectUrl);
       },
     );
@@ -465,12 +472,17 @@ class NexusServer {
 
         if (displayName !== undefined) {
           if (typeof displayName !== 'string') {
-            return res.status(400).json({ error: 'displayName must be a string' });
-          }
-          if (displayName.trim().length === 0 || displayName.trim().length > 100) {
             return res
               .status(400)
-              .json({ error: 'displayName must be between 1 and 100 characters' });
+              .json({ error: 'displayName must be a string' });
+          }
+          if (
+            displayName.trim().length === 0 ||
+            displayName.trim().length > 100
+          ) {
+            return res.status(400).json({
+              error: 'displayName must be between 1 and 100 characters',
+            });
           }
         }
 
@@ -478,7 +490,9 @@ class NexusServer {
           return res.status(400).json({ error: 'bio must be a string' });
         }
         if (typeof bio === 'string' && bio.length > 1000) {
-          return res.status(400).json({ error: 'bio must be 1000 characters or less' });
+          return res
+            .status(400)
+            .json({ error: 'bio must be 1000 characters or less' });
         }
 
         if (avatarUrl !== undefined && typeof avatarUrl !== 'string') {
@@ -535,15 +549,20 @@ class NexusServer {
           return res.status(401).json({ error: 'Authentication required' });
         }
 
-        const { allowSpectators, shareCharacterSheets, logSessions, ...rest } = req.body || {};
+        const { allowSpectators, shareCharacterSheets, logSessions, ...rest } =
+          req.body || {};
 
         const invalid =
-          (allowSpectators !== undefined && typeof allowSpectators !== 'boolean') ||
-          (shareCharacterSheets !== undefined && typeof shareCharacterSheets !== 'boolean') ||
+          (allowSpectators !== undefined &&
+            typeof allowSpectators !== 'boolean') ||
+          (shareCharacterSheets !== undefined &&
+            typeof shareCharacterSheets !== 'boolean') ||
           (logSessions !== undefined && typeof logSessions !== 'boolean');
 
         if (invalid) {
-          return res.status(400).json({ error: 'Preference values must be boolean' });
+          return res
+            .status(400)
+            .json({ error: 'Preference values must be boolean' });
         }
 
         const user = req.user as { id: string };
@@ -551,12 +570,17 @@ class NexusServer {
         const mergedPrefs = {
           ...currentPrefs,
           ...(allowSpectators !== undefined ? { allowSpectators } : {}),
-          ...(shareCharacterSheets !== undefined ? { shareCharacterSheets } : {}),
+          ...(shareCharacterSheets !== undefined
+            ? { shareCharacterSheets }
+            : {}),
           ...(logSessions !== undefined ? { logSessions } : {}),
           ...rest,
         };
 
-        const updated = await this.db.updateUserPreferences(user.id, mergedPrefs);
+        const updated = await this.db.updateUserPreferences(
+          user.id,
+          mergedPrefs,
+        );
         res.json(updated);
       } catch (error) {
         console.error('Failed to update preferences:', error);
@@ -996,7 +1020,7 @@ class NexusServer {
         res.json({
           success: true,
           path: serverPath,
-          message: 'Token saved successfully'
+          message: 'Token saved successfully',
         });
       } catch (error) {
         console.error('Failed to save token:', error);
@@ -1020,9 +1044,10 @@ class NexusServer {
     this.app.get('/health', (req, res) => {
       // In production behind nginx proxy, use relative /ws path
       // In development, use localhost:port for direct connection
-      const wsUrl = process.env.NODE_ENV === 'production'
-        ? '/ws'
-        : `ws://localhost:${this.port}`;
+      const wsUrl =
+        process.env.NODE_ENV === 'production'
+          ? '/ws'
+          : `ws://localhost:${this.port}`;
 
       res.json({
         status: 'ok',
@@ -1039,9 +1064,10 @@ class NexusServer {
     this.app.get('/', (req, res) => {
       // In production behind nginx proxy, use relative /ws path
       // In development, use localhost:port for direct connection
-      const wsUrl = process.env.NODE_ENV === 'production'
-        ? '/ws'
-        : `ws://localhost:${this.port}`;
+      const wsUrl =
+        process.env.NODE_ENV === 'production'
+          ? '/ws'
+          : `ws://localhost:${this.port}`;
 
       res.json({
         status: 'ok',
@@ -1060,7 +1086,6 @@ class NexusServer {
     ) => {
       res.set({
         'Cache-Control': `public, max-age=${maxAge}`,
-        ETag: `"${Date.now()}"`,
         Vary: 'Accept-Encoding',
       });
     };
@@ -1434,7 +1459,10 @@ class NexusServer {
     }
   }
 
-  private async handleHostReconnection(connection: Connection, roomCode: string) {
+  private async handleHostReconnection(
+    connection: Connection,
+    roomCode: string,
+  ) {
     const room = this.rooms.get(roomCode);
 
     if (!room) {
@@ -1466,10 +1494,15 @@ class NexusServer {
           const session = await this.db.getSessionByJoinCode(roomCode);
           if (session?.gameState) {
             room.gameState = session.gameState as GameState;
-            console.log(`📂 Loaded game state from database: ${session.gameState.scenes?.length || 0} scenes`);
+            console.log(
+              `📂 Loaded game state from database: ${session.gameState.scenes?.length || 0} scenes`,
+            );
           }
         } catch (error) {
-          console.error(`Failed to load game state for room ${roomCode}:`, error);
+          console.error(
+            `Failed to load game state for room ${roomCode}:`,
+            error,
+          );
         }
       }
     } else {
@@ -1488,7 +1521,9 @@ class NexusServer {
     console.log(
       `🎮 Room gameState when reconnecting:`,
       room.gameState ? 'exists' : 'null',
-      room.gameState ? `${room.gameState.scenes?.length || 0} scenes` : 'no data',
+      room.gameState
+        ? `${room.gameState.scenes?.length || 0} scenes`
+        : 'no data',
     );
     this.sendMessage(connection, {
       type: 'event',
@@ -1697,9 +1732,15 @@ class NexusServer {
 
     if (
       message.type === 'event' &&
-      ['token/move', 'token/update', 'token/delete', 'prop/move', 'prop/update', 'prop/delete', 'prop/interact'].includes(
-        (message.data as { name: string })?.name,
-      )
+      [
+        'token/move',
+        'token/update',
+        'token/delete',
+        'prop/move',
+        'prop/update',
+        'prop/delete',
+        'prop/interact',
+      ].includes((message.data as { name: string })?.name)
     ) {
       const eventData = message.data as {
         name: string;
@@ -1749,11 +1790,7 @@ class NexusServer {
     }
 
     if (message.type === 'chat-message') {
-      this.handleChatMessage(
-        fromUuid,
-        connection,
-        message,
-      );
+      this.handleChatMessage(fromUuid, connection, message);
       return;
     }
 
@@ -1892,7 +1929,10 @@ class NexusServer {
 
         // Save scenes to campaign (for multi-device persistence)
         if (room.gameState.scenes && session.campaignId) {
-          await this.db.saveCampaignScenes(session.campaignId, room.gameState.scenes);
+          await this.db.saveCampaignScenes(
+            session.campaignId,
+            room.gameState.scenes,
+          );
         }
 
         console.log(`💾 Game state updated and persisted for room ${roomCode}`);

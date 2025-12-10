@@ -24,8 +24,18 @@ import { SceneTabs } from './Scene/SceneTabs';
 import { GameToolbar } from './GameToolbar';
 import { PlayerBar } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
-import { GeneratorPanel } from './Generator/GeneratorPanel';
-import { DiceBox3D } from './DiceBox3D';
+
+// Lazy load heavy panels
+const GeneratorPanel = React.lazy(() =>
+  import('./Generator/GeneratorPanel').then((module) => ({
+    default: module.GeneratorPanel,
+  })),
+);
+const DiceBox3D = React.lazy(() =>
+  import('./DiceBox3D').then((module) => ({
+    default: module.DiceBox3D,
+  })),
+);
 import ConnectionStatus from './ConnectionStatus';
 import { applyColorScheme } from '@/utils/colorSchemes';
 
@@ -333,8 +343,14 @@ export const GameUI: React.FC = () => {
             </div>
           )}
 
-          {/* 3D Dice Box - positioned top-right of scene */}
-          <DiceBox3D />
+          {/* 3D Dice Box - only render when dice panel is active */}
+          {activePanel === 'dice' && (
+            <Suspense
+              fallback={<div className="dice-loading">Loading 3D dice...</div>}
+            >
+              <DiceBox3D />
+            </Suspense>
+          )}
         </div>
 
         {/* Floating Toolbar */}
@@ -384,7 +400,15 @@ export const GameUI: React.FC = () => {
             ✕
           </button>
           <div className="generator-overlay-content">
-            <GeneratorPanel onSwitchToScenes={() => setActivePanel('scene')} />
+            <Suspense
+              fallback={
+                <div className="panel-skeleton">Loading generator...</div>
+              }
+            >
+              <GeneratorPanel
+                onSwitchToScenes={() => setActivePanel('scene')}
+              />
+            </Suspense>
           </div>
         </div>
       )}

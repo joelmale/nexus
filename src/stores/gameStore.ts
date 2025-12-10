@@ -1230,7 +1230,10 @@ export const useGameStore = create<GameStore>()(
                 return;
               }
             } catch (profileError) {
-              console.warn('Profile hydrate failed, using auth user only', profileError);
+              console.warn(
+                'Profile hydrate failed, using auth user only',
+                profileError,
+              );
             }
 
             get().login(authUser);
@@ -3513,6 +3516,13 @@ export const useVisibleDrawings = (sceneId: string) =>
   useGameStore((state) => {
     const isHost = state.user.type === 'host';
     return state.getVisibleDrawings(sceneId, isHost);
+  });
+
+// Token selectors
+export const usePlacedTokens = (sceneId: string) =>
+  useGameStore((state) => {
+    const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
+    return scene?.placedTokens || [];
   });
 
 // Prop selectors
