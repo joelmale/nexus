@@ -299,6 +299,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
                   src={backgroundImage.url}
                   alt="Scene background"
                   className="background-thumbnail"
+                  loading="lazy"
                 />
                 <div className="background-info">
                   <p>

@@ -604,4 +604,10 @@ class DungeonMapIndexedDB {
 }
 
 // Export singleton instance
-export const dungeonMapIndexedDB = new DungeonMapIndexedDB();
+// Use worker-based storage if available, otherwise fall back to direct implementation
+import { storageWorkerClient } from '../services/storageWorkerClient';
+
+export const dungeonMapIndexedDB =
+  typeof window !== 'undefined' && 'Worker' in window
+    ? (storageWorkerClient as unknown as DungeonMapIndexedDB)
+    : new DungeonMapIndexedDB();

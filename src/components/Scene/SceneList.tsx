@@ -57,6 +57,7 @@ export const SceneList: React.FC<SceneListProps> = ({
                     src={scene.backgroundImage.url}
                     alt={scene.name}
                     className="scene-thumbnail"
+                    loading="lazy"
                   />
                 </Suspense>
               </div>

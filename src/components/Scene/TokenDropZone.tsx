@@ -1,12 +1,19 @@
 import React from 'react';
 import { useDrop } from 'react-dnd';
 import type { Token } from '@/types/token';
+import { pixelToHex, hexToPixel } from '@/utils/hexMath';
 
 interface TokenDropZoneProps {
   sceneId: string;
   camera: { x: number; y: number; zoom: number };
-  gridSize: number;
-  snapToGrid: boolean;
+  gridSettings: {
+    type?: 'square' | 'hex';
+    size: number;
+    snapToGrid: boolean;
+    offsetX?: number;
+    offsetY?: number;
+    hexScale?: number;
+  };
   onTokenDrop: (token: Token, x: number, y: number) => void;
   children: React.ReactNode;
 }
@@ -17,8 +24,7 @@ interface TokenDropZoneProps {
  */
 export const TokenDropZone: React.FC<TokenDropZoneProps> = ({
   camera,
-  gridSize,
-  snapToGrid,
+  gridSettings,
   onTokenDrop,
   children,
 }) => {
@@ -47,9 +53,38 @@ export const TokenDropZone: React.FC<TokenDropZoneProps> = ({
         let finalX = sceneX;
         let finalY = sceneY;
 
-        if (snapToGrid && gridSize > 0) {
-          finalX = Math.round(sceneX / gridSize) * gridSize;
-          finalY = Math.round(sceneY / gridSize) * gridSize;
+        if (gridSettings.snapToGrid && gridSettings.size > 0) {
+          const gridType = gridSettings.type || 'square';
+          const gridSize = gridSettings.size;
+          const offsetX = gridSettings.offsetX || 0;
+          const offsetY = gridSettings.offsetY || 0;
+          const hexScale = gridSettings.hexScale || 1.0;
+
+          if (gridType === 'hex') {
+            // Convert pixel coordinates to hex coordinates and back
+            const hexCoord = pixelToHex(
+              { x: sceneX, y: sceneY },
+              gridSize,
+              offsetX,
+              offsetY,
+              hexScale,
+            );
+            const snappedPoint = hexToPixel(
+              hexCoord,
+              gridSize,
+              offsetX,
+              offsetY,
+              hexScale,
+            );
+            finalX = snappedPoint.x;
+            finalY = snappedPoint.y;
+          } else {
+            // Square grid snapping
+            finalX =
+              Math.round((sceneX - offsetX) / gridSize) * gridSize + offsetX;
+            finalY =
+              Math.round((sceneY - offsetY) / gridSize) * gridSize + offsetY;
+          }
         }
 
         // Call the drop handler
@@ -60,7 +95,7 @@ export const TokenDropZone: React.FC<TokenDropZoneProps> = ({
         canDrop: monitor.canDrop(),
       }),
     }),
-    [camera, gridSize, snapToGrid, onTokenDrop, dropZoneElement],
+    [camera, gridSettings, onTokenDrop, dropZoneElement],
   );
 
   // Combine refs

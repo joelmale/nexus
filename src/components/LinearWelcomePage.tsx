@@ -73,9 +73,42 @@ export const LinearWelcomePage: React.FC = () => {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const emailInputRef = React.useRef<HTMLInputElement | null>(null);
 
+  // Detect if we're returning from OAuth (check for common OAuth params)
+  const isOAuthRedirect = React.useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return (
+      params.has('code') ||
+      params.has('state') ||
+      window.location.pathname.includes('/auth/') ||
+      // Also check if we just became authenticated in the last 2 seconds
+      (isAuthenticated && !localStorage.getItem('nexus-auth-complete'))
+    );
+  }, [isAuthenticated]);
+
+  // Mark auth as complete after OAuth
+  React.useEffect(() => {
+    if (isAuthenticated && !localStorage.getItem('nexus-auth-complete')) {
+      // Clear any stale session data when user authenticates via OAuth
+      console.log('🔐 OAuth complete - clearing stale session data');
+      localStorage.removeItem('nexus-active-session');
+      localStorage.setItem('nexus-auth-complete', 'true');
+
+      // Clear the flag after a short delay
+      setTimeout(() => {
+        localStorage.removeItem('nexus-auth-complete');
+      }, 5000);
+    }
+  }, [isAuthenticated]);
+
   // Auto-navigate to game if session exists, or attempt recovery if needed
   React.useEffect(() => {
     const recoverAndNavigate = async () => {
+      // Skip auto-recovery if we're in the middle of OAuth flow
+      if (isOAuthRedirect) {
+        console.log('🔐 Skipping auto-recovery during OAuth redirect');
+        return;
+      }
+
       if (session?.roomCode) {
         console.log(
           '🔄 Found existing session, navigating to game:',
@@ -109,7 +142,7 @@ export const LinearWelcomePage: React.FC = () => {
     };
 
     recoverAndNavigate();
-  }, [session, navigate, attemptSessionRecovery]);
+  }, [session, navigate, attemptSessionRecovery, isOAuthRedirect]);
 
   /**
    * Fetch user's campaigns when DM role is selected and user is authenticated

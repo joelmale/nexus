@@ -17,7 +17,7 @@ interface ResizingHandle {
   type: 'corner' | 'radius' | 'endpoint' | 'length' | 'rotation';
 }
 
-export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
+const SelectionOverlayComponent: React.FC<SelectionOverlayProps> = ({
   selectedDrawings,
   sceneId,
   camera,
@@ -764,3 +764,6 @@ const renderMultiSelectionBounds = (drawings: Drawing[], camera: Camera) => {
     />
   );
 };
+
+// Memoize to prevent unnecessary rerenders
+export const SelectionOverlay = React.memo(SelectionOverlayComponent);

@@ -362,13 +362,48 @@ export function calculateDiagonalDistance(
 }
 
 /**
- * Snap a point to the nearest grid intersection
+ * Snap a point to the nearest grid intersection (square grid)
  */
 export function gridSnap(point: Point, gridSize: number): Point {
   return {
     x: Math.round(point.x / gridSize) * gridSize,
     y: Math.round(point.y / gridSize) * gridSize,
   };
+}
+
+/**
+ * Snap a point to the nearest grid position (grid-type aware)
+ */
+export function snapToGrid(
+  point: Point,
+  gridSettings: {
+    type?: 'square' | 'hex';
+    size: number;
+    offsetX?: number;
+    offsetY?: number;
+    hexScale?: number;
+  },
+): Point {
+  const gridType = gridSettings.type || 'square';
+  const gridSize = gridSettings.size;
+  const offsetX = gridSettings.offsetX || 0;
+  const offsetY = gridSettings.offsetY || 0;
+  const hexScale = gridSettings.hexScale || 1.0;
+
+  if (gridType === 'hex') {
+    // Import hex math functions here to avoid circular dependencies
+    // Note: This require is necessary to avoid circular dependency between mathUtils and hexMath
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { pixelToHex, hexToPixel } = require('./hexMath');
+    const hexCoord = pixelToHex(point, gridSize, offsetX, offsetY, hexScale);
+    return hexToPixel(hexCoord, gridSize, offsetX, offsetY, hexScale);
+  } else {
+    // Square grid snapping
+    return {
+      x: Math.round((point.x - offsetX) / gridSize) * gridSize + offsetX,
+      y: Math.round((point.y - offsetY) / gridSize) * gridSize + offsetY,
+    };
+  }
 }
 
 /**

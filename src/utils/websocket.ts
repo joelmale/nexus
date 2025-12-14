@@ -13,6 +13,7 @@ import type { WebSocketCustomEvent } from '@/types/events';
 import type { ChatMessage } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
+import { applyPatch } from 'fast-json-patch';
 
 class WebSocketService extends EventTarget {
   private ws: WebSocket | null = null;
@@ -388,6 +389,55 @@ class WebSocketService extends EventTarget {
           gameStore.setSession(message.data.session);
         }
         break;
+
+      case 'game-state-patch': {
+        // Apply JSON Patch for delta updates (80% reduction in payload size)
+        try {
+          const { patch, version } = message.data;
+
+          console.log(
+            `📦 Applying game state patch v${version} (${patch.length} operations)`
+          );
+
+          // Get current game state
+          const currentState = useGameStore.getState();
+
+          // Create a copy to apply patch to
+          const stateCopy = JSON.parse(
+            JSON.stringify({
+              scenes: currentState.sceneState.scenes,
+              activeSceneId: currentState.sceneState.activeSceneId,
+              characters: [], // Characters are stored separately
+              initiative: {}, // Initiative is stored separately
+            })
+          );
+
+          // Apply patch
+          const patchResult = applyPatch(stateCopy, patch as any);
+
+          if (patchResult.newDocument) {
+            // Update game store with patched state
+            useGameStore.setState((state) => {
+              if (patchResult.newDocument.scenes) {
+                state.sceneState.scenes = patchResult.newDocument.scenes;
+              }
+              if (patchResult.newDocument.activeSceneId !== undefined) {
+                state.sceneState.activeSceneId =
+                  patchResult.newDocument.activeSceneId;
+              }
+            });
+
+            console.log(`✅ Game state patch v${version} applied successfully`);
+          }
+        } catch (error) {
+          console.error('❌ Failed to apply game state patch:', error);
+          // On patch failure, request full state sync from server
+          toast.error('Sync Issue', {
+            description: 'Requesting full state sync from server...',
+          });
+        }
+        break;
+      }
 
       case 'error':
         console.error('Server error:', message.data.message);

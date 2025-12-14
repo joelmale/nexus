@@ -255,7 +255,7 @@ export class DatabaseService {
         if (retries === 0) {
           throw error;
         }
-        await new Promise(res => setTimeout(res, 5000));
+        await new Promise((res) => setTimeout(res, 5000));
       }
     }
   }
@@ -392,7 +392,10 @@ export class DatabaseService {
    * Retrieves a user's profile with optional stats
    */
   async getUserProfile(userId: string): Promise<
-    (UserRecord & { stats: { characters: number; campaigns: number; sessions: number } }) | null
+    | (UserRecord & {
+        stats: { characters: number; campaigns: number; sessions: number };
+      })
+    | null
   > {
     const profileQuery = this.pool.query<UserRecord>(
       'SELECT * FROM users WHERE id = $1 AND "isActive" = TRUE',
@@ -437,7 +440,11 @@ export class DatabaseService {
    */
   async updateUserProfile(
     userId: string,
-    updates: { displayName?: string | null; bio?: string | null; avatarUrl?: string | null },
+    updates: {
+      displayName?: string | null;
+      bio?: string | null;
+      avatarUrl?: string | null;
+    },
   ): Promise<UserRecord> {
     const fields: string[] = [];
     const values: unknown[] = [userId];
@@ -484,10 +491,9 @@ export class DatabaseService {
    * Retrieves user preferences
    */
   async getUserPreferences(userId: string): Promise<Record<string, unknown>> {
-    const result = await this.pool.query<{ preferences: Record<string, unknown> | null }>(
-      'SELECT preferences FROM users WHERE id = $1',
-      [userId],
-    );
+    const result = await this.pool.query<{
+      preferences: Record<string, unknown> | null;
+    }>('SELECT preferences FROM users WHERE id = $1', [userId]);
     return result.rows[0]?.preferences || {};
   }
 
@@ -498,7 +504,9 @@ export class DatabaseService {
     userId: string,
     preferences: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    const result = await this.pool.query<{ preferences: Record<string, unknown> }>(
+    const result = await this.pool.query<{
+      preferences: Record<string, unknown>;
+    }>(
       `UPDATE users
        SET preferences = $2,
            "updatedAt" = NOW()

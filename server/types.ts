@@ -20,6 +20,8 @@ export interface Room {
   status: 'active' | 'hibernating' | 'abandoned';
   hibernationTimer?: NodeJS.Timeout;
   gameState?: GameState;
+  previousGameState?: GameState; // For delta generation
+  stateVersion: number; // State version counter for patches
   entityVersions: Map<string, number>;
 }
 
@@ -92,6 +94,14 @@ export interface ServerChatMessage extends BaseServerMessage {
   };
 }
 
+export interface ServerGameStatePatchMessage extends BaseServerMessage {
+  type: 'game-state-patch';
+  data: {
+    patch: unknown[]; // JSON Patch operations
+    version: number; // State version
+  };
+}
+
 // Union type for all possible server messages
 export type ServerMessage =
   | ServerEventMessage
@@ -99,4 +109,5 @@ export type ServerMessage =
   | ServerErrorMessage
   | ServerHeartbeatMessage
   | ServerUpdateConfirmationMessage
-  | ServerChatMessage;
+  | ServerChatMessage
+  | ServerGameStatePatchMessage;

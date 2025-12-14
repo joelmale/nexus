@@ -66,7 +66,7 @@
                       timestamp: Date.now(),
                     },
                   },
-                  '*',
+                  window.location.origin,
                 );
               }
             };
@@ -76,10 +76,7 @@
           formatQuality,
         );
 
-        // Also call original function to maintain normal behavior
-        if (originalOcSavePNG) {
-          originalOcSavePNG.call(window.Oc, canvas, filename);
-        }
+        // Do NOT call original function - we want VTT-only capture, no downloads
       };
     }
 
@@ -108,15 +105,14 @@
                     timestamp: Date.now(),
                   },
                 },
-                '*',
+                window.location.origin,
               );
             }
           };
           reader.readAsDataURL(blob);
+          return; // Prevent any download path for images
 
-          if (originalSaveAs) {
-            originalSaveAs.call(window, blob, filename, options);
-          }
+          // Do NOT call original for images - VTT-only capture
         } else {
           if (originalSaveAs) {
             originalSaveAs.call(window, blob, filename, options);

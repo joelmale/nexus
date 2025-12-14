@@ -3,12 +3,19 @@ import type { PlacedToken, Token } from '@/types/token';
 import type { Camera } from '@/types/game';
 import { useUser, useActiveScene, useServerRoomCode } from '@/stores/gameStore';
 import { webSocketService } from '@/utils/websocket';
+import { pixelToHex, hexToPixel } from '@/utils/hexMath';
 
 interface TokenPlacementProps {
   activeTool: 'token-place' | string;
   selectedToken: Token | null;
   camera: Camera;
-  gridSize: number;
+  gridSettings: {
+    type?: 'square' | 'hex';
+    size: number;
+    offsetX?: number;
+    offsetY?: number;
+    hexScale?: number;
+  };
   svgRef: React.RefObject<SVGSVGElement>;
   onTokenPlaced?: (token: PlacedToken) => void;
 }
@@ -17,7 +24,7 @@ export const TokenPlacement: React.FC<TokenPlacementProps> = ({
   activeTool,
   selectedToken,
   camera,
-  gridSize,
+  gridSettings,
   svgRef,
   onTokenPlaced,
 }) => {
@@ -43,12 +50,31 @@ export const TokenPlacement: React.FC<TokenPlacementProps> = ({
 
   const snapToGrid = useCallback(
     (x: number, y: number) => {
-      return {
-        x: Math.round(x / gridSize) * gridSize,
-        y: Math.round(y / gridSize) * gridSize,
-      };
+      const gridType = gridSettings.type || 'square';
+      const gridSize = gridSettings.size;
+      const offsetX = gridSettings.offsetX || 0;
+      const offsetY = gridSettings.offsetY || 0;
+      const hexScale = gridSettings.hexScale || 1.0;
+
+      if (gridType === 'hex') {
+        // Convert pixel coordinates to hex coordinates and back
+        const hexCoord = pixelToHex(
+          { x, y },
+          gridSize,
+          offsetX,
+          offsetY,
+          hexScale,
+        );
+        return hexToPixel(hexCoord, gridSize, offsetX, offsetY, hexScale);
+      } else {
+        // Square grid snapping
+        return {
+          x: Math.round((x - offsetX) / gridSize) * gridSize + offsetX,
+          y: Math.round((y - offsetY) / gridSize) * gridSize + offsetY,
+        };
+      }
     },
-    [gridSize],
+    [gridSettings],
   );
 
   const placeToken = useCallback(

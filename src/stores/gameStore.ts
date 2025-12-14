@@ -106,7 +106,7 @@ interface GameStore extends GameState {
   getSavedCharacters: () => PlayerCharacter[];
   deleteCharacter: (characterId: string) => void;
   exportCharacters: () => string;
-  importCharacters: (jsonData: string) => void;
+  importCharacters: (jsonData: string) => PlayerCharacter[];
 
   // Note: Lifecycle system removed - games now start online immediately
   leaveGame: () => void;
@@ -858,6 +858,7 @@ const eventHandlers: Record<string, EventHandler> = {
         backgroundImage: undefined,
         gridSettings: {
           enabled: true,
+          type: 'square',
           size: 50,
           color: '#ffffff',
           opacity: 0.3,
@@ -1623,6 +1624,7 @@ export const useGameStore = create<GameStore>()(
           ...characterData,
           id: uuidv4(),
           createdAt: Date.now(),
+          edition: characterData.edition || '2024',
           playerId: get().user.id,
         };
 
@@ -1703,20 +1705,123 @@ export const useGameStore = create<GameStore>()(
       importCharacters: (jsonData: string) => {
         try {
           const data = JSON.parse(jsonData);
+          const now = Date.now();
 
-          if (!data.characters || !Array.isArray(data.characters)) {
+          const skillAbilityMap: Record<
+            string,
+            keyof PlayerCharacter['stats']
+          > = {
+            Acrobatics: 'dexterity',
+            'Animal Handling': 'wisdom',
+            Arcana: 'intelligence',
+            Athletics: 'strength',
+            Deception: 'charisma',
+            History: 'intelligence',
+            Insight: 'wisdom',
+            Intimidation: 'charisma',
+            Investigation: 'intelligence',
+            Medicine: 'wisdom',
+            Nature: 'intelligence',
+            Perception: 'wisdom',
+            Performance: 'charisma',
+            Persuasion: 'charisma',
+            Religion: 'intelligence',
+            'Sleight of Hand': 'dexterity',
+            Stealth: 'dexterity',
+            Survival: 'wisdom',
+          };
+
+          const abilityMod = (score: number) => Math.floor((score - 10) / 2);
+          const proficiencyFromLevel = (level: number) =>
+            Math.ceil(Math.max(1, level) / 4) + 1;
+
+          const mapCharacterForge = (c: any): PlayerCharacter => {
+            const edition = c.edition || '2024';
+            const level = typeof c.level === 'number' ? c.level : 1;
+            const profBonus =
+              typeof c.proficiencyBonus === 'number'
+                ? c.proficiencyBonus
+                : proficiencyFromLevel(level);
+
+            // Build stats from abilities map (fallback to 10)
+            const stats: PlayerCharacter['stats'] = {
+              strength: c.abilities?.STR?.score ?? 10,
+              dexterity: c.abilities?.DEX?.score ?? 10,
+              constitution: c.abilities?.CON?.score ?? 10,
+              intelligence: c.abilities?.INT?.score ?? 10,
+              wisdom: c.abilities?.WIS?.score ?? 10,
+              charisma: c.abilities?.CHA?.score ?? 10,
+            };
+
+            // Compute skills even if missing: ability mod + proficiency if flagged
+            const skills: Record<
+              string,
+              {
+                value: number;
+                proficient?: boolean;
+                expertise?: boolean;
+                ability?: string;
+              }
+            > = {};
+
+            Object.entries(skillAbilityMap).forEach(
+              ([skillName, abilityKey]) => {
+                const skillData = c.skills?.[skillName];
+                const abilityScore = stats[abilityKey];
+                const mod = abilityMod(abilityScore);
+                const proficient = !!skillData?.proficient;
+                const expertise = !!skillData?.expertise;
+                const bonus = proficient
+                  ? expertise
+                    ? profBonus * 2
+                    : profBonus
+                  : 0;
+                const computedValue =
+                  typeof skillData?.value === 'number'
+                    ? skillData.value
+                    : mod + bonus;
+
+                skills[skillName] = {
+                  value: computedValue,
+                  proficient,
+                  expertise,
+                  ability: abilityKey,
+                };
+              },
+            );
+
+            return {
+              id: uuidv4(),
+              playerId: get().user.id,
+              name: c.name || 'Unnamed Hero',
+              race: c.species || c.race || 'Unknown',
+              class: c.class || 'Adventurer',
+              background: c.background || '',
+              level,
+              edition,
+              stats,
+              skills,
+              createdAt: now,
+            };
+          };
+
+          let importedCharacters: PlayerCharacter[] = [];
+
+          if (Array.isArray(data)) {
+            // Raw array export from 5e Character Forge
+            importedCharacters = data.map(mapCharacterForge);
+          } else if (data.characters && Array.isArray(data.characters)) {
+            // Existing Nexus export format
+            importedCharacters = data.characters.map((c: PlayerCharacter) => ({
+              ...c,
+              id: uuidv4(),
+              playerId: get().user.id,
+              createdAt: c.createdAt || now,
+              edition: c.edition || '2024',
+            }));
+          } else {
             throw new Error('Invalid character data format');
           }
-
-          // Update character player IDs to current browser
-          const importedCharacters: PlayerCharacter[] = data.characters.map(
-            (c: PlayerCharacter) => ({
-              ...c,
-              id: uuidv4(), // New ID to avoid conflicts
-              playerId: get().user.id, // Link to current browser
-              createdAt: c.createdAt || Date.now(),
-            }),
-          );
 
           // Merge with existing characters
           const existing = get().getSavedCharacters();
@@ -1724,6 +1829,7 @@ export const useGameStore = create<GameStore>()(
           localStorage.setItem('nexus-characters', JSON.stringify(merged));
 
           console.log(`Imported ${importedCharacters.length} characters`);
+          return importedCharacters;
         } catch (error) {
           console.error('Failed to import characters:', error);
           throw new Error('Invalid character file format');

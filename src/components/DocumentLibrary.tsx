@@ -39,6 +39,8 @@ export const DocumentLibrary: React.FC = () => {
     filters,
     isLoadingDocuments,
     documentsError,
+    documentsAvailable,
+    documentsUnavailableReason,
     uploadQueue,
     loadDocuments,
     setFilters,
@@ -183,7 +185,7 @@ export const DocumentLibrary: React.FC = () => {
         <button
           onClick={() => setShowUploadModal(true)}
           className="action-btn glass-button primary"
-          disabled={isLoadingDocuments}
+          disabled={isLoadingDocuments || !documentsAvailable}
         >
           <span>⬆️</span>
           Upload Document
@@ -243,8 +245,26 @@ export const DocumentLibrary: React.FC = () => {
         </div>
       )}
 
+      {!documentsAvailable && (
+        <div className="empty-state glass-panel">
+          <div className="empty-state-icon">📕</div>
+          <h3>Document service is offline</h3>
+          <p>
+            {documentsUnavailableReason ||
+              'Start NexusCodex (doc-api/doc-websocket) or set DOC_API_URL to enable the library.'}
+          </p>
+          <button
+            onClick={() => loadDocuments(true)}
+            className="action-btn glass-button primary"
+            disabled={isLoadingDocuments}
+          >
+            Retry connection
+          </button>
+        </div>
+      )}
+
       {/* Documents Grid */}
-      {isLoadingDocuments ? (
+      {documentsAvailable && (isLoadingDocuments ? (
         <div className="loading-state">
           <span className="loading-spinner"></span>
           <p>Loading documents...</p>
@@ -332,7 +352,7 @@ export const DocumentLibrary: React.FC = () => {
             </div>
           )}
         </>
-      )}
+      ))}
 
       {/* Upload Modal */}
       {showUploadModal && (

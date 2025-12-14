@@ -56,6 +56,7 @@ export function generateMockGameData(config: MockDataConfig): MockGameData {
       },
       gridSettings: {
         enabled: true,
+        type: 'square',
         size: 50,
         color: '#ffffff',
         opacity: 0.15,
@@ -96,6 +97,7 @@ export function generateMockGameData(config: MockDataConfig): MockGameData {
       },
       gridSettings: {
         enabled: true,
+        type: 'square',
         size: 50,
         color: '#ffffff',
         opacity: 0.15,

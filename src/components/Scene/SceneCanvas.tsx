@@ -53,7 +53,7 @@ interface SceneCanvasProps {
   scene: Scene;
 }
 
-export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
+const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Actions from store (don't cause rerenders)
   const {
     updateCamera,
@@ -828,8 +828,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
         <TokenDropZone
           sceneId={scene.id}
           camera={camera}
-          gridSize={safeGridSettings.size}
-          snapToGrid={safeGridSettings.snapToGrid}
+          gridSettings={safeGridSettings}
           onTokenDrop={handleTokenDrop}
         >
           <svg
@@ -1045,3 +1044,6 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({ scene }) => {
     </CanvasErrorBoundary>
   );
 };
+
+// Memoize to prevent unnecessary rerenders on game state changes
+export const SceneCanvas = React.memo(SceneCanvasComponent);

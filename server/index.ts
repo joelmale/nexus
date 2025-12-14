@@ -29,6 +29,9 @@ import passport from './auth.js';
 // UUID
 import { v4 as uuidv4 } from 'uuid';
 
+// JSON Patch for delta updates
+import * as jsonpatch from 'fast-json-patch';
+
 // Custom types
 import type {
   Room,
@@ -108,11 +111,17 @@ class NexusServer {
   private httpServer: ReturnType<typeof express.application.listen>;
   private manifest: AssetManifest | null = null;
   private db: DatabaseService;
-  private documentClient: DocumentServiceClient;
+  private documentClient: DocumentServiceClient | null;
+  private documentsEnabled: boolean;
 
   private readonly ASSETS_PATH =
     process.env.ASSETS_PATH || path.join(__dirname, '../static-assets/assets');
-  private readonly CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+  private readonly CORS_ORIGINS: string[] = (
+    process.env.CORS_ORIGIN || ''
+  )
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
   private readonly CACHE_MAX_AGE = parseInt(
     process.env.CACHE_MAX_AGE || '86400',
   );
@@ -128,8 +137,11 @@ class NexusServer {
     this.db = createDatabaseService();
 
     // Initialize document service client
-    const docApiUrl = process.env.DOC_API_URL || 'http://localhost:3000';
-    this.documentClient = createDocumentServiceClient(docApiUrl);
+    const docApiUrl = process.env.DOC_API_URL;
+    this.documentsEnabled = !!docApiUrl;
+    this.documentClient = docApiUrl
+      ? createDocumentServiceClient(docApiUrl)
+      : null;
 
     this.app = express();
 
@@ -140,7 +152,29 @@ class NexusServer {
       helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }),
     );
     this.app.use(compression());
-    this.app.use(cors({ origin: this.CORS_ORIGIN, credentials: true }));
+    const defaultCorsOrigins =
+      process.env.NODE_ENV === 'production'
+        ? []
+        : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+
+    const allowedOrigins = this.CORS_ORIGINS.length
+      ? this.CORS_ORIGINS
+      : defaultCorsOrigins;
+
+    this.app.use(
+      cors({
+        origin: (origin, callback) => {
+          // Allow same-origin or non-browser requests (like server-to-server)
+          if (!origin) return callback(null, true);
+          if (allowedOrigins.includes(origin)) return callback(null, true);
+          return callback(
+            new Error(`CORS blocked for origin: ${origin} (allowed: ${allowedOrigins.join(', ')})`),
+            false,
+          );
+        },
+        credentials: true,
+      }),
+    );
     // Increase body size limit for token image uploads (base64 images can be large)
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -373,20 +407,39 @@ class NexusServer {
       '/auth/google',
       passport.authenticate('google', { scope: ['profile', 'email'] }),
     );
-    this.app.get(
-      '/auth/google/callback',
-      passport.authenticate('google', { failureRedirect: '/' }),
-      (req, res) => {
-        // In production, use relative path or configured URL
-        // In development, use localhost with Vite dev server port
-        const redirectUrl =
-          process.env.FRONTEND_URL ||
-          (process.env.NODE_ENV === 'production'
-            ? '/dashboard'
-            : 'http://localhost:5173/dashboard');
-        res.redirect(redirectUrl);
-      },
-    );
+    this.app.get('/auth/google/callback', (req, res, next) => {
+      passport.authenticate(
+        'google',
+        (err: unknown, user: Express.User | false, info?: unknown) => {
+          if (err) {
+            console.error('Google OAuth callback failed:', err);
+            return res.redirect('/?oauthError=google_auth_error');
+          }
+
+          if (!user) {
+            console.warn('Google OAuth failed: no user returned', info);
+            return res.redirect('/?oauthError=google_no_user');
+          }
+
+          req.login(user, (loginErr) => {
+            if (loginErr) {
+              console.error('Google OAuth session creation failed:', loginErr);
+              return res.redirect('/?oauthError=google_session_error');
+            }
+
+            // In production, use relative path or configured URL
+            // In development, use localhost with Vite dev server port
+            const redirectUrl =
+              process.env.FRONTEND_URL ||
+              (process.env.NODE_ENV === 'production'
+                ? '/dashboard'
+                : 'http://localhost:5173/dashboard');
+
+            res.redirect(redirectUrl);
+          });
+        },
+      )(req, res, next);
+    });
     this.app.get('/auth/discord', passport.authenticate('discord'));
     this.app.get(
       '/auth/discord/callback',
@@ -1035,9 +1088,18 @@ class NexusServer {
    * @returns {void}
    */
   private setupDocumentRoutes(): void {
-    const documentRoutes = createDocumentRoutes(this.documentClient);
+    const documentRoutes = createDocumentRoutes(
+      this.documentClient,
+      this.documentsEnabled,
+    );
     this.app.use('/api', documentRoutes);
-    console.log('📚 Document routes initialized');
+    if (this.documentsEnabled) {
+      console.log('📚 Document routes initialized');
+    } else {
+      console.log(
+        '📚 Document routes initialized in disabled mode (DOC_API_URL not set)',
+      );
+    }
   }
 
   private setupHealthRoutes(): void {
@@ -1083,9 +1145,15 @@ class NexusServer {
     const setCacheHeaders = (
       res: express.Response,
       maxAge: number = this.CACHE_MAX_AGE,
+      immutable: boolean = true,
     ) => {
+      // Longer cache for static assets with content hashes
+      const cacheDirective = immutable
+        ? `public, max-age=${maxAge}, immutable`
+        : `public, max-age=${maxAge}`;
+
       res.set({
-        'Cache-Control': `public, max-age=${maxAge}`,
+        'Cache-Control': cacheDirective,
         Vary: 'Accept-Encoding',
       });
     };
@@ -1416,6 +1484,7 @@ class NexusServer {
         created: Date.now(),
         lastActivity: Date.now(),
         status: 'active',
+        stateVersion: 0, // Initialize state version for delta updates
         entityVersions: new Map(),
       };
 
@@ -1495,7 +1564,7 @@ class NexusServer {
           if (session?.gameState) {
             room.gameState = session.gameState as GameState;
             console.log(
-              `📂 Loaded game state from database: ${session.gameState.scenes?.length || 0} scenes`,
+              `📂 Loaded game state from database: ${(session.gameState as GameState).scenes?.length || 0} scenes`,
             );
           }
         } catch (error) {
@@ -1906,6 +1975,9 @@ class NexusServer {
       };
     }
 
+    // Store previous state for delta generation
+    const previousState = room.previousGameState || JSON.parse(JSON.stringify(room.gameState));
+
     // Merge partial updates into existing state
     if (gameStateUpdate.scenes) {
       room.gameState.scenes = gameStateUpdate.scenes;
@@ -1918,6 +1990,31 @@ class NexusServer {
     }
     if (gameStateUpdate.initiative) {
       room.gameState.initiative = gameStateUpdate.initiative;
+    }
+
+    // Generate JSON Patch for delta updates
+    const patch = jsonpatch.compare(previousState, room.gameState);
+
+    // Increment state version
+    room.stateVersion++;
+
+    // Store current state as previous for next update
+    room.previousGameState = JSON.parse(JSON.stringify(room.gameState));
+
+    // Broadcast patch if there are changes (80% size reduction)
+    if (patch.length > 0) {
+      this.broadcastToRoom(roomCode, {
+        type: 'game-state-patch',
+        data: {
+          patch,
+          version: room.stateVersion,
+        },
+        timestamp: Date.now(),
+      });
+
+      console.log(
+        `📡 Broadcasting game state patch v${room.stateVersion} to room ${roomCode} (${patch.length} operations)`
+      );
     }
 
     // Persist to database (both session and campaign)

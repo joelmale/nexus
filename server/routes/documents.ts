@@ -33,11 +33,32 @@ function getUserId(req: Request): string | null {
 /**
  * Create document routes
  * @param documentClient - DocumentServiceClient instance
+ * @param documentsEnabled - Whether documents are configured/enabled
  */
 export function createDocumentRoutes(
-  documentClient: DocumentServiceClient,
+  documentClient: DocumentServiceClient | null,
+  documentsEnabled: boolean,
 ): Router {
   const router = Router();
+
+  /**
+   * Short-circuit if the document service is disabled or not configured
+   */
+  router.use((req, res, next) => {
+    if (!documentsEnabled || !documentClient) {
+      if (req.path === '/health') {
+        return res.json({ status: 'disabled' });
+      }
+      return res.status(503).json({
+        error: 'Document service unavailable',
+        details: 'DOC_API_URL not configured or NexusCodex services are offline',
+      });
+    }
+    next();
+  });
+
+  // Document service client is guaranteed to exist past this point
+  const client = documentClient as DocumentServiceClient;
 
   /**
    * POST /api/documents - Create document and get signed upload URL
@@ -54,7 +75,7 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'User ID not found' });
       }
 
-      const result = await documentClient.createDocument(req.body, userId);
+      const result = await client.createDocument(req.body, userId);
       return res.status(201).json(result);
     } catch (error: unknown) {
       console.error('Failed to create document:', error);
@@ -86,7 +107,7 @@ export function createDocumentRoutes(
         search: req.query.search as string,
       };
 
-      const result = await documentClient.listDocuments(params);
+      const result = await client.listDocuments(params);
       return res.json(result);
     } catch (error: unknown) {
       console.error('Failed to list documents:', error);
@@ -107,7 +128,7 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const document = await documentClient.getDocument(req.params.id);
+      const document = await client.getDocument(req.params.id);
       return res.json(document);
     } catch (error: unknown) {
       console.error('Failed to get document:', error);
@@ -133,10 +154,10 @@ export function createDocumentRoutes(
       }
 
       // First verify the document exists and user has access
-      await documentClient.getDocument(req.params.id);
+      await client.getDocument(req.params.id);
 
       // Return the content URL for the frontend to fetch
-      const contentUrl = documentClient.getDocumentContentUrl(req.params.id);
+      const contentUrl = client.getDocumentContentUrl(req.params.id);
       return res.json({ contentUrl });
     } catch (error: unknown) {
       console.error('Failed to get document content:', error);
@@ -160,10 +181,7 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const document = await documentClient.updateDocument(
-        req.params.id,
-        req.body,
-      );
+      const document = await client.updateDocument(req.params.id, req.body);
       return res.json(document);
     } catch (error: unknown) {
       console.error('Failed to update document:', error);
@@ -187,7 +205,7 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      await documentClient.deleteDocument(req.params.id);
+      await client.deleteDocument(req.params.id);
       return res.status(204).send();
     } catch (error: unknown) {
       console.error('Failed to delete document:', error);
@@ -229,7 +247,7 @@ export function createDocumentRoutes(
         size: req.query.size ? parseInt(req.query.size as string) : undefined,
       };
 
-      const result = await documentClient.searchDocuments(params);
+      const result = await client.searchDocuments(params);
       return res.json(result);
     } catch (error: unknown) {
       console.error('Failed to search documents:', error);
@@ -258,7 +276,7 @@ export function createDocumentRoutes(
       const campaign = req.query.campaign as string | undefined;
       const size = req.query.size ? parseInt(req.query.size as string) : 5;
 
-      const result = await documentClient.quickSearch(query, campaign, size);
+      const result = await client.quickSearch(query, campaign, size);
       return res.json(result);
     } catch (error: unknown) {
       console.error('Failed to quick search:', error);
@@ -275,7 +293,7 @@ export function createDocumentRoutes(
    */
   router.get('/health', async (_req: Request, res: Response) => {
     try {
-      const health = await documentClient.healthCheck();
+      const health = await client.healthCheck();
       return res.json(health);
     } catch (error: unknown) {
       console.error('Document service health check failed:', error);

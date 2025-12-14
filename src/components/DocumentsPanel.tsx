@@ -3,11 +3,17 @@
  * In-game quick reference panel for accessing documents during gameplay
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useDocumentStore } from '@/stores/documentStore';
 import { useGameStore } from '@/stores/gameStore';
 import { DocumentType } from '@/services/documentService';
-import { DocumentViewer } from './DocumentViewer';
+
+// Lazy load DocumentViewer (includes PDF.js)
+const DocumentViewer = React.lazy(() =>
+  import('./DocumentViewer').then((module) => ({
+    default: module.DocumentViewer,
+  })),
+);
 
 /**
  * Document type icons for compact display
@@ -226,7 +232,9 @@ export const DocumentsPanel: React.FC = () => {
       )}
 
       {/* Document Viewer */}
-      <DocumentViewer />
+      <Suspense fallback={<div className="document-loading">Loading document...</div>}>
+        <DocumentViewer />
+      </Suspense>
     </div>
   );
 };

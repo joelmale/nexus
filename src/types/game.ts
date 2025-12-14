@@ -1,8 +1,8 @@
 // Core game state types
-import type { Drawing } from './drawing';
+import type { Drawing, Point } from './drawing';
 import type { PlacedToken, Token } from './token';
 import type { PlacedProp } from './prop';
-export type { PlacedToken, Token, Drawing, PlacedProp };
+export type { PlacedToken, Token, Drawing, PlacedProp, Point };
 
 export interface User {
   id: string;
@@ -62,6 +62,7 @@ export interface PlayerCharacter {
   class: string;
   background: string;
   level: number;
+  edition?: '2014' | '2024' | string;
   stats: {
     strength: number;
     dexterity: number;
@@ -70,6 +71,15 @@ export interface PlayerCharacter {
     wisdom: number;
     charisma: number;
   };
+  skills?: Record<
+    string,
+    {
+      value: number;
+      proficient?: boolean;
+      expertise?: boolean;
+      ability?: string;
+    }
+  >;
   createdAt: number;
   lastUsed?: number;
   playerId: string; // Links to user.id
@@ -205,6 +215,7 @@ export interface Scene {
   // Grid configuration
   gridSettings: {
     enabled: boolean;
+    type?: 'square' | 'hex'; // Grid type: square or hexagonal (default: 'square')
     size: number; // Grid cell size in pixels
     color: string;
     opacity: number;
@@ -212,6 +223,8 @@ export interface Scene {
     showToPlayers: boolean; // Whether players can see the grid
     offsetX?: number; // Grid offset X for alignment with background images
     offsetY?: number; // Grid offset Y for alignment with background images
+    hexScale?: number; // Scale factor for hex grids (default: 1.0)
+    difficultTerrain?: { q: number; r: number }[]; // Array of hex coordinates marked as difficult terrain
   };
 
   // Lighting and vision
@@ -310,6 +323,14 @@ export interface UpdateConfirmationMessage extends BaseMessage {
   };
 }
 
+export interface GameStatePatchMessage extends BaseMessage {
+  type: 'game-state-patch';
+  data: {
+    patch: unknown[]; // JSON Patch operations
+    version: number; // State version
+  };
+}
+
 export type WebSocketMessage =
   | EventMessage
   | StateMessage
@@ -317,7 +338,8 @@ export type WebSocketMessage =
   | ChatMessage
   | ErrorMessage
   | HeartbeatMessage
-  | UpdateConfirmationMessage;
+  | UpdateConfirmationMessage
+  | GameStatePatchMessage;
 
 // Game events
 export interface GameEvent {

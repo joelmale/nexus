@@ -1,11 +1,20 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { dndUtils, type Point, type Measurement } from '@/types/drawing';
+import { type Point, type Measurement } from '@/types/drawing';
 import type { Camera } from '@/types/game';
+import { calculateHexMovementDistance, pixelToHex } from '@/utils/hexMath';
+import { calculateDiagonalDistance } from '@/utils/mathUtils';
 
 interface MeasurementToolProps {
   isActive: boolean;
   camera: Camera;
-  gridSize: number;
+  gridSettings: {
+    type?: 'square' | 'hex';
+    size: number;
+    offsetX?: number;
+    offsetY?: number;
+    hexScale?: number;
+    difficultTerrain?: { q: number; r: number }[];
+  };
   onMeasurement: (measurement: Measurement) => void;
   svgRef: React.RefObject<SVGSVGElement>;
 }
@@ -13,7 +22,7 @@ interface MeasurementToolProps {
 export const MeasurementTool: React.FC<MeasurementToolProps> = ({
   isActive,
   camera,
-  gridSize,
+  gridSettings,
   onMeasurement,
   svgRef,
 }) => {
@@ -72,11 +81,43 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
 
       const deltaX = endPoint.x - startPoint.x;
       const deltaY = endPoint.y - startPoint.y;
-      const feetDistance = dndUtils.calculateDiagonalDistance(
-        deltaX,
-        deltaY,
-        gridSize,
-      );
+
+      let feetDistance: number;
+      const gridType = gridSettings.type || 'square';
+
+      if (gridType === 'hex') {
+        // For hex grids, calculate distance using hex coordinates
+        const startHex = pixelToHex(
+          startPoint,
+          gridSettings.size,
+          gridSettings.offsetX || 0,
+          gridSettings.offsetY || 0,
+          gridSettings.hexScale || 1.0,
+        );
+        const endHex = pixelToHex(
+          endPoint,
+          gridSettings.size,
+          gridSettings.offsetX || 0,
+          gridSettings.offsetY || 0,
+          gridSettings.hexScale || 1.0,
+        );
+
+        feetDistance = calculateHexMovementDistance(
+          startHex,
+          endHex,
+          gridSettings.size,
+          gridSettings.difficultTerrain || [],
+          5, // feet per hex
+        );
+      } else {
+        // Square grid: use the old diagonal distance calculation
+        feetDistance = calculateDiagonalDistance(
+          deltaX,
+          deltaY,
+          gridSettings.size,
+        );
+      }
+
       const gridDistance = Math.round(feetDistance / 5);
 
       const measurement: Measurement = {
@@ -107,7 +148,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
       isDrawing,
       startPoint,
       screenToScene,
-      gridSize,
+      gridSettings,
       onMeasurement,
       drawingStartTime,
     ],
@@ -119,9 +160,9 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
       // Tool just became inactive, reset state
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsDrawing(false);
-       
+
       setStartPoint(null);
-       
+
       setCurrentPoint(null);
       setMeasurements((prev) => prev.filter((m) => !m.temporary));
     }
@@ -133,15 +174,47 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
 
     const deltaX = currentPoint.x - startPoint.x;
     const deltaY = currentPoint.y - startPoint.y;
-    const feetDistance = dndUtils.calculateDiagonalDistance(
-      deltaX,
-      deltaY,
-      gridSize,
-    );
+
+    let feetDistance: number;
+    const gridType = gridSettings.type || 'square';
+
+    if (gridType === 'hex') {
+      // For hex grids, calculate distance using hex coordinates
+      const startHex = pixelToHex(
+        startPoint,
+        gridSettings.size,
+        gridSettings.offsetX || 0,
+        gridSettings.offsetY || 0,
+        gridSettings.hexScale || 1.0,
+      );
+      const endHex = pixelToHex(
+        currentPoint,
+        gridSettings.size,
+        gridSettings.offsetX || 0,
+        gridSettings.offsetY || 0,
+        gridSettings.hexScale || 1.0,
+      );
+
+      feetDistance = calculateHexMovementDistance(
+        startHex,
+        endHex,
+        gridSettings.size,
+        gridSettings.difficultTerrain || [],
+        5, // feet per hex
+      );
+    } else {
+      // Square grid: use the old diagonal distance calculation
+      feetDistance = calculateDiagonalDistance(
+        deltaX,
+        deltaY,
+        gridSettings.size,
+      );
+    }
+
     const gridDistance = Math.round(feetDistance / 5);
 
     return { feetDistance, gridDistance };
-  }, [startPoint, currentPoint, gridSize]);
+  }, [startPoint, currentPoint, gridSettings]);
 
   const currentMeasurement = getCurrentMeasurement();
 

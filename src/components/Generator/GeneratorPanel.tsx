@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DungeonGenerator } from './DungeonGenerator';
+import { WorldGenerator } from './WorldGenerator';
 import { dungeonMapService } from '../../services/dungeonMapService';
 import { DungeonRenderer, type DungeonData } from './DungeonRenderer';
 import { GeneratorFloatingControls } from './GeneratorFloatingControls';
@@ -54,18 +55,49 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   const updateScene = useGameStore((state) => state.updateScene);
 
   const handleMapGenerated = async (
-    imageData: string,
-    format: 'webp' | 'png' = 'png',
+    imageDataOrData:
+      | string
+      | {
+          full: { dataUrl: string; mime: string; quality: number };
+          thumb: { dataUrl: string; mime: string; quality: number };
+          meta: {
+            width: number;
+            height: number;
+            timestamp: number;
+            generator: string;
+          };
+        },
+    format?: 'webp' | 'png',
     originalSize?: number,
   ) => {
     try {
+      let imageData: string;
+      let mapFormat: 'webp' | 'png' = 'png';
+      let originalSizeValue: number | undefined;
+
+      // Handle new VTT_MAP_EXPORTED format (world generator)
+      if (typeof imageDataOrData === 'object' && imageDataOrData.full) {
+        imageData = imageDataOrData.full.dataUrl;
+        mapFormat = imageDataOrData.full.mime.includes('webp') ? 'webp' : 'png';
+        originalSizeValue = Math.floor((imageData.length * 3) / 4); // Estimate binary size
+      } else {
+        // Handle legacy format (dungeon generator)
+        imageData = imageDataOrData as string;
+        mapFormat = format || 'png';
+        originalSizeValue = originalSize;
+      }
+
       setGeneratedMap(imageData);
       // Store format info in sessionStorage for persistence
       const mapData = {
         imageData,
-        format,
-        originalSize,
+        format: mapFormat,
+        originalSize: originalSizeValue,
         timestamp: Date.now(),
+        generator:
+          typeof imageDataOrData === 'object'
+            ? imageDataOrData.meta.generator
+            : 'dungeon',
       };
       sessionStorage.setItem(
         GENERATOR_MAP_STORAGE_KEY,
@@ -85,141 +117,159 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       return;
     }
 
-    // Handle dungeon generator (uses stored generatedMap)
-    if (activeGenerator === 'dungeon') {
+    // Handle different generators
+    if (activeGenerator === 'dungeon' || activeGenerator === 'world') {
       if (!generatedMap) {
         console.warn(
-          'No generated map available. Please generate a dungeon first.',
+          `No generated map available. Please generate a ${activeGenerator} first.`,
         );
         return;
       }
 
       try {
         const imageData = generatedMap;
-        const dungeonTitle = `Generated Dungeon ${new Date().toLocaleString()}`;
+        const mapTitle = `Generated ${activeGenerator.charAt(0).toUpperCase() + activeGenerator.slice(1)} ${new Date().toLocaleString()}`;
 
-      // Extract original size information from sessionStorage for compression stats
-      let originalSize: number | undefined;
+        // Extract original size information from sessionStorage for compression stats
+        let originalSize: number | undefined;
 
-      try {
-        const stored = sessionStorage.getItem(GENERATOR_MAP_STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (typeof parsed === 'object' && parsed.originalSize) {
-            originalSize = parsed.originalSize;
-          }
-        }
-      } catch {
-        // Ignore parsing errors, use defaults
-      }
-
-      // First, scale and compress the image BEFORE saving anywhere
-      const img = new Image();
-      img.onload = async () => {
-        // Scale down by 50% to reduce storage size and improve performance
-        const canvas = document.createElement('canvas');
-        const scaledWidth = Math.floor(img.width * 0.5);
-        const scaledHeight = Math.floor(img.height * 0.5);
-
-        canvas.width = scaledWidth;
-        canvas.height = scaledHeight;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          console.error('Failed to get canvas context for scaling');
-          return;
-        }
-
-        // Use high-quality scaling
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
-
-        // Convert to WebP with aggressive compression (0.75 quality for better compression)
-        const scaledImageData = canvas.toDataURL('image/webp', 0.75);
-        const base64Size = scaledImageData.length;
-
-        // Base64 adds ~33% overhead, so actual binary size is roughly 75% of base64 length
-        const estimatedBinarySize = Math.floor((base64Size * 3) / 4);
-        const originalBinarySize = originalSize || Math.floor((imageData.length * 3) / 4);
-
-        console.log(`📐 Dungeon compression results:`);
-        console.log(`   Original dimensions: ${img.width}×${img.height}`);
-        console.log(`   Scaled dimensions: ${scaledWidth}×${scaledHeight} (50%)`);
-        console.log(`   Original size: ${(originalBinarySize / 1024).toFixed(1)} KB`);
-        console.log(`   Base64 encoded: ${(base64Size / 1024).toFixed(1)} KB`);
-        console.log(`   Estimated binary: ${(estimatedBinarySize / 1024).toFixed(1)} KB`);
-        console.log(`   Total savings: ${(((originalBinarySize - estimatedBinarySize) / originalBinarySize) * 100).toFixed(1)}%`);
-
-        // Now save the SCALED image to library
         try {
-          await dungeonMapService.saveGeneratedMap(
-            scaledImageData,
-            dungeonTitle,
-            'webp', // Always WebP now
-            originalBinarySize, // Original size before compression
-          );
-        } catch (saveError) {
-          console.warn(
-            'Could not save to library (storage may be full):',
-            saveError,
-          );
-          // Continue anyway - the map will still be added to the scene
+          const stored = sessionStorage.getItem(GENERATOR_MAP_STORAGE_KEY);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (typeof parsed === 'object' && parsed.originalSize) {
+              originalSize = parsed.originalSize;
+            }
+          }
+        } catch {
+          // Ignore parsing errors, use defaults
         }
 
-        const backgroundData = {
-          url: scaledImageData,
-          width: scaledWidth,
-          height: scaledHeight,
-          offsetX: -(scaledWidth / 2),
-          offsetY: -(scaledHeight / 2),
-          scale: 1,
+        // First, scale and compress the image BEFORE saving anywhere
+        const img = new Image();
+        img.onload = async () => {
+          // Scale down by 50% to reduce storage size and improve performance
+          const canvas = document.createElement('canvas');
+          const scaledWidth = Math.floor(img.width * 0.5);
+          const scaledHeight = Math.floor(img.height * 0.5);
+
+          canvas.width = scaledWidth;
+          canvas.height = scaledHeight;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            console.error('Failed to get canvas context for scaling');
+            return;
+          }
+
+          // Use high-quality scaling
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
+
+          // Convert to WebP with aggressive compression (0.75 quality for better compression)
+          const scaledImageData = canvas.toDataURL('image/webp', 0.75);
+          const base64Size = scaledImageData.length;
+
+          // Base64 adds ~33% overhead, so actual binary size is roughly 75% of base64 length
+          const estimatedBinarySize = Math.floor((base64Size * 3) / 4);
+          const originalBinarySize =
+            originalSize || Math.floor((imageData.length * 3) / 4);
+
+          console.log(
+            `📐 ${activeGenerator.charAt(0).toUpperCase() + activeGenerator.slice(1)} compression results:`,
+          );
+          console.log(`   Original dimensions: ${img.width}×${img.height}`);
+          console.log(
+            `   Scaled dimensions: ${scaledWidth}×${scaledHeight} (50%)`,
+          );
+          console.log(
+            `   Original size: ${(originalBinarySize / 1024).toFixed(1)} KB`,
+          );
+          console.log(
+            `   Base64 encoded: ${(base64Size / 1024).toFixed(1)} KB`,
+          );
+          console.log(
+            `   Estimated binary: ${(estimatedBinarySize / 1024).toFixed(1)} KB`,
+          );
+          console.log(
+            `   Total savings: ${(((originalBinarySize - estimatedBinarySize) / originalBinarySize) * 100).toFixed(1)}%`,
+          );
+
+          // Now save the SCALED image to library
+          try {
+            await dungeonMapService.saveGeneratedMap(
+              scaledImageData,
+              mapTitle,
+              'webp', // Always WebP now
+              originalBinarySize, // Original size before compression
+            );
+          } catch (saveError) {
+            console.warn(
+              'Could not save to library (storage may be full):',
+              saveError,
+            );
+            // Continue anyway - the map will still be added to the scene
+          }
+
+          const backgroundData = {
+            url: scaledImageData,
+            width: scaledWidth,
+            height: scaledHeight,
+            offsetX: -(scaledWidth / 2),
+            offsetY: -(scaledHeight / 2),
+            scale: 1,
+          };
+
+          // Update the active scene with the background image and disable grid for generated maps
+          updateScene(activeScene.id, {
+            backgroundImage: backgroundData,
+            gridSettings: {
+              ...activeScene.gridSettings,
+              showToPlayers: false, // Turn off grid for generated maps
+            },
+          });
+
+          // Clear the stored map after successful addition
+          setGeneratedMap(null);
+          sessionStorage.removeItem(GENERATOR_MAP_STORAGE_KEY);
+
+          // Verify the update
+          setTimeout(() => {
+            useGameStore
+              .getState()
+              .sceneState.scenes.find((s) => s.id === activeScene.id);
+          }, 100);
+
+          // Switch to scenes panel
+          if (onSwitchToScenes) {
+            onSwitchToScenes();
+          }
         };
 
-        // Update the active scene with the background image and disable grid for dungeon maps
-        updateScene(activeScene.id, {
-          backgroundImage: backgroundData,
-          gridSettings: {
-            ...activeScene.gridSettings,
-            showToPlayers: false, // Turn off grid for dungeon maps
-          },
-        });
+        img.onerror = () => {
+          console.error('Failed to load image');
+          console.error(
+            `Failed to load ${activeGenerator} map image. Please try again.`,
+          );
+        };
 
-        // Clear the stored map after successful addition
-        setGeneratedMap(null);
-        sessionStorage.removeItem(GENERATOR_MAP_STORAGE_KEY);
-
-        // Verify the update
-        setTimeout(() => {
-          useGameStore
-            .getState()
-            .sceneState.scenes.find((s) => s.id === activeScene.id);
-        }, 100);
-
-        // Switch to scenes panel
-        if (onSwitchToScenes) {
-          onSwitchToScenes();
-        }
-      };
-
-      img.onerror = () => {
-        console.error('Failed to load image');
-        console.error('Failed to load dungeon map image. Please try again.');
-      };
-
-      img.src = imageData;
-    } catch (error) {
-      console.error('Failed to add dungeon map to scene:', error);
-      console.error('Failed to add map to scene. Please try again.', error);
+        img.src = imageData;
+      } catch (error) {
+        console.error(`Failed to add ${activeGenerator} map to scene:`, error);
+        console.error('Failed to add map to scene. Please try again.', error);
+      }
+      return;
     }
-    return;
-  }
 
-  // Handle iframe-based generators (city, cave, world, dwelling)
-  if (['city', 'cave', 'world', 'dwelling'].includes(activeGenerator)) {
+    // Handle iframe-based generators (city, cave, dwelling)
+    // Note: world generator now uses WorldGenerator component
+    if (['city', 'cave', 'dwelling'].includes(activeGenerator)) {
       try {
         // Get the iframe for the active generator
-        const iframe = document.querySelector('.generator-iframe') as HTMLIFrameElement;
+        const iframe = document.querySelector(
+          '.generator-iframe',
+        ) as HTMLIFrameElement;
 
         if (!iframe) {
           console.error('Generator iframe not found');
@@ -227,7 +277,8 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         }
 
         // Access iframe content
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        const iframeDoc =
+          iframe.contentDocument || iframe.contentWindow?.document;
 
         if (!iframeDoc) {
           console.error('Cannot access iframe content');
@@ -280,12 +331,20 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         const compressedSize = Math.floor((compressedImageData.length * 3) / 4);
 
         // Log compression stats
-        console.log(`📐 ${activeGenerator.charAt(0).toUpperCase() + activeGenerator.slice(1)} compression results:`);
+        console.log(
+          `📐 ${activeGenerator.charAt(0).toUpperCase() + activeGenerator.slice(1)} compression results:`,
+        );
         console.log(`   Original dimensions: ${canvas.width}×${canvas.height}`);
-        console.log(`   Scaled dimensions: ${scaledWidth}×${scaledHeight} (50%)`);
+        console.log(
+          `   Scaled dimensions: ${scaledWidth}×${scaledHeight} (50%)`,
+        );
         console.log(`   Original size: ${(originalSize / 1024).toFixed(1)} KB`);
-        console.log(`   Compressed size: ${(compressedSize / 1024).toFixed(1)} KB`);
-        console.log(`   Total savings: ${(((originalSize - compressedSize) / originalSize) * 100).toFixed(1)}%`);
+        console.log(
+          `   Compressed size: ${(compressedSize / 1024).toFixed(1)} KB`,
+        );
+        console.log(
+          `   Total savings: ${(((originalSize - compressedSize) / originalSize) * 100).toFixed(1)}%`,
+        );
 
         // Save to library (optional, may fail if storage full)
         const mapTitle = `Generated ${activeGenerator.charAt(0).toUpperCase() + activeGenerator.slice(1)} ${new Date().toLocaleString()}`;
@@ -297,7 +356,10 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
             originalSize,
           );
         } catch (saveError) {
-          console.warn('Could not save to library (storage may be full):', saveError);
+          console.warn(
+            'Could not save to library (storage may be full):',
+            saveError,
+          );
         }
 
         // Add to scene
@@ -496,17 +558,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       )}
 
       {activeGenerator === 'world' && (
-        <iframe
-          src="/world-map-generator/index.html"
-          className="generator-iframe"
-          style={{
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            flex: 1,
-          }}
-          title="World Map Generator"
-        />
+        <WorldGenerator onMapGenerated={handleMapGenerated} />
       )}
 
       {activeGenerator === 'city' && (

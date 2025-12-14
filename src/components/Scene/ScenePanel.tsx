@@ -209,7 +209,8 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
     img.crossOrigin = 'anonymous'; // Allow canvas manipulation
     img.onload = () => {
       // Scale down by 50% for generated dungeons
-      const isGeneratedDungeon = map.isGenerated || map.tags?.includes('generated');
+      const isGeneratedDungeon =
+        map.isGenerated || map.tags?.includes('generated');
       const scaleFactor = isGeneratedDungeon ? 0.5 : 1.0;
 
       let finalUrl = map.path;
@@ -237,7 +238,9 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
           finalWidth = scaledWidth;
           finalHeight = scaledHeight;
 
-          console.log(`📐 Scaled generated dungeon from ${img.naturalWidth}×${img.naturalHeight} to ${scaledWidth}×${scaledHeight} (50%)`);
+          console.log(
+            `📐 Scaled generated dungeon from ${img.naturalWidth}×${img.naturalHeight} to ${scaledWidth}×${scaledHeight} (50%)`,
+          );
         }
       }
 
@@ -524,7 +527,9 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
                   <div className="scene-panel__field">
                     <button
-                      onClick={() => handleFieldUpdate('backgroundImage', undefined)}
+                      onClick={() =>
+                        handleFieldUpdate('backgroundImage', undefined)
+                      }
                       className="btn btn--primary"
                       style={{ width: '100%' }}
                     >
@@ -674,6 +679,85 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
               {safeScene.gridSettings.enabled && (
                 <>
+                  {/* Grid Type Selector */}
+                  <div className="scene-panel__field">
+                    <label>Grid Type</label>
+                    <div className="scene-panel__grid-type-options">
+                      <label className="scene-panel__grid-type-option">
+                        <input
+                          type="radio"
+                          name="gridType"
+                          value="square"
+                          checked={
+                            (safeScene.gridSettings.type || 'square') ===
+                            'square'
+                          }
+                          onChange={() =>
+                            handleGridSettingChange('type', 'square')
+                          }
+                        />
+                        <span className="scene-panel__grid-icon">□</span>
+                        <div className="scene-panel__grid-details">
+                          <strong>Square Grid</strong>
+                          <small>Traditional D&D grid</small>
+                        </div>
+                      </label>
+
+                      <label className="scene-panel__grid-type-option">
+                        <input
+                          type="radio"
+                          name="gridType"
+                          value="hex"
+                          checked={safeScene.gridSettings.type === 'hex'}
+                          onChange={() =>
+                            handleGridSettingChange('type', 'hex')
+                          }
+                        />
+                        <span className="scene-panel__grid-icon">⬡</span>
+                        <div className="scene-panel__grid-details">
+                          <strong>Hex Grid</strong>
+                          <small>Better for large world maps</small>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Hex Scale Control (only show for hex grids) */}
+                  {safeScene.gridSettings.type === 'hex' && (
+                    <div className="scene-panel__field">
+                      <label>
+                        Hex Scale:{' '}
+                        {Math.round(
+                          (safeScene.gridSettings.hexScale || 1.0) * 100,
+                        )}
+                        %
+                      </label>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="2.0"
+                        step="0.1"
+                        value={safeScene.gridSettings.hexScale || 1.0}
+                        onChange={(e) =>
+                          handleGridSettingChange(
+                            'hexScale',
+                            parseFloat(e.target.value),
+                          )
+                        }
+                        className="scene-panel__range-input"
+                      />
+                      <small
+                        style={{
+                          color: 'var(--glass-text-secondary, #999)',
+                          display: 'block',
+                          marginTop: '4px',
+                        }}
+                      >
+                        Adjust hex size relative to square equivalent
+                      </small>
+                    </div>
+                  )}
+
                   <div className="scene-panel__field">
                     <label>Grid size: {safeScene.gridSettings.size}px</label>
                     <input

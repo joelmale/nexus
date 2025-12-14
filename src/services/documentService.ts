@@ -193,6 +193,14 @@ class DocumentService {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        // Surface clearer message when the document service is disabled/offline
+        if (response.status === 503) {
+          throw new Error(
+            error.error ||
+              'Document service unavailable. Start NexusCodex or set DOC_API_URL/VITE_DOC_API_URL.',
+          );
+        }
+
         throw new Error(error.error || `Request failed: ${response.status}`);
       }
 

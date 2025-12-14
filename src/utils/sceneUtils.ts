@@ -151,6 +151,7 @@ export const sceneUtils = {
       backgroundImage: undefined,
       gridSettings: {
         enabled: true,
+        type: 'square',
         size: 50,
         color: '#ffffff',
         opacity: 0.3,

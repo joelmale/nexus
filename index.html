@@ -6,12 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nexus VTT - Virtual Tabletop</title>
     <meta name="description" content="A lightweight, modern virtual tabletop for browser-based RPG sessions" />
-    
-    <!-- Preload fonts for glassmorphism design -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    
+
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#6366f1" />
     <link rel="apple-touch-icon" href="/assets/icons/nexus-icon-192.png" />
@@ -120,16 +115,14 @@
     <script>
       // Hide loading screen when app loads
       window.addEventListener('load', () => {
-        setTimeout(() => {
-          const loading = document.getElementById('loading');
-          if (loading) {
-            loading.style.opacity = '0';
-            loading.style.transition = 'opacity 0.5s ease-out';
-            setTimeout(() => {
-              loading.remove();
-            }, 500);
-          }
-        }, 1000); // Show loading for at least 1 second
+        const loading = document.getElementById('loading');
+        if (loading) {
+          loading.style.opacity = '0';
+          loading.style.transition = 'opacity 0.3s ease-out';
+          setTimeout(() => {
+            loading.remove();
+          }, 300);
+        }
       });
     </script>
     

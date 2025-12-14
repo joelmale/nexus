@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
@@ -58,7 +58,7 @@ interface CharacterRecord {
  */
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, createGameRoom, joinRoomWithCode } =
+  const { user, isAuthenticated, createGameRoom, joinRoomWithCode, importCharacters } =
     useGameStore();
   const { startCharacterCreation, LauncherComponent } =
     useCharacterCreationLauncher();
@@ -80,6 +80,9 @@ export const Dashboard: React.FC = () => {
   const [showJoinGameModal, setShowJoinGameModal] = useState(false);
   const [joinRoomCode, setJoinRoomCode] = useState('');
   const [joiningGame, setJoiningGame] = useState(false);
+  const [importingCharacters, setImportingCharacters] = useState(false);
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Check authentication and redirect if not authenticated
   useEffect(() => {
@@ -233,6 +236,74 @@ export const Dashboard: React.FC = () => {
    */
   const handleEditCharacter = (character: CharacterRecord) => {
     setEditingCharacter(character);
+  };
+
+  /**
+   * Handles importing characters from a JSON file (5e Character Forge / Nexus export)
+   */
+  const handleImportCharacters = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setImportingCharacters(true);
+      const text = await file.text();
+      const imported = importCharacters(text);
+
+      // Prepare a mapped list immediately so the UI reflects imported characters even if the API is empty
+      const nowIso = new Date().toISOString();
+      const mapped = (imported || []).map((pc) => ({
+        id: pc.id,
+        name: pc.name,
+        ownerId: user.id,
+        data: {
+          race: pc.race,
+          class: pc.class,
+          level: pc.level,
+        },
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      })) as CharacterRecord[];
+
+      if (mapped.length) {
+        setCharacters((prev) => [...mapped, ...prev]);
+      }
+
+      // Refresh characters list from API if available; if API returns empty, keep the mapped local set
+      const response = await fetch('/api/characters', {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setCharacters(data);
+        } else if (mapped.length) {
+          setCharacters((prev) => {
+            // Avoid duplicating if mapped already set
+            const existingIds = new Set(prev.map((c) => c.id));
+            const merged = [...prev];
+            mapped.forEach((m) => {
+              if (!existingIds.has(m.id)) merged.push(m);
+            });
+            return merged;
+          });
+        }
+      }
+
+      setImportMessage(`Imported ${imported.length} characters.`);
+    } catch (err) {
+      console.error('Failed to import characters:', err);
+      alert('Failed to import characters. Please check the file format.');
+      setImportMessage(null);
+    } finally {
+      setImportingCharacters(false);
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
   };
 
   /**
@@ -599,14 +670,32 @@ export const Dashboard: React.FC = () => {
             <div className="dashboard-section">
               <div className="section-header">
                 <h2>Recent Characters</h2>
-                <button
-                  onClick={handleCreateCharacter}
-                  className="action-btn glass-button primary"
-                  disabled={charactersLoading}
-                >
-                  <span>➕</span>
-                  New Character
-                </button>
+                <div className="section-actions">
+                  <input
+                    type="file"
+                    accept="application/json"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleImportCharacters}
+                    aria-label="Import characters"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="action-btn glass-button primary"
+                    disabled={charactersLoading || importingCharacters}
+                  >
+                    <span>📂</span>
+                    Import Character
+                  </button>
+                  <button
+                    onClick={handleCreateCharacter}
+                    className="action-btn glass-button primary"
+                    disabled={charactersLoading}
+                  >
+                    <span>➕</span>
+                    New Character
+                  </button>
+                </div>
               </div>
 
               {charactersLoading ? (
@@ -616,6 +705,12 @@ export const Dashboard: React.FC = () => {
                   ))}
                 </div>
               ) : characters.length === 0 ? (
+                <>
+                  {importMessage && (
+                    <div className="info-message glass-panel success">
+                      {importMessage}
+                    </div>
+                  )}
                 <div className="empty-state glass-panel">
                   <div className="empty-state-icon">⚔️</div>
                   <h3>No characters yet</h3>
@@ -628,8 +723,14 @@ export const Dashboard: React.FC = () => {
                     Create Character
                   </button>
                 </div>
+                </>
               ) : (
                 <div className="card-row">
+                  {importMessage && (
+                    <div className="info-message glass-panel success">
+                      {importMessage}
+                    </div>
+                  )}
                   {recentCharacters.map((character) => (
                     <div key={character.id} className="card glass-panel">
                       <div className="card-top">

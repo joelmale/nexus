@@ -103,19 +103,23 @@ if (process.env.NODE_ENV === 'production') {
 const googleCallbackURL = process.env.GOOGLE_CALLBACK_URL;
 const discordCallbackURL = process.env.DISCORD_CALLBACK_URL;
 
-if (process.env.NODE_ENV === 'production' && (!googleCallbackURL || !googleCallbackURL.startsWith('https')))
-  {
-    throw new Error(
-      'GOOGLE_CALLBACK_URL must be an absolute URL in production (e.g., https://your-domain.com/auth/google/callback)',
-    );
-  }
+if (
+  process.env.NODE_ENV === 'production' &&
+  (!googleCallbackURL || !googleCallbackURL.startsWith('https'))
+) {
+  throw new Error(
+    'GOOGLE_CALLBACK_URL must be an absolute URL in production (e.g., https://your-domain.com/auth/google/callback)',
+  );
+}
 
-if (process.env.NODE_ENV === 'production' && (!discordCallbackURL || !discordCallbackURL.startsWith('https')))
-  {
-    throw new Error(
-      'DISCORD_CALLBACK_URL must be an absolute URL in production (e.g., https://your-domain.com/auth/discord/callback)',
-    );
-  }
+if (
+  process.env.NODE_ENV === 'production' &&
+  (!discordCallbackURL || !discordCallbackURL.startsWith('https'))
+) {
+  throw new Error(
+    'DISCORD_CALLBACK_URL must be an absolute URL in production (e.g., https://your-domain.com/auth/discord/callback)',
+  );
+}
 
 /**
  * Google OAuth 2.0 Strategy Configuration
@@ -130,6 +134,10 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
+        console.log('🔐 Google OAuth callback received');
+        console.log('Profile:', { id: profile.id, email: profile.emails?.[0]?.value, name: profile.displayName });
+        console.log('Access Token received:', accessToken ? 'YES' : 'NO');
+
         // Extract user profile data from Google response
         const userProfile = {
           email: profile.emails?.[0]?.value || null,
@@ -146,7 +154,7 @@ passport.use(
         // Return user object to Passport
         return done(null, user);
       } catch (err) {
-        console.error('Google OAuth error:', err);
+        console.error('❌ Google OAuth error:', err);
         return done(err as Error);
       }
     },

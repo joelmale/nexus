@@ -209,6 +209,7 @@ export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
               <img
                 src={prop.image}
                 alt={prop.name}
+                loading="lazy"
                 style={{
                   width: '80px',
                   height: '80px',

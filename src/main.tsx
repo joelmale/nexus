@@ -1,3 +1,8 @@
+// Import self-hosted fonts (critical weights only)
+import '@fontsource/inter/400.css'; // Regular
+import '@fontsource/inter/600.css'; // Semi-bold
+import '@fontsource/inter/700.css'; // Bold
+
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -109,6 +114,27 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 // Load non-critical assets after initial render
 loadNonCriticalAssets();
+
+// Register service worker for PWA support
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  import('virtual:pwa-register').then(({ registerSW }) => {
+    registerSW({
+      onNeedRefresh() {
+        console.log('🔄 New content available! Please refresh.');
+        // You could show a toast notification here
+      },
+      onOfflineReady() {
+        console.log('✅ App ready to work offline!');
+      },
+      onRegistered(registration) {
+        console.log('✅ Service Worker registered:', registration);
+      },
+      onRegisterError(error) {
+        console.error('❌ Service Worker registration failed:', error);
+      },
+    });
+  });
+}
 
 // Add CSS debugging utilities to window for development
 if (import.meta.env.DEV) {

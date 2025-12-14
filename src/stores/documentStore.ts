@@ -46,6 +46,8 @@ export interface DocumentStoreState {
   filters: DocumentFilters;
   isLoadingDocuments: boolean;
   documentsError: string | null;
+  documentsAvailable: boolean;
+  documentsUnavailableReason: string | null;
 
   // Currently viewed document
   currentDocument: Document | null;
@@ -63,7 +65,7 @@ export interface DocumentStoreState {
   uploadQueue: UploadProgress[];
 
   // Actions
-  loadDocuments: () => Promise<void>;
+  loadDocuments: (force?: boolean) => Promise<void>;
   setFilters: (filters: Partial<DocumentFilters>) => void;
   resetFilters: () => void;
 
@@ -106,6 +108,8 @@ const initialState = {
   filters: { ...defaultFilters },
   isLoadingDocuments: false,
   documentsError: null,
+  documentsAvailable: true,
+  documentsUnavailableReason: null,
 
   currentDocument: null,
   currentDocumentContent: null,
@@ -130,25 +134,50 @@ export const useDocumentStore = create<DocumentStoreState>()(
     /**
      * Load documents with current filters
      */
-    loadDocuments: async () => {
+    loadDocuments: async (force = false) => {
       set((state) => {
         state.isLoadingDocuments = true;
         state.documentsError = null;
       });
 
       try {
-        const { filters } = get();
+        const { filters, documentsAvailable, documentsUnavailableReason } =
+          get();
+
+        // If the document service is known to be unavailable, avoid spamming requests unless forced
+        if (!force && !documentsAvailable && documentsUnavailableReason) {
+          set((state) => {
+            state.isLoadingDocuments = false;
+            state.documentsError = documentsUnavailableReason;
+          });
+          return;
+        }
+
         const response = await documentService.listDocuments(filters);
 
         set((state) => {
           state.documents = response.documents;
           state.totalDocuments = response.pagination.total;
           state.isLoadingDocuments = false;
+          state.documentsAvailable = true;
+          state.documentsUnavailableReason = null;
         });
       } catch (error) {
         console.error('Failed to load documents:', error);
         set((state) => {
-          state.documentsError = error instanceof Error ? error.message : 'Failed to load documents';
+          const message =
+            error instanceof Error ? error.message : 'Failed to load documents';
+          state.documentsError = message;
+          // Flag the document service as unavailable when we detect it, so the UI can degrade gracefully
+          if (
+            message.includes('Document service unavailable') ||
+            message.toLowerCase().includes('fetch failed') ||
+            message.includes('ECONNREFUSED') ||
+            message.includes('Request failed: 503')
+          ) {
+            state.documentsAvailable = false;
+            state.documentsUnavailableReason = message;
+          }
           state.isLoadingDocuments = false;
         });
       }
@@ -189,6 +218,11 @@ export const useDocumentStore = create<DocumentStoreState>()(
       });
 
       try {
+        const { documentsAvailable, documentsUnavailableReason } = get();
+        if (!documentsAvailable && documentsUnavailableReason) {
+          throw new Error(documentsUnavailableReason);
+        }
+
         const response = await documentService.searchDocuments({
           query,
           ...filters,
@@ -199,11 +233,23 @@ export const useDocumentStore = create<DocumentStoreState>()(
         set((state) => {
           state.searchResults = response.results;
           state.isSearching = false;
+          state.documentsAvailable = true;
+          state.documentsUnavailableReason = null;
         });
       } catch (error) {
         console.error('Search failed:', error);
         set((state) => {
-          state.searchError = error instanceof Error ? error.message : 'Search failed';
+          const message = error instanceof Error ? error.message : 'Search failed';
+          state.searchError = message;
+          if (
+            message.includes('Document service unavailable') ||
+            message.toLowerCase().includes('fetch failed') ||
+            message.includes('ECONNREFUSED') ||
+            message.includes('Request failed: 503')
+          ) {
+            state.documentsAvailable = false;
+            state.documentsUnavailableReason = message;
+          }
           state.isSearching = false;
         });
       }
@@ -220,16 +266,34 @@ export const useDocumentStore = create<DocumentStoreState>()(
       });
 
       try {
+        const { documentsAvailable, documentsUnavailableReason } = get();
+        if (!documentsAvailable && documentsUnavailableReason) {
+          throw new Error(documentsUnavailableReason);
+        }
+
         const response = await documentService.quickSearch(query, campaign, 5);
 
         set((state) => {
           state.quickSearchResults = response.results;
           state.isSearching = false;
+          state.documentsAvailable = true;
+          state.documentsUnavailableReason = null;
         });
       } catch (error) {
         console.error('Quick search failed:', error);
         set((state) => {
-          state.searchError = error instanceof Error ? error.message : 'Quick search failed';
+          const message =
+            error instanceof Error ? error.message : 'Quick search failed';
+          state.searchError = message;
+          if (
+            message.includes('Document service unavailable') ||
+            message.toLowerCase().includes('fetch failed') ||
+            message.includes('ECONNREFUSED') ||
+            message.includes('Request failed: 503')
+          ) {
+            state.documentsAvailable = false;
+            state.documentsUnavailableReason = message;
+          }
           state.isSearching = false;
         });
       }
@@ -256,6 +320,11 @@ export const useDocumentStore = create<DocumentStoreState>()(
       });
 
       try {
+        const { documentsAvailable, documentsUnavailableReason } = get();
+        if (!documentsAvailable && documentsUnavailableReason) {
+          throw new Error(documentsUnavailableReason);
+        }
+
         const document = await documentService.getDocument(documentId);
         const contentUrl = await documentService.getDocumentContentUrl(documentId);
 
@@ -287,7 +356,10 @@ export const useDocumentStore = create<DocumentStoreState>()(
      * Upload a new document
      */
     uploadDocument: async (file: File, metadata) => {
-      
+      const { documentsAvailable, documentsUnavailableReason } = get();
+      if (!documentsAvailable && documentsUnavailableReason) {
+        throw new Error(documentsUnavailableReason);
+      }
 
       // Add to upload queue
       set((state) => {
@@ -378,6 +450,11 @@ export const useDocumentStore = create<DocumentStoreState>()(
      */
     updateDocument: async (documentId: string, updates: Partial<Document>) => {
       try {
+        const { documentsAvailable, documentsUnavailableReason } = get();
+        if (!documentsAvailable && documentsUnavailableReason) {
+          throw new Error(documentsUnavailableReason);
+        }
+
         const updated = await documentService.updateDocument(documentId, updates);
 
         set((state) => {
@@ -403,6 +480,11 @@ export const useDocumentStore = create<DocumentStoreState>()(
      */
     deleteDocument: async (documentId: string) => {
       try {
+        const { documentsAvailable, documentsUnavailableReason } = get();
+        if (!documentsAvailable && documentsUnavailableReason) {
+          throw new Error(documentsUnavailableReason);
+        }
+
         await documentService.deleteDocument(documentId);
 
         set((state) => {

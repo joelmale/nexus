@@ -58,7 +58,7 @@ interface DrawingToolsProps {
   placedTokens: PlacedToken[];
 }
 
-export const DrawingTools: React.FC<DrawingToolsProps> = ({
+const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
   activeTool,
   drawingStyle,
   camera,
@@ -1508,3 +1508,6 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
     </g>
   );
 };
+
+// Memoize to prevent unnecessary rerenders
+export const DrawingTools = React.memo(DrawingToolsComponent);

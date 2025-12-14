@@ -435,6 +435,7 @@ export const TokenCreationPanel: React.FC<TokenCreationPanelProps> = ({
                         <img
                           src={assetManager.getThumbnailUrl(asset)}
                           alt={asset.name}
+                          loading="lazy"
                           style={{
                             width: '100%',
                             height: '80px',
