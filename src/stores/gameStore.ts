@@ -1736,7 +1736,44 @@ export const useGameStore = create<GameStore>()(
           const proficiencyFromLevel = (level: number) =>
             Math.ceil(Math.max(1, level) / 4) + 1;
 
-          const mapCharacterForge = (c: any): PlayerCharacter => {
+          type CharacterForgeImport = {
+            edition?: string;
+            level?: number;
+            proficiencyBonus?: number;
+            abilities?: Record<
+              string,
+              {
+                score?: number;
+                proficient?: boolean;
+              }
+            >;
+            skills?: Record<
+              string,
+              {
+                proficient?: boolean;
+                expertise?: boolean;
+              }
+            >;
+            savingThrows?: Record<string, boolean>;
+            armorClass?: number;
+            hitPoints?: number;
+            currentHitPoints?: number;
+            tempHitPoints?: number;
+            speed?: number;
+            senses?: {
+              darkvision?: number;
+              blindsight?: number;
+              tremorsense?: number;
+              truesight?: number;
+            };
+            name?: string;
+            class?: string;
+            species?: string;
+            background?: string;
+            alignment?: string;
+          };
+
+          const mapCharacterForge = (c: CharacterForgeImport): PlayerCharacter => {
             const edition = c.edition || '2024';
             const level = typeof c.level === 'number' ? c.level : 1;
             const profBonus =

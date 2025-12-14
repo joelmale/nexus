@@ -4,7 +4,8 @@ import { webSocketService } from '@/utils/websocket';
 describe('webSocketService join handling', () => {
   beforeEach(() => {
     // Reset cached session events to ensure clean waits
-    (webSocketService as any).lastSessionJoinedEvent = null;
+    (webSocketService as unknown as { lastSessionJoinedEvent: unknown }).lastSessionJoinedEvent =
+      null;
   });
 
   it('rejects waitForSessionJoined on server error message', async () => {
@@ -23,7 +24,14 @@ describe('webSocketService join handling', () => {
   });
 
   it('builds unified /ws URL with join code', () => {
-    const url = (webSocketService as any).getWebSocketUrl('TEST', 'player');
+    const url = (
+      webSocketService as unknown as {
+        getWebSocketUrl: (
+          roomCode?: string,
+          userType?: 'host' | 'player',
+        ) => string;
+      }
+    ).getWebSocketUrl('TEST', 'player');
     expect(url).toContain('/ws');
     expect(url).toContain('join=TEST');
     // Should not include fallback port discovery artifacts

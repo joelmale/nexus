@@ -257,7 +257,10 @@ class WebSocketService extends EventTarget {
           );
 
           // Apply patch
-          const patchResult = applyPatch(stateCopy, patch as any);
+          const patchResult = applyPatch(
+            stateCopy,
+            patch as { op: string; path: string; value?: unknown }[],
+          );
 
           if (patchResult.newDocument) {
             // Update game store with patched state

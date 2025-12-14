@@ -2600,6 +2600,7 @@ class NexusServer {
       console.warn(
         `⚠️ Connection ${uuid} has critical quality (${connection.consecutiveMisses} missed pings)`,
       );
+      this.forceDisconnectDueToMissedPings(connection);
     } else if (connection.consecutiveMisses >= 2) {
       connection.connectionQuality = 'poor';
     } else if (connection.consecutiveMisses >= 1) {
@@ -2619,6 +2620,28 @@ class NexusServer {
       connection.connectionQuality = 'poor';
     } else {
       connection.connectionQuality = 'critical';
+    }
+  }
+
+  /**
+   * Forcefully disconnect a connection that has missed too many pings to
+   * prevent zombie sockets from spamming logs.
+   */
+  private async forceDisconnectDueToMissedPings(connection: Connection) {
+    try {
+      console.warn(
+        `🔌 Forcing disconnect for ${connection.id} due to missed pings`,
+      );
+      // Close the socket; use terminate to avoid waiting for close handshake
+      if (connection.ws.readyState === WebSocket.OPEN) {
+        connection.ws.terminate();
+      }
+      await this.handleDisconnect(connection.id);
+    } catch (error) {
+      console.error(
+        `Failed to forcefully disconnect ${connection.id}:`,
+        error,
+      );
     }
   }
 
