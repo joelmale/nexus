@@ -231,19 +231,13 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         const imageData = generatedMap;
         const mapTitle = `Generated ${activeGenerator.charAt(0).toUpperCase() + activeGenerator.slice(1)} ${new Date().toLocaleString()}`;
 
-        // Extract original size and format information from IndexedDB
-        let originalSize: number | undefined;
+        // Extract format information from IndexedDB
         let mapFormat: 'webp' | 'png' = 'png'; // Default to PNG
 
         try {
           const stored = await loadGeneratorMapFromIndexedDB();
-          if (stored) {
-            if (stored.originalSize) {
-              originalSize = stored.originalSize;
-            }
-            if (stored.format) {
-              mapFormat = stored.format as 'webp' | 'png';
-            }
+          if (stored?.format) {
+            mapFormat = stored.format as 'webp' | 'png';
           }
         } catch {
           // Ignore errors, use defaults
