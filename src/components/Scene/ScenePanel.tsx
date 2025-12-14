@@ -5,6 +5,7 @@ import { SceneManagement } from './SceneManagement';
 import { BaseMapBrowser } from './BaseMapBrowser';
 import { ErrorBoundary } from '../ErrorBoundary';
 import type { BaseMap } from '@/services/baseMapAssets';
+import { dungeonMapService } from '@/services/dungeonMapService';
 
 interface ScenePanelProps {
   scene?: Scene;
@@ -21,6 +22,14 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [loadingImageUrl, setLoadingImageUrl] = useState(false);
   const [imageUrlError, setImageUrlError] = useState<string | null>(null);
+  const [loadedImageFromUrl, setLoadedImageFromUrl] = useState<{
+    dataUrl: string;
+    originalSize: number;
+    compressedSize: number;
+    width: number;
+    height: number;
+    sourceUrl: string;
+  } | null>(null);
 
   // Collapsible section state with localStorage persistence
   const [expandedSections, setExpandedSections] = useState(() => {
@@ -217,7 +226,8 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
 
     try {
       const { sceneUtils } = await import('@/utils/sceneUtils');
-      const { dataUrl, width, height } = await sceneUtils.loadImageFromUrl(imageUrlInput);
+      const { dataUrl, width, height, originalSize, compressedSize } =
+        await sceneUtils.loadImageFromUrl(imageUrlInput);
 
       handleFieldUpdate('backgroundImage', {
         url: dataUrl,
@@ -229,6 +239,14 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
       });
 
       console.log(`✅ Background image loaded from URL: ${width}×${height}px`);
+      setLoadedImageFromUrl({
+        dataUrl,
+        originalSize,
+        compressedSize,
+        width,
+        height,
+        sourceUrl: imageUrlInput,
+      });
       setImageUrlInput(''); // Clear input on success
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load image from URL';
@@ -236,6 +254,32 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
       console.error('❌ Failed to load image from URL:', error);
     } finally {
       setLoadingImageUrl(false);
+    }
+  };
+
+  const handleSaveLoadedImageToBaseMaps = async () => {
+    if (!loadedImageFromUrl) return;
+    try {
+      const defaultName =
+        loadedImageFromUrl.sourceUrl.split('/').pop() ||
+        'Background from URL';
+      const name = prompt(
+        'Name this base map',
+        defaultName.replace(/\.[^/.]+$/, ''),
+      );
+      if (!name) return;
+
+      await dungeonMapService.saveGeneratedMap(
+        loadedImageFromUrl.dataUrl,
+        name,
+        'webp',
+        loadedImageFromUrl.originalSize,
+      );
+      console.log(`✅ Saved base map from URL: ${name}`);
+      alert('Saved to Base Maps. Open the Base Map browser to use it.');
+    } catch (error) {
+      console.error('Failed to save base map from URL:', error);
+      alert('Failed to save to Base Maps. Please try again.');
     }
   };
 
@@ -466,16 +510,29 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
                       Supported: JPG, PNG, WebP, GIF
                     </small>
                   </div>
-                  <button
-                    onClick={handleLoadImageFromUrl}
-                    disabled={loadingImageUrl || !imageUrlInput.trim()}
-                    className="btn btn--primary"
-                    style={{ minWidth: '80px', whiteSpace: 'nowrap' }}
-                  >
-                    {loadingImageUrl ? 'Loading...' : 'Load'}
-                  </button>
+                    <button
+                      onClick={handleLoadImageFromUrl}
+                      disabled={loadingImageUrl || !imageUrlInput.trim()}
+                      className="btn btn--primary"
+                      style={{ minWidth: '80px', whiteSpace: 'nowrap' }}
+                    >
+                      {loadingImageUrl ? 'Loading...' : 'Load'}
+                    </button>
+                    <button
+                      onClick={handleSaveLoadedImageToBaseMaps}
+                      disabled={!loadedImageFromUrl}
+                      className="btn"
+                      style={{ minWidth: '120px', whiteSpace: 'nowrap' }}
+                      title={
+                        loadedImageFromUrl
+                          ? 'Save the last loaded image to Base Maps'
+                          : 'Load an image first'
+                      }
+                    >
+                      Save to Base Maps
+                    </button>
+                  </div>
                 </div>
-              </div>
 
               <div className="scene-panel__field">
                 <label>Or upload an image</label>
