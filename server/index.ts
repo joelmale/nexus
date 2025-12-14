@@ -125,8 +125,9 @@ class NexusServer {
   private readonly CACHE_MAX_AGE = parseInt(
     process.env.CACHE_MAX_AGE || '86400',
   );
-  private readonly HIBERNATION_TIMEOUT = 10 * 60 * 1000;
-  private readonly ABANDONMENT_TIMEOUT = 60 * 60 * 1000;
+  // Session timeouts (72 hours = 259200000 ms)
+  private readonly HIBERNATION_TIMEOUT = 72 * 60 * 60 * 1000; // 72 hours before abandoning inactive session
+  private readonly ABANDONMENT_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours after abandonment before database cleanup
   private readonly HEARTBEAT_INTERVAL = 30 * 1000;
   private readonly HEARTBEAT_TIMEOUT = 10 * 1000;
   private readonly MAX_CONSECUTIVE_MISSES = 3;
@@ -198,7 +199,7 @@ class NexusServer {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+        maxAge: 1000 * 60 * 60 * 72, // 72 hours (as requested)
       },
     });
 
@@ -1053,7 +1054,8 @@ class NexusServer {
         const buffer = Buffer.from(base64Data, 'base64');
 
         // Create custom tokens directory if it doesn't exist
-        const customTokensDir = path.join(this.ASSETS_PATH, 'tokens', 'custom');
+        // Save to ASSETS_PATH/assets/tokens/custom to match the static serve path
+        const customTokensDir = path.join(this.ASSETS_PATH, 'assets', 'tokens', 'custom');
         if (!fs.existsSync(customTokensDir)) {
           fs.mkdirSync(customTokensDir, { recursive: true });
         }
@@ -1637,11 +1639,18 @@ class NexusServer {
     connection: Connection,
     roomCode: string,
   ): Promise<void> {
-    const room = this.rooms.get(roomCode);
+    let room = this.rooms.get(roomCode);
 
     if (!room) {
-      this.sendError(connection, 'Room not found');
-      return;
+      const recoveredRoom = await this.recoverRoomFromSession(roomCode);
+      if (!recoveredRoom) {
+        this.sendError(
+          connection,
+          'Room not found or offline - ask the host to reopen the session',
+        );
+        return;
+      }
+      room = recoveredRoom;
     }
 
     // Attempt room recovery if needed
@@ -2186,7 +2195,7 @@ class NexusServer {
           data: {
             name: 'session/hibernated',
             message:
-              'Host disconnected and no players available to take over. Room will remain available for 10 minutes.',
+              'Host disconnected and no players available to take over. Room will remain available for 72 hours.',
             reconnectWindow: this.HIBERNATION_TIMEOUT,
           },
           timestamp: Date.now(),
@@ -2335,6 +2344,48 @@ class NexusServer {
       return true;
     }
     return room.status === 'active';
+  }
+
+  /**
+   * Rehydrates an in-memory room from persisted session data when a join request
+   * arrives but the room map does not contain the code (e.g., after a restart
+   * or when a player hit a different instance). This is a best-effort recovery;
+   * host connections are not restored here.
+   */
+  private async recoverRoomFromSession(roomCode: string): Promise<Room | null> {
+    try {
+      const session = await this.db.getSessionByJoinCode(roomCode);
+      if (!session || session.status === 'abandoned') {
+        return null;
+      }
+
+      const recoveredRoom: Room = {
+        code: session.joinCode,
+        host: session.primaryHostId,
+        coHosts: new Set<string>(),
+        players: new Set<string>([session.primaryHostId]),
+        connections: new Map(),
+        created: session.createdAt
+          ? new Date(session.createdAt).getTime()
+          : Date.now(),
+        lastActivity: Date.now(),
+        status: session.status === 'hibernating' ? 'hibernating' : 'active',
+        hibernationTimer: undefined,
+        gameState: session.gameState as GameState,
+        previousGameState: undefined,
+        stateVersion: 0,
+        entityVersions: new Map(),
+      };
+
+      this.rooms.set(roomCode, recoveredRoom);
+      console.log(
+        `🔄 Recovered room ${roomCode} from session; status: ${recoveredRoom.status}`,
+      );
+      return recoveredRoom;
+    } catch (error) {
+      console.error(`Failed to recover room ${roomCode} from session:`, error);
+      return null;
+    }
   }
 
   private selectNewHost(room: Room, excludeUuid?: string): string | null {

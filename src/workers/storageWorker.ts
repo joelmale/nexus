@@ -11,7 +11,7 @@ import type { DungeonMapDB, GameStateDB, StorageStats } from '../utils/indexedDB
 class StorageWorkerAPI {
   private db: IDBDatabase | null = null;
   private readonly DB_NAME = 'NexusVTT';
-  private readonly DB_VERSION = 3;
+  private readonly DB_VERSION = 5; // v5: Added tempStorage for generator
   private readonly MAPS_STORE = 'maps';
   private readonly GAMESTATE_STORE = 'gameState';
   private initPromise: Promise<void> | null = null;
@@ -74,6 +74,12 @@ class StorageWorkerAPI {
           });
           gameStateStore.createIndex('version', 'version', { unique: false });
           console.log('[Worker] ✅ Created gameState store');
+        }
+
+        // Create tempStorage store if it doesn't exist (v5+)
+        if (!db.objectStoreNames.contains('tempStorage')) {
+          db.createObjectStore('tempStorage');
+          console.log('[Worker] ✅ Created tempStorage store');
         }
       };
     });

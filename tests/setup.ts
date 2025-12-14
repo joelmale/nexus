@@ -98,6 +98,16 @@ Object.assign(mockWebSocket, {
 // Assign the mock using a more deliberate type assertion
 global.WebSocket = mockWebSocket as unknown as typeof WebSocket;
 
+// Mock Worker for environments where it isn't available (Node test runtime)
+class MockWorker {
+  postMessage = vi.fn();
+  terminate = vi.fn();
+  onmessage: ((this: Worker, ev: MessageEvent) => void) | null = null;
+  addEventListener = vi.fn();
+  removeEventListener = vi.fn();
+}
+global.Worker = MockWorker as unknown as typeof Worker;
+
 // Mock localStorage with actual in-memory storage
 const localStorageData: Record<string, string> = {};
 const localStorageMock = {

@@ -44,7 +44,7 @@ export const GameUI: React.FC = () => {
   const scenes = useScenes();
   const settings = useSettings();
   const colorScheme = useColorScheme();
-  const { user, leaveRoom } = useGameStore();
+  const { user, leaveRoom, syncGameStateToServer } = useGameStore();
   const roomCode = useServerRoomCode();
 
   const isHost = user.type === 'host';
@@ -223,6 +223,19 @@ export const GameUI: React.FC = () => {
               <h2>🎲 Game Room: {roomCode}</h2>
               <p>
                 Welcome, <strong>{user.name}</strong>!
+                {isHost && (
+                  <button
+                    onClick={() => {
+                      syncGameStateToServer();
+                      console.log('💾 Manual save triggered');
+                    }}
+                    className="glass-button small"
+                    style={{ marginLeft: '12px', fontSize: '12px', padding: '4px 12px' }}
+                    title="Save campaign to server"
+                  >
+                    💾 Save
+                  </button>
+                )}
               </p>
             </div>
           </div>

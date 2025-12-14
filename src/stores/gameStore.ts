@@ -122,6 +122,7 @@ interface GameStore extends GameState {
   updateCamera: (camera: Partial<Camera>) => void;
   setFollowDM: (follow: boolean) => void;
   setActiveTool: (tool: string) => void;
+  syncGameStateToServer: () => void;
 
   // Bulk Scene Operations
   deleteScenesById: (sceneIds: string[]) => void;
@@ -1876,6 +1877,9 @@ export const useGameStore = create<GameStore>()(
           console.error('Failed to persist new scene:', error);
         });
 
+        // Sync to server for campaign persistence
+        get().syncGameStateToServer();
+
         return scene;
       },
 
@@ -1900,6 +1904,9 @@ export const useGameStore = create<GameStore>()(
             });
           }
         });
+
+        // Sync to server for campaign persistence
+        get().syncGameStateToServer();
       },
 
       deleteScene: (sceneId) => {
@@ -1920,6 +1927,9 @@ export const useGameStore = create<GameStore>()(
         drawingPersistenceService.deleteScene(sceneId).catch((error) => {
           console.error('Failed to persist scene deletion:', error);
         });
+
+        // Sync to server for campaign persistence
+        get().syncGameStateToServer();
       },
 
       reorderScenes: (fromIndex, toIndex) => {
@@ -1964,6 +1974,36 @@ export const useGameStore = create<GameStore>()(
         set((state) => {
           state.sceneState.activeTool = tool;
         });
+      },
+
+      syncGameStateToServer: () => {
+        const state = get();
+        if (!state.session || state.user.type !== 'host') {
+          // Only host syncs game state to server
+          return;
+        }
+
+        // Send game state update to server for PostgreSQL persistence
+        (async () => {
+          try {
+            const { webSocketService } = await import('@/utils/websocket');
+
+            // Serialize scenes to plain objects (remove circular references)
+            const scenes = JSON.parse(JSON.stringify(state.sceneState.scenes));
+
+            webSocketService.sendEvent({
+              type: 'game-state-update',
+              data: {
+                scenes,
+                activeSceneId: state.sceneState.activeSceneId,
+              },
+            });
+
+            console.log(`💾 Synced ${scenes.length} scenes to server for campaign persistence`);
+          } catch (error) {
+            console.error('Failed to sync game state to server:', error);
+          }
+        })();
       },
 
       // Selection Actions
@@ -3078,10 +3118,6 @@ export const useGameStore = create<GameStore>()(
               sceneState: {
                 scenes: recoveryData.gameState.scenes as Scene[],
                 activeSceneId: recoveryData.gameState.activeSceneId,
-                camera: get().sceneState.camera,
-                followDM: get().sceneState.followDM,
-                activeTool: get().sceneState.activeTool,
-                selectedObjectIds: get().sceneState.selectedObjectIds,
               },
               characters: (recoveryData.gameState.characters ||
                 []) as unknown[],

@@ -45,11 +45,12 @@ class WebSocketService extends EventTarget {
     campaignId?: string,
     userId?: string,
   ): string {
-    // In Docker/K8s, use environment variable or default to 5001
-    // In dev, we'll try multiple ports via fallback logic in connect()
-    const wsPort = import.meta.env.VITE_WS_PORT || '5001';
-    const wsHost = import.meta.env.VITE_WS_HOST || 'localhost';
-    const wsUrl = `ws://${wsHost}:${wsPort}`;
+    const envUrl = import.meta.env.VITE_WS_URL;
+    const wsHost =
+      import.meta.env.VITE_WS_HOST || window.location.host || 'localhost';
+    const wsPath = import.meta.env.VITE_WS_PATH || '/ws';
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = envUrl || `${protocol}//${wsHost}${wsPath}`;
 
     const params = new URLSearchParams();
     if (roomCode) {
@@ -68,164 +69,6 @@ class WebSocketService extends EventTarget {
 
     const queryString = params.toString();
     return queryString ? `${wsUrl}?${queryString}` : wsUrl;
-  }
-
-  // 🔍 Discover which port the server is running on via HTTP health check
-  private async discoverServerPort(): Promise<string | null> {
-    const isDev = import.meta.env.DEV;
-    if (!isDev) return null; // Only do discovery in development
-
-    // Check cache first
-    try {
-      const cachedPort = localStorage.getItem('nexus_discovered_port');
-      if (cachedPort) {
-        console.log(`🎯 Using cached discovered port: ${cachedPort}`);
-        return cachedPort;
-      }
-    } catch {
-      // localStorage might not be available
-    }
-
-    const basePorts = ['5001', '5002', '5003', '5004'];
-    const wsHost = import.meta.env.VITE_WS_HOST || 'localhost';
-
-    console.log('🔍 Discovering server via HTTP health checks...');
-
-    for (const port of basePorts) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 500); // Reduced timeout to 500ms
-
-        const response = await fetch(`http://${wsHost}:${port}/health`, {
-          method: 'GET',
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const data = await response.json();
-          const discoveredPort = data.port?.toString() || port;
-          console.log(`✅ Found server on port ${port}:`, data);
-
-          // Cache the discovered port
-          try {
-            localStorage.setItem('nexus_discovered_port', discoveredPort);
-          } catch {
-            // localStorage might not be available
-          }
-
-          return discoveredPort;
-        }
-      } catch {
-        // Server not on this port, continue trying
-      }
-    }
-
-    console.log('❌ No server found via HTTP discovery');
-    return null;
-  }
-
-  // Try connecting to multiple ports (for dev environment)
-  private async tryConnectWithFallback(
-    roomCode?: string,
-    userType?: 'host' | 'player',
-    campaignId?: string,
-    userId?: string,
-  ): Promise<WebSocket> {
-    const isDev = import.meta.env.DEV;
-
-    // Build query parameters
-    const params = new URLSearchParams();
-    if (roomCode) {
-      if (userType === 'host') {
-        params.set('reconnect', roomCode);
-      } else {
-        params.set('join', roomCode);
-      }
-    }
-    if (campaignId) {
-      params.set('campaignId', campaignId);
-      if (userId) {
-        params.set('userId', userId);
-      }
-    }
-    const queryString = params.toString();
-
-    // PRODUCTION: Use relative /ws path (nginx proxy handles routing)
-    if (!isDev) {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws`;
-      const url = queryString ? `${wsUrl}?${queryString}` : wsUrl;
-
-      console.log(`🔌 Attempting WebSocket connection to ${url}...`);
-      const ws = await this.attemptConnection(url, 'production');
-      console.log(`✅ Connected to WebSocket in production mode`);
-      return ws;
-    }
-
-    // DEVELOPMENT: Try multiple ports with fallback
-    const basePorts = [
-      import.meta.env.VITE_WS_PORT || '5001',
-      '5002',
-      '5003',
-      '5004',
-    ];
-
-    let portsToTry = basePorts;
-
-    // In dev, try server discovery first (HTTP health check)
-    const discoveredPort = await this.discoverServerPort();
-    if (discoveredPort) {
-      console.log(`🎯 Using discovered port: ${discoveredPort}`);
-      // Move discovered port to front
-      portsToTry = [
-        discoveredPort,
-        ...basePorts.filter((p) => p !== discoveredPort),
-      ];
-    } else {
-      // Fallback to checking cached port
-      try {
-        const lastWorkingPort = localStorage.getItem('nexus_ws_port');
-        if (lastWorkingPort && basePorts.includes(lastWorkingPort)) {
-          // Move last working port to the front
-          portsToTry = [
-            lastWorkingPort,
-            ...basePorts.filter((p) => p !== lastWorkingPort),
-          ];
-        }
-      } catch {
-        // localStorage might not be available
-      }
-    }
-
-    const wsHost = import.meta.env.VITE_WS_HOST || 'localhost';
-
-    for (const port of portsToTry) {
-      try {
-        const wsUrl = `ws://${wsHost}:${port}`;
-        const url = queryString ? `${wsUrl}?${queryString}` : wsUrl;
-
-        console.log(`🔌 Attempting WebSocket connection to ${url}...`);
-
-        const ws = await this.attemptConnection(url, port);
-        console.log(`✅ Connected to WebSocket on port ${port}`);
-
-        // Save the working port to localStorage for faster next connection
-        localStorage.setItem('nexus_ws_port', port);
-
-        return ws;
-      } catch (error) {
-        console.log(`❌ Failed to connect on port ${port}`);
-        if (port === portsToTry[portsToTry.length - 1]) {
-          throw error;
-        }
-        // Continue to next port
-      }
-    }
-
-    throw new Error('Failed to connect to WebSocket on any available port');
   }
 
   private attemptConnection(url: string, port: string): Promise<WebSocket> {
@@ -261,13 +104,14 @@ class WebSocketService extends EventTarget {
 
     this.connectionPromise = (async () => {
       try {
-        // Try connecting with fallback to multiple ports in dev
-        this.ws = await this.tryConnectWithFallback(
+        const url = this.getWebSocketUrl(
           roomCode,
           userType,
           campaignId,
           userId,
         );
+        console.log(`🔌 Attempting WebSocket connection to ${url}...`);
+        this.ws = await this.attemptConnection(url, 'primary');
 
         console.log('WebSocket connected successfully');
         this.reconnectAttempts = 0;
@@ -555,14 +399,22 @@ class WebSocketService extends EventTarget {
 
   // Send game state update to server for persistence
   sendGameStateUpdate(partialState: {
-    sceneState?: unknown;
+    sceneState?: { scenes?: unknown[]; activeSceneId?: string | null };
     characters?: unknown[];
     initiative?: unknown;
   }) {
     console.log('📤 Sending game state update to server:', partialState);
+
+    // Server expects type: 'event' with name: 'game-state-update'
     this.sendMessage({
-      type: 'state',
-      data: partialState as never,
+      type: 'event',
+      data: {
+        name: 'game-state-update',
+        scenes: partialState.sceneState?.scenes || [],
+        activeSceneId: partialState.sceneState?.activeSceneId || null,
+        characters: partialState.characters || [],
+        initiative: partialState.initiative || {},
+      },
       timestamp: Date.now(),
       src: useGameStore.getState().user.id,
     });
@@ -625,11 +477,25 @@ class WebSocketService extends EventTarget {
         if (customEvent.detail?.data?.name === 'session/joined') {
           clearTimeout(timeout);
           this.removeEventListener('message', handler);
+          this.removeEventListener('message', errorHandler);
           resolve(customEvent.detail.data);
         }
       };
 
+      const errorHandler = (event: Event) => {
+        const customEvent = event as CustomEvent;
+        if (customEvent.detail?.type === 'error') {
+          clearTimeout(timeout);
+          this.removeEventListener('message', handler);
+          this.removeEventListener('message', errorHandler);
+          const message =
+            customEvent.detail?.data?.message || 'Room join failed';
+          reject(new Error(message));
+        }
+      };
+
       this.addEventListener('message', handler);
+      this.addEventListener('message', errorHandler);
     });
   }
 
@@ -788,8 +654,9 @@ class WebSocketService extends EventTarget {
   clearCachedPort(): void {
     try {
       localStorage.removeItem('nexus_ws_port');
+      localStorage.removeItem('nexus_discovered_port');
       console.log(
-        '✅ Cleared cached WebSocket port - next connection will discover server',
+        '✅ Cleared cached WebSocket routing hints; using unified /ws endpoint',
       );
     } catch (error) {
       console.warn('Failed to clear cached port:', error);
@@ -861,6 +728,6 @@ if (import.meta.env.DEV) {
     '🔧 Debug: webSocketService available at window.webSocketService',
   );
   console.log(
-    '   - window.webSocketService.clearCachedPort() to clear port cache',
+    '   - window.webSocketService.clearCachedPort() to clear cached routing hints',
   );
 }

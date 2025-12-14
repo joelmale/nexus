@@ -9,6 +9,110 @@ import '@/styles/generator-panel.css';
 
 const GENERATOR_MAP_STORAGE_KEY = 'nexus-generator-current-map';
 
+// IndexedDB helper for temporary generator map storage
+interface GeneratorMapData {
+  imageData: string;
+  format: 'webp' | 'png';
+  originalSize?: number;
+  timestamp: number;
+  generator: string;
+}
+
+const openGeneratorDB = async (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('NexusVTT', 5); // Bump to v5 to add tempStorage
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      console.log(`🔧 IndexedDB upgrade for generator: v${event.oldVersion} → v5`);
+
+      // Create existing stores if they don't exist (for compatibility)
+      if (!db.objectStoreNames.contains('maps')) {
+        const mapsStore = db.createObjectStore('maps', { keyPath: 'id' });
+        mapsStore.createIndex('timestamp', 'timestamp', { unique: false });
+        mapsStore.createIndex('name', 'name', { unique: false });
+        console.log('✅ Created maps store');
+      }
+
+      if (!db.objectStoreNames.contains('gameState')) {
+        const gameStateStore = db.createObjectStore('gameState', { keyPath: 'id' });
+        gameStateStore.createIndex('timestamp', 'timestamp', { unique: false });
+        gameStateStore.createIndex('version', 'version', { unique: false });
+        console.log('✅ Created gameState store');
+      }
+
+      // Create tempStorage store for generator maps (v5+)
+      if (!db.objectStoreNames.contains('tempStorage')) {
+        db.createObjectStore('tempStorage');
+        console.log('✅ Created tempStorage store for generator');
+      }
+    };
+  });
+};
+
+const saveGeneratorMapToIndexedDB = async (data: GeneratorMapData): Promise<void> => {
+  const db = await openGeneratorDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['tempStorage'], 'readwrite');
+    const store = transaction.objectStore('tempStorage');
+    const request = store.put(data, GENERATOR_MAP_STORAGE_KEY);
+    request.onsuccess = () => {
+      console.log('💾 Saved generator map to IndexedDB:', {
+        size: `${(data.imageData.length / 1024).toFixed(1)} KB`,
+        format: data.format,
+        generator: data.generator,
+      });
+      resolve();
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+const loadGeneratorMapFromIndexedDB = async (): Promise<GeneratorMapData | null> => {
+  try {
+    const db = await openGeneratorDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['tempStorage'], 'readonly');
+      const store = transaction.objectStore('tempStorage');
+      const request = store.get(GENERATOR_MAP_STORAGE_KEY);
+      request.onsuccess = () => {
+        const result = request.result as GeneratorMapData | undefined;
+        if (result) {
+          console.log('📂 Loaded generator map from IndexedDB:', {
+            size: `${(result.imageData.length / 1024).toFixed(1)} KB`,
+            format: result.format,
+            generator: result.generator,
+          });
+        }
+        resolve(result || null);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.warn('Failed to load generator map from IndexedDB:', error);
+    return null;
+  }
+};
+
+const deleteGeneratorMapFromIndexedDB = async (): Promise<void> => {
+  try {
+    const db = await openGeneratorDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['tempStorage'], 'readwrite');
+      const store = transaction.objectStore('tempStorage');
+      const request = store.delete(GENERATOR_MAP_STORAGE_KEY);
+      request.onsuccess = () => {
+        console.log('🗑️ Deleted generator map from IndexedDB');
+        resolve();
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.warn('Failed to delete generator map from IndexedDB:', error);
+  }
+};
+
 interface GeneratorPanelProps {
   onSwitchToScenes?: () => void;
 }
@@ -18,41 +122,37 @@ type GeneratorType = 'dungeon' | 'cave' | 'world' | 'city' | 'dwelling';
 export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   onSwitchToScenes,
 }) => {
-  const [generatedMap, setGeneratedMap] = useState<string | null>(() => {
-    try {
-      const stored = sessionStorage.getItem(GENERATOR_MAP_STORAGE_KEY);
-      if (stored) {
-        // Handle both old string format and new object format
-        try {
-          const parsed = JSON.parse(stored);
-          return typeof parsed === 'object' && parsed.imageData
-            ? parsed.imageData
-            : stored;
-        } catch {
-          // Old format - just a string
-          return stored;
-        }
-      }
-      return null;
-    } catch (error) {
-      console.warn('Failed to load generated map from sessionStorage:', error);
-      return null;
-    }
-  });
+  const [generatedMap, setGeneratedMap] = useState<string | null>(null);
   const [dungeonData, setDungeonData] = useState<DungeonData | null>(null);
   const [activeGenerator, setActiveGenerator] =
     useState<GeneratorType>('dungeon');
   const [showPreview, setShowPreview] = useState(false);
 
-  // Cleanup sessionStorage when component unmounts
+  // Load map from IndexedDB on mount
+  useEffect(() => {
+    const loadMap = async () => {
+      try {
+        const stored = await loadGeneratorMapFromIndexedDB();
+        if (stored) {
+          setGeneratedMap(stored.imageData);
+        }
+      } catch (error) {
+        console.warn('Failed to load generated map from IndexedDB:', error);
+      }
+    };
+    loadMap();
+  }, []);
+
+  // Cleanup IndexedDB when component unmounts
   useEffect(() => {
     return () => {
-      sessionStorage.removeItem(GENERATOR_MAP_STORAGE_KEY);
+      deleteGeneratorMapFromIndexedDB();
     };
   }, []);
 
   const activeScene = useActiveScene();
   const updateScene = useGameStore((state) => state.updateScene);
+  const setActiveTab = useGameStore((state) => state.setActiveTab);
 
   const handleMapGenerated = async (
     imageDataOrData:
@@ -88,8 +188,8 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       }
 
       setGeneratedMap(imageData);
-      // Store format info in sessionStorage for persistence
-      const mapData = {
+      // Store format info in IndexedDB for persistence
+      const mapData: GeneratorMapData = {
         imageData,
         format: mapFormat,
         originalSize: originalSizeValue,
@@ -99,10 +199,11 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
             ? imageDataOrData.meta.generator
             : 'dungeon',
       };
-      sessionStorage.setItem(
-        GENERATOR_MAP_STORAGE_KEY,
-        JSON.stringify(mapData),
-      );
+
+      // Save to IndexedDB asynchronously (don't block)
+      saveGeneratorMapToIndexedDB(mapData).catch((error) => {
+        console.error('Failed to save generated map to IndexedDB:', error);
+      });
 
       // Don't automatically save to library - only save when user clicks "Add to Scene"
       // This prevents filling up storage with unwanted maps
@@ -130,79 +231,46 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         const imageData = generatedMap;
         const mapTitle = `Generated ${activeGenerator.charAt(0).toUpperCase() + activeGenerator.slice(1)} ${new Date().toLocaleString()}`;
 
-        // Extract original size information from sessionStorage for compression stats
+        // Extract original size and format information from IndexedDB
         let originalSize: number | undefined;
+        let mapFormat: 'webp' | 'png' = 'png'; // Default to PNG
 
         try {
-          const stored = sessionStorage.getItem(GENERATOR_MAP_STORAGE_KEY);
+          const stored = await loadGeneratorMapFromIndexedDB();
           if (stored) {
-            const parsed = JSON.parse(stored);
-            if (typeof parsed === 'object' && parsed.originalSize) {
-              originalSize = parsed.originalSize;
+            if (stored.originalSize) {
+              originalSize = stored.originalSize;
+            }
+            if (stored.format) {
+              mapFormat = stored.format as 'webp' | 'png';
             }
           }
         } catch {
-          // Ignore parsing errors, use defaults
+          // Ignore errors, use defaults
         }
 
-        // First, scale and compress the image BEFORE saving anywhere
+        // Use the image at its original size without scaling
         const img = new Image();
         img.onload = async () => {
-          // Scale down by 50% to reduce storage size and improve performance
-          const canvas = document.createElement('canvas');
-          const scaledWidth = Math.floor(img.width * 0.5);
-          const scaledHeight = Math.floor(img.height * 0.5);
-
-          canvas.width = scaledWidth;
-          canvas.height = scaledHeight;
-
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            console.error('Failed to get canvas context for scaling');
-            return;
-          }
-
-          // Use high-quality scaling
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
-
-          // Convert to WebP with aggressive compression (0.75 quality for better compression)
-          const scaledImageData = canvas.toDataURL('image/webp', 0.75);
-          const base64Size = scaledImageData.length;
-
-          // Base64 adds ~33% overhead, so actual binary size is roughly 75% of base64 length
+          const base64Size = imageData.length;
           const estimatedBinarySize = Math.floor((base64Size * 3) / 4);
-          const originalBinarySize =
-            originalSize || Math.floor((imageData.length * 3) / 4);
 
           console.log(
-            `📐 ${activeGenerator.charAt(0).toUpperCase() + activeGenerator.slice(1)} compression results:`,
+            `📐 ${activeGenerator.charAt(0).toUpperCase() + activeGenerator.slice(1)} map imported:`,
           );
-          console.log(`   Original dimensions: ${img.width}×${img.height}`);
+          console.log(`   Dimensions: ${img.width}×${img.height}`);
           console.log(
-            `   Scaled dimensions: ${scaledWidth}×${scaledHeight} (50%)`,
+            `   Size: ${(estimatedBinarySize / 1024).toFixed(1)} KB`,
           );
-          console.log(
-            `   Original size: ${(originalBinarySize / 1024).toFixed(1)} KB`,
-          );
-          console.log(
-            `   Base64 encoded: ${(base64Size / 1024).toFixed(1)} KB`,
-          );
-          console.log(
-            `   Estimated binary: ${(estimatedBinarySize / 1024).toFixed(1)} KB`,
-          );
-          console.log(
-            `   Total savings: ${(((originalBinarySize - estimatedBinarySize) / originalBinarySize) * 100).toFixed(1)}%`,
-          );
+          console.log(`   Format: ${mapFormat.toUpperCase()}`);
 
-          // Now save the SCALED image to library
+          // Save the original image to library with correct format
           try {
             await dungeonMapService.saveGeneratedMap(
-              scaledImageData,
+              imageData,
               mapTitle,
-              'webp', // Always WebP now
-              originalBinarySize, // Original size before compression
+              mapFormat,
+              estimatedBinarySize,
             );
           } catch (saveError) {
             console.warn(
@@ -213,11 +281,11 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
           }
 
           const backgroundData = {
-            url: scaledImageData,
-            width: scaledWidth,
-            height: scaledHeight,
-            offsetX: -(scaledWidth / 2),
-            offsetY: -(scaledHeight / 2),
+            url: imageData,
+            width: img.width,
+            height: img.height,
+            offsetX: -(img.width / 2),
+            offsetY: -(img.height / 2),
             scale: 1,
           };
 
@@ -232,7 +300,9 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
           // Clear the stored map after successful addition
           setGeneratedMap(null);
-          sessionStorage.removeItem(GENERATOR_MAP_STORAGE_KEY);
+          deleteGeneratorMapFromIndexedDB().catch((error) => {
+            console.warn('Failed to delete generator map from IndexedDB:', error);
+          });
 
           // Verify the update
           setTimeout(() => {
@@ -241,7 +311,10 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
               .sceneState.scenes.find((s) => s.id === activeScene.id);
           }, 100);
 
-          // Switch to scenes panel
+          // Switch to scenes tab to show the newly added map
+          setActiveTab('scenes');
+
+          // Legacy callback support (if provided)
           if (onSwitchToScenes) {
             onSwitchToScenes();
           }

@@ -354,7 +354,11 @@ export const LinearWelcomePage: React.FC = () => {
       );
       navigate(`/lobby/game/${joinedRoomCode}`);
     } catch (err) {
-      setError('Failed to join room - room may not exist or be full');
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Failed to join room - room may not exist or be full';
+      setError(message);
       console.error(err);
     } finally {
       setLoading(false);

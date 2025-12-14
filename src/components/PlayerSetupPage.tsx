@@ -80,8 +80,12 @@ export const PlayerSetupPage: React.FC = () => {
         : undefined;
       const joinedRoomCode = await joinRoomWithCode(roomCode.trim().toUpperCase(), playerCharacter);
       navigate(`/lobby/game/${joinedRoomCode}`);
-    } catch {
-      setError('Failed to join room - room may not exist or be full');
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Failed to join room - room may not exist or be full';
+      setError(message);
     } finally {
       setLoading(false);
     }

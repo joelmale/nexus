@@ -189,6 +189,12 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
     }
 
     try {
+      console.log('💾 Saving token to server...');
+      console.log('   Token ID:', token.id);
+      console.log('   Token name:', token.name);
+      console.log('   Image data length:', processedImage.length);
+      console.log('   Image data prefix:', processedImage.substring(0, 50));
+
       const response = await fetch('/api/tokens/save', {
         method: 'POST',
         headers: {
@@ -202,11 +208,25 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
         credentials: 'include',
       });
 
+      console.log('   Response status:', response.status, response.statusText);
+
       if (!response.ok) {
-        throw new Error('Failed to save token to server');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('   Server error:', errorData);
+        throw new Error(
+          errorData.error || 'Failed to save token to server'
+        );
       }
 
       const result = await response.json();
+      console.log('   Server response:', result);
+
+      // Verify the server path is valid before updating
+      if (!result.path) {
+        throw new Error('Server did not return a valid path');
+      }
+
+      console.log('   Updating token with server path:', result.path);
 
       // Update token with server path instead of data URL
       const updates: Partial<Token> & { exclusive?: boolean } = {
@@ -221,8 +241,11 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
       alert('Token saved to server successfully! Path: ' + result.path);
       onClose();
     } catch (error) {
-      console.error('Failed to save token to server:', error);
-      alert('Failed to save token to server. Check console for details.');
+      console.error('❌ Failed to save token to server:', error);
+      alert(
+        'Failed to save token to server: ' +
+          (error instanceof Error ? error.message : String(error))
+      );
     }
   };
 

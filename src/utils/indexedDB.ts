@@ -34,7 +34,7 @@ export interface StorageStats {
 class DungeonMapIndexedDB {
   private db: IDBDatabase | null = null;
   private readonly DB_NAME = 'NexusVTT';
-  private readonly DB_VERSION = 3; // v3: Ensure both stores exist (migration from v1/v2)
+  private readonly DB_VERSION = 5; // v5: Added tempStorage for generator
   private readonly MAPS_STORE = 'maps';
   private readonly GAMESTATE_STORE = 'gameState';
   private initPromise: Promise<void> | null = null;
@@ -197,6 +197,12 @@ class DungeonMapIndexedDB {
           gameStateStore.createIndex('timestamp', 'timestamp', { unique: false });
           gameStateStore.createIndex('version', 'version', { unique: false });
           console.log('✅ Created IndexedDB store for game state');
+        }
+
+        // Create tempStorage store if it doesn't exist (v5+)
+        if (!db.objectStoreNames.contains('tempStorage')) {
+          db.createObjectStore('tempStorage');
+          console.log('✅ Created IndexedDB store for temporary storage');
         }
 
         console.log(`✅ IndexedDB upgrade complete. Available stores: ${Array.from(db.objectStoreNames).join(', ')}`);

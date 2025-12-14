@@ -55,13 +55,16 @@
 
               // Send to parent window with format information
               if (window.parent !== window) {
+                // Convert MIME type to short format name ('image/webp' -> 'webp')
+                const shortFormat = optimalFormat.replace('image/', '');
+
                 window.parent.postMessage(
                   {
                     type: 'DUNGEON_PNG_GENERATED',
                     data: {
                       imageData: imageData,
                       filename: filename,
-                      format: optimalFormat,
+                      format: shortFormat,
                       originalSize: blob.size,
                       timestamp: Date.now(),
                     },
@@ -94,13 +97,16 @@
             const imageData = reader.result;
 
             if (window.parent !== window) {
+              // Convert MIME type to short format name ('image/webp' -> 'webp', 'image/png' -> 'png')
+              const shortFormat = blob.type.replace('image/', '');
+
               window.parent.postMessage(
                 {
                   type: 'DUNGEON_PNG_GENERATED',
                   data: {
                     imageData: imageData,
                     filename: filename,
-                    format: blob.type,
+                    format: shortFormat,
                     originalSize: blob.size,
                     timestamp: Date.now(),
                   },

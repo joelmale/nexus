@@ -359,6 +359,96 @@ export const sceneUtils = {
 
     return { valid: true };
   },
+
+  /**
+   * Validate if a URL points to an image file
+   */
+  validateImageUrl(url: string): { valid: boolean; error?: string } {
+    try {
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname.toLowerCase();
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+
+      const hasImageExtension = imageExtensions.some(ext => pathname.endsWith(ext));
+
+      if (!hasImageExtension) {
+        return {
+          valid: false,
+          error: 'URL must point to an image file (.jpg, .jpeg, .png, .webp, or .gif)',
+        };
+      }
+
+      return { valid: true };
+    } catch {
+      return {
+        valid: false,
+        error: 'Invalid URL format',
+      };
+    }
+  },
+
+  /**
+   * Load an image from URL, convert to WebP data URI, and return with dimensions
+   * This handles CORS issues by converting the image to a data URI
+   */
+  async loadImageFromUrl(url: string): Promise<{
+    dataUrl: string;
+    width: number;
+    height: number;
+    originalSize: number;
+    compressedSize: number;
+  }> {
+    // Validate URL first
+    const validation = this.validateImageUrl(url);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    console.log('🖼️ Loading image from URL:', url);
+
+    // Create image element to load the image
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // Try to load with CORS
+
+    // Load the image
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('Failed to load image. The server may not allow cross-origin requests. Try downloading the image and uploading it instead.'));
+      img.src = url;
+    });
+
+    console.log(`✅ Image loaded: ${img.naturalWidth}×${img.naturalHeight}px`);
+
+    // Convert to WebP using canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Failed to create canvas context');
+    }
+
+    // Draw image to canvas
+    ctx.drawImage(img, 0, 0);
+
+    // Convert to WebP data URL with compression
+    const webpDataUrl = canvas.toDataURL('image/webp', 0.85);
+
+    // Calculate sizes
+    const originalSizeEstimate = url.length; // Rough estimate
+    const compressedSize = webpDataUrl.length;
+
+    console.log(`📐 Converted to WebP: ${this.formatFileSize(compressedSize)} (estimated original: ${this.formatFileSize(originalSizeEstimate)})`);
+
+    return {
+      dataUrl: webpDataUrl,
+      width: img.naturalWidth,
+      height: img.naturalHeight,
+      originalSize: originalSizeEstimate,
+      compressedSize,
+    };
+  },
 };
 
 /**

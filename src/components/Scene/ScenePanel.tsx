@@ -18,6 +18,9 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
   const [editingDescription, setEditingDescription] = useState(false);
   const [managementMode, setManagementMode] = useState(false);
   const [showBaseMapBrowser, setShowBaseMapBrowser] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const [loadingImageUrl, setLoadingImageUrl] = useState(false);
+  const [imageUrlError, setImageUrlError] = useState<string | null>(null);
 
   // Collapsible section state with localStorage persistence
   const [expandedSections, setExpandedSections] = useState(() => {
@@ -201,6 +204,39 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
       ...safeScene.lightingSettings,
       [setting]: value,
     });
+  };
+
+  const handleLoadImageFromUrl = async () => {
+    if (!imageUrlInput.trim()) {
+      setImageUrlError('Please enter a URL');
+      return;
+    }
+
+    setLoadingImageUrl(true);
+    setImageUrlError(null);
+
+    try {
+      const { sceneUtils } = await import('@/utils/sceneUtils');
+      const { dataUrl, width, height } = await sceneUtils.loadImageFromUrl(imageUrlInput);
+
+      handleFieldUpdate('backgroundImage', {
+        url: dataUrl,
+        width,
+        height,
+        offsetX: -width / 2,
+        offsetY: -height / 2,
+        scale: 1.0,
+      });
+
+      console.log(`✅ Background image loaded from URL: ${width}×${height}px`);
+      setImageUrlInput(''); // Clear input on success
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load image from URL';
+      setImageUrlError(errorMessage);
+      console.error('❌ Failed to load image from URL:', error);
+    } finally {
+      setLoadingImageUrl(false);
+    }
   };
 
   const handleBaseMapSelect = (map: BaseMap) => {
@@ -397,27 +433,48 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
             <>
               <div className="scene-panel__field">
                 <label>Background Image URL</label>
-                <input
-                  type="text"
-                  value={safeScene.backgroundImage?.url || ''}
-                  onChange={(e) => {
-                    const url = e.target.value;
-                    if (url) {
-                      handleFieldUpdate('backgroundImage', {
-                        url,
-                        width: 1920,
-                        height: 1080,
-                        offsetX: -960,
-                        offsetY: -540,
-                        scale: 1,
-                      });
-                    } else {
-                      handleFieldUpdate('backgroundImage', undefined);
-                    }
-                  }}
-                  placeholder="https://example.com/map.jpg or paste image URL"
-                  className="scene-panel__field-input"
-                />
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="text"
+                      value={imageUrlInput}
+                      onChange={(e) => {
+                        setImageUrlInput(e.target.value);
+                        setImageUrlError(null); // Clear error on input change
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !loadingImageUrl) {
+                          handleLoadImageFromUrl();
+                        }
+                      }}
+                      placeholder="https://example.com/map.jpg"
+                      className="scene-panel__field-input"
+                      disabled={loadingImageUrl}
+                    />
+                    {imageUrlError && (
+                      <small style={{ color: '#ff6b6b', display: 'block', marginTop: '4px' }}>
+                        {imageUrlError}
+                      </small>
+                    )}
+                    <small
+                      style={{
+                        color: 'var(--glass-text-secondary, #999)',
+                        display: 'block',
+                        marginTop: '4px',
+                      }}
+                    >
+                      Supported: JPG, PNG, WebP, GIF
+                    </small>
+                  </div>
+                  <button
+                    onClick={handleLoadImageFromUrl}
+                    disabled={loadingImageUrl || !imageUrlInput.trim()}
+                    className="btn btn--primary"
+                    style={{ minWidth: '80px', whiteSpace: 'nowrap' }}
+                  >
+                    {loadingImageUrl ? 'Loading...' : 'Load'}
+                  </button>
+                </div>
               </div>
 
               <div className="scene-panel__field">
