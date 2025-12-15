@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2025-10-07T01:03:57.276Z",
-  "totalAssets": 21,
+  "generatedAt": "2025-12-15T22:17:07.203361",
+  "totalAssets": 67,
   "tokens": {
     "count": 12,
     "items": [
@@ -191,146 +191,824 @@
     ]
   },
   "maps": {
-    "count": 9,
+    "count": 55,
     "items": [
       {
-        "id": "default-map-1",
+        "id": "base-map-1",
+        "type": "map",
+        "name": "10. DoS2 - Fort Joy Docks",
+        "category": "custom",
+        "tags": [
+          "10",
+          "dos2",
+          "fort",
+          "joy",
+          "docks"
+        ],
+        "path": "/assets/defaults/base_maps/10. DoS2 - Fort Joy Docks.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/10. DoS2 - Fort Joy Docks.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-2",
+        "type": "map",
+        "name": "11. Canals",
+        "category": "custom",
+        "tags": [
+          "11",
+          "canals"
+        ],
+        "path": "/assets/defaults/base_maps/11. Canals.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/11. Canals.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-3",
+        "type": "map",
+        "name": "12. DoS2 - Blood Rose Cave",
+        "category": "custom",
+        "tags": [
+          "12",
+          "dos2",
+          "blood",
+          "rose",
+          "cave"
+        ],
+        "path": "/assets/defaults/base_maps/12. DoS2 - Blood Rose Cave.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/12. DoS2 - Blood Rose Cave.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-4",
+        "type": "map",
+        "name": "13. Cliffside Beach",
+        "category": "custom",
+        "tags": [
+          "13",
+          "cliffside",
+          "beach"
+        ],
+        "path": "/assets/defaults/base_maps/13. Cliffside Beach.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/13. Cliffside Beach.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-5",
+        "type": "map",
+        "name": "14. DoS2 - Fort Joy Courtyard - Paladin Corc",
+        "category": "custom",
+        "tags": [
+          "14",
+          "dos2",
+          "fort",
+          "joy",
+          "courtyard",
+          "paladin",
+          "corc"
+        ],
+        "path": "/assets/defaults/base_maps/14. DoS2 - Fort Joy Courtyard - Paladin Corc.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/14. DoS2 - Fort Joy Courtyard - Paladin Corc.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-6",
+        "type": "map",
+        "name": "15. DoS2 - Fort Joy Courtyard - Prisoner Entrance",
+        "category": "custom",
+        "tags": [
+          "15",
+          "dos2",
+          "fort",
+          "joy",
+          "courtyard",
+          "prisoner",
+          "entrance"
+        ],
+        "path": "/assets/defaults/base_maps/15. DoS2 - Fort Joy Courtyard - Prisoner Entrance.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/15. DoS2 - Fort Joy Courtyard - Prisoner Entrance.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-7",
+        "type": "map",
+        "name": "16. DoS2 - Fort Joy Courtyard",
+        "category": "custom",
+        "tags": [
+          "16",
+          "dos2",
+          "fort",
+          "joy",
+          "courtyard"
+        ],
+        "path": "/assets/defaults/base_maps/16. DoS2 - Fort Joy Courtyard.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/16. DoS2 - Fort Joy Courtyard.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-8",
+        "type": "map",
+        "name": "17. The Grand Game (Empty Board)",
+        "category": "custom",
+        "tags": [
+          "17",
+          "the",
+          "grand",
+          "game",
+          "empty",
+          "board"
+        ],
+        "path": "/assets/defaults/base_maps/17. The Grand Game (Empty Board).webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/17. The Grand Game (Empty Board).thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-9",
+        "type": "map",
+        "name": "18. Overgrown Temple",
+        "category": "custom",
+        "tags": [
+          "18",
+          "overgrown",
+          "temple"
+        ],
+        "path": "/assets/defaults/base_maps/18. Overgrown Temple.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/18. Overgrown Temple.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-10",
+        "type": "map",
+        "name": "19. Fort Joy Forest (Void Woken Boss)",
+        "category": "custom",
+        "tags": [
+          "19",
+          "fort",
+          "joy",
+          "forest",
+          "void",
+          "woken",
+          "boss"
+        ],
+        "path": "/assets/defaults/base_maps/19. Fort Joy Forest (Void Woken Boss).webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/19. Fort Joy Forest (Void Woken Boss).thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-11",
+        "type": "map",
+        "name": "2. Forest Check Point",
+        "category": "custom",
+        "tags": [
+          "2",
+          "forest",
+          "check",
+          "point"
+        ],
+        "path": "/assets/defaults/base_maps/2. Forest Check Point.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/2. Forest Check Point.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-12",
+        "type": "map",
+        "name": "20. River Crossing Guard Post",
+        "category": "custom",
+        "tags": [
+          "20",
+          "river",
+          "crossing",
+          "guard",
+          "post"
+        ],
+        "path": "/assets/defaults/base_maps/20. River Crossing Guard Post.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/20. River Crossing Guard Post.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-13",
+        "type": "map",
+        "name": "20.1. Perform the Troll",
+        "category": "custom",
+        "tags": [
+          "20",
+          "1",
+          "perform",
+          "the",
+          "troll"
+        ],
+        "path": "/assets/defaults/base_maps/20.1. Perform the Troll.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/20.1. Perform the Troll.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-14",
+        "type": "map",
+        "name": "21. Elfsong Tavern",
+        "category": "custom",
+        "tags": [
+          "21",
+          "elfsong",
+          "tavern"
+        ],
+        "path": "/assets/defaults/base_maps/21. Elfsong Tavern.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/21. Elfsong Tavern.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-15",
+        "type": "map",
+        "name": "21.1. The Toy Makers Shop",
+        "category": "custom",
+        "tags": [
+          "21",
+          "1",
+          "the",
+          "toy",
+          "makers",
+          "shop"
+        ],
+        "path": "/assets/defaults/base_maps/21.1. The Toy Makers Shop.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/21.1. The Toy Makers Shop.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-16",
+        "type": "map",
+        "name": "21.2. Tinker Toymaker Soldiers Spy",
+        "category": "custom",
+        "tags": [
+          "21",
+          "2",
+          "tinker",
+          "toymaker",
+          "soldiers",
+          "spy"
+        ],
+        "path": "/assets/defaults/base_maps/21.2. Tinker Toymaker Soldiers Spy.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/21.2. Tinker Toymaker Soldiers Spy.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-17",
+        "type": "map",
+        "name": "22. City Street Market",
+        "category": "custom",
+        "tags": [
+          "22",
+          "city",
+          "street",
+          "market"
+        ],
+        "path": "/assets/defaults/base_maps/22. City Street Market.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/22. City Street Market.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-18",
+        "type": "map",
+        "name": "23. Forest Ruins Camp",
+        "category": "custom",
+        "tags": [
+          "23",
+          "forest",
+          "ruins",
+          "camp"
+        ],
+        "path": "/assets/defaults/base_maps/23. Forest Ruins Camp.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/23. Forest Ruins Camp.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-19",
+        "type": "map",
+        "name": "3. DoS2 - Kniles Torture Chamber",
+        "category": "custom",
+        "tags": [
+          "3",
+          "dos2",
+          "kniles",
+          "torture",
+          "chamber"
+        ],
+        "path": "/assets/defaults/base_maps/3. DoS2 - Kniles Torture Chamber.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/3. DoS2 - Kniles Torture Chamber.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-20",
+        "type": "map",
+        "name": "4. Small Farm",
+        "category": "custom",
+        "tags": [
+          "4",
+          "small",
+          "farm"
+        ],
+        "path": "/assets/defaults/base_maps/4. Small Farm.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/4. Small Farm.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-21",
+        "type": "map",
+        "name": "5. DoS2 - The Arena of Fort Joy",
+        "category": "custom",
+        "tags": [
+          "5",
+          "dos2",
+          "the",
+          "arena",
+          "of",
+          "fort",
+          "joy"
+        ],
+        "path": "/assets/defaults/base_maps/5. DoS2 - The Arena of Fort Joy.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/5. DoS2 - The Arena of Fort Joy.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-22",
+        "type": "map",
+        "name": "6. Laiden Manor",
+        "category": "custom",
+        "tags": [
+          "6",
+          "laiden",
+          "manor"
+        ],
+        "path": "/assets/defaults/base_maps/6. Laiden Manor.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/6. Laiden Manor.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-23",
+        "type": "map",
+        "name": "7. DoS2 - Fort Joy Dungeon",
+        "category": "custom",
+        "tags": [
+          "7",
+          "dos2",
+          "fort",
+          "joy",
+          "dungeon"
+        ],
+        "path": "/assets/defaults/base_maps/7. DoS2 - Fort Joy Dungeon.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/7. DoS2 - Fort Joy Dungeon.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-24",
+        "type": "map",
+        "name": "8. Critical Role - The Four Corners",
+        "category": "custom",
+        "tags": [
+          "8",
+          "critical",
+          "role",
+          "the",
+          "four",
+          "corners"
+        ],
+        "path": "/assets/defaults/base_maps/8. Critical Role - The Four Corners.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/8. Critical Role - The Four Corners.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-25",
+        "type": "map",
+        "name": "9. Airship Docks",
+        "category": "custom",
+        "tags": [
+          "9",
+          "airship",
+          "docks"
+        ],
+        "path": "/assets/defaults/base_maps/9. Airship Docks.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/9. Airship Docks.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-26",
         "type": "map",
         "name": "Australian Billabong, Base Map, Day (23x16)",
-        "category": "outdoor",
+        "category": "custom",
+        "tags": [
+          "australian",
+          "billabong",
+          "base",
+          "map",
+          "day",
+          "23x16"
+        ],
+        "path": "/assets/defaults/base_maps/Australian Billabong, Base Map, Day (23x16).webp",
+        "thumbnail": null,
+        "format": "webp",
+        "isDefault": true,
         "gridSize": {
           "width": 23,
           "height": 16
-        },
+        }
+      },
+      {
+        "id": "base-map-27",
+        "type": "map",
+        "name": "Carnival [43x51] - WM",
+        "category": "custom",
         "tags": [
-          "australian",
-          "billabong,",
-          "base",
-          "map,",
-          "day",
-          "(23x16)"
+          "carnival",
+          "43x51",
+          "wm"
         ],
-        "path": "/assets/defaults/base_maps/Australian Billabong, Base Map, Day (23x16).webp",
-        "thumbnail": "/assets/defaults/base_maps/thumbnails/Australian Billabong, Base Map, Day (23x16).thumb.jpg",
+        "path": "/assets/defaults/base_maps/Carnival [43x51] - WM.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Carnival [43x51] - WM.thumb.webp",
+        "format": "webp",
+        "isDefault": true,
+        "gridSize": {
+          "width": 43,
+          "height": 51
+        }
+      },
+      {
+        "id": "base-map-28",
+        "type": "map",
+        "name": "City Park",
+        "category": "custom",
+        "tags": [
+          "city",
+          "park"
+        ],
+        "path": "/assets/defaults/base_maps/City Park.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/City Park.thumb.webp",
         "format": "webp",
         "isDefault": true
       },
       {
-        "id": "default-map-2",
+        "id": "base-map-29",
+        "type": "map",
+        "name": "Cliffside Observatory [50x65] -WM",
+        "category": "custom",
+        "tags": [
+          "cliffside",
+          "observatory",
+          "50x65",
+          "wm"
+        ],
+        "path": "/assets/defaults/base_maps/Cliffside Observatory [50x65] -WM.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Cliffside Observatory [50x65] -WM.thumb.webp",
+        "format": "webp",
+        "isDefault": true,
+        "gridSize": {
+          "width": 50,
+          "height": 65
+        }
+      },
+      {
+        "id": "base-map-30",
         "type": "map",
         "name": "Colossal Turtle, Sea Turtle, Day (44x32)",
-        "category": "outdoor",
-        "gridSize": {
-          "width": 44,
-          "height": 32
-        },
+        "category": "custom",
         "tags": [
           "colossal",
-          "turtle,",
+          "turtle",
           "sea",
+          "turtle",
           "day",
-          "(44x32)"
+          "44x32"
         ],
         "path": "/assets/defaults/base_maps/Colossal Turtle, Sea Turtle, Day (44x32).webp",
-        "thumbnail": "/assets/defaults/base_maps/thumbnails/Colossal Turtle, Sea Turtle, Day (44x32).thumb.jpg",
+        "thumbnail": null,
         "format": "webp",
-        "isDefault": true
-      },
-      {
-        "id": "default-map-3",
-        "type": "map",
-        "name": "Crab Rock - Seaside - Clear - 44x32",
-        "category": "outdoor",
+        "isDefault": true,
         "gridSize": {
           "width": 44,
           "height": 32
-        },
+        }
+      },
+      {
+        "id": "base-map-31",
+        "type": "map",
+        "name": "Crab Rock - Seaside - Clear - 44x32",
+        "category": "custom",
         "tags": [
           "crab",
           "rock",
           "seaside",
-          "clear"
+          "clear",
+          "44x32"
         ],
         "path": "/assets/defaults/base_maps/Crab Rock - Seaside - Clear - 44x32.webp",
-        "thumbnail": "/assets/defaults/base_maps/thumbnails/Crab Rock - Seaside - Clear - 44x32.thumb.jpg",
+        "thumbnail": null,
+        "format": "webp",
+        "isDefault": true,
+        "gridSize": {
+          "width": 44,
+          "height": 32
+        }
+      },
+      {
+        "id": "base-map-32",
+        "type": "map",
+        "name": "Cramp City Street and Alleys [25x45] - WM",
+        "category": "custom",
+        "tags": [
+          "cramp",
+          "city",
+          "street",
+          "and",
+          "alleys",
+          "25x45",
+          "wm"
+        ],
+        "path": "/assets/defaults/base_maps/Cramp City Street and Alleys [25x45] - WM.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Cramp City Street and Alleys [25x45] - WM.thumb.webp",
+        "format": "webp",
+        "isDefault": true,
+        "gridSize": {
+          "width": 25,
+          "height": 45
+        }
+      },
+      {
+        "id": "base-map-33",
+        "type": "map",
+        "name": "Cyclops Cave",
+        "category": "custom",
+        "tags": [
+          "cyclops",
+          "cave"
+        ],
+        "path": "/assets/defaults/base_maps/Cyclops Cave.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Cyclops Cave.thumb.webp",
         "format": "webp",
         "isDefault": true
       },
       {
-        "id": "default-map-4",
+        "id": "base-map-34",
         "type": "map",
         "name": "Docks of the Dead  - Base map - Day - Top - 23x16",
-        "category": "urban",
-        "gridSize": {
-          "width": 23,
-          "height": 16
-        },
+        "category": "custom",
         "tags": [
           "docks",
+          "of",
           "the",
           "dead",
           "base",
           "map",
           "day",
-          "top"
+          "top",
+          "23x16"
         ],
         "path": "/assets/defaults/base_maps/Docks of the Dead  - Base map - Day - Top - 23x16.webp",
-        "thumbnail": "/assets/defaults/base_maps/thumbnails/Docks of the Dead  - Base map - Day - Top - 23x16.thumb.jpg",
+        "thumbnail": null,
         "format": "webp",
-        "isDefault": true
-      },
-      {
-        "id": "default-map-5",
-        "type": "map",
-        "name": "Docks of the Dead - Base map - Night - Bottom - 23x16",
-        "category": "urban",
+        "isDefault": true,
         "gridSize": {
           "width": 23,
           "height": 16
-        },
+        }
+      },
+      {
+        "id": "base-map-35",
+        "type": "map",
+        "name": "Docks of the Dead - Base map - Night - Bottom - 23x16",
+        "category": "custom",
         "tags": [
           "docks",
+          "of",
           "the",
           "dead",
           "base",
           "map",
           "night",
-          "bottom"
+          "bottom",
+          "23x16"
         ],
         "path": "/assets/defaults/base_maps/Docks of the Dead - Base map - Night - Bottom - 23x16.webp",
-        "thumbnail": "/assets/defaults/base_maps/thumbnails/Docks of the Dead - Base map - Night - Bottom - 23x16.thumb.jpg",
+        "thumbnail": null,
+        "format": "webp",
+        "isDefault": true,
+        "gridSize": {
+          "width": 23,
+          "height": 16
+        }
+      },
+      {
+        "id": "base-map-36",
+        "type": "map",
+        "name": "FREE Cliffside Dragon Remains [25x25](1)",
+        "category": "custom",
+        "tags": [
+          "free",
+          "cliffside",
+          "dragon",
+          "remains",
+          "25x25",
+          "1"
+        ],
+        "path": "/assets/defaults/base_maps/FREE Cliffside Dragon Remains [25x25](1).webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/FREE Cliffside Dragon Remains [25x25](1).thumb.webp",
+        "format": "webp",
+        "isDefault": true,
+        "gridSize": {
+          "width": 25,
+          "height": 25
+        }
+      },
+      {
+        "id": "base-map-37",
+        "type": "map",
+        "name": "Forgotten Chamber of Heros",
+        "category": "custom",
+        "tags": [
+          "forgotten",
+          "chamber",
+          "of",
+          "heros"
+        ],
+        "path": "/assets/defaults/base_maps/Forgotten Chamber of Heros.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Forgotten Chamber of Heros.thumb.webp",
         "format": "webp",
         "isDefault": true
       },
       {
-        "id": "default-map-6",
+        "id": "base-map-38",
+        "type": "map",
+        "name": "Frozen Pond",
+        "category": "custom",
+        "tags": [
+          "frozen",
+          "pond"
+        ],
+        "path": "/assets/defaults/base_maps/Frozen Pond.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Frozen Pond.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-39",
+        "type": "map",
+        "name": "Gareth's Rescue",
+        "category": "custom",
+        "tags": [
+          "gareth",
+          "s",
+          "rescue"
+        ],
+        "path": "/assets/defaults/base_maps/Gareth's Rescue.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Gareth's Rescue.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-40",
+        "type": "map",
+        "name": "Jail House",
+        "category": "custom",
+        "tags": [
+          "jail",
+          "house"
+        ],
+        "path": "/assets/defaults/base_maps/Jail House.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Jail House.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-41",
+        "type": "map",
+        "name": "King of the Giants",
+        "category": "custom",
+        "tags": [
+          "king",
+          "of",
+          "the",
+          "giants"
+        ],
+        "path": "/assets/defaults/base_maps/King of the Giants.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/King of the Giants.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-42",
         "type": "map",
         "name": "Lakeside Camp - Spring - Day - 44x32",
-        "category": "outdoor",
-        "gridSize": {
-          "width": 44,
-          "height": 32
-        },
+        "category": "custom",
         "tags": [
           "lakeside",
           "camp",
           "spring",
-          "day"
+          "day",
+          "44x32"
         ],
         "path": "/assets/defaults/base_maps/Lakeside Camp - Spring - Day - 44x32.webp",
-        "thumbnail": "/assets/defaults/base_maps/thumbnails/Lakeside Camp - Spring - Day - 44x32.thumb.jpg",
+        "thumbnail": null,
+        "format": "webp",
+        "isDefault": true,
+        "gridSize": {
+          "width": 44,
+          "height": 32
+        }
+      },
+      {
+        "id": "base-map-43",
+        "type": "map",
+        "name": "Mountain Pass",
+        "category": "custom",
+        "tags": [
+          "mountain",
+          "pass"
+        ],
+        "path": "/assets/defaults/base_maps/Mountain Pass.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Mountain Pass.thumb.webp",
         "format": "webp",
         "isDefault": true
       },
       {
-        "id": "default-map-7",
+        "id": "base-map-44",
         "type": "map",
-        "name": "Shattered Sky - Astral Sea - Blue Star - 22x16 - 72 DPI vtt",
-        "category": "outdoor",
+        "name": "Overgrown Guardhouse",
+        "category": "custom",
+        "tags": [
+          "overgrown",
+          "guardhouse"
+        ],
+        "path": "/assets/defaults/base_maps/Overgrown Guardhouse.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Overgrown Guardhouse.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-45",
+        "type": "map",
+        "name": "Overgrown Viking Throne [25x25] - WM",
+        "category": "custom",
+        "tags": [
+          "overgrown",
+          "viking",
+          "throne",
+          "25x25",
+          "wm"
+        ],
+        "path": "/assets/defaults/base_maps/Overgrown Viking Throne [25x25] - WM.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Overgrown Viking Throne [25x25] - WM.thumb.webp",
+        "format": "webp",
+        "isDefault": true,
         "gridSize": {
-          "width": 22,
-          "height": 16
-        },
+          "width": 25,
+          "height": 25
+        }
+      },
+      {
+        "id": "base-map-46",
+        "type": "map",
+        "name": "Rope Bridge [18x28] - WM",
+        "category": "custom",
+        "tags": [
+          "rope",
+          "bridge",
+          "18x28",
+          "wm"
+        ],
+        "path": "/assets/defaults/base_maps/Rope Bridge [18x28] - WM.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Rope Bridge [18x28] - WM.thumb.webp",
+        "format": "webp",
+        "isDefault": true,
+        "gridSize": {
+          "width": 18,
+          "height": 28
+        }
+      },
+      {
+        "id": "base-map-47",
+        "type": "map",
+        "name": "Shattered Sky - Astral Sea - Blue Star - 22x16 - 72 DPI_vtt",
+        "category": "custom",
         "tags": [
           "shattered",
           "sky",
@@ -338,52 +1016,159 @@
           "sea",
           "blue",
           "star",
+          "22x16",
+          "72",
           "dpi",
           "vtt"
         ],
         "path": "/assets/defaults/base_maps/Shattered Sky - Astral Sea - Blue Star - 22x16 - 72 DPI_vtt.webp",
-        "thumbnail": "/assets/defaults/base_maps/thumbnails/Shattered Sky - Astral Sea - Blue Star - 22x16 - 72 DPI_vtt.thumb.jpg",
+        "thumbnail": null,
         "format": "webp",
-        "isDefault": true
+        "isDefault": true,
+        "gridSize": {
+          "width": 22,
+          "height": 16
+        }
       },
       {
-        "id": "default-map-8",
+        "id": "base-map-48",
         "type": "map",
         "name": "Shifting Swamp - Jungle - 23x16",
-        "category": "outdoor",
-        "gridSize": {
-          "width": 23,
-          "height": 16
-        },
+        "category": "custom",
         "tags": [
           "shifting",
           "swamp",
-          "jungle"
+          "jungle",
+          "23x16"
         ],
         "path": "/assets/defaults/base_maps/Shifting Swamp - Jungle - 23x16.webp",
-        "thumbnail": "/assets/defaults/base_maps/thumbnails/Shifting Swamp - Jungle - 23x16.thumb.jpg",
+        "thumbnail": null,
         "format": "webp",
-        "isDefault": true
+        "isDefault": true,
+        "gridSize": {
+          "width": 23,
+          "height": 16
+        }
       },
       {
-        "id": "default-map-9",
+        "id": "base-map-49",
         "type": "map",
-        "name": "Sinister Woodland - Swamp - Day - Open - 44x32 vtt",
-        "category": "outdoor",
-        "gridSize": {
-          "width": 44,
-          "height": 32
-        },
+        "name": "Sinister Woodland - Swamp - Day - Open - 44x32_vtt",
+        "category": "custom",
         "tags": [
           "sinister",
           "woodland",
           "swamp",
           "day",
           "open",
+          "44x32",
           "vtt"
         ],
         "path": "/assets/defaults/base_maps/Sinister Woodland - Swamp - Day - Open - 44x32_vtt.webp",
-        "thumbnail": "/assets/defaults/base_maps/thumbnails/Sinister Woodland - Swamp - Day - Open - 44x32_vtt.thumb.jpg",
+        "thumbnail": null,
+        "format": "webp",
+        "isDefault": true,
+        "gridSize": {
+          "width": 44,
+          "height": 32
+        }
+      },
+      {
+        "id": "base-map-50",
+        "type": "map",
+        "name": "Slane the Winter Dragon",
+        "category": "custom",
+        "tags": [
+          "slane",
+          "the",
+          "winter",
+          "dragon"
+        ],
+        "path": "/assets/defaults/base_maps/Slane the Winter Dragon.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Slane the Winter Dragon.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-51",
+        "type": "map",
+        "name": "Tear of the Goddess",
+        "category": "custom",
+        "tags": [
+          "tear",
+          "of",
+          "the",
+          "goddess"
+        ],
+        "path": "/assets/defaults/base_maps/Tear of the Goddess.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Tear of the Goddess.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-52",
+        "type": "map",
+        "name": "Undervault Market [30x40] - WM",
+        "category": "custom",
+        "tags": [
+          "undervault",
+          "market",
+          "30x40",
+          "wm"
+        ],
+        "path": "/assets/defaults/base_maps/Undervault Market [30x40] - WM.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Undervault Market [30x40] - WM.thumb.webp",
+        "format": "webp",
+        "isDefault": true,
+        "gridSize": {
+          "width": 30,
+          "height": 40
+        }
+      },
+      {
+        "id": "base-map-53",
+        "type": "map",
+        "name": "Winery [50x46] - WM",
+        "category": "custom",
+        "tags": [
+          "winery",
+          "50x46",
+          "wm"
+        ],
+        "path": "/assets/defaults/base_maps/Winery [50x46] - WM.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Winery [50x46] - WM.thumb.webp",
+        "format": "webp",
+        "isDefault": true,
+        "gridSize": {
+          "width": 50,
+          "height": 46
+        }
+      },
+      {
+        "id": "base-map-54",
+        "type": "map",
+        "name": "castle courtyard",
+        "category": "custom",
+        "tags": [
+          "castle",
+          "courtyard"
+        ],
+        "path": "/assets/defaults/base_maps/castle courtyard.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/castle courtyard.thumb.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "base-map-55",
+        "type": "map",
+        "name": "city battlements",
+        "category": "custom",
+        "tags": [
+          "city",
+          "battlements"
+        ],
+        "path": "/assets/defaults/base_maps/city battlements.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/city battlements.thumb.webp",
         "format": "webp",
         "isDefault": true
       }

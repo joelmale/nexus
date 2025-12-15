@@ -477,60 +477,62 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
             <>
               <div className="scene-panel__field">
                 <label>Background Image URL</label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <input
-                      type="text"
-                      value={imageUrlInput}
-                      onChange={(e) => {
-                        setImageUrlInput(e.target.value);
-                        setImageUrlError(null); // Clear error on input change
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !loadingImageUrl) {
-                          handleLoadImageFromUrl();
-                        }
-                      }}
-                      placeholder="https://example.com/map.jpg"
-                      className="scene-panel__field-input"
-                      disabled={loadingImageUrl}
-                    />
-                    {imageUrlError && (
-                      <small style={{ color: '#ff6b6b', display: 'block', marginTop: '4px' }}>
-                        {imageUrlError}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flexDirection: 'column' }}>
+                    <div style={{ width: '100%' }}>
+                      <input
+                        type="text"
+                        value={imageUrlInput}
+                        onChange={(e) => {
+                          setImageUrlInput(e.target.value);
+                          setImageUrlError(null); // Clear error on input change
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !loadingImageUrl) {
+                            handleLoadImageFromUrl();
+                          }
+                        }}
+                        placeholder="https://example.com/map.jpg"
+                        className="scene-panel__field-input"
+                        disabled={loadingImageUrl}
+                      />
+                      {imageUrlError && (
+                        <small style={{ color: '#ff6b6b', display: 'block', marginTop: '4px' }}>
+                          {imageUrlError}
+                        </small>
+                      )}
+                      <small
+                        style={{
+                          color: 'var(--glass-text-secondary, #999)',
+                          display: 'block',
+                          marginTop: '4px',
+                        }}
+                      >
+                        Supported: JPG, PNG, WebP, GIF
                       </small>
-                    )}
-                    <small
-                      style={{
-                        color: 'var(--glass-text-secondary, #999)',
-                        display: 'block',
-                        marginTop: '4px',
-                      }}
-                    >
-                      Supported: JPG, PNG, WebP, GIF
-                    </small>
-                  </div>
-                    <button
-                      onClick={handleLoadImageFromUrl}
-                      disabled={loadingImageUrl || !imageUrlInput.trim()}
-                      className="btn btn--primary"
-                      style={{ minWidth: '80px', whiteSpace: 'nowrap' }}
-                    >
-                      {loadingImageUrl ? 'Loading...' : 'Load'}
-                    </button>
-                    <button
-                      onClick={handleSaveLoadedImageToBaseMaps}
-                      disabled={!loadedImageFromUrl}
-                      className="btn"
-                      style={{ minWidth: '120px', whiteSpace: 'nowrap' }}
-                      title={
-                        loadedImageFromUrl
-                          ? 'Save the last loaded image to Base Maps'
-                          : 'Load an image first'
-                      }
-                    >
-                      Save to Base Maps
-                    </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={handleLoadImageFromUrl}
+                        disabled={loadingImageUrl || !imageUrlInput.trim()}
+                        className="btn btn--primary"
+                        style={{ minWidth: '72px', padding: '6px 10px' }}
+                      >
+                        {loadingImageUrl ? 'Loading...' : 'Load'}
+                      </button>
+                      <button
+                        onClick={handleSaveLoadedImageToBaseMaps}
+                        disabled={!loadedImageFromUrl}
+                        className="btn"
+                        style={{ minWidth: '120px', padding: '6px 10px' }}
+                        title={
+                          loadedImageFromUrl
+                            ? 'Save the last loaded image to Base Maps'
+                            : 'Load an image first'
+                        }
+                      >
+                        Save to Base Maps
+                      </button>
+                    </div>
                   </div>
                 </div>
 
