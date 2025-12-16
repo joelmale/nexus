@@ -288,6 +288,8 @@ export const GameToolbar: React.FC = () => {
         onClick={tool.action ? tool.action : () => setActiveTool(tool.id)}
         disabled={tool.disabled}
         aria-pressed={activeTool === tool.id}
+        aria-label={tool.label}
+        title={tool.tooltip || tool.label}
         onMouseEnter={() => setHoveredTool(tool)}
       >
         {tool.icon ? (
