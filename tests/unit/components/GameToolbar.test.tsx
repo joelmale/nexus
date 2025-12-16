@@ -29,7 +29,7 @@ describe('GameToolbar', () => {
     (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
-    const selectButton = screen.getByRole('button', { name: '👆' });
+    const selectButton = screen.getByRole('button', { name: 'Select / Move' });
     expect(selectButton).toHaveClass('active');
   });
 
@@ -38,7 +38,7 @@ describe('GameToolbar', () => {
     (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
-    const panButton = screen.getByRole('button', { name: '✋' });
+    const panButton = screen.getByRole('button', { name: 'Pan' });
     fireEvent.click(panButton);
 
     expect(setActiveTool).toHaveBeenCalledWith('pan');
@@ -49,7 +49,7 @@ describe('GameToolbar', () => {
     (useIsHost as vi.Mock).mockReturnValue(true);
     render(<GameToolbar />);
 
-    const createMaskButton = screen.getByRole('button', { name: '🌟' });
+    const createMaskButton = screen.getByRole('button', { name: 'Create Mask' });
     expect(createMaskButton).toBeInTheDocument();
   });
 
@@ -58,7 +58,7 @@ describe('GameToolbar', () => {
     (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
-    const createMaskButton = screen.queryByRole('button', { name: '🌟' });
+    const createMaskButton = screen.queryByRole('button', { name: 'Create Mask' });
     expect(createMaskButton).not.toBeInTheDocument();
   });
 
@@ -67,11 +67,11 @@ describe('GameToolbar', () => {
     (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
-    const zoomInButton = screen.getByRole('button', { name: '➕' });
+    const zoomInButton = screen.getByRole('button', { name: 'Zoom In' });
     fireEvent.click(zoomInButton);
     expect(updateCamera).toHaveBeenCalledWith({ zoom: 1.2 });
 
-    const zoomOutButton = screen.getAllByRole('button', { name: '➖' }).find(button => button.getAttribute('data-id') === 'zoom-out');
+    const zoomOutButton = screen.getByRole('button', { name: 'Zoom Out' });
     fireEvent.click(zoomOutButton);
     expect(updateCamera).toHaveBeenCalledWith({ zoom: 0.8333333333333334 });
 
@@ -85,14 +85,16 @@ describe('GameToolbar', () => {
     (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
-    expect(screen.getByRole('button', { name: '👆' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '✋' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '📋' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '✂️' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '📄' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '📏' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '📝' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '📍' })).toBeInTheDocument();
+    // Navigation tools
+    expect(screen.getByRole('button', { name: 'Select / Move' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pan' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Measure' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ping' })).toBeInTheDocument();
+
+    // Entity tools
+    expect(screen.getByRole('button', { name: 'Tokens' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Props' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Notes' })).toBeInTheDocument();
   });
 
   it('should render the toolbar with all the drawing tools', () => {
@@ -100,11 +102,12 @@ describe('GameToolbar', () => {
     (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
-    expect(screen.getByRole('button', { name: '⭕' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '⬜' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '🔺' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '⬟' })).toBeInTheDocument();
-    const lineButton = screen.getAllByRole('button', { name: '➖' }).find(button => button.getAttribute('data-id') === 'line');
-    expect(lineButton).toBeInTheDocument();
+    // Drawing tools
+    expect(screen.getByRole('button', { name: 'Draw' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Line' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rectangle' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Circle' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cone / AOE' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Erase' })).toBeInTheDocument();
   });
 });

@@ -4,9 +4,9 @@ import { ContextPanel } from '../../../src/components/ContextPanel';
 
 // Mock the game store hooks
 vi.mock('../../../src/stores/gameStore', () => ({
-  useGameStore: () => ({ 
-    updateSettings: vi.fn(), 
-    setColorScheme: vi.fn(), 
+  useGameStore: () => ({
+    updateSettings: vi.fn(),
+    setColorScheme: vi.fn(),
     setEnableGlassmorphism: vi.fn(),
     resetSettings: vi.fn(),
     sceneState: { scenes: [], activeSceneId: null },
@@ -35,6 +35,7 @@ vi.mock('../../../src/stores/gameStore', () => ({
     useMockData: false,
   }),
   useColorScheme: () => ({ id: 'default', name: 'Default', colors: [] }),
+  useSceneState: () => ({ scenes: [], activeSceneId: null }),
 }));
 
 // Mock the Settings component to control its content for overflow testing
