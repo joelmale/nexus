@@ -139,7 +139,7 @@ describe('Game Persistence Integration Tests', () => {
       };
 
       // Step 2: Save the game state
-      sessionPersistenceService.saveGameState(gameState);
+      await sessionPersistenceService.saveGameState(gameState);
 
       // Step 3: Save session data
       sessionPersistenceService.saveSession({
@@ -341,7 +341,7 @@ describe('Game Persistence Integration Tests', () => {
       };
 
       // Save and restore
-      sessionPersistenceService.saveGameState(gameState);
+      await sessionPersistenceService.saveGameState(gameState);
       const restored = await sessionPersistenceService.loadGameState();
 
       // Verify both scenes are preserved
@@ -421,7 +421,7 @@ describe('Game Persistence Integration Tests', () => {
       };
 
       // Save initial state
-      sessionPersistenceService.saveGameState({
+      await sessionPersistenceService.saveGameState({
         characters: [],
         initiative: {},
         scenes: [scene],
@@ -452,7 +452,7 @@ describe('Game Persistence Integration Tests', () => {
       };
 
       // Save updated state
-      sessionPersistenceService.saveGameState({
+      await sessionPersistenceService.saveGameState({
         characters: [],
         initiative: {},
         scenes: [updatedScene],
@@ -507,7 +507,7 @@ describe('Game Persistence Integration Tests', () => {
         playerCount: 0,
       };
 
-      sessionPersistenceService.saveGameState({
+      await sessionPersistenceService.saveGameState({
         characters: [],
         initiative: {},
         scenes: [emptyScene],
@@ -537,7 +537,7 @@ describe('Game Persistence Integration Tests', () => {
         sessionVersion: 1,
       });
 
-      sessionPersistenceService.saveGameState({
+      await sessionPersistenceService.saveGameState({
         characters: [],
         initiative: {},
         scenes: [
@@ -580,7 +580,7 @@ describe('Game Persistence Integration Tests', () => {
 
       // Verify
       const session = sessionPersistenceService.loadSession();
-      const gameState = sessionPersistenceService.loadGameState();
+      const gameState = await sessionPersistenceService.loadGameState();
 
       expect(session).toBeNull();
       expect(gameState).not.toBeNull();
@@ -600,7 +600,7 @@ describe('Game Persistence Integration Tests', () => {
         sessionVersion: 1,
       });
 
-      sessionPersistenceService.saveGameState({
+      await sessionPersistenceService.saveGameState({
         characters: [],
         initiative: {},
         scenes: [],
@@ -609,11 +609,11 @@ describe('Game Persistence Integration Tests', () => {
       });
 
       // Clear only game state
-      sessionPersistenceService.clearGameState();
+      await sessionPersistenceService.clearGameState();
 
       // Verify
       const session = sessionPersistenceService.loadSession();
-      const gameState = sessionPersistenceService.loadGameState();
+      const gameState = await sessionPersistenceService.loadGameState();
 
       expect(session).not.toBeNull();
       expect(gameState).toBeNull();
