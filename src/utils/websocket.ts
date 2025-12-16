@@ -13,7 +13,7 @@ import type { WebSocketCustomEvent } from '@/types/events';
 import type { ChatMessage } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
-import { applyPatch } from 'fast-json-patch';
+import { applyPatch, Operation } from 'fast-json-patch';
 
 class WebSocketService extends EventTarget {
   private ws: WebSocket | null = null;
@@ -240,7 +240,7 @@ class WebSocketService extends EventTarget {
           const { patch, version } = message.data;
 
           console.log(
-            `📦 Applying game state patch v${version} (${patch.length} operations)`
+            `📦 Applying game state patch v${version} (${patch.length} operations)`,
           );
 
           // Get current game state
@@ -253,14 +253,11 @@ class WebSocketService extends EventTarget {
               activeSceneId: currentState.sceneState.activeSceneId,
               characters: [], // Characters are stored separately
               initiative: {}, // Initiative is stored separately
-            })
+            }),
           );
 
           // Apply patch
-          const patchResult = applyPatch(
-            stateCopy,
-            patch as { op: string; path: string; value?: unknown }[],
-          );
+          const patchResult = applyPatch(stateCopy, patch as Operation[]);
 
           if (patchResult.newDocument) {
             // Update game store with patched state

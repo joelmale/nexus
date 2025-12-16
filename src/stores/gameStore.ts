@@ -1752,6 +1752,7 @@ export const useGameStore = create<GameStore>()(
               {
                 proficient?: boolean;
                 expertise?: boolean;
+                value?: number;
               }
             >;
             savingThrows?: Record<string, boolean>;
@@ -1773,7 +1774,9 @@ export const useGameStore = create<GameStore>()(
             alignment?: string;
           };
 
-          const mapCharacterForge = (c: CharacterForgeImport): PlayerCharacter => {
+          const mapCharacterForge = (
+            c: CharacterForgeImport,
+          ): PlayerCharacter => {
             const edition = c.edition || '2024';
             const level = typeof c.level === 'number' ? c.level : 1;
             const profBonus =
@@ -1832,7 +1835,7 @@ export const useGameStore = create<GameStore>()(
               id: uuidv4(),
               playerId: get().user.id,
               name: c.name || 'Unnamed Hero',
-              race: c.species || c.race || 'Unknown',
+              race: c.species || 'Unknown',
               class: c.class || 'Adventurer',
               background: c.background || '',
               level,
@@ -2036,7 +2039,9 @@ export const useGameStore = create<GameStore>()(
               },
             });
 
-            console.log(`💾 Synced ${scenes.length} scenes to server for campaign persistence`);
+            console.log(
+              `💾 Synced ${scenes.length} scenes to server for campaign persistence`,
+            );
           } catch (error) {
             console.error('Failed to sync game state to server:', error);
           }
