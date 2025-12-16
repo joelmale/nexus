@@ -298,6 +298,23 @@ const mockIDBDatabase = {
 
             return request;
           }),
+          getAll: vi.fn(() => {
+            const request = {
+              onsuccess: null as ((event: Event) => void) | null,
+              onerror: null as ((event: Event) => void) | null,
+              result: Array.from(storage.values()),
+            };
+
+            // Trigger onsuccess asynchronously
+            setTimeout(() => {
+              if (request.onsuccess) {
+                const event = { target: request } as Event;
+                request.onsuccess(event);
+              }
+            }, 0);
+
+            return request;
+          }),
         };
       }),
       oncomplete: null as ((event: Event) => void) | null,
