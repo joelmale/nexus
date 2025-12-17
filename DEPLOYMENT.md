@@ -1,5 +1,40 @@
 # Nexus VTT - Production Deployment Guide
 
+## 🚨 QUICK FIX: OAuth "invalid_client" Error
+
+**If you're seeing `TokenError: Unauthorized` with `code: 'invalid_client'` in production:**
+
+Your OAuth callback URLs are set to `localhost` instead of your production domain.
+
+### Fix in 2 Minutes:
+
+1. **In Portainer:** Stacks → nexus → Editor
+2. **Find these lines** (around line 116-121 in the backend service):
+   ```yaml
+   # ❌ WRONG
+   - GOOGLE_CALLBACK_URL=http://localhost:5001/auth/google/callback
+   - DISCORD_CALLBACK_URL=http://localhost:5001/auth/discord/callback
+   ```
+3. **Change to:**
+   ```yaml
+   # ✅ CORRECT
+   - GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback
+   - DISCORD_CALLBACK_URL=https://app.nexusvtt.com/auth/discord/callback
+   ```
+4. **Click** "Update the stack"
+5. **Wait** 30 seconds for backend to restart
+6. **Test** - OAuth should work now!
+
+### Also Update Google Cloud Console:
+
+1. Go to [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials)
+2. Edit your OAuth 2.0 Client ID
+3. Under "Authorized redirect URIs", add: `https://app.nexusvtt.com/auth/google/callback`
+4. Remove any `localhost` entries
+5. Save
+
+---
+
 ## Quick Deployment Checklist
 
 ### 1. Configure Environment Variables in Portainer
