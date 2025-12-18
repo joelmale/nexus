@@ -113,35 +113,76 @@ JWT_SECRET=<run: openssl rand -base64 32>
 
 ### 3. Build and Push Docker Images
 
-Run these commands from your local machine:
+**Note:** Images are automatically built and pushed to GitHub Container Registry (GHCR) via GitHub Actions when you push to `main` branch. See `.github/workflows/deploy-homelab.yml` for details.
 
-### 4. Apply Database Migrations
-
-- Run the migration SQL against your Postgres instance after deploying new images:
-  ```bash
-  psql "$DATABASE_URL" -f server/migrations/2025-12-08-add-account-fields.sql
-  psql "$DATABASE_URL" -f server/migrations/2025-12-08-add-local-auth.sql
-  ```
-- This adds extended account fields (display name, bio, preferences, activity flags) and local auth password columns.
+If you need to manually build and push:
 
 ```bash
 # Navigate to project directory
 cd /Users/JoelN/Coding/nexusVTT
 
 # Build backend image
-docker build -f docker/backend.Dockerfile -t ghcr.io/joelmale/nexusVTT/backend:latest .
+docker build -f docker/backend.Dockerfile -t ghcr.io/joelmale/nexusvtt/backend:latest .
 
 # Build frontend image
-docker build -f docker/frontend.Dockerfile -t ghcr.io/joelmale/nexusVTT/frontend:latest .
+docker build -f docker/frontend.Dockerfile -t ghcr.io/joelmale/nexusvtt/frontend:latest .
 
 # Push to GitHub Container Registry
-docker push ghcr.io/joelmale/nexusVTT/backend:latest
-docker push ghcr.io/joelmale/nexusVTT/frontend:latest
+docker push ghcr.io/joelmale/nexusvtt/backend:latest
+docker push ghcr.io/joelmale/nexusvtt/frontend:latest
 ```
 
 ---
 
-### 4. Update Services in Portainer
+### 4. Apply Database Migrations
+
+After deploying new images, run database migrations to update the schema. Since PostgreSQL runs in a container, you need to execute SQL files against the containerized database.
+
+#### Option 1: Via Portainer Console
+
+1. Go to Portainer → Containers → Find your PostgreSQL container (e.g., `nexus-prod_postgres`)
+2. Click the container → **Console** tab
+3. Click "Connect" (use `/bin/bash` or `/bin/sh`)
+4. Run the migrations:
+   ```bash
+   # Inside the container
+   psql -U nexus -d nexus << 'EOF'
+   -- Paste the SQL migration content here
+   -- Or run individual commands
+   EOF
+   ```
+
+#### Option 2: Via Docker Command Line (from your server)
+
+```bash
+# SSH into your production server first
+ssh your-server
+
+# Find the PostgreSQL container name or ID
+docker ps | grep postgres
+
+# Option A: Copy migration files and execute
+docker cp /path/to/server/migrations/2025-12-08-add-account-fields.sql CONTAINER_NAME:/tmp/
+docker exec -it CONTAINER_NAME psql -U nexus -d nexus -f /tmp/2025-12-08-add-account-fields.sql
+
+docker cp /path/to/server/migrations/2025-12-08-add-local-auth.sql CONTAINER_NAME:/tmp/
+docker exec -it CONTAINER_NAME psql -U nexus -d nexus -f /tmp/2025-12-08-add-local-auth.sql
+
+# Option B: Pipe SQL directly via stdin
+docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2025-12-08-add-account-fields.sql
+docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2025-12-08-add-local-auth.sql
+```
+
+#### What These Migrations Add:
+
+- **2025-12-08-add-account-fields.sql**: Extended account fields (display name, bio, avatar URL, preferences, activity flags)
+- **2025-12-08-add-local-auth.sql**: Local authentication password columns
+
+> **Note:** These migrations are safe to run multiple times (use `IF NOT EXISTS` and conditional logic).
+
+---
+
+### 5. Update Services in Portainer
 
 1. Go to Portainer → Stacks → nexus_vtt
 2. For **both** `nexus_vtt_backend` and `nexus_vtt_frontend` services:
