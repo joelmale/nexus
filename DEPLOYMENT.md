@@ -42,6 +42,7 @@ Your OAuth callback URLs are set to `localhost` instead of your production domai
 Go to your `nexus_vtt_backend` service and set these environment variables:
 
 #### **Required Variables**
+
 ```bash
 NODE_ENV=production
 PORT=5000
@@ -74,6 +75,7 @@ JWT_SECRET=<run: openssl rand -base64 32>
 ```
 
 #### **Optional Variables** (only if needed)
+
 ```bash
 # Only set if you need to override defaults
 # CORS_ORIGIN=https://app.nexusvtt.com
@@ -124,17 +126,17 @@ Run these commands from your local machine:
 
 ```bash
 # Navigate to project directory
-cd /Users/JoelN/Coding/nexus
+cd /Users/JoelN/Coding/nexusVTT
 
 # Build backend image
-docker build -f docker/backend.Dockerfile -t ghcr.io/joelmale/nexus/backend:latest .
+docker build -f docker/backend.Dockerfile -t ghcr.io/joelmale/nexusVTT/backend:latest .
 
 # Build frontend image
-docker build -f docker/frontend.Dockerfile -t ghcr.io/joelmale/nexus/frontend:latest .
+docker build -f docker/frontend.Dockerfile -t ghcr.io/joelmale/nexusVTT/frontend:latest .
 
 # Push to GitHub Container Registry
-docker push ghcr.io/joelmale/nexus/backend:latest
-docker push ghcr.io/joelmale/nexus/frontend:latest
+docker push ghcr.io/joelmale/nexusVTT/backend:latest
+docker push ghcr.io/joelmale/nexusVTT/frontend:latest
 ```
 
 ---
@@ -155,6 +157,7 @@ docker push ghcr.io/joelmale/nexus/frontend:latest
 After deployment, test these:
 
 #### WebSocket Connection
+
 1. Go to https://app.nexusvtt.com
 2. Click "Start as Guest DM"
 3. Enter a name
@@ -162,6 +165,7 @@ After deployment, test these:
 5. Should connect successfully (no "Failed to create room" error)
 
 #### Google OAuth
+
 1. Go to https://app.nexusvtt.com
 2. Click the Login button
 3. Click "Google"
@@ -169,7 +173,9 @@ After deployment, test these:
 5. After login, should redirect back to https://app.nexusvtt.com/dashboard
 
 #### Check Browser Console
+
 Open DevTools (F12) and look for:
+
 - ✅ `Connected to WebSocket in production mode`
 - ✅ No errors about "localhost"
 - ✅ No "connection refused" errors
@@ -179,17 +185,20 @@ Open DevTools (F12) and look for:
 ## What Changed (Technical Details)
 
 ### Frontend Changes
+
 - **WebSocket**: Uses `wss://app.nexusvtt.com/ws` in production (relative path)
 - **Asset Manager**: Uses relative paths like `/manifest.json` in production
 - **Document Service**: Uses relative paths like `/api/documents` in production
 
 ### Backend Changes
-- **Trust Proxy**: Express now trusts nginx X-Forwarded-* headers
+
+- **Trust Proxy**: Express now trusts nginx X-Forwarded-\* headers
 - **Secure Cookies**: Work correctly behind HTTPS proxy
 - **OAuth Redirects**: Use relative path `/dashboard` in production
 - **Health Endpoints**: Return relative `/ws` path in production
 
 ### Infrastructure
+
 - **nginx**: Proxies `/ws`, `/api`, `/auth` to `nexus_vtt_backend:5000`
 - **All services on same domain**: No CORS issues, no absolute URLs needed
 
@@ -198,35 +207,42 @@ Open DevTools (F12) and look for:
 ## Troubleshooting
 
 ### WebSocket connection fails
+
 - **Check**: Browser console shows what URL it's trying to connect to
 - **Expected**: `wss://app.nexusvtt.com/ws`
 - **Fix**: Make sure `NODE_ENV=production` is set in backend service
 
 ### OAuth redirects to localhost
+
 - **Check**: Network tab in DevTools, look at the redirect URL
 - **Expected**: Should redirect to `/dashboard` or `https://app.nexusvtt.com/dashboard`
 - **Fix**: Make sure `NODE_ENV=production` is set in backend service
 
 ### "Connection Refused" or 502 errors
+
 - **Check**: Make sure backend service is running and healthy
 - **Check**: nginx can reach `nexus_vtt_backend:5000`
 - **Fix**: Check service logs in Portainer
 
 ### Session/cookies not working
+
 - **Check**: Make sure `SESSION_SECRET` is set
 - **Check**: Make sure cookies are being set (DevTools → Application → Cookies)
 - **Fix**: Verify `trust proxy` is enabled (already in code)
 
 ### Google OAuth fails with "redirect_uri_mismatch"
+
 - **Fix**: Add `https://app.nexusvtt.com/auth/google/callback` to Google OAuth Console
 - **Check**: Make sure `GOOGLE_CALLBACK_URL` environment variable is set in Portainer
 
 ### Discord OAuth fails with "invalid oauth2 redirect_uri"
+
 - **Fix**: Add `https://app.nexusvtt.com/auth/discord/callback` to Discord Developer Portal (OAuth2 section)
 - **Check**: Make sure `DISCORD_CALLBACK_URL` environment variable is set in Portainer
 - **Check**: URL must match exactly (including https://)
 
 ### OAuth redirects to dashboard but then back to lobby ("User not authenticated")
+
 - **Symptom**: Console shows `GET /auth/me 401 (Unauthorized)`
 - **Cause**: Session cookies not being forwarded by nginx proxy
 - **Fix**: nginx config already includes cookie forwarding headers (in latest version)
@@ -234,6 +250,7 @@ Open DevTools (F12) and look for:
 - **Check**: In browser DevTools → Application → Cookies, verify `connect.sid` cookie is set for app.nexusvtt.com
 
 ### Guest DM creation fails with "Failed to create session"
+
 - **Symptom**: WebSocket connects but server returns "Failed to create session" error
 - **Symptom**: PostgreSQL logs show foreign key constraint violation on `campaigns.dmId`
 - **Symptom**: Backend logs show "Anonymous as Guest" instead of "Guest as [Name]"
@@ -257,6 +274,7 @@ Open DevTools (F12) and look for:
 See `.env.production.template` for full reference with comments.
 
 ### Minimal Production Config
+
 ```bash
 NODE_ENV=production
 PORT=5000
