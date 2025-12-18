@@ -701,9 +701,6 @@ export const useCharacterStore = create<CharacterStore>()(
         state.characters.push(character);
       });
 
-      // Save to IndexedDB
-      await saveCharacterToIndexedDB(character);
-
       return character.id;
     },
 
@@ -723,13 +720,6 @@ export const useCharacterStore = create<CharacterStore>()(
           set((state) => {
             state.characters.push(character);
           });
-
-          // Save to IndexedDB
-          try {
-            await saveCharacterToIndexedDB(character);
-          } catch (error) {
-            errors.push(`Failed to save ${character.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          }
         } else if (result.error) {
           errors.push(result.error);
         }

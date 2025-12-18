@@ -22,6 +22,7 @@ export class ForgeCharacterAdapter {
       'species' in char &&
       'edition' in char &&
       typeof char.abilities === 'object' &&
+      char.abilities !== null &&
       'STR' in char.abilities
     );
 

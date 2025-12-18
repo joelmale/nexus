@@ -175,6 +175,7 @@ export class CharacterImportService {
       'playerId' in char &&
       'abilities' in char &&
       typeof char.abilities === 'object' &&
+      char.abilities !== null &&
       'strength' in char.abilities &&  // NexusVTT uses full names
       'race' in char &&
       typeof char.race === 'object'
