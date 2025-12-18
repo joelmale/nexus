@@ -119,6 +119,7 @@ interface CharacterStore extends CharacterState {
 
   // Import/Export
   importCharacter: (source: string, data: unknown) => Promise<string>;
+  importCharactersFromFiles: (files: File[] | FileList) => Promise<{ successful: number; failed: number; errors: string[] }>;
   exportCharacter: (characterId: string, format: string) => Promise<string>;
 
   // Utility
@@ -133,6 +134,13 @@ const initialState: CharacterState = {
   mobGroups: [],
   selectedMobs: [],
   supportedImports: [
+    {
+      type: 'forge',
+      name: '5e Character Forge',
+      description: 'Import from 5e Character Forge',
+      icon: '⚒️',
+      supported: true,
+    },
     {
       type: 'json',
       name: 'Nexus VTT JSON',
@@ -674,9 +682,64 @@ export const useCharacterStore = create<CharacterStore>()(
     },
 
     // Import/Export
-    importCharacter: async (_source, _data) => {
-      // Future implementation
-      throw new Error('Import functionality not yet implemented');
+    importCharacter: async (source, data) => {
+      const { characterImportService } = await import('@/services/characterImport');
+
+      const result = await characterImportService.importFromData(data, source);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Import failed');
+      }
+
+      if (!result.character) {
+        throw new Error('No character data in import result');
+      }
+
+      // Add the imported character to the store
+      const character = result.character as Character;
+      set((state) => {
+        state.characters.push(character);
+      });
+
+      // Save to IndexedDB
+      await saveCharacterToIndexedDB(character);
+
+      return character.id;
+    },
+
+    importCharactersFromFiles: async (files) => {
+      const { characterImportService } = await import('@/services/characterImport');
+
+      const batchResult = await characterImportService.importFromFiles(files);
+
+      const errors: string[] = [];
+
+      // Process successful imports
+      for (const result of batchResult.results) {
+        if (result.success && result.character) {
+          const character = result.character as Character;
+
+          // Add to store
+          set((state) => {
+            state.characters.push(character);
+          });
+
+          // Save to IndexedDB
+          try {
+            await saveCharacterToIndexedDB(character);
+          } catch (error) {
+            errors.push(`Failed to save ${character.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        } else if (result.error) {
+          errors.push(result.error);
+        }
+      }
+
+      return {
+        successful: batchResult.successful,
+        failed: batchResult.failed,
+        errors,
+      };
     },
 
     exportCharacter: async (characterId, format) => {

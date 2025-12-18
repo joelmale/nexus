@@ -102,8 +102,17 @@ services:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+    command: >
+      sh -c "
+        until nc -z postgres 5432; do
+          echo '⏳ Waiting for postgres...';
+          sleep 2;
+        done;
+        npm run server:start
+      "
     networks:
       - nexus-network
+      - homelab-net
     environment:
       - NODE_ENV=production
       - PORT=5000

@@ -1,161 +1,196 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Pool } from 'pg';
 import { DatabaseService, createDatabaseService } from '../../server/database';
-import { v4 as uuidv4 } from 'uuid';
 
-describe('DatabaseService Integration Tests', () => {
+// Skip these tests if DATABASE_URL is not set (e.g., in CI without database)
+const shouldSkip = !process.env.DATABASE_URL;
+const describeDatabase = shouldSkip ? describe.skip : describe;
+
+describeDatabase('DatabaseService Integration Tests', () => {
   let dbService: DatabaseService;
   let pool: Pool;
+  let testHostId: string;
+  let testCampaignId: string;
 
-  beforeAll(() => {
-    if (!process.env.VITE_DATABASE_URL) {
-      throw new Error('VITE_DATABASE_URL environment variable is not set');
+  beforeAll(async () => {
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is not set');
     }
 
-    dbService = createDatabaseService({ connectionString: process.env.VITE_DATABASE_URL });
-    pool = new Pool({ connectionString: process.env.VITE_DATABASE_URL });
+    dbService = createDatabaseService({ connectionString: process.env.DATABASE_URL });
+    pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+    // Initialize the database schema
+    await dbService.initialize();
+
+    // Create a test user (host) for all tests
+    const testUser = await dbService.createGuestUser('Test Host');
+    testHostId = testUser.id;
+
+    // Create a test campaign for all tests
+    const testCampaign = await dbService.createCampaign(
+      testHostId,
+      'Test Campaign',
+      'Integration test campaign'
+    );
+    testCampaignId = testCampaign.id;
   });
 
   afterAll(async () => {
-    await dbService.close();
-    await pool.end();
+    if (dbService && pool) {
+      await dbService.close();
+      await pool.end();
+    }
   });
 
   beforeEach(async () => {
-    // Clean up tables before each test
-    await pool.query('TRUNCATE TABLE connection_events, game_states, hosts, players, rooms RESTART IDENTITY');
+    // Clean up sessions, players, and hosts before each test (in order to respect foreign keys)
+    await pool.query('TRUNCATE TABLE hosts, players, sessions RESTART IDENTITY CASCADE');
   });
 
-  it('should connect to the database and initialize the schema', async () => {
-    await dbService.initialize();
+  it('should connect to the database and verify schema exists', async () => {
     const result = await pool.query(`
       SELECT table_name
       FROM information_schema.tables
       WHERE table_schema = 'public'
     `);
     const tableNames = result.rows.map(row => row.table_name);
-    expect(tableNames).toContain('rooms');
+    expect(tableNames).toContain('sessions');
     expect(tableNames).toContain('players');
-    expect(tableNames).toContain('game_states');
     expect(tableNames).toContain('hosts');
+    expect(tableNames).toContain('users');
+    expect(tableNames).toContain('campaigns');
+    expect(tableNames).toContain('characters');
   });
 
-  describe('Room Operations', () => {
-    const roomCode = 'TEST';
-    const hostId = uuidv4();
+  describe('Session Operations', () => {
+    it('should create a new session with a host', async () => {
+      const { sessionId, joinCode } = await dbService.createSession(
+        testCampaignId,
+        testHostId
+      );
 
-    it('should create a new room and a primary host', async () => {
-      await dbService.createRoom(roomCode, hostId);
+      // Verify session was created
+      const sessionResult = await pool.query('SELECT * FROM sessions WHERE id = $1', [sessionId]);
+      expect(sessionResult.rowCount).toBe(1);
+      expect(sessionResult.rows[0].joinCode).toBe(joinCode);
+      expect(sessionResult.rows[0].primaryHostId).toBe(testHostId);
 
-      const roomResult = await pool.query('SELECT * FROM rooms WHERE code = $1', [roomCode]);
-      expect(roomResult.rowCount).toBe(1);
-      expect(roomResult.rows[0].primary_host_id).toBe(hostId);
-
-      const hostResult = await pool.query('SELECT * FROM hosts WHERE room_code = $1 AND user_id = $2', [roomCode, hostId]);
+      // Verify host record was created
+      const hostResult = await pool.query('SELECT * FROM hosts WHERE "sessionId" = $1 AND "userId" = $2', [sessionId, testHostId]);
       expect(hostResult.rowCount).toBe(1);
-      expect(hostResult.rows[0].is_primary).toBe(true);
+      expect(hostResult.rows[0].isPrimary).toBe(true);
+
+      // Verify host was added as a player
+      const playerResult = await pool.query('SELECT * FROM players WHERE "sessionId" = $1 AND "userId" = $2', [sessionId, testHostId]);
+      expect(playerResult.rowCount).toBe(1);
     });
 
-    it('should get a room by code', async () => {
-      await dbService.createRoom(roomCode, hostId);
-      const room = await dbService.getRoom(roomCode);
-      expect(room).not.toBeNull();
-      expect(room?.code).toBe(roomCode);
+    it('should get a session by join code', async () => {
+      const { joinCode } = await dbService.createSession(testCampaignId, testHostId);
+      const session = await dbService.getSessionByJoinCode(joinCode);
+      expect(session).not.toBeNull();
+      expect(session?.joinCode).toBe(joinCode);
     });
 
-    it('should update a room status', async () => {
-      await dbService.createRoom(roomCode, hostId);
-      await dbService.updateRoomStatus(roomCode, 'hibernating');
-      const room = await dbService.getRoom(roomCode);
-      expect(room?.status).toBe('hibernating');
+    it('should update session status', async () => {
+      const { sessionId, joinCode } = await dbService.createSession(testCampaignId, testHostId);
+      await dbService.updateSessionStatus(sessionId, 'hibernating');
+      const session = await dbService.getSessionByJoinCode(joinCode);
+      expect(session?.status).toBe('hibernating');
     });
 
-    it('should update room host', async () => {
-        const newHostId = uuidv4();
-        await dbService.createRoom(roomCode, hostId);
-        await dbService.addPlayer(newHostId, roomCode, 'New Host');
-        await dbService.updateRoomHost(roomCode, newHostId);
+    it('should transfer primary host', async () => {
+      const { sessionId, joinCode } = await dbService.createSession(testCampaignId, testHostId);
 
-        const room = await dbService.getRoom(roomCode);
-        expect(room?.primary_host_id).toBe(newHostId);
+      // Create a new user to transfer to
+      const newHost = await dbService.createGuestUser('New Host');
+
+      // Add new host as a player first
+      await dbService.addPlayerToSession(newHost.id, sessionId);
+
+      // Transfer host
+      await dbService.transferPrimaryHost(sessionId, newHost.id);
+
+      const session = await dbService.getSessionByJoinCode(joinCode);
+      expect(session?.primaryHostId).toBe(newHost.id);
     });
   });
 
   describe('Game State Operations', () => {
-    const roomCode = 'GSTEST';
-    const hostId = uuidv4();
+    let sessionId: string;
+    let joinCode: string;
     const gameState = { scenes: [{ id: 'scene1', name: 'Test Scene' }], activeSceneId: 'scene1' };
 
     beforeEach(async () => {
-      await dbService.createRoom(roomCode, hostId);
+      const result = await dbService.createSession(testCampaignId, testHostId);
+      sessionId = result.sessionId;
+      joinCode = result.joinCode;
     });
 
-    it('should save a new game state', async () => {
-      await dbService.saveGameState(roomCode, gameState);
-      const result = await pool.query('SELECT * FROM game_states WHERE room_code = $1', [roomCode]);
+    it('should save game state', async () => {
+      await dbService.saveGameState(sessionId, gameState);
+      const result = await pool.query('SELECT * FROM sessions WHERE id = $1', [sessionId]);
       expect(result.rowCount).toBe(1);
-      expect(result.rows[0].state_data).toEqual(gameState);
-      expect(result.rows[0].version).toBe(1);
+      expect(result.rows[0].gameState).toEqual(gameState);
     });
 
-    it('should load a game state', async () => {
-      await dbService.saveGameState(roomCode, gameState);
-      const loadedState = await dbService.loadGameState(roomCode);
+    it('should save game state by join code', async () => {
+      await dbService.saveGameStateByJoinCode(joinCode, gameState);
+      const loadedState = await dbService.getGameStateByJoinCode(joinCode);
       expect(loadedState).toEqual(gameState);
     });
 
-    it('should update an existing game state and increment version', async () => {
-        await dbService.saveGameState(roomCode, gameState);
-        const updatedGameState = { ...gameState, activeSceneId: 'scene2' };
-        await dbService.saveGameState(roomCode, updatedGameState);
-        
-        const result = await pool.query('SELECT * FROM game_states WHERE room_code = $1', [roomCode]);
-        expect(result.rowCount).toBe(1);
-        expect(result.rows[0].state_data).toEqual(updatedGameState);
-        expect(result.rows[0].version).toBe(2);
+    it('should load game state by join code', async () => {
+      await dbService.saveGameStateByJoinCode(joinCode, gameState);
+      const loadedState = await dbService.getGameStateByJoinCode(joinCode);
+      expect(loadedState).toEqual(gameState);
     });
   });
 
   describe('Player and Host Operations', () => {
-    const roomCode = 'PLYR';
-    const hostId = uuidv4();
-    const player1Id = uuidv4();
+    let sessionId: string;
+    let player1Id: string;
 
     beforeEach(async () => {
-      await dbService.createRoom(roomCode, hostId);
-      await dbService.addPlayer(hostId, roomCode, 'Host');
+      const result = await dbService.createSession(testCampaignId, testHostId);
+      sessionId = result.sessionId;
+
+      // Create a player user
+      const player1 = await dbService.createGuestUser('Player 1');
+      player1Id = player1.id;
     });
 
-    it('should add a player to a room', async () => {
-      await dbService.addPlayer(player1Id, roomCode, 'Player 1');
-      const players = await dbService.getRoomPlayers(roomCode);
+    it('should add a player to a session', async () => {
+      await dbService.addPlayerToSession(player1Id, sessionId);
+      const players = await dbService.getPlayersBySession(sessionId);
+      expect(players.length).toBe(2); // Host + Player 1
+      expect(players.some(p => p.userId === player1Id)).toBe(true);
+    });
+
+    it('should remove a player from a session', async () => {
+      await dbService.addPlayerToSession(player1Id, sessionId);
+      let players = await dbService.getPlayersBySession(sessionId);
       expect(players.length).toBe(2);
-      expect(players.some(p => p.id === player1Id)).toBe(true);
-    });
 
-    it('should get connected players', async () => {
-        await dbService.addPlayer(player1Id, roomCode, 'Player 1');
-        let connectedPlayers = await dbService.getConnectedPlayers(roomCode);
-        expect(connectedPlayers.length).toBe(2);
-
-        await dbService.removePlayer(player1Id, roomCode);
-        connectedPlayers = await dbService.getConnectedPlayers(roomCode);
-        expect(connectedPlayers.length).toBe(1);
-        expect(connectedPlayers[0].id).toBe(hostId);
+      await dbService.removePlayerFromSession(player1Id, sessionId);
+      players = await dbService.getPlayersBySession(sessionId);
+      expect(players.length).toBe(1);
+      expect(players[0].userId).toBe(testHostId);
     });
 
     it('should add and remove a co-host', async () => {
-        await dbService.addPlayer(player1Id, roomCode, 'Player 1');
-        await dbService.addCoHost(roomCode, player1Id, { canEditScenes: true });
+      await dbService.addPlayerToSession(player1Id, sessionId);
+      await dbService.addCoHost(player1Id, sessionId, { canEditScenes: true });
 
-        let hosts = await dbService.getRoomHosts(roomCode);
-        expect(hosts.length).toBe(2);
-        expect(hosts.some(h => h.user_id === player1Id && h.is_primary === false)).toBe(true);
+      let hosts = await dbService.getHostsBySession(sessionId);
+      expect(hosts.length).toBe(2);
+      expect(hosts.some(h => h.userId === player1Id && h.isPrimary === false)).toBe(true);
 
-        await dbService.removeCoHost(roomCode, player1Id);
-        hosts = await dbService.getRoomHosts(roomCode);
-        expect(hosts.length).toBe(1);
-        expect(hosts.some(h => h.user_id === player1Id)).toBe(false);
+      await dbService.removeCoHost(player1Id, sessionId);
+      hosts = await dbService.getHostsBySession(sessionId);
+      expect(hosts.length).toBe(1);
+      expect(hosts.some(h => h.userId === player1Id)).toBe(false);
     });
   });
 });

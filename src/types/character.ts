@@ -287,7 +287,7 @@ export interface CharacterCreationState {
 
 // Import/Export Support
 export interface CharacterImportSource {
-  type: 'roll20' | 'ddb' | 'google-sheets' | 'pdf' | 'json';
+  type: 'forge' | 'roll20' | 'ddb' | 'google-sheets' | 'pdf' | 'json';
   name: string;
   description: string;
   icon: string;

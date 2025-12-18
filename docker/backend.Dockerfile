@@ -5,8 +5,8 @@ FROM node:25-alpine
 # Set working directory
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init curl
+# Install dumb-init for proper signal handling and netcat for readiness checks
+RUN apk add --no-cache dumb-init curl netcat-openbsd
 
 # Copy package files
 COPY package*.json ./
