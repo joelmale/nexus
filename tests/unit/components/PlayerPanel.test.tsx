@@ -53,6 +53,29 @@ vi.mock('@/components/CharacterSheet', () => ({
   ),
 }));
 
+// Mock the CharacterImportModal component
+vi.mock('@/components/CharacterImportModal', () => ({
+  CharacterImportModal: ({
+    isOpen,
+    onClose,
+    onImportComplete,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onImportComplete?: (result: { successful: number; failed: number }) => void;
+  }) => (
+    isOpen ? (
+      <div data-testid="character-import-modal">
+        Character Import Modal
+        <button onClick={onClose}>Close</button>
+        <button onClick={() => onImportComplete?.({ successful: 1, failed: 0 })}>
+          Import
+        </button>
+      </div>
+    ) : null
+  ),
+}));
+
 describe('PlayerPanel', () => {
   const mockPlayers: Player[] = [
     {
