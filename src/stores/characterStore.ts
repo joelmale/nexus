@@ -41,6 +41,16 @@ interface CharacterState {
 interface CharacterStore extends CharacterState {
   // Character Management
   createCharacter: (playerId: string) => string;
+  createQuickCharacter: (
+    data: {
+      name: string;
+      class: string;
+      level: number;
+      race?: string;
+      background?: string;
+    },
+    playerId: string,
+  ) => Promise<string>;
   updateCharacter: (characterId: string, updates: Partial<Character>) => void;
   deleteCharacter: (characterId: string) => void;
   setActiveCharacter: (characterId: string | null) => void;
@@ -213,6 +223,129 @@ export const useCharacterStore = create<CharacterStore>()(
       });
 
       return character.id!;
+    },
+
+    createQuickCharacter: async (data, playerId) => {
+      // Import helper functions dynamically to avoid circular dependencies
+      const { getHitDieForClass, estimateHP } = await import(
+        '@/utils/characterHelpers'
+      );
+
+      const characterId = crypto.randomUUID();
+      const now = Date.now();
+
+      const hitDie = getHitDieForClass(data.class);
+      const hp = estimateHP(data.class, data.level, 0);
+
+      // Create minimal character with placeholder stats
+      const quickCharacter: Character = {
+        id: characterId,
+        playerId,
+        name: data.name,
+        level: data.level,
+        alignment: 'Neutral',
+
+        // Basic race info
+        race: {
+          name: data.race || 'Unknown',
+          subrace: undefined,
+          size: 'medium',
+          speed: 30,
+          traits: [],
+          abilityScoreIncrease: {},
+          languages: [],
+          proficiencies: [],
+        },
+
+        // Class info
+        classes: [
+          {
+            name: data.class,
+            level: data.level,
+            hitDie: `d${hitDie}`,
+            subclass: undefined,
+          },
+        ],
+
+        // Background
+        background: {
+          name: data.background || 'Adventurer',
+          feature: 'Wanderer: Placeholder background feature',
+          skillProficiencies: [],
+          languages: [],
+          equipment: [],
+          personalityTraits: [],
+          ideals: [],
+          bonds: [],
+          flaws: [],
+        },
+
+        // Standard ability scores (10 = 0 modifier, +0 saving throw)
+        abilities: {
+          strength: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
+          dexterity: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
+          constitution: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
+          intelligence: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
+          wisdom: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
+          charisma: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
+        },
+
+        // Calculate HP based on class and level
+        hitPoints: {
+          maximum: hp,
+          current: hp,
+          temporary: 0,
+        },
+
+        hitDice: {
+          total: data.level,
+          remaining: data.level,
+        },
+
+        // Unarmored AC (10 + dex modifier = 10)
+        armorClass: 10,
+        initiative: 0,
+        speed: 30,
+        proficiencyBonus: 2,
+        passivePerception: 10,
+
+        // Proficiencies
+        skills: [],
+        languageProficiencies: [],
+        toolProficiencies: [],
+        weaponProficiencies: [],
+        armorProficiencies: [],
+
+        // Empty arrays for detailed features
+        equipment: [],
+        spells: [],
+        features: [],
+        attacks: [],
+
+        // Personality
+        personalityTraits: [],
+        ideals: [],
+        bonds: [],
+        flaws: [],
+
+        // Other
+        inspiration: false,
+        experiencePoints: 0,
+        notes: '',
+
+        // Metadata
+        createdAt: now,
+        updatedAt: now,
+        version: '1.0',
+      };
+
+      // Add to store
+      set((state) => {
+        state.characters.push(quickCharacter);
+      });
+
+      console.log('💾 Quick character created:', quickCharacter.name);
+      return characterId;
     },
 
     updateCharacter: (characterId, updates) =>

@@ -8,12 +8,13 @@
  * - Import/export character data
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
-import { useCharacterCreationLauncher } from '@/hooks';
 import { useCharacters } from '@/stores/characterStore';
 import { CharacterSheetPopup } from './CharacterSheetPopup';
+import { QuickCharacterEntry } from './QuickCharacterEntry';
+import { CharacterImportModal } from './CharacterImportModal';
 import type { Character } from '@/types/character';
 import type { PlayerCharacter } from '@/types/game';
 import '@/styles/character-sheet-parchment.css';
@@ -47,8 +48,6 @@ export const PlayerSetupPage: React.FC = () => {
   const navigate = useNavigate();
 
   const { characters, deleteCharacter } = useCharacters();
-  const { startCharacterCreation, LauncherComponent } =
-    useCharacterCreationLauncher();
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
     null,
@@ -57,7 +56,8 @@ export const PlayerSetupPage: React.FC = () => {
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showQuickEntry, setShowQuickEntry] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Filter characters for the current user
   const userCharacters = characters.filter((c) => c.playerId === user.id);
@@ -111,34 +111,41 @@ export const PlayerSetupPage: React.FC = () => {
     }
   };
 
-  const handleExportCharacters = () => {
-    alert('Character export will be implemented in a future update');
-  };
-
-  const handleImportCharacters = () => {
-    alert('Character import will be implemented in a future update');
-  };
-
   const handleBack = () => {
     navigate('/lobby');
   };
 
-  const handleCreateCharacter = () => {
-    if (user.id) {
-      startCharacterCreation(
-        user.id,
-        'fullpage',
-        (characterId: string) => {
-          // Character is already saved to characterStore by the wizard
-          // Just select the newly created character
-          setSelectedCharacterId(characterId);
-        },
-        () => {
-          // Character creation cancelled
-          console.log('🎭 Character creation cancelled');
-        },
-      );
+  const handleQuickEntry = () => {
+    setShowQuickEntry(true);
+  };
+
+  const handleQuickEntryComplete = (characterId: string) => {
+    setSelectedCharacterId(characterId);
+    setShowQuickEntry(false);
+  };
+
+  const handleImportCharacters = () => {
+    setShowImportModal(true);
+  };
+
+  const handleImportComplete = (result: {
+    successful: number;
+    failed: number;
+  }) => {
+    console.log(
+      `✅ Import complete: ${result.successful} successful, ${result.failed} failed`,
+    );
+    // Auto-select the first imported character if there's only one
+    if (result.successful === 1 && characters.length > 0) {
+      const latestCharacter = characters.sort(
+        (a, b) => b.createdAt - a.createdAt,
+      )[0];
+      setSelectedCharacterId(latestCharacter.id);
     }
+  };
+
+  const handleOpenCharacterForge = () => {
+    window.open('https://5e-character-builder.com', '_blank');
   };
 
   return (
@@ -188,36 +195,6 @@ export const PlayerSetupPage: React.FC = () => {
           <div className="setup-section">
             <div className="section-header">
               <h2>🎭 Your Characters</h2>
-              {userCharacters.length > 0 && (
-                <div className="character-actions">
-                  <button
-                    onClick={handleExportCharacters}
-                    className="glass-button secondary"
-                    title="Export characters to file"
-                    disabled
-                  >
-                    <span>📤</span>
-                    Export (Soon)
-                  </button>
-
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportCharacters}
-                    style={{ display: 'none' }}
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="glass-button secondary"
-                    title="Import characters from file"
-                    disabled
-                  >
-                    <span>📥</span>
-                    Import (Soon)
-                  </button>
-                </div>
-              )}
             </div>
 
             {userCharacters.length === 0 ? (
@@ -305,35 +282,109 @@ export const PlayerSetupPage: React.FC = () => {
               </div>
             )}
 
-            {/* Always visible Create Character button */}
+            {/* Character Entry Options */}
             <div
+              className="character-entry-options"
               style={{
-                display: 'flex',
-                justifyContent: 'center',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: '1rem',
-                flexWrap: 'wrap',
                 marginTop: '1.5rem',
-                paddingTop: '1rem',
+                paddingTop: '1.5rem',
                 borderTop: '1px solid rgba(255, 255, 255, 0.1)',
               }}
             >
-              <button
-                onClick={handleCreateCharacter}
-                className="glass-button primary"
+              <div
+                className="entry-option-card glass-panel"
+                style={{
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
               >
-                <span>✨</span>
-                {userCharacters.length === 0
-                  ? 'Create First Character'
-                  : 'Create New Character'}
-              </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="glass-button secondary"
-                title="Import characters from file"
+                <div style={{ fontSize: '2rem' }}>⚡</div>
+                <h3 style={{ margin: 0, fontSize: '1rem' }}>Quick Entry</h3>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.85rem',
+                    opacity: 0.8,
+                    flexGrow: 1,
+                  }}
+                >
+                  I have basic character info
+                </p>
+                <button onClick={handleQuickEntry} className="glass-button primary" style={{ width: '100%' }}>
+                  Enter Info
+                </button>
+                <small style={{ opacity: 0.6 }}>⏱️ 30 seconds</small>
+              </div>
+
+              <div
+                className="entry-option-card glass-panel"
+                style={{
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
               >
-                <span>📥</span>
-                Import Characters
-              </button>
+                <div style={{ fontSize: '2rem' }}>📥</div>
+                <h3 style={{ margin: 0, fontSize: '1rem' }}>Import JSON</h3>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.85rem',
+                    opacity: 0.8,
+                    flexGrow: 1,
+                  }}
+                >
+                  I have a .json character file
+                </p>
+                <button
+                  onClick={handleImportCharacters}
+                  className="glass-button secondary"
+                  style={{ width: '100%' }}
+                >
+                  Upload File
+                </button>
+                <small style={{ opacity: 0.6 }}>⏱️ 2 minutes</small>
+              </div>
+
+              <div
+                className="entry-option-card glass-panel"
+                style={{
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
+                <div style={{ fontSize: '2rem' }}>✨</div>
+                <h3 style={{ margin: 0, fontSize: '1rem' }}>Character Forge</h3>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.85rem',
+                    opacity: 0.8,
+                    flexGrow: 1,
+                  }}
+                >
+                  I need to build a character
+                </p>
+                <button
+                  onClick={handleOpenCharacterForge}
+                  className="glass-button secondary"
+                  style={{ width: '100%' }}
+                >
+                  Open Forge ↗
+                </button>
+                <small style={{ opacity: 0.6 }}>⏱️ 15+ minutes</small>
+              </div>
             </div>
           </div>
 
@@ -406,8 +457,20 @@ export const PlayerSetupPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Character Creation Launcher */}
-      {LauncherComponent}
+      {/* Quick Character Entry Modal */}
+      <QuickCharacterEntry
+        isOpen={showQuickEntry}
+        onClose={() => setShowQuickEntry(false)}
+        onComplete={handleQuickEntryComplete}
+        playerId={user.id}
+      />
+
+      {/* Character Import Modal */}
+      <CharacterImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={handleImportComplete}
+      />
 
       {/* Character Sheet Popup */}
       {popupCharacter && (
