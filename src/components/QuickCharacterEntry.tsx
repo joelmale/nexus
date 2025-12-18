@@ -97,8 +97,8 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
       className="modal-overlay"
       onClick={handleClose}
       style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.85)', // Darker overlay for better focus
-        backdropFilter: 'blur(8px)',
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        backdropFilter: 'blur(12px)',
       }}
     >
       <div
@@ -106,9 +106,9 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
         onClick={(e) => e.stopPropagation()}
         style={{
           maxWidth: '540px',
-          background: 'linear-gradient(135deg, rgba(30, 30, 40, 0.98) 0%, rgba(20, 20, 30, 0.98) 100%)',
-          border: '2px solid rgba(99, 102, 241, 0.3)',
-          boxShadow: '0 24px 48px rgba(0, 0, 0, 0.5), 0 0 80px rgba(99, 102, 241, 0.15)',
+          background: 'linear-gradient(135deg, #2d2d3d 0%, #1f1f2e 100%)',
+          border: '3px solid rgba(99, 102, 241, 0.6)',
+          boxShadow: '0 24px 48px rgba(0, 0, 0, 0.8), 0 0 100px rgba(99, 102, 241, 0.3)',
           borderRadius: '16px',
         }}
       >
@@ -169,9 +169,10 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
           <div style={{
             marginBottom: '1.5rem',
             padding: '1.25rem',
-            background: 'rgba(99, 102, 241, 0.08)',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(79, 70, 229, 0.15) 100%)',
             borderRadius: '12px',
-            border: '1px solid rgba(99, 102, 241, 0.2)',
+            border: '2px solid rgba(99, 102, 241, 0.5)',
+            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.15)',
           }}>
             <div style={{
               display: 'flex',
@@ -212,21 +213,21 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '2px solid rgba(99, 102, 241, 0.3)',
+                  background: 'rgba(20, 20, 30, 0.8)',
+                  border: '2px solid rgba(99, 102, 241, 0.6)',
                   borderRadius: '8px',
                   color: '#ffffff',
                   fontSize: '1rem',
                   transition: 'all 0.2s ease',
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.6)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(129, 140, 248, 0.9)';
+                  e.currentTarget.style.background = 'rgba(30, 30, 45, 0.9)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.2)';
                 }}
                 onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.6)';
+                  e.currentTarget.style.background = 'rgba(20, 20, 30, 0.8)';
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               />
@@ -254,25 +255,25 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
                   style={{
                     width: '100%',
                     padding: '0.75rem 1rem',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '2px solid rgba(99, 102, 241, 0.3)',
+                    background: 'rgba(20, 20, 30, 0.8)',
+                    border: '2px solid rgba(99, 102, 241, 0.6)',
                     borderRadius: '8px',
                     color: '#ffffff',
                     fontSize: '1rem',
                     transition: 'all 0.2s ease',
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.6)';
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(129, 140, 248, 0.9)';
+                    e.currentTarget.style.background = 'rgba(30, 30, 45, 0.9)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.2)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.6)';
+                    e.currentTarget.style.background = 'rgba(20, 20, 30, 0.8)';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
-                  <option value="" style={{ background: '#1a1a2e', color: '#ffffff' }}>Select class...</option>
+                  <option value="" style={{ background: '#1f1f2e', color: '#ffffff' }}>Select class...</option>
                   {DND_CLASSES.map((cls) => (
                     <option key={cls} value={cls} style={{ background: '#1a1a2e', color: '#ffffff' }}>
                       {cls}
@@ -308,21 +309,21 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
                   style={{
                     width: '100%',
                     padding: '0.75rem 1rem',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '2px solid rgba(99, 102, 241, 0.3)',
+                    background: 'rgba(20, 20, 30, 0.8)',
+                    border: '2px solid rgba(99, 102, 241, 0.6)',
                     borderRadius: '8px',
                     color: '#ffffff',
                     fontSize: '1rem',
                     transition: 'all 0.2s ease',
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.6)';
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(129, 140, 248, 0.9)';
+                    e.currentTarget.style.background = 'rgba(30, 30, 45, 0.9)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.2)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.6)';
+                    e.currentTarget.style.background = 'rgba(20, 20, 30, 0.8)';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
@@ -334,9 +335,10 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
           <div style={{
             marginBottom: '1.5rem',
             padding: '1.25rem',
-            background: 'rgba(255, 255, 255, 0.03)',
+            background: 'rgba(255, 255, 255, 0.08)',
             borderRadius: '12px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            border: '2px solid rgba(255, 255, 255, 0.25)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
           }}>
             <div style={{
               display: 'flex',
@@ -374,20 +376,22 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  background: 'rgba(20, 20, 30, 0.6)',
+                  border: '2px solid rgba(255, 255, 255, 0.35)',
                   borderRadius: '8px',
                   color: '#ffffff',
                   fontSize: '1rem',
                   transition: 'all 0.2s ease',
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+                  e.currentTarget.style.background = 'rgba(30, 30, 45, 0.7)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255, 255, 255, 0.1)';
                 }}
                 onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.35)';
+                  e.currentTarget.style.background = 'rgba(20, 20, 30, 0.6)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               />
             </div>
@@ -414,20 +418,22 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  background: 'rgba(20, 20, 30, 0.6)',
+                  border: '2px solid rgba(255, 255, 255, 0.35)',
                   borderRadius: '8px',
                   color: '#ffffff',
                   fontSize: '1rem',
                   transition: 'all 0.2s ease',
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+                  e.currentTarget.style.background = 'rgba(30, 30, 45, 0.7)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255, 255, 255, 0.1)';
                 }}
                 onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.35)';
+                  e.currentTarget.style.background = 'rgba(20, 20, 30, 0.6)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               />
             </div>
@@ -439,12 +445,13 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
             style={{
               padding: '1rem 1.25rem',
               marginBottom: '1.5rem',
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.12) 100%)',
-              border: '1px solid rgba(99, 102, 241, 0.4)',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(99, 102, 241, 0.2) 100%)',
+              border: '2px solid rgba(99, 102, 241, 0.6)',
               borderRadius: '12px',
               display: 'flex',
               gap: '0.75rem',
               alignItems: 'flex-start',
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)',
             }}
           >
             <div style={{
@@ -481,10 +488,10 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
               disabled={isCreating}
               style={{
                 padding: '0.75rem 1.5rem',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
                 borderRadius: '8px',
-                color: 'rgba(255, 255, 255, 0.9)',
+                color: '#ffffff',
                 fontSize: '0.95rem',
                 fontWeight: '500',
                 cursor: isCreating ? 'not-allowed' : 'pointer',
@@ -493,13 +500,13 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
               }}
               onMouseEnter={(e) => {
                 if (!isCreating) {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.4)';
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
               }}
             >
               Cancel
@@ -513,7 +520,7 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
                 background: isValid && !isCreating
                   ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
                   : 'rgba(99, 102, 241, 0.3)',
-                border: '1px solid rgba(99, 102, 241, 0.5)',
+                border: '2px solid rgba(99, 102, 241, 0.8)',
                 borderRadius: '8px',
                 color: '#ffffff',
                 fontSize: '0.95rem',
@@ -525,7 +532,7 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
                 alignItems: 'center',
                 gap: '0.5rem',
                 boxShadow: isValid && !isCreating
-                  ? '0 4px 12px rgba(99, 102, 241, 0.3)'
+                  ? '0 4px 16px rgba(99, 102, 241, 0.4)'
                   : 'none',
               }}
               onMouseEnter={(e) => {
