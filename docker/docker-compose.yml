@@ -6,7 +6,7 @@ version: '3.8'
 services:
   # PostgreSQL Database
   postgres:
-    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusVTT}/postgres:${VERSION:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusvtt}/postgres:${VERSION:-latest}
     build:
       context: .
       dockerfile: docker/postgres.Dockerfile
@@ -61,7 +61,7 @@ services:
 
   # Frontend - React SPA with Nginx
   frontend:
-    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusVTT}/frontend:${VERSION:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusvtt}/frontend:${VERSION:-latest}
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
@@ -98,7 +98,7 @@ services:
 
   # Backend - Express + WebSocket Server
   backend:
-    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusVTT}/backend:${VERSION:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusvtt}/backend:${VERSION:-latest}
     build:
       context: .
       dockerfile: docker/backend.Dockerfile

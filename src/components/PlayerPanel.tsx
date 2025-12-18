@@ -4,6 +4,7 @@ import { useSession, useIsHost } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import { CharacterSheet } from './CharacterSheet';
+import { CharacterImportModal } from './CharacterImportModal';
 import { useCharacterCreationLauncher } from '@/hooks';
 import type { Player } from '@/types/game';
 
@@ -104,6 +105,7 @@ export const PlayerPanel: React.FC = () => {
   useCharacterCreation();
   const { addEntry, rollInitiativeForAll, startCombat } = useInitiativeStore();
   const [, setShowCharacterSheet] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const { LauncherComponent } = useCharacterCreationLauncher();
   const navigate = useNavigate();
 
@@ -147,6 +149,15 @@ export const PlayerPanel: React.FC = () => {
   const handleCreateCharacter = () => {
     // Navigate to player setup page for character creation
     navigate('/lobby/player-setup');
+  };
+
+  const handleImportCharacter = () => {
+    setShowImportModal(true);
+  };
+
+  const handleImportComplete = (result: { successful: number; failed: number }) => {
+    console.log(`✅ Import complete: ${result.successful} successful, ${result.failed} failed`);
+    // Characters are automatically added to the store, so they'll appear in the UI
   };
 
   const handleViewCharacter = (characterId: string) => {
@@ -231,12 +242,21 @@ export const PlayerPanel: React.FC = () => {
       <div className="my-characters-section">
         <div className="section-header">
           <h4>My Characters</h4>
-          <button
-            onClick={handleCreateCharacter}
-            className="create-character-btn"
-          >
-            ➕ New Character
-          </button>
+          <div className="character-actions-group">
+            <button
+              onClick={handleImportCharacter}
+              className="import-character-btn"
+              title="Import characters from 5e Character Forge or other sources"
+            >
+              📥 Import
+            </button>
+            <button
+              onClick={handleCreateCharacter}
+              className="create-character-btn"
+            >
+              ➕ New Character
+            </button>
+          </div>
         </div>
 
         {effectiveMyCharacters.length > 0 ? (
@@ -312,6 +332,13 @@ export const PlayerPanel: React.FC = () => {
 
       {/* Character Creation Launcher */}
       {LauncherComponent}
+
+      {/* Character Import Modal */}
+      <CharacterImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={handleImportComplete}
+      />
     </div>
   );
 };

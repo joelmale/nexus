@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { CharacterManager } from './CharacterManager';
+import { CharacterImportModal } from './CharacterImportModal';
 import { useCharacterCreationLauncher } from '@/hooks';
 import { DocumentLibrary } from './DocumentLibrary';
 import '@/styles/dashboard.css';
@@ -58,7 +59,7 @@ interface CharacterRecord {
  */
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, createGameRoom, joinRoomWithCode, importCharacters } =
+  const { user, isAuthenticated, createGameRoom, joinRoomWithCode } =
     useGameStore();
   const { startCharacterCreation, LauncherComponent } =
     useCharacterCreationLauncher();
@@ -80,9 +81,8 @@ export const Dashboard: React.FC = () => {
   const [showJoinGameModal, setShowJoinGameModal] = useState(false);
   const [joinRoomCode, setJoinRoomCode] = useState('');
   const [joiningGame, setJoiningGame] = useState(false);
-  const [importingCharacters, setImportingCharacters] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Check authentication and redirect if not authenticated
   useEffect(() => {
@@ -239,70 +239,35 @@ export const Dashboard: React.FC = () => {
   };
 
   /**
-   * Handles importing characters from a JSON file (5e Character Forge / Nexus export)
+   * Handles opening the character import modal
    */
-  const handleImportCharacters = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleOpenImportModal = () => {
+    setShowImportModal(true);
+  };
 
+  /**
+   * Handles import completion from the modal
+   */
+  const handleImportComplete = async (result: { successful: number; failed: number }) => {
+    console.log(`✅ Import complete: ${result.successful} successful, ${result.failed} failed`);
+
+    // Refresh the characters list from the API
     try {
-      setImportingCharacters(true);
-      const text = await file.text();
-      const imported = importCharacters(text);
-
-      // Prepare a mapped list immediately so the UI reflects imported characters even if the API is empty
-      const nowIso = new Date().toISOString();
-      const mapped = (imported || []).map((pc) => ({
-        id: pc.id,
-        name: pc.name,
-        ownerId: user.id,
-        data: {
-          race: pc.race,
-          class: pc.class,
-          level: pc.level,
-        },
-        createdAt: nowIso,
-        updatedAt: nowIso,
-      })) as CharacterRecord[];
-
-      if (mapped.length) {
-        setCharacters((prev) => [...mapped, ...prev]);
-      }
-
-      // Refresh characters list from API if available; if API returns empty, keep the mapped local set
       const response = await fetch('/api/characters', {
         credentials: 'include',
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setCharacters(data);
-        } else if (mapped.length) {
-          setCharacters((prev) => {
-            // Avoid duplicating if mapped already set
-            const existingIds = new Set(prev.map((c) => c.id));
-            const merged = [...prev];
-            mapped.forEach((m) => {
-              if (!existingIds.has(m.id)) merged.push(m);
-            });
-            return merged;
-          });
-        }
+        setCharacters(data);
       }
 
-      setImportMessage(`Imported ${imported.length} characters.`);
+      setImportMessage(`Imported ${result.successful} character${result.successful !== 1 ? 's' : ''} successfully.`);
+
+      // Clear message after 5 seconds
+      setTimeout(() => setImportMessage(null), 5000);
     } catch (err) {
-      console.error('Failed to import characters:', err);
-      alert('Failed to import characters. Please check the file format.');
-      setImportMessage(null);
-    } finally {
-      setImportingCharacters(false);
-      if (event.target) {
-        event.target.value = '';
-      }
+      console.error('Failed to refresh characters after import:', err);
     }
   };
 
@@ -671,21 +636,14 @@ export const Dashboard: React.FC = () => {
               <div className="section-header">
                 <h2>Recent Characters</h2>
                 <div className="section-actions">
-                  <input
-                    type="file"
-                    accept="application/json"
-                    ref={fileInputRef}
-                    style={{ display: 'none' }}
-                    onChange={handleImportCharacters}
-                    aria-label="Import characters"
-                  />
                   <button
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={handleOpenImportModal}
                     className="action-btn glass-button primary"
-                    disabled={charactersLoading || importingCharacters}
+                    disabled={charactersLoading}
+                    title="Import characters from 5e Character Forge or other sources"
                   >
-                    <span>📂</span>
-                    Import Character
+                    <span>📥</span>
+                    Import
                   </button>
                   <button
                     onClick={handleCreateCharacter}
@@ -1003,6 +961,13 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Character Import Modal */}
+      <CharacterImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={handleImportComplete}
+      />
 
       {/* Character Creation Launcher - rendered via portal to overlay everything */}
       {LauncherComponent && createPortal(LauncherComponent, document.body)}
