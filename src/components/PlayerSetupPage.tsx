@@ -305,13 +305,14 @@ export const PlayerSetupPage: React.FC = () => {
                 }}
               >
                 <div style={{ fontSize: '2rem' }}>⚡</div>
-                <h3 style={{ margin: 0, fontSize: '1rem' }}>Quick Entry</h3>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffffff' }}>Quick Entry</h3>
                 <p
                   style={{
                     margin: 0,
                     fontSize: '0.85rem',
                     opacity: 0.8,
                     flexGrow: 1,
+                    color: '#ffffff',
                   }}
                 >
                   I have basic character info
@@ -319,7 +320,7 @@ export const PlayerSetupPage: React.FC = () => {
                 <button onClick={handleQuickEntry} className="glass-button primary" style={{ width: '100%' }}>
                   Enter Info
                 </button>
-                <small style={{ opacity: 0.6 }}>⏱️ 30 seconds</small>
+                <small style={{ opacity: 0.6, color: '#ffffff' }}>⏱️ 30 seconds</small>
               </div>
 
               <div
@@ -333,13 +334,14 @@ export const PlayerSetupPage: React.FC = () => {
                 }}
               >
                 <div style={{ fontSize: '2rem' }}>📥</div>
-                <h3 style={{ margin: 0, fontSize: '1rem' }}>Import JSON</h3>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffffff' }}>Import JSON</h3>
                 <p
                   style={{
                     margin: 0,
                     fontSize: '0.85rem',
                     opacity: 0.8,
                     flexGrow: 1,
+                    color: '#ffffff',
                   }}
                 >
                   I have a .json character file
@@ -351,7 +353,7 @@ export const PlayerSetupPage: React.FC = () => {
                 >
                   Upload File
                 </button>
-                <small style={{ opacity: 0.6 }}>⏱️ 2 minutes</small>
+                <small style={{ opacity: 0.6, color: '#ffffff' }}>⏱️ 2 minutes</small>
               </div>
 
               <div
@@ -365,13 +367,14 @@ export const PlayerSetupPage: React.FC = () => {
                 }}
               >
                 <div style={{ fontSize: '2rem' }}>✨</div>
-                <h3 style={{ margin: 0, fontSize: '1rem' }}>Character Forge</h3>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffffff' }}>Character Forge</h3>
                 <p
                   style={{
                     margin: 0,
                     fontSize: '0.85rem',
                     opacity: 0.8,
                     flexGrow: 1,
+                    color: '#ffffff',
                   }}
                 >
                   I need to build a character
@@ -383,7 +386,7 @@ export const PlayerSetupPage: React.FC = () => {
                 >
                   Open Forge ↗
                 </button>
-                <small style={{ opacity: 0.6 }}>⏱️ 15+ minutes</small>
+                <small style={{ opacity: 0.6, color: '#ffffff' }}>⏱️ 15+ minutes</small>
               </div>
             </div>
           </div>
