@@ -5,6 +5,9 @@ version: '3.8'
 
 services:
   # PostgreSQL Database
+  # NOTE: Before deploying, create the NFS mount directory:
+  #   mkdir -p /mnt/docker-nas-vol1/nexusvtt/postgres
+  #   chmod 700 /mnt/docker-nas-vol1/nexusvtt/postgres
   postgres:
     image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusvtt}/postgres:${VERSION:-latest}
     build:
@@ -16,7 +19,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      # PostgreSQL data stored on NFS share (mounted on all swarm nodes)
+      - /mnt/docker-nas-vol1/nexusvtt/postgres:/var/lib/postgresql/data
     networks:
       - nexus-network
     deploy:
@@ -24,6 +28,7 @@ services:
       replicas: 1
       placement:
         constraints:
+          # IMPORTANT: Keep postgres on manager node for consistent NFS access
           - node.role == manager
       restart_policy:
         condition: on-failure
@@ -36,11 +41,15 @@ services:
       retries: 5
 
   # Redis for sessions and pub/sub
+  # NOTE: Before deploying, create the NFS mount directory:
+  #   mkdir -p /mnt/docker-nas-vol1/nexusvtt/redis
+  #   chmod 700 /mnt/docker-nas-vol1/nexusvtt/redis
   redis:
     image: redis:7-alpine
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
-      - redis-data:/data
+      # Redis data stored on NFS share (mounted on all swarm nodes)
+      - /mnt/docker-nas-vol1/nexusvtt/redis:/data
     networks:
       - nexus-network
     deploy:
@@ -48,6 +57,7 @@ services:
       replicas: 1
       placement:
         constraints:
+          # IMPORTANT: Keep redis on manager node for consistent NFS access
           - node.role == manager
       restart_policy:
         condition: on-failure
@@ -167,8 +177,6 @@ networks:
   homelab-net:
     external: true
 
-volumes:
-  postgres-data:
-    driver: local
-  redis-data:
-    driver: local
+# Note: No named volumes needed - using direct NFS mounts instead
+# PostgreSQL: /mnt/docker-nas-vol1/nexusvtt/postgres
+# Redis: /mnt/docker-nas-vol1/nexusvtt/redis
