@@ -613,6 +613,17 @@ class PropAssetManager {
   }
 
   /**
+   * Refresh custom prop libraries from localStorage
+   */
+  async refreshCustomLibraries(): Promise<void> {
+    const customLibraries = await this.loadLibrariesFromStorage();
+    this.propLibraries = [
+      ...this.propLibraries.filter((lib) => lib.isDefault),
+      ...customLibraries,
+    ];
+  }
+
+  /**
    * Preload a prop image
    */
   async preloadImage(url: string): Promise<HTMLImageElement> {

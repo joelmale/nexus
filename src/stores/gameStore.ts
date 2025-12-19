@@ -118,6 +118,10 @@ interface GameStore extends GameState {
   updateScene: (sceneId: string, updates: Partial<Scene>) => void;
   deleteScene: (sceneId: string) => void;
   reorderScenes: (fromIndex: number, toIndex: number) => void;
+  replaceScenesFromBackup: (
+    scenes: Scene[],
+    activeSceneId?: string | null,
+  ) => Promise<void>;
   setActiveScene: (sceneId: string) => void;
   updateCamera: (camera: Partial<Camera>) => void;
   setFollowDM: (follow: boolean) => void;
@@ -274,6 +278,48 @@ interface GameStore extends GameState {
   dev_quickDM: (name?: string) => Promise<void>;
   dev_quickPlayer: (name?: string, autoJoinRoom?: string) => Promise<void>;
 }
+
+const sceneAutosaveTimers = new Map<string, number>();
+let serverSyncTimer: number | null = null;
+
+const scheduleSceneAutosave = (
+  sceneId: string,
+  getState: () => GameStore,
+): void => {
+  const existing = sceneAutosaveTimers.get(sceneId);
+  if (existing) {
+    window.clearTimeout(existing);
+  }
+
+  const timer = window.setTimeout(() => {
+    const scene = getState().sceneState.scenes.find((s) => s.id === sceneId);
+    if (!scene) return;
+    const plainScene = JSON.parse(JSON.stringify(scene));
+    drawingPersistenceService.saveScene(plainScene).catch((error) => {
+      console.error('Failed to persist scene changes:', error);
+    });
+  }, 800);
+
+  sceneAutosaveTimers.set(sceneId, timer);
+};
+
+const scheduleServerSync = (getState: () => GameStore): void => {
+  if (serverSyncTimer) {
+    window.clearTimeout(serverSyncTimer);
+  }
+
+  serverSyncTimer = window.setTimeout(() => {
+    getState().syncGameStateToServer();
+  }, 1000);
+};
+
+const scheduleCampaignPersistence = (
+  sceneId: string,
+  getState: () => GameStore,
+): void => {
+  scheduleSceneAutosave(sceneId, getState);
+  scheduleServerSync(getState);
+};
 
 // Generate a stable browser ID for linking characters to this "device/browser"
 const getBrowserId = (): string => {
@@ -1590,8 +1636,8 @@ export const useGameStore = create<GameStore>()(
       /**
        * Reset to welcome screen
        *
-       * With URL-based routing, we use window.location to navigate to /lobby
-       * This ensures a full reset of the application state
+       * With URL-based routing, we use window.location to navigate to the
+       * dashboard for authenticated users or the lobby for guests.
        */
       resetToWelcome: () => {
         console.log('🔄 Resetting to welcome screen');
@@ -1600,13 +1646,19 @@ export const useGameStore = create<GameStore>()(
         // This preserves campaign data while clearing reconnection info
         get().saveSessionState();
 
+        const shouldPreserveUser = get().isAuthenticated;
+
         set((state) => {
           // Clear session data
           state.session = null;
-          state.user = {
-            ...initialState.user,
-            id: getBrowserId(),
-          };
+          if (shouldPreserveUser) {
+            state.user.connected = false;
+          } else {
+            state.user = {
+              ...initialState.user,
+              id: getBrowserId(),
+            };
+          }
           state.connection = initialState.connection;
         });
 
@@ -1615,8 +1667,8 @@ export const useGameStore = create<GameStore>()(
         clearSessionFromStorage();
         sessionPersistenceService.clearSession(); // Only clear session, not game state
 
-        // Navigate to lobby using window.location for full reset
-        window.location.href = '/lobby';
+        // Navigate using window.location for full reset
+        window.location.href = shouldPreserveUser ? '/dashboard' : '/lobby';
       },
 
       // Character Management Actions (from appFlowStore)
@@ -1981,6 +2033,27 @@ export const useGameStore = create<GameStore>()(
         });
       },
 
+      replaceScenesFromBackup: async (scenes, activeSceneId) => {
+        const storage = getLinearFlowStorage();
+        await storage.clearGameData();
+
+        set((state) => {
+          state.sceneState.scenes = scenes;
+          state.sceneState.activeSceneId =
+            activeSceneId || scenes[0]?.id || null;
+          state.sceneState.camera = { x: 0, y: 0, zoom: 1.0 };
+        });
+
+        await Promise.all(
+          scenes.map(async (scene) => {
+            const plainScene = JSON.parse(JSON.stringify(scene));
+            await drawingPersistenceService.saveScene(plainScene);
+          }),
+        );
+
+        get().syncGameStateToServer();
+      },
+
       setActiveScene: (sceneId) => {
         set((state) => {
           const sceneExists = state.sceneState.scenes.some(
@@ -2187,6 +2260,8 @@ export const useGameStore = create<GameStore>()(
             });
           }
         });
+
+        scheduleServerSync(get);
       },
 
       updateDrawing: (sceneId, drawingId, updates) => {
@@ -2218,6 +2293,8 @@ export const useGameStore = create<GameStore>()(
             }
           }
         });
+
+        scheduleServerSync(get);
       },
 
       deleteDrawing: (sceneId, drawingId) => {
@@ -2244,6 +2321,8 @@ export const useGameStore = create<GameStore>()(
             });
           }
         });
+
+        scheduleServerSync(get);
       },
 
       clearDrawings: (sceneId, layer) => {
@@ -2274,6 +2353,8 @@ export const useGameStore = create<GameStore>()(
             });
           }
         });
+
+        scheduleServerSync(get);
       },
 
       getSceneDrawings: (sceneId) => {
@@ -2343,6 +2424,8 @@ export const useGameStore = create<GameStore>()(
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
           }
         });
+
+        scheduleCampaignPersistence(sceneId, get);
       },
 
       moveToken: (sceneId, tokenId, position, rotation) => {
@@ -2374,6 +2457,8 @@ export const useGameStore = create<GameStore>()(
             }
           }
         });
+
+        scheduleCampaignPersistence(sceneId, get);
       },
 
       updateToken: (sceneId, tokenId, updates) => {
@@ -2397,6 +2482,8 @@ export const useGameStore = create<GameStore>()(
             }
           }
         });
+
+        scheduleCampaignPersistence(sceneId, get);
       },
 
       deleteToken: (sceneId, tokenId) => {
@@ -2433,6 +2520,8 @@ export const useGameStore = create<GameStore>()(
             },
           });
         })();
+
+        scheduleCampaignPersistence(sceneId, get);
       },
 
       getSceneTokens: (sceneId) => {
@@ -2598,6 +2687,8 @@ export const useGameStore = create<GameStore>()(
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
           }
         });
+
+        scheduleCampaignPersistence(sceneId, get);
       },
 
       moveProp: (sceneId, propId, position, rotation) => {
@@ -2629,6 +2720,8 @@ export const useGameStore = create<GameStore>()(
             }
           }
         });
+
+        scheduleCampaignPersistence(sceneId, get);
       },
 
       updateProp: (sceneId, propId, updates) => {
@@ -2652,6 +2745,8 @@ export const useGameStore = create<GameStore>()(
             }
           }
         });
+
+        scheduleCampaignPersistence(sceneId, get);
       },
 
       deleteProp: (sceneId, propId) => {
@@ -2670,6 +2765,8 @@ export const useGameStore = create<GameStore>()(
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
           }
         });
+
+        scheduleCampaignPersistence(sceneId, get);
       },
 
       interactWithProp: (sceneId, propId, action) => {
@@ -3461,6 +3558,8 @@ export const useGameStore = create<GameStore>()(
             }
           }
         });
+
+        scheduleCampaignPersistence(sceneId, get);
       },
 
       setTyping: (isTyping) => {

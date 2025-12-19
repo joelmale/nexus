@@ -70,6 +70,13 @@ class TokenAssetManager {
   }
 
   /**
+   * Refresh custom token customizations from localStorage
+   */
+  async refreshCustomizations(): Promise<void> {
+    await this.loadCustomizations();
+  }
+
+  /**
    * Save token customizations to localStorage
    */
   private saveCustomizations(): void {

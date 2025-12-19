@@ -78,6 +78,11 @@
   opacity: 1;
 }
 
+.account-bubble.logged-in {
+  border-color: rgba(255, 215, 128, 0.6);
+  box-shadow: 0 0 14px rgba(255, 215, 128, 0.25);
+}
+
 /* Account Modal */
 .account-overlay {
   position: fixed;
@@ -105,6 +110,17 @@
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
   pointer-events: none;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.account-dropdown.compact {
+  width: min(360px, 90vw);
+}
+
+.account-menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.75rem 0.75rem;
 }
 
 .account-dropdown.open {

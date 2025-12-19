@@ -10,6 +10,7 @@ import { ForgeCharacterAdapter } from './forgeAdapter';
 export class CharacterImportService {
   private forgeAdapter = new ForgeCharacterAdapter();
   private maxFileSize = 10 * 1024 * 1024; // 10MB limit
+  private maxCharactersPerFile = 200;
 
   /**
    * Import a single character from a file
@@ -19,42 +20,24 @@ export class CharacterImportService {
     playerId: string = ''
   ): Promise<ImportResult> {
     try {
-      // Validate file size
-      if (file.size > this.maxFileSize) {
-        return {
-          success: false,
-          error: `File ${file.name} is too large (max 10MB)`,
-          fileName: file.name,
-        };
+      const results = await this.importFileToResults(file, playerId);
+
+      if (results.length === 1) {
+        return results[0];
       }
 
-      // Validate file type
-      if (!file.name.endsWith('.json')) {
-        return {
-          success: false,
-          error: `File ${file.name} is not a JSON file`,
-          fileName: file.name,
-        };
-      }
+      const [firstResult] = results;
+      const importedCount = results.filter((result) => result.success).length;
+      const warnings = [
+        ...(firstResult.warnings || []),
+        `File contains multiple characters (${results.length}). Only the first result will be used by this import path.`,
+        ...(importedCount > 1 ? ['Use batch import to include all characters.'] : []),
+      ];
 
-      // Read file content
-      const text = await this.readFileAsText(file);
-
-      // Parse JSON
-      let data: unknown;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        // Parse error
-        return {
-          success: false,
-          error: `Failed to parse ${file.name}: Invalid JSON format`,
-          fileName: file.name,
-        };
-      }
-
-      // Detect and transform character
-      return await this.importFromData(data, file.name, playerId);
+      return {
+        ...firstResult,
+        warnings,
+      };
     } catch (error) {
       return {
         success: false,
@@ -76,8 +59,8 @@ export class CharacterImportService {
 
     // Import each file
     for (const file of fileArray) {
-      const result = await this.importFromFile(file, playerId);
-      results.push(result);
+      const fileResults = await this.importFileToResults(file, playerId);
+      results.push(...fileResults);
     }
 
     // Calculate summary
@@ -90,6 +73,73 @@ export class CharacterImportService {
       failed,
       results,
     };
+  }
+
+  private async importFileToResults(
+    file: File,
+    playerId: string = ''
+  ): Promise<ImportResult[]> {
+    // Validate file size
+    if (file.size > this.maxFileSize) {
+      return [{
+        success: false,
+        error: `File ${file.name} is too large (max 10MB)`,
+        fileName: file.name,
+      }];
+    }
+
+    // Validate file type
+    if (!file.name.endsWith('.json')) {
+      return [{
+        success: false,
+        error: `File ${file.name} is not a JSON file`,
+        fileName: file.name,
+      }];
+    }
+
+    // Read file content
+    const text = await this.readFileAsText(file);
+
+    // Parse JSON
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return [{
+        success: false,
+        error: `Failed to parse ${file.name}: Invalid JSON format`,
+        fileName: file.name,
+      }];
+    }
+
+    const normalized = this.normalizeImportPayload(data);
+
+    if (Array.isArray(normalized)) {
+      if (normalized.length === 0) {
+        return [{
+          success: false,
+          error: `No characters found in ${file.name}`,
+          fileName: file.name,
+        }];
+      }
+
+      if (normalized.length > this.maxCharactersPerFile) {
+        return [{
+          success: false,
+          error: `File ${file.name} contains too many characters (${normalized.length}). Max ${this.maxCharactersPerFile}.`,
+          fileName: file.name,
+        }];
+      }
+
+      const results: ImportResult[] = [];
+      for (const item of normalized) {
+        const result = await this.importFromData(item, file.name, playerId);
+        results.push(result);
+      }
+      return results;
+    }
+
+    return [await this.importFromData(normalized, file.name, playerId)];
   }
 
   /**
@@ -148,7 +198,7 @@ export class CharacterImportService {
       // Unsupported format
       return {
         success: false,
-        error: `Unsupported character format in ${sourceName}. Supported formats: 5e Character Forge, Generic JSON`,
+        error: `Unsupported character format in ${sourceName}. Supported formats: 5e Character Forge, NexusVTT JSON`,
         fileName: sourceName,
       };
     } catch (error) {
@@ -180,6 +230,21 @@ export class CharacterImportService {
       'race' in char &&
       typeof char.race === 'object'
     );
+  }
+
+  private normalizeImportPayload(data: unknown): unknown {
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (data && typeof data === 'object') {
+      const record = data as Record<string, unknown>;
+      if (Array.isArray(record.characters)) {
+        return record.characters;
+      }
+    }
+
+    return data;
   }
 
   /**

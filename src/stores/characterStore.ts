@@ -12,6 +12,7 @@ import type {
 } from '@/types/character';
 import type { PlayerCharacter } from '@/types/game';
 import { useInitiativeStore } from '@/stores/initiativeStore';
+import { useGameStore } from '@/stores/gameStore';
 import {
   createEmptyCharacter,
   calculateAbilityModifier,
@@ -843,6 +844,7 @@ export const useCharacterStore = create<CharacterStore>()(
       const batchResult = await characterImportService.importFromFiles(files);
 
       const errors: string[] = [];
+      const { isAuthenticated } = useGameStore.getState();
 
       // Process successful imports
       for (const result of batchResult.results) {
@@ -853,6 +855,31 @@ export const useCharacterStore = create<CharacterStore>()(
           set((state) => {
             state.characters.push(character);
           });
+
+          if (isAuthenticated) {
+            try {
+              const response = await fetch('/api/characters', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  name: character.name,
+                  data: character,
+                }),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Failed to save character');
+              }
+            } catch (error) {
+              errors.push(
+                `Failed to save ${character.name} to your account: ${
+                  error instanceof Error ? error.message : 'Unknown error'
+                }`,
+              );
+            }
+          }
         } else if (result.error) {
           errors.push(result.error);
         }

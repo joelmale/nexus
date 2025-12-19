@@ -32,6 +32,8 @@ export const LinearWelcomePage: React.FC = () => {
     session,
     attemptSessionRecovery,
     login,
+    logout,
+    user,
   } = useGameStore();
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
@@ -71,6 +73,7 @@ export const LinearWelcomePage: React.FC = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
   const emailInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Detect if we're returning from OAuth (check for common OAuth params)
@@ -259,16 +262,29 @@ export const LinearWelcomePage: React.FC = () => {
           ? { email: authEmail.trim(), password: authPassword, displayName: authDisplayName.trim() || undefined }
           : { email: authEmail.trim(), password: authPassword };
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      });
+      let response: Response;
+      try {
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(body),
+        });
+      } catch {
+        throw new Error(
+          'Unable to reach the server. Please check your connection and try again.',
+        );
+      }
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
+        const statusHint =
+          response.status >= 500
+            ? 'Server error. Please try again shortly.'
+            : response.status === 429
+              ? 'Too many attempts. Please wait and try again.'
+              : 'Authentication failed.';
+        throw new Error(data.error || statusHint);
       }
 
       login({
@@ -446,13 +462,77 @@ export const LinearWelcomePage: React.FC = () => {
           {/* Account Menu - Upper Right */}
           <div className="account-menu">
             <button
-              className="account-bubble glass-panel"
-              title="Login with OAuth"
-              onClick={() => setShowAccountModal(true)}
+              className={`account-bubble glass-panel ${isAuthenticated ? 'logged-in' : ''}`}
+              title={isAuthenticated ? 'Account menu' : 'Login with OAuth'}
+              onClick={() =>
+                isAuthenticated
+                  ? setShowAccountMenu((prev) => !prev)
+                  : setShowAccountModal(true)
+              }
             >
-              <span className="account-icon">👤</span>
+              <span className="account-icon">
+                {isAuthenticated
+                  ? (user.name || user.displayName || 'User')[0]?.toUpperCase()
+                  : '👤'}
+              </span>
             </button>
           </div>
+
+          {showAccountMenu && isAuthenticated && (
+            <div
+              className="account-overlay"
+              role="presentation"
+              onClick={() => setShowAccountMenu(false)}
+            >
+              <div
+                className="account-dropdown glass-panel open compact"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="account-menu-title"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="account-dropdown-header">
+                  <div className="title-row">
+                    <span className="dropdown-title" id="account-menu-title">
+                      Signed in
+                    </span>
+                    <div className="title-note">
+                      {user.displayName || user.name || 'Adventurer'}
+                    </div>
+                  </div>
+                  <button
+                    className="account-close"
+                    onClick={() => setShowAccountMenu(false)}
+                    aria-label="Close account menu"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="account-menu-actions">
+                  <button
+                    className="account-option wide"
+                    onClick={() => {
+                      setShowAccountMenu(false);
+                      navigate('/dashboard');
+                    }}
+                  >
+                    <span className="option-text">Go to dashboard</span>
+                  </button>
+                  <button
+                    className="account-option wide"
+                    onClick={async () => {
+                      await logout();
+                      setShowAccountMenu(false);
+                      navigate('/lobby');
+                    }}
+                  >
+                    <span className="option-text">Log out</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {showAccountModal && (
             <div

@@ -182,7 +182,7 @@ export const CharacterImportModal: React.FC<CharacterImportModalProps> = ({
               {result.failed > 0 && (
                 <div className="error-section">
                   <div className="error-summary">
-                    ❌ Failed to import {result.failed} file{result.failed !== 1 ? 's' : ''}
+                    ❌ Failed to import {result.failed} character{result.failed !== 1 ? 's' : ''}
                   </div>
 
                   {result.errors.length > 0 && (

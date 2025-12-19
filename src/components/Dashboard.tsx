@@ -2,11 +2,68 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
+import { useCharacterStore } from '@/stores/characterStore';
+import type { Scene } from '@/types/game';
 import { CharacterManager } from './CharacterManager';
 import { CharacterImportModal } from './CharacterImportModal';
 import { useCharacterCreationLauncher } from '@/hooks';
 import { DocumentLibrary } from './DocumentLibrary';
+import {
+  applyCampaignBackupAssets,
+  buildCampaignBackup,
+  buildCampaignBackupFilename,
+  downloadCampaignBackup,
+  parseCampaignBackup,
+} from '@/services/campaignBackup';
+import { tokenAssetManager } from '@/services/tokenAssets';
+import { propAssetManager } from '@/services/propAssets';
 import '@/styles/dashboard.css';
+
+const stableStringify = (value: unknown): string => {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(',')}]`;
+  }
+
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(',')}}`;
+};
+
+const normalizeForHash = (value: unknown): unknown => {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(normalizeForHash);
+  }
+
+  const record = value as Record<string, unknown>;
+  const sanitized: Record<string, unknown> = {};
+  const omittedKeys = new Set([
+    'id',
+    'createdAt',
+    'updatedAt',
+    'playerId',
+    'version',
+  ]);
+
+  Object.keys(record)
+    .sort()
+    .forEach((key) => {
+      if (omittedKeys.has(key)) return;
+      sanitized[key] = normalizeForHash(record[key]);
+    });
+
+  return sanitized;
+};
+
+const characterHash = (value: unknown): string =>
+  stableStringify(normalizeForHash(value));
 
 /**
  * Campaign data structure from API
@@ -61,6 +118,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, createGameRoom, joinRoomWithCode } =
     useGameStore();
+  const localCharacters = useCharacterStore((state) => state.characters);
   const { startCharacterCreation, LauncherComponent } =
     useCharacterCreationLauncher();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -78,11 +136,18 @@ export const Dashboard: React.FC = () => {
   const [editingCharacter, setEditingCharacter] = useState<
     CharacterRecord | undefined
   >(undefined);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
+    null,
+  );
+  const [campaignBackupExporting, setCampaignBackupExporting] = useState(false);
+  const [campaignBackupImporting, setCampaignBackupImporting] = useState(false);
   const [showJoinGameModal, setShowJoinGameModal] = useState(false);
   const [joinRoomCode, setJoinRoomCode] = useState('');
   const [joiningGame, setJoiningGame] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const syncInFlightRef = React.useRef(false);
+  const lastSyncKeyRef = React.useRef<string | null>(null);
 
   // Check authentication and redirect if not authenticated
   useEffect(() => {
@@ -271,6 +336,108 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const getCharacterRaceLabel = (character: CharacterRecord): string | null => {
+    const raceValue = character.data?.race;
+    if (!raceValue) return null;
+    if (typeof raceValue === 'string') return raceValue;
+    if (typeof raceValue === 'object' && 'name' in raceValue) {
+      return String((raceValue as { name?: string }).name || '');
+    }
+    return null;
+  };
+
+  const getCharacterClassLabel = (character: CharacterRecord): string | null => {
+    const classValue = character.data?.class;
+    if (classValue) {
+      if (typeof classValue === 'string') return classValue;
+      if (typeof classValue === 'object' && 'name' in classValue) {
+        return String((classValue as { name?: string }).name || '');
+      }
+    }
+
+    const classesValue = character.data?.classes;
+    if (Array.isArray(classesValue) && classesValue.length > 0) {
+      const firstClass = classesValue[0] as { name?: string };
+      if (firstClass?.name) return String(firstClass.name);
+    }
+
+    return null;
+  };
+
+  const getCharacterLevelLabel = (character: CharacterRecord): number | null => {
+    const levelValue = character.data?.level;
+    if (typeof levelValue === 'number') return levelValue;
+    return null;
+  };
+
+  const syncLocalCharactersToServer = React.useCallback(async () => {
+    if (!isAuthenticated || charactersLoading) return;
+    if (syncInFlightRef.current) return;
+
+    const syncKey = `${localCharacters.length}:${characters.length}`;
+    if (lastSyncKeyRef.current === syncKey) return;
+    lastSyncKeyRef.current = syncKey;
+
+    syncInFlightRef.current = true;
+    try {
+      const serverHashes = new Set(
+        characters
+          .map((character) => characterHash(character.data ?? {}))
+          .filter((hash) => hash.length > 0),
+      );
+
+      const missing = localCharacters.filter((character) => {
+        const hash = characterHash(character);
+        return !serverHashes.has(hash);
+      });
+
+      if (missing.length === 0) {
+        return;
+      }
+
+      for (const character of missing) {
+        try {
+          const response = await fetch('/api/characters', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              name: character.name,
+              data: character,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.warn(
+              `Failed to sync character ${character.name}:`,
+              errorData.error || response.statusText,
+            );
+          }
+        } catch (error) {
+          console.warn(
+            `Failed to sync character ${character.name}:`,
+            error,
+          );
+        }
+      }
+
+      const refreshed = await fetch('/api/characters', {
+        credentials: 'include',
+      });
+      if (refreshed.ok) {
+        const data = await refreshed.json();
+        setCharacters(data);
+      }
+    } finally {
+      syncInFlightRef.current = false;
+    }
+  }, [isAuthenticated, charactersLoading, localCharacters, characters]);
+
+  useEffect(() => {
+    syncLocalCharactersToServer();
+  }, [syncLocalCharactersToServer]);
+
   /**
    * Handles saving a character (create or update)
    */
@@ -385,6 +552,29 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const recentCampaigns = [...campaigns]
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )
+    ;
+
+  const uniqueCharacters = React.useMemo(() => {
+    const seen = new Set<string>();
+    const ordered = [...characters].sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
+    return ordered.filter((character) => {
+      const hash = characterHash(character.data ?? {});
+      if (seen.has(hash)) return false;
+      seen.add(hash);
+      return true;
+    });
+  }, [characters]);
+
+  const recentCharacters = uniqueCharacters;
+
   // Show loading while checking authentication
   if (authChecking) {
     return (
@@ -399,24 +589,111 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  const favorites = {
-    campaigns: campaigns.filter((c) => c.isFavorite),
-    characters: characters.filter((c) => c.isFavorite),
+  const selectedCampaign = campaigns.find(
+    (campaign) => campaign.id === selectedCampaignId,
+  );
+
+  const handleExportCampaignBackup = async () => {
+    if (!selectedCampaign) {
+      setError('Select a campaign to export a backup.');
+      return;
+    }
+
+    setCampaignBackupExporting(true);
+    try {
+      const scenes = Array.isArray(selectedCampaign.scenes)
+        ? (selectedCampaign.scenes as Scene[])
+        : [];
+
+      const backup = buildCampaignBackup({
+        scenes,
+        campaign: {
+          id: selectedCampaign.id,
+          name: selectedCampaign.name,
+          description: selectedCampaign.description,
+        },
+      });
+
+      downloadCampaignBackup(
+        backup,
+        buildCampaignBackupFilename(selectedCampaign.name),
+      );
+      setError(null);
+    } catch (err) {
+      console.error('Failed to export campaign backup:', err);
+      setError('Failed to export campaign backup. Please try again.');
+    } finally {
+      setCampaignBackupExporting(false);
+    }
   };
 
-  const recentCampaigns = [...campaigns]
-    .sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    )
-    .slice(0, 4);
+  const handleImportCampaignBackup = async () => {
+    if (!selectedCampaign) {
+      setError('Select a campaign to import a backup.');
+      return;
+    }
 
-  const recentCharacters = [...characters]
-    .sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    )
-    .slice(0, 4);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      setCampaignBackupImporting(true);
+      try {
+        const backup = await parseCampaignBackup(file);
+        const confirmImport = confirm(
+          'Importing a backup will replace the selected campaign scenes. Continue?',
+        );
+        if (!confirmImport) {
+          return;
+        }
+
+        applyCampaignBackupAssets(backup);
+        await tokenAssetManager.initialize();
+        await tokenAssetManager.refreshCustomizations();
+        await propAssetManager.initialize();
+        await propAssetManager.refreshCustomLibraries();
+
+        const response = await fetch(
+          `/api/campaigns/${selectedCampaign.id}`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ scenes: backup.scenes }),
+          },
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to import backup');
+        }
+
+        setCampaigns((prev) =>
+          prev.map((campaign) =>
+            campaign.id === selectedCampaign.id
+              ? {
+                  ...campaign,
+                  scenes: backup.scenes,
+                  updatedAt: new Date().toISOString(),
+                }
+              : campaign,
+          ),
+        );
+        setError(null);
+      } catch (err) {
+        console.error('Failed to import campaign backup:', err);
+        setError('Failed to import campaign backup. Please try again.');
+      } finally {
+        setCampaignBackupImporting(false);
+      }
+    };
+
+    input.click();
+  };
 
   return (
     <>
@@ -441,6 +718,13 @@ export const Dashboard: React.FC = () => {
                 >
                   <span>✨</span>
                   Create Campaign
+                </button>
+                <button
+                  onClick={() => navigate('/lobby')}
+                  className="action-btn glass-button secondary"
+                >
+                  <span>🏠</span>
+                  Back to Lobby
                 </button>
                 <button
                   onClick={handleCreateCharacter}
@@ -469,12 +753,6 @@ export const Dashboard: React.FC = () => {
               <p className="stat-label">Characters</p>
               <p className="stat-value">{characters.length}</p>
             </div>
-            <div className="stat-card glass-panel">
-              <p className="stat-label">Favorites</p>
-              <p className="stat-value">
-                {favorites.campaigns.length + favorites.characters.length}
-              </p>
-            </div>
           </div>
         </div>
 
@@ -487,95 +765,36 @@ export const Dashboard: React.FC = () => {
 
         <div className="dashboard-grid-layout">
           <div className="dashboard-main">
-            {/* Favorites */}
-            <div className="dashboard-section">
-              <div className="section-header">
-                <h2>Favorites</h2>
-              </div>
-              {favorites.campaigns.length + favorites.characters.length ===
-              0 ? (
-                <div className="empty-state glass-panel compact">
-                  <div className="empty-state-icon">⭐</div>
-                  <h3>No favorites yet</h3>
-                  <p>Pin campaigns or characters to see them here.</p>
-                </div>
-              ) : (
-                <div className="card-row">
-                  {favorites.campaigns.slice(0, 2).map((campaign) => (
-                    <div key={campaign.id} className="card glass-panel">
-                      <div className="card-top">
-                        <p className="eyebrow">Campaign</p>
-                        <span className="pill">⭐</span>
-                      </div>
-                      <h3>{campaign.name}</h3>
-                      <p className="card-meta">
-                        Updated{' '}
-                        {new Date(campaign.updatedAt).toLocaleDateString()}
-                      </p>
-                      {campaign.description && (
-                        <p className="card-desc">{campaign.description}</p>
-                      )}
-                      <div className="card-actions">
-                        <button
-                          className="action-btn glass-button primary small"
-                          onClick={() => handleStartSession(campaign.id)}
-                          disabled={startingSession !== null}
-                        >
-                          {startingSession === campaign.id
-                            ? 'Starting...'
-                            : 'Start Session'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {favorites.characters.slice(0, 2).map((character) => (
-                    <div key={character.id} className="card glass-panel">
-                      <div className="card-top">
-                        <p className="eyebrow">Character</p>
-                        <span className="pill">⭐</span>
-                      </div>
-                      <h3>{character.name}</h3>
-                      <p className="card-meta">
-                        Updated{' '}
-                        {new Date(character.updatedAt).toLocaleDateString()}
-                      </p>
-                      <div className="card-tags">
-                        {character.data.race && (
-                          <span>{character.data.race}</span>
-                        )}
-                        {character.data.class && (
-                          <span>{character.data.class}</span>
-                        )}
-                        {character.data.level && (
-                          <span>Level {character.data.level}</span>
-                        )}
-                      </div>
-                      <div className="card-actions">
-                        <button
-                          className="action-btn glass-button secondary small"
-                          onClick={() => handleEditCharacter(character)}
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* Recent Campaigns */}
             <div className="dashboard-section">
-              <div className="section-header">
+              <div className="section-header document-section-header">
                 <h2>Recent Campaigns</h2>
-                <button
-                  onClick={() => setShowNewCampaignModal(true)}
-                  className="action-btn glass-button primary"
-                  disabled={loading}
-                >
-                  <span>➕</span>
-                  New Campaign
-                </button>
+                <div className="section-actions">
+                  <button
+                    onClick={handleImportCampaignBackup}
+                    className="action-btn glass-button secondary"
+                    disabled={campaignBackupImporting}
+                  >
+                    <span>📤</span>
+                    {campaignBackupImporting ? 'Importing...' : 'Import Backup'}
+                  </button>
+                  <button
+                    onClick={handleExportCampaignBackup}
+                    className="action-btn glass-button secondary"
+                    disabled={campaignBackupExporting}
+                  >
+                    <span>📥</span>
+                    {campaignBackupExporting ? 'Exporting...' : 'Export Backup'}
+                  </button>
+                  <button
+                    onClick={() => setShowNewCampaignModal(true)}
+                    className="action-btn glass-button primary"
+                    disabled={loading}
+                  >
+                    <span>➕</span>
+                    New Campaign
+                  </button>
+                </div>
               </div>
 
               {loading ? (
@@ -598,42 +817,57 @@ export const Dashboard: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <div className="card-row">
-                  {recentCampaigns.map((campaign) => (
-                    <div key={campaign.id} className="card glass-panel">
-                      <div className="card-top">
-                        <p className="eyebrow">Campaign</p>
-                        <span className="pill">
-                          {new Date(campaign.updatedAt).toLocaleDateString()}
-                        </span>
+                <div className="glass-panel dashboard-card-panel">
+                  <div className="card-row">
+                    {recentCampaigns.map((campaign) => (
+                      <div key={campaign.id} className="card glass-panel">
+                        <div className="card-top">
+                          <p className="eyebrow">Campaign</p>
+                          <div className="card-top-actions">
+                            <label className="campaign-select">
+                              <input
+                                type="radio"
+                                name="selected-campaign"
+                                checked={selectedCampaignId === campaign.id}
+                                onChange={() =>
+                                  setSelectedCampaignId(campaign.id)
+                                }
+                              />
+                              <span>Backup</span>
+                            </label>
+                            <span className="pill">
+                              {new Date(campaign.updatedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <h3>{campaign.name}</h3>
+                        {campaign.description && (
+                          <p className="card-desc">{campaign.description}</p>
+                        )}
+                        <div className="card-actions">
+                          <button
+                            className="action-btn glass-button primary small"
+                            onClick={() => handleStartSession(campaign.id)}
+                            disabled={startingSession !== null}
+                          >
+                            {startingSession === campaign.id
+                              ? 'Starting...'
+                              : 'Start Session'}
+                          </button>
+                          <button className="action-btn glass-button secondary small">
+                            Edit
+                          </button>
+                        </div>
                       </div>
-                      <h3>{campaign.name}</h3>
-                      {campaign.description && (
-                        <p className="card-desc">{campaign.description}</p>
-                      )}
-                      <div className="card-actions">
-                        <button
-                          className="action-btn glass-button primary small"
-                          onClick={() => handleStartSession(campaign.id)}
-                          disabled={startingSession !== null}
-                        >
-                          {startingSession === campaign.id
-                            ? 'Starting...'
-                            : 'Start Session'}
-                        </button>
-                        <button className="action-btn glass-button secondary small">
-                          Edit
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Recent Characters */}
             <div className="dashboard-section">
-              <div className="section-header">
+              <div className="section-header document-section-header">
                 <h2>Recent Characters</h2>
                 <div className="section-actions">
                   <button
@@ -683,48 +917,50 @@ export const Dashboard: React.FC = () => {
                 </div>
                 </>
               ) : (
-                <div className="card-row">
-                  {importMessage && (
-                    <div className="info-message glass-panel success">
-                      {importMessage}
-                    </div>
-                  )}
-                  {recentCharacters.map((character) => (
-                    <div key={character.id} className="card glass-panel">
-                      <div className="card-top">
-                        <p className="eyebrow">Character</p>
-                        <span className="pill">
-                          {new Date(character.updatedAt).toLocaleDateString()}
-                        </span>
+                <div className="glass-panel dashboard-card-panel">
+                  <div className="card-row">
+                    {importMessage && (
+                      <div className="info-message glass-panel success">
+                        {importMessage}
                       </div>
-                      <h3>{character.name}</h3>
-                      <div className="card-tags">
-                        {character.data.race && (
-                          <span>{character.data.race}</span>
-                        )}
-                        {character.data.class && (
-                          <span>{character.data.class}</span>
-                        )}
-                        {character.data.level && (
-                          <span>Level {character.data.level}</span>
-                        )}
+                    )}
+                    {recentCharacters.map((character) => (
+                      <div key={character.id} className="card glass-panel">
+                        <div className="card-top">
+                          <p className="eyebrow">Character</p>
+                          <span className="pill">
+                            {new Date(character.updatedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <h3>{character.name}</h3>
+                        <div className="card-tags">
+                          {getCharacterRaceLabel(character) && (
+                            <span>{getCharacterRaceLabel(character)}</span>
+                          )}
+                          {getCharacterClassLabel(character) && (
+                            <span>{getCharacterClassLabel(character)}</span>
+                          )}
+                          {getCharacterLevelLabel(character) !== null && (
+                            <span>Level {getCharacterLevelLabel(character)}</span>
+                          )}
+                        </div>
+                        <div className="card-actions">
+                          <button
+                            className="action-btn glass-button secondary small"
+                            onClick={() => handleEditCharacter(character)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="action-btn glass-button secondary small"
+                            onClick={() => handleDeleteCharacter(character.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                      <div className="card-actions">
-                        <button
-                          className="action-btn glass-button secondary small"
-                          onClick={() => handleEditCharacter(character)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="action-btn glass-button secondary small"
-                          onClick={() => handleDeleteCharacter(character.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

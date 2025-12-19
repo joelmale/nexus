@@ -180,16 +180,18 @@ export const DocumentLibrary: React.FC = () => {
 
   return (
     <div className="dashboard-section">
-      <div className="section-header">
+      <div className="section-header document-section-header">
         <h2>📚 Document Library</h2>
-        <button
-          onClick={() => setShowUploadModal(true)}
-          className="action-btn glass-button primary"
-          disabled={isLoadingDocuments || !documentsAvailable}
-        >
-          <span>⬆️</span>
-          Upload Document
-        </button>
+        <div className="section-actions document-header-actions">
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="action-btn glass-button primary document-upload-button"
+            disabled={isLoadingDocuments || !documentsAvailable}
+          >
+            <span>⬆️</span>
+            Upload Document
+          </button>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -237,14 +239,6 @@ export const DocumentLibrary: React.FC = () => {
         </div>
       )}
 
-      {/* Error Message */}
-      {documentsError && (
-        <div className="error-message glass-panel error">
-          <span className="error-icon">⚠️</span>
-          {documentsError}
-        </div>
-      )}
-
       {!documentsAvailable && (
         <div className="empty-state glass-panel">
           <div className="empty-state-icon">📕</div>
@@ -260,6 +254,14 @@ export const DocumentLibrary: React.FC = () => {
           >
             Retry connection
           </button>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {documentsError && (
+        <div className="error-message glass-panel error">
+          <span className="error-icon">⚠️</span>
+          {documentsError}
         </div>
       )}
 

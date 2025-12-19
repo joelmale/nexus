@@ -45,8 +45,8 @@ passport.deserializeUser(async (id: string, done) => {
     const user = await db.getUserById(id);
 
     if (!user) {
-      // User not found in database (possibly deleted)
-      return done(new Error('User not found'), null);
+      // User not found in database (possibly deleted or stale session)
+      return done(null, false);
     }
 
     // Return user object to be attached to req.user

@@ -30,7 +30,7 @@ import passport from './auth.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // JSON Patch for delta updates
-import * as jsonpatch from 'fast-json-patch';
+import jsonpatch from 'fast-json-patch';
 
 // Custom types
 import type {

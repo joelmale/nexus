@@ -1056,6 +1056,13 @@
   flex-shrink: 0;
 }
 
+.player-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-shrink: 0;
+}
+
 .host-badge {
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
