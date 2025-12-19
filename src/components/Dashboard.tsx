@@ -33,16 +33,35 @@ const stableStringify = (value: unknown): string => {
   return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(',')}}`;
 };
 
+const normalizeCharacterPayload = (value: unknown): unknown => {
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+};
+
 const normalizeForHash = (value: unknown): unknown => {
-  if (value === null || typeof value !== 'object') {
-    return value;
+  const normalized = normalizeCharacterPayload(value);
+  if (
+    normalized === null ||
+    normalized === undefined ||
+    typeof normalized !== 'object'
+  ) {
+    return normalized;
   }
 
-  if (Array.isArray(value)) {
-    return value.map(normalizeForHash);
+  if (Array.isArray(normalized)) {
+    return normalized.map((item) => {
+      const normalizedItem = normalizeForHash(item);
+      return normalizedItem === undefined ? null : normalizedItem;
+    });
   }
 
-  const record = value as Record<string, unknown>;
+  const record = normalized as Record<string, unknown>;
   const sanitized: Record<string, unknown> = {};
   const omittedKeys = new Set([
     'id',
@@ -56,7 +75,9 @@ const normalizeForHash = (value: unknown): unknown => {
     .sort()
     .forEach((key) => {
       if (omittedKeys.has(key)) return;
-      sanitized[key] = normalizeForHash(record[key]);
+      const normalizedValue = normalizeForHash(record[key]);
+      if (normalizedValue === undefined) return;
+      sanitized[key] = normalizedValue;
     });
 
   return sanitized;
@@ -119,6 +140,7 @@ export const Dashboard: React.FC = () => {
   const { user, isAuthenticated, createGameRoom, joinRoomWithCode } =
     useGameStore();
   const localCharacters = useCharacterStore((state) => state.characters);
+  const clearLocalCharacters = useCharacterStore((state) => state.clearCharacters);
   const { startCharacterCreation, LauncherComponent } =
     useCharacterCreationLauncher();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -333,6 +355,35 @@ export const Dashboard: React.FC = () => {
       setTimeout(() => setImportMessage(null), 5000);
     } catch (err) {
       console.error('Failed to refresh characters after import:', err);
+    }
+  };
+
+  const handleClearAllCharacters = async () => {
+    if (!confirm('This will delete all characters in your account and local cache. Continue?')) {
+      return;
+    }
+
+    try {
+      setError(null);
+      const response = await fetch('/api/characters', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete characters');
+      }
+
+      clearLocalCharacters();
+      setCharacters([]);
+      setImportMessage('All characters cleared.');
+      setTimeout(() => setImportMessage(null), 4000);
+    } catch (err) {
+      console.error('Failed to clear characters:', err);
+      setError(
+        err instanceof Error ? err.message : 'Failed to clear characters',
+      );
     }
   };
 
@@ -867,23 +918,32 @@ export const Dashboard: React.FC = () => {
 
             {/* Recent Characters */}
             <div className="dashboard-section">
-              <div className="section-header document-section-header">
-                <h2>Recent Characters</h2>
-                <div className="section-actions">
-                  <button
-                    onClick={handleOpenImportModal}
-                    className="action-btn glass-button primary"
-                    disabled={charactersLoading}
-                    title="Import characters from 5e Character Forge or other sources"
-                  >
-                    <span>📥</span>
-                    Import
-                  </button>
-                  <button
-                    onClick={handleCreateCharacter}
-                    className="action-btn glass-button primary"
-                    disabled={charactersLoading}
-                  >
+                <div className="section-header document-section-header">
+                  <h2>Recent Characters</h2>
+                  <div className="section-actions">
+                    <button
+                      onClick={handleOpenImportModal}
+                      className="action-btn glass-button primary"
+                      disabled={charactersLoading}
+                      title="Import characters from 5e Character Forge or other sources"
+                    >
+                      <span>📥</span>
+                      Import
+                    </button>
+                    <button
+                      onClick={handleClearAllCharacters}
+                      className="action-btn glass-button danger"
+                      disabled={charactersLoading || characters.length === 0}
+                      title="Delete all characters"
+                    >
+                      <span>🗑️</span>
+                      Clear All
+                    </button>
+                    <button
+                      onClick={handleCreateCharacter}
+                      className="action-btn glass-button primary"
+                      disabled={charactersLoading}
+                    >
                     <span>➕</span>
                     New Character
                   </button>

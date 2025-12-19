@@ -54,6 +54,7 @@ interface CharacterStore extends CharacterState {
   ) => Promise<string>;
   updateCharacter: (characterId: string, updates: Partial<Character>) => void;
   deleteCharacter: (characterId: string) => void;
+  clearCharacters: () => void;
   setActiveCharacter: (characterId: string | null) => void;
   getCharacter: (characterId: string) => Character | undefined;
   getCharactersByPlayer: (playerId: string) => Character[];
@@ -372,6 +373,12 @@ export const useCharacterStore = create<CharacterStore>()(
             state.activeCharacterId = null;
           }
         }
+      }),
+
+    clearCharacters: () =>
+      set((state) => {
+        state.characters = [];
+        state.activeCharacterId = null;
       }),
 
     setActiveCharacter: (characterId) =>

@@ -1032,6 +1032,29 @@ class NexusServer {
     });
 
     /**
+     * DELETE /api/characters
+     * Deletes all characters owned by the authenticated user
+     */
+    this.app.delete('/api/characters', async (req, res) => {
+      try {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const user = req.user as { id: string };
+        const deletedCount = await this.db.deleteCharactersByUser(user.id);
+
+        res.json({
+          success: true,
+          deletedCount,
+        });
+      } catch (error) {
+        console.error('Failed to delete all characters:', error);
+        res.status(500).json({ error: 'Failed to delete characters' });
+      }
+    });
+
+    /**
      * POST /api/tokens/save
      * Saves a customized token image to the server
      * Body: { tokenId: string, imageData: string (base64), name: string }

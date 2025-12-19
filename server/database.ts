@@ -837,6 +837,21 @@ export class DatabaseService {
     console.log(`🗄️ Character deleted: ${characterId}`);
   }
 
+  /**
+   * Deletes all characters owned by a user
+   * @param {string} userId - Owner ID to delete characters for
+   * @returns {Promise<number>} Count of deleted characters
+   */
+  async deleteCharactersByUser(userId: string): Promise<number> {
+    const result = await this.pool.query(
+      'DELETE FROM characters WHERE "ownerId" = $1',
+      [userId],
+    );
+
+    console.log(`🗄️ Deleted ${result.rowCount} characters for user ${userId}`);
+    return result.rowCount || 0;
+  }
+
   // ============================================================================
   // SESSION OPERATIONS
   // ============================================================================
