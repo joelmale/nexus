@@ -102,6 +102,105 @@ const ASSET_CATEGORIES = {
   Reference: 'Reference',
 };
 
+type CharacterRecord = {
+  id: string;
+  name: string;
+  data: unknown;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const stableStringify = (value: unknown): string => {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(',')}]`;
+  }
+
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(',')}}`;
+};
+
+const normalizeCharacterPayload = (value: unknown): unknown => {
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+};
+
+const normalizeForHash = (value: unknown): unknown => {
+  const normalized = normalizeCharacterPayload(value);
+  if (
+    normalized === null ||
+    normalized === undefined ||
+    typeof normalized !== 'object'
+  ) {
+    return normalized;
+  }
+
+  if (Array.isArray(normalized)) {
+    return normalized.map((item) => {
+      const normalizedItem = normalizeForHash(item);
+      return normalizedItem === undefined ? null : normalizedItem;
+    });
+  }
+
+  const record = normalized as Record<string, unknown>;
+  const sanitized: Record<string, unknown> = {};
+  const omittedKeys = new Set([
+    'id',
+    'createdAt',
+    'updatedAt',
+    'playerId',
+    'version',
+    'name',
+  ]);
+
+  Object.keys(record)
+    .sort()
+    .forEach((key) => {
+      if (omittedKeys.has(key)) return;
+      const normalizedValue = normalizeForHash(record[key]);
+      if (normalizedValue === undefined) return;
+      sanitized[key] = normalizedValue;
+    });
+
+  return sanitized;
+};
+
+const buildCharacterKey = (name: string, data: unknown): string => {
+  const normalizedName = name.trim().toLowerCase();
+  return `${normalizedName}::${stableStringify(normalizeForHash(data))}`;
+};
+
+const dedupeCharacters = (characters: CharacterRecord[]) => {
+  const sorted = [...characters].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  );
+  const seen = new Set<string>();
+  const unique: CharacterRecord[] = [];
+  const duplicateIds: string[] = [];
+
+  for (const character of sorted) {
+    const key = buildCharacterKey(character.name, character.data);
+    if (seen.has(key)) {
+      duplicateIds.push(character.id);
+      continue;
+    }
+    seen.add(key);
+    unique.push(character);
+  }
+
+  return { unique, duplicateIds };
+};
+
 class NexusServer {
   private rooms = new Map<string, Room>();
   private connections = new Map<string, Connection>();
@@ -868,8 +967,15 @@ class NexusServer {
 
         const user = req.user as { id: string };
         const characters = await this.db.getCharactersByUser(user.id);
+        const { unique, duplicateIds } = dedupeCharacters(
+          characters as CharacterRecord[],
+        );
 
-        res.json(characters);
+        if (duplicateIds.length > 0) {
+          await this.db.deleteCharactersByIds(duplicateIds);
+        }
+
+        res.json(unique);
       } catch (error) {
         console.error('Failed to fetch characters:', error);
         res.status(500).json({ error: 'Failed to fetch characters' });
@@ -932,6 +1038,24 @@ class NexusServer {
         }
 
         const user = req.user as { id: string };
+        const existingCharacters = await this.db.getCharactersByUser(user.id);
+        const incomingKey = buildCharacterKey(name.trim(), data || {});
+        const match = (existingCharacters as CharacterRecord[])
+          .map((character) => ({
+            character,
+            key: buildCharacterKey(character.name, character.data),
+          }))
+          .filter(({ key }) => key === incomingKey)
+          .sort(
+            (a, b) =>
+              new Date(b.character.updatedAt).getTime() -
+              new Date(a.character.updatedAt).getTime(),
+          )[0]?.character;
+
+        if (match) {
+          return res.status(200).json(match);
+        }
+
         const character = await this.db.createCharacter(
           user.id,
           name.trim(),

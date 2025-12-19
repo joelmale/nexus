@@ -852,6 +852,25 @@ export class DatabaseService {
     return result.rowCount || 0;
   }
 
+  /**
+   * Deletes characters by id list
+   * @param {string[]} ids - Character IDs to delete
+   * @returns {Promise<number>} Count of deleted characters
+   */
+  async deleteCharactersByIds(ids: string[]): Promise<number> {
+    if (ids.length === 0) {
+      return 0;
+    }
+
+    const result = await this.pool.query(
+      'DELETE FROM characters WHERE id = ANY($1::uuid[])',
+      [ids],
+    );
+
+    console.log(`🗄️ Deleted ${result.rowCount} duplicate characters`);
+    return result.rowCount || 0;
+  }
+
   // ============================================================================
   // SESSION OPERATIONS
   // ============================================================================
