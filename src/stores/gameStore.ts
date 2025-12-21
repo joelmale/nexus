@@ -3558,8 +3558,6 @@ export const useGameStore = create<GameStore>()(
             }
           }
         });
-
-        scheduleCampaignPersistence(sceneId, get);
       },
 
       setTyping: (isTyping) => {
