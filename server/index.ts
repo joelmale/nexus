@@ -105,9 +105,10 @@ const ASSET_CATEGORIES = {
 type CharacterRecord = {
   id: string;
   name: string;
+  ownerId: string;
   data: unknown;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 const stableStringify = (value: unknown): string => {
@@ -967,9 +968,7 @@ class NexusServer {
 
         const user = req.user as { id: string };
         const characters = await this.db.getCharactersByUser(user.id);
-        const { unique, duplicateIds } = dedupeCharacters(
-          characters as CharacterRecord[],
-        );
+        const { unique, duplicateIds } = dedupeCharacters(characters);
 
         if (duplicateIds.length > 0) {
           await this.db.deleteCharactersByIds(duplicateIds);
@@ -1040,7 +1039,7 @@ class NexusServer {
         const user = req.user as { id: string };
         const existingCharacters = await this.db.getCharactersByUser(user.id);
         const incomingKey = buildCharacterKey(name.trim(), data || {});
-        const match = (existingCharacters as CharacterRecord[])
+        const match = existingCharacters
           .map((character) => ({
             character,
             key: buildCharacterKey(character.name, character.data),
