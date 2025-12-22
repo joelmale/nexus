@@ -177,7 +177,7 @@ jobs:
           fetch-depth: 0 # Full history for secret scanning
 
       - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog@v3.92.1
+        uses: trufflesecurity/trufflehog@v3.92.4
         continue-on-error: true # Don't fail when BASE and HEAD are the same
         with:
           path: ./
