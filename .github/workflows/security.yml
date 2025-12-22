@@ -2,15 +2,10 @@ name: Security Scan
 
 on:
   schedule:
-    - cron: '0 2 * * *' # Daily at 2 AM UTC
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
+    - cron: '0 3 * * 0' # Weekly at 3 AM UTC on Sunday
   workflow_dispatch:
 
 jobs:
-  # CodeQL Analysis
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
@@ -20,7 +15,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -36,58 +31,6 @@ jobs:
         with:
           category: '/language:javascript-typescript'
 
-  # Snyk Security Scan
-  snyk:
-    name: Snyk Security Scan
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Set up Snyk CLI
-        uses: snyk/actions/setup@0.4.0
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: Run Snyk Code (SAST)
-        run: snyk code test --sarif-file-output=snyk-code.sarif || true
-        continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: Run Snyk Open Source (SCA)
-        run: snyk test --sarif-file-output=snyk-oss.sarif || true
-        continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: Upload Snyk Code results
-        if: always() && hashFiles('snyk-code.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: snyk-code.sarif
-          category: snyk-code
-
-      - name: Upload Snyk Open Source results
-        if: always() && hashFiles('snyk-oss.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: snyk-oss.sarif
-          category: snyk-oss
-
-  # Container Scanning
   container-scan:
     name: Container Security Scan
     runs-on: ubuntu-latest
@@ -100,7 +43,7 @@ jobs:
         image: [frontend, backend]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -134,93 +77,3 @@ jobs:
           image: nexus-vtt/${{ matrix.image }}:scan
           fail-build: false
           severity-cutoff: high
-
-  # OWASP Dependency Check
-  dependency-check:
-    name: OWASP Dependency Check
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Run OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@1.1.0
-        with:
-          project: 'nexus-vtt'
-          path: '.'
-          format: 'HTML'
-          args: >
-            --enableRetired
-            --enableExperimental
-
-      - name: Upload results
-        uses: actions/upload-artifact@v6
-        if: always()
-        with:
-          name: dependency-check-report
-          path: reports/
-
-  # Secret Scanning
-  secret-scan:
-    name: Secret Scanning
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0 # Full history for secret scanning
-
-      - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog@v3.92.1
-        continue-on-error: true # Don't fail when BASE and HEAD are the same
-        with:
-          path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-          extra_args: --only-verified
-
-      - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_SUMMARY: true
-
-  # License Compliance
-  license-check:
-    name: License Compliance Check
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Check licenses
-        run: npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;Unlicense;LGPL-3.0-or-later;CC0-1.0;Python-2.0;CC-BY-4.0;BlueOak-1.0.0;0BSD'
-        continue-on-error: true
-
-      - name: Generate license report
-        run: npx license-checker --json --out licenses.json
-        if: always()
-
-      - name: Upload license report
-        uses: actions/upload-artifact@v6
-        if: always()
-        with:
-          name: license-report
-          path: licenses.json

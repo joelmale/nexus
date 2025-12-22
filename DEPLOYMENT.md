@@ -113,7 +113,7 @@ JWT_SECRET=<run: openssl rand -base64 32>
 
 ### 3. Build and Push Docker Images
 
-**Note:** Images are automatically built and pushed to GitHub Container Registry (GHCR) via GitHub Actions when you push to `main` branch. See `.github/workflows/deploy-homelab.yml` for details.
+**Note:** Images are automatically built and pushed to GitHub Container Registry (GHCR) via GitHub Actions when you push to `master` branch. See `.github/workflows/build-and-push.yml` for details.
 
 If you need to manually build and push:
 
