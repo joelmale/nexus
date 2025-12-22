@@ -69,7 +69,7 @@
     "helmet": "^8.1.0",
     "immer": "^11.1.0",
     "jsonwebtoken": "^9.0.3",
-    "lucide-react": "^0.561.0",
+    "lucide-react": "^0.562.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-oauth2": "^1.8.0",
