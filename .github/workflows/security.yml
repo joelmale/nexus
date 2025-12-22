@@ -57,7 +57,7 @@ jobs:
         run: npm ci
 
       - name: Set up Snyk CLI
-        uses: snyk/actions/setup@0.4.0
+        uses: snyk/actions/setup@v1.0.0
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
