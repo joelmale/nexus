@@ -1,7 +1,7 @@
 version: '3.8'
 
 # Production Docker Compose for Docker Swarm
-# Deploy with: docker stack deploy -c docker/docker-compose.yml nexus
+# Deploy with: docker stack deploy -c docker/docker-compose.yml nexusvtt
 
 services:
   # PostgreSQL Database

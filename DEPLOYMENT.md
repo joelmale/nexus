@@ -8,7 +8,7 @@ Your OAuth callback URLs are set to `localhost` instead of your production domai
 
 ### Fix in 2 Minutes:
 
-1. **In Portainer:** Stacks → nexus → Editor
+1. **In Portainer:** Stacks → nexusvtt → Editor
 2. **Find these lines** (around line 116-121 in the backend service):
    ```yaml
    # ❌ WRONG
@@ -39,7 +39,7 @@ Your OAuth callback URLs are set to `localhost` instead of your production domai
 
 ### 1. Configure Environment Variables in Portainer
 
-Go to your `nexus_vtt_backend` service and set these environment variables:
+Go to your `nexusvtt_backend` service and set these environment variables:
 
 #### **Required Variables**
 
@@ -48,7 +48,7 @@ NODE_ENV=production
 PORT=5000
 
 # Database connection
-# IMPORTANT: Service name is "postgres" (from docker-compose.yml), not "nexus_vtt_postgres"
+# IMPORTANT: Service name is "postgres" (from docker-compose.yml), not "nexusvtt_postgres"
 # Docker Swarm handles service discovery - use the service name from the compose file
 DATABASE_URL=postgresql://nexus:YOUR_POSTGRES_PASSWORD@postgres:5432/nexus
 POSTGRES_DB=nexus
@@ -184,8 +184,8 @@ docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2025-12
 
 ### 5. Update Services in Portainer
 
-1. Go to Portainer → Stacks → nexus_vtt
-2. For **both** `nexus_vtt_backend` and `nexus_vtt_frontend` services:
+1. Go to Portainer → Stacks → nexusvtt
+2. For **both** `nexusvtt_backend` and `nexusvtt_frontend` services:
    - Click "Update the service"
    - Enable "Pull latest image"
    - Click "Update"
@@ -240,7 +240,7 @@ Open DevTools (F12) and look for:
 
 ### Infrastructure
 
-- **nginx**: Proxies `/ws`, `/api`, `/auth` to `nexus_vtt_backend:5000`
+- **nginx**: Proxies `/ws`, `/api`, `/auth` to `nexusvtt_backend:5000`
 - **All services on same domain**: No CORS issues, no absolute URLs needed
 
 ---
@@ -262,7 +262,7 @@ Open DevTools (F12) and look for:
 ### "Connection Refused" or 502 errors
 
 - **Check**: Make sure backend service is running and healthy
-- **Check**: nginx can reach `nexus_vtt_backend:5000`
+- **Check**: nginx can reach `nexusvtt_backend:5000`
 - **Fix**: Check service logs in Portainer
 
 ### Session/cookies not working
@@ -319,7 +319,7 @@ See `.env.production.template` for full reference with comments.
 ```bash
 NODE_ENV=production
 PORT=5000
-DATABASE_URL=postgresql://nexus:password@nexus_vtt_postgres:5432/nexus
+DATABASE_URL=postgresql://nexus:password@nexusvtt_postgres:5432/nexus
 
 # OAuth Callback URLs (REQUIRED - absolute URLs for OAuth providers)
 GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback

@@ -56,7 +56,7 @@ All services communicate using **Docker Swarm's internal DNS**:
 
 - Service names from `docker-compose.yml` become DNS entries
 - Example: `postgres` resolves to the PostgreSQL service IP
-- Stack prefix (`nexus_vtt_`) is only for container names, not DNS
+- Stack prefix (`nexusvtt_`) is only for container names, not DNS
 
 **Key Point:** Use service names from the compose file, not stack-prefixed names!
 
@@ -82,17 +82,17 @@ nginx routes requests based on URL path:
 ```nginx
 location /ws {
     # WebSocket connections
-    proxy_pass http://nexus_vtt_backend:5000;
+    proxy_pass http://nexusvtt_backend:5000;
 }
 
 location /api {
     # REST API calls
-    proxy_pass http://nexus_vtt_backend:5000;
+    proxy_pass http://nexusvtt_backend:5000;
 }
 
 location /auth {
     # OAuth and authentication
-    proxy_pass http://nexus_vtt_backend:5000;
+    proxy_pass http://nexusvtt_backend:5000;
 }
 
 location / {
@@ -112,7 +112,7 @@ GET https://app.nexusvtt.com/assets/logo.png
 **API Request:**
 ```
 GET https://app.nexusvtt.com/api/campaigns
-→ nginx proxies to http://nexus_vtt_backend:5000/api/campaigns
+→ nginx proxies to http://nexusvtt_backend:5000/api/campaigns
 → Backend handles request
 → nginx returns response to browser
 ```
@@ -121,7 +121,7 @@ GET https://app.nexusvtt.com/api/campaigns
 ```
 WSS wss://app.nexusvtt.com/ws
 → nginx upgrades to WebSocket
-→ Proxies to ws://nexus_vtt_backend:5000/ws
+→ Proxies to ws://nexusvtt_backend:5000/ws
 → Persistent connection maintained
 ```
 
@@ -205,7 +205,7 @@ session({
 # Critical: Forward cookies in BOTH directions
 
 location /api {
-    proxy_pass http://nexus_vtt_backend:5000;
+    proxy_pass http://nexusvtt_backend:5000;
 
     # Browser → Backend: Forward Cookie header
     proxy_set_header Cookie $http_cookie;
