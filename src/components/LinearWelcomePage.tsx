@@ -75,6 +75,7 @@ export const LinearWelcomePage: React.FC = () => {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const emailInputRef = React.useRef<HTMLInputElement | null>(null);
+  const buildVersion = import.meta.env.VITE_BUILD_VERSION ?? 'dev';
 
   // Detect if we're returning from OAuth (check for common OAuth params)
   const isOAuthRedirect = React.useMemo(() => {
@@ -459,6 +460,9 @@ export const LinearWelcomePage: React.FC = () => {
 
       <div className="welcome-content">
         <div className="welcome-panel glass-panel">
+          <div className="build-badge" aria-label="Build version">
+            Build {buildVersion}
+          </div>
           {/* Account Menu - Upper Right */}
           <div className="account-menu">
             <button

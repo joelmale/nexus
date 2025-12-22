@@ -26,6 +26,10 @@ FROM node:25-alpine AS builder
 
 WORKDIR /app
 
+# Build metadata
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+
 # Copy package files
 COPY package*.json ./
 
@@ -34,6 +38,9 @@ RUN npm ci
 
 # Copy source code
 COPY . .
+
+# Expose build version to Vite
+ENV VITE_BUILD_VERSION=$VERSION
 
 # Build the application
 RUN npm run build
