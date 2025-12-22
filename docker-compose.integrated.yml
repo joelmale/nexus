@@ -275,6 +275,8 @@ services:
 networks:
   nexus-integrated:
     driver: bridge
+  homelab-net:
+    external: true
 
 volumes:
   postgres_data:
